@@ -1,0 +1,23 @@
+{
+  "name": "control-parental",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/Innova-Lab-Equipo-21/Innova-Lab-Equipo-21-Control-Parental#readme",
+  "bugs": {
+    "url": "https://github.com/Innova-Lab-Equipo-21/Innova-Lab-Equipo-21-Control-Parental/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Innova-Lab-Equipo-21/Innova-Lab-Equipo-21-Control-Parental.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
