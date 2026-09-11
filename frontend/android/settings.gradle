@@ -1,0 +1,9 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Configuración Gradle
+// Archivo: settings.gradle
+// Descripción: Configuración de módulos para el proyecto Android en Kotlin
+// ==============================================================================
+
+rootProject.name = 'BAProtege'
+include ':app'

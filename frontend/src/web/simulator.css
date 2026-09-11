@@ -1,0 +1,432 @@
+/*
+==============================================================================
+Proyecto: BA Protege+
+Componente: Estilos del Simulador Web
+Archivo: src/web/simulator.css
+Descripción: Hoja de estilos con estética premium, marcos de dispositivo móvil y panel de telemetría.
+==============================================================================
+*/
+
+:root {
+  --primary: #0d6efd;
+  --primary-glow: rgba(13, 110, 253, 0.25);
+  --success: #10b981;
+  --success-bg: #d1fae5;
+  --danger: #ef4444;
+  --danger-bg: #fee2e2;
+  --warning: #f59e0b;
+  --warning-bg: #fef3c7;
+  --bg-studio: #0b0f19;
+  --surface-studio: #111827;
+  --surface-border: #1f2937;
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --phone-bg: #f8fafc;
+  --phone-surface: #ffffff;
+  --phone-border: #e2e8f0;
+  --phone-text: #0f172a;
+  --phone-subtext: #64748b;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-studio);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.studio-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100vw;
+}
+
+/* Sidebar de Control y Telemetría */
+.studio-sidebar {
+  flex: 1;
+  max-width: 440px;
+  background-color: var(--surface-studio);
+  border-right: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.studio-header {
+  padding: 24px;
+  border-bottom: 1px solid var(--surface-border);
+  background: linear-gradient(180deg, rgba(13, 110, 253, 0.08) 0%, transparent 100%);
+}
+
+.studio-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.studio-badge .pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
+.studio-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.section-box {
+  padding: 20px;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.scenario-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scenario-btn {
+  background-color: #1f2937;
+  border: 1px solid #374151;
+  color: #e5e7eb;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.scenario-btn:hover {
+  background-color: #374151;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.scenario-btn.active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+/* Consola de Registros de Red */
+.network-log-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.network-log-box {
+  flex: 1;
+  background-color: #080c14;
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  overflow-y: auto;
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.log-entry {
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.log-entry.GET {
+  color: #38bdf8;
+}
+
+.log-entry.POST {
+  color: #4ade80;
+}
+
+.log-entry.BLOCK {
+  color: #f87171;
+  font-weight: bold;
+}
+
+/* Área Central del Dispositivo Móvil */
+.studio-stage {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  background: radial-gradient(circle at center, #172033 0%, #0b0f19 70%);
+  position: relative;
+}
+
+.device-frame {
+  width: 390px;
+  height: 780px;
+  background-color: #000000;
+  border-radius: 46px;
+  padding: 12px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 4px #262626, 0 0 40px rgba(13, 110, 253, 0.15);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.device-notch {
+  width: 120px;
+  height: 24px;
+  background-color: #000000;
+  border-radius: 12px;
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.notch-camera {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #1a1a1a;
+  box-shadow: inset 0 0 2px #0d6efd;
+}
+
+.device-screen {
+  flex: 1;
+  background-color: var(--phone-bg);
+  border-radius: 36px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.phone-status-bar {
+  height: 42px;
+  padding: 10px 24px 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--phone-text);
+  background-color: var(--phone-surface);
+}
+
+.phone-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Elementos de la App dentro del Celular */
+.app-header {
+  padding: 16px 20px;
+  background-color: var(--phone-surface);
+  border-bottom: 1px solid var(--phone-border);
+}
+
+.app-header h1 {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--phone-text);
+}
+
+.app-header p {
+  font-size: 12px;
+  color: var(--phone-subtext);
+  margin-top: 2px;
+}
+
+.app-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.app-card {
+  background-color: var(--phone-surface);
+  border: 1px solid var(--phone-border);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.status-indicator.active {
+  background-color: var(--success-bg);
+  color: var(--success);
+}
+
+.status-indicator.inactive {
+  background-color: var(--danger-bg);
+  color: var(--danger);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  background-color: #f1f5f9;
+  border-radius: 12px;
+  padding: 10px;
+  margin-top: 12px;
+  text-align: center;
+}
+
+.metric-item strong {
+  display: block;
+  font-size: 15px;
+  color: var(--phone-text);
+}
+
+.metric-item span {
+  font-size: 10px;
+  color: var(--phone-subtext);
+}
+
+.btn-primary {
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-primary:hover {
+  opacity: 0.92;
+}
+
+.btn-secondary {
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  background-color: #e2e8f0;
+  color: #334155;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-danger {
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  background-color: var(--danger);
+  color: #ffffff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sim-block-box {
+  background: #fff1f2;
+  border: 1px dashed #f43f5e;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.sim-block-box select,
+.sim-block-box input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+.blocked-banner {
+  background-color: #fee2e2;
+  border: 2px solid #ef4444;
+  color: #991b1b;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}

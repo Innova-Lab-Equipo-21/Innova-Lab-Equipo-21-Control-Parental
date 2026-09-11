@@ -1,0 +1,43 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Configuración Gradle App
+// Archivo: android/app/build.gradle
+// Descripción: Configuración de compilación, dependencias de Android y React Native
+// ==============================================================================
+
+apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+
+android {
+    namespace "com.baprotege"
+    compileSdkVersion rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        applicationId "com.baprotege"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+dependencies {
+    // React Native Core
+    implementation("com.facebook.react:react-android")
+    
+    // Kotlin Standard Library
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}")
+    
+    // AndroidX & Componentes de UI
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+}

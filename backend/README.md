@@ -1,0 +1,197 @@
+# BA Protege+ — Backend API
+
+<!--
+==============================================================================
+Proyecto: BA Protege+
+Componente: Backend API
+Archivo: backend/README.md
+Descripción: Documentación técnica, guía de instalación, configuración de base de
+             datos y referencia de endpoints de la API REST.
+==============================================================================
+-->
+
+Servidor backend desarrollado en **Node.js 24 (LTS) + Express + TypeScript**, con soporte de base de datos relacional **PostgreSQL 18** a través de **Prisma ORM** y **Modo de Datos Simulados (Mock Data)** en memoria para desarrollo ágil.
+
+---
+
+## 📌 Tabla de Contenidos
+
+1. [Tecnologías y Arquitectura](#-tecnologías-y-arquitectura)
+2. [Estructura del Proyecto](#-estructura-del-proyecto)
+3. [Instalación y Configuración](#-instalación-y-configuración)
+4. [Modos de Ejecución (Mock vs. PostgreSQL)](#-modos-de-ejecución-mock-vs-postgresql)
+5. [Scripts Disponibles](#-scripts-disponibles)
+6. [Referencia de Endpoints y Pruebas con cURL](#-referencia-de-endpoints-y-pruebas-con-curl)
+7. [Datos de Prueba Precargados (Modo Mock)](#-datos-de-prueba-precargados-modo-mock)
+
+---
+
+## 🛠️ Tecnologías y Arquitectura
+
+- **Runtime:** Node.js 24.20 LTS
+- **Lenguaje:** TypeScript 5.7+
+- **Framework Web:** Express 4.x / 5.x
+- **ORM:** Prisma ORM 5.22+
+- **Base de Datos:** PostgreSQL 18.6
+- **Autenticación & Seguridad:** JWT (`jsonwebtoken`) + Hashing (`bcryptjs`) + `cors`
+- **Validación de Esquemas:** Zod
+
+---
+
+## 📁 Estructura del Proyecto
+
+```text
+backend/
+├── prisma/
+│   └── schema.prisma         # Definición del esquema relacional PostgreSQL y modelos
+├── src/
+│   ├── config/
+│   │   ├── database.ts       # Singleton del cliente Prisma y verificador de conexión
+│   │   ├── environment.ts    # Validación de variables de entorno con Zod
+│   │   └── mock-database.ts  # Repositorio en memoria con datos de prueba realistas
+│   ├── controllers/          # Manejadores HTTP para Auth, Dispositivos, Listas y Telemetría
+│   ├── middlewares/          # Autenticación JWT, validación Zod y manejo centralizado de errores
+│   ├── routes/               # Enrutamiento modular bajo el prefijo /api
+│   ├── services/             # Lógica de negocio (Pairing, Heartbeat, Listas LOTBA)
+│   ├── types/                # Definiciones de tipos e interfaces compartidas
+│   ├── app.ts                # Configuración de Express y middlewares globales
+│   └── server.ts             # Punto de entrada y arranque del servidor HTTP
+├── .env                      # Variables de entorno activas
+├── .env.example              # Plantilla de variables de entorno
+├── package.json              # Dependencias y scripts npm
+└── tsconfig.json             # Configuración del compilador TypeScript
+```
+
+---
+
+## ⚙️ Instalación y Configuración
+
+### 1. Instalar dependencias
+Desde la raíz del repositorio o dentro de la carpeta `backend`:
+```bash
+cd backend
+npm install
+```
+
+### 2. Configurar variables de entorno
+Copiar el archivo de plantilla `.env.example` a `.env`:
+```bash
+cp .env.example .env
+```
+
+Contenido del archivo `.env`:
+```env
+PORT=3000
+NODE_ENV=development
+USE_MOCK_DATA=true
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/baprotege_db?schema=public"
+JWT_SECRET="clave_secreta_super_segura_para_desarrollo_ba_protege"
+JWT_EXPIRES_IN="7d"
+HEARTBEAT_TIMEOUT_MINUTES=5
+```
+
+---
+
+## 🔄 Modos de Ejecución (Mock vs. PostgreSQL)
+
+### A. Modo de Datos Simulados (`USE_MOCK_DATA=true`)
+- **No requiere instalar ni levantar PostgreSQL.**
+- Todos los endpoints de registro, login, dispositivos, pareamiento, listas y latidos funcionan en memoria con datos precargados.
+- Ideal para desarrollo frontend, pruebas de interfaz y validación rápida.
+
+### B. Modo Base de Datos Real (`USE_MOCK_DATA=false`)
+- Conecta a una instancia activa de PostgreSQL 18.
+- Ejecutar migraciones iniciales para crear las tablas:
+  ```bash
+  npx prisma migrate dev --name init
+  ```
+- Generar el cliente de Prisma:
+  ```bash
+  npx prisma generate
+  ```
+
+---
+
+## 📜 Scripts Disponibles
+
+| Comando | Descripción |
+| :--- | :--- |
+| `npm run dev` | Inicia el servidor con recarga en caliente usando `tsx watch`. |
+| `npm run build` | Compila el código TypeScript a JavaScript en la carpeta `dist/`. |
+| `npm run start` | Inicia el servidor compilado de producción (`node dist/server.js`). |
+| `npm run lint` | Valida la coherencia de tipos con `tsc --noEmit`. |
+| `npm run prisma:generate` | Regenera el cliente de Prisma basado en `schema.prisma`. |
+| `npm run prisma:migrate` | Aplica migraciones pendientes a la base de datos PostgreSQL. |
+| `npm run prisma:studio` | Abre la interfaz visual de Prisma Studio para inspeccionar datos. |
+
+---
+
+## 📡 Referencia de Endpoints y Pruebas con cURL
+
+### 1. Verificación de Estado (Health Check)
+```bash
+curl http://localhost:3000/api/health
+```
+*Respuesta:*
+```json
+{
+  "status": "UP",
+  "project": "BA Protege+",
+  "timestamp": "2026-09-11T16:47:31.722Z"
+}
+```
+
+### 2. Autenticación de Responsable (Login)
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"tutor@baprotege.gob.ar\",\"password\":\"password123\"}"
+```
+*Respuesta:* Retorna el objeto `user` y el `token` JWT necesario para las rutas protegidas.
+
+### 3. Listado de Dispositivos Vinculados (Requiere Token)
+```bash
+curl http://localhost:3000/api/devices \
+  -H "Authorization: Bearer TU_TOKEN_JWT_AQUI"
+```
+
+### 4. Generación de Código de Pareamiento (6 Dígitos)
+```bash
+curl -X POST http://localhost:3000/api/devices/pair/generate \
+  -H "Authorization: Bearer TU_TOKEN_JWT_AQUI"
+```
+*Respuesta:* Retorna un código numérico temporal (ej: `483921`) con validez de 15 minutos.
+
+### 5. Consulta de Lista Oficial LOTBA
+```bash
+curl http://localhost:3000/api/blocklist/official
+```
+*Respuesta:* Retorna los 10 dominios oficiales de apuestas no autorizadas con su número de versión.
+
+### 6. Enviar Latido de Telemetría (Heartbeat)
+```bash
+curl -X POST http://localhost:3000/api/telemetry/heartbeat \
+  -H "Content-Type: application/json" \
+  -d "{\"deviceUuid\":\"uuid-samsung-mateo-a54\",\"vpnActive\":true,\"permissionsOk\":true,\"batteryLevel\":85,\"blocklistVersion\":4}"
+```
+
+### 7. Registrar Intento de Acceso Bloqueado
+```bash
+curl -X POST http://localhost:3000/api/telemetry/events/blocked \
+  -H "Content-Type: application/json" \
+  -d "{\"deviceUuid\":\"uuid-samsung-mateo-a54\",\"attemptedDomain\":\"apuestas-online-ilegal.bet\",\"sourceListType\":\"LOTBA\"}"
+```
+
+---
+
+## 👥 Datos de Prueba Precargados (Modo Mock)
+
+- **Usuario Responsable:**
+  - Email: `tutor@baprotege.gob.ar`
+  - Contraseña: `password123`
+  - Nombre: Carlos Gutiérrez (Tutor)
+- **Dispositivos Vinculados:**
+  1. `Samsung Galaxy A54 (Mateo)` — Estado: **`ACTIVE`** (VPN encendida, 3 bloqueos previos).
+  2. `Motorola Moto G84 (Sofía)` — Estado: **`ACTIVE`** (VPN encendida).
+  3. `Xiaomi Redmi Note 13 (Lucas)` — Estado: **`PERMISSION_REQUIRED`** (VPN apagada por permiso revocado).
+- **Código de Pareamiento Inicial Activo:** `483921`

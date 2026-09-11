@@ -1,0 +1,26 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Backend API
+// Archivo: tsconfig.json
+// Descripción: Configuración del compilador TypeScript para el backend (Node.js / ES Modules)
+// ==============================================================================
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "declaration": false,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

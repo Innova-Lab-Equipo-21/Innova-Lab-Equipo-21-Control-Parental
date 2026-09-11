@@ -1,0 +1,24 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Frontend Mobile (React Native + TypeScript)
+// Archivo: tsconfig.json
+// Descripción: Configuración del compilador TypeScript para la aplicación móvil.
+// ==============================================================================
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-native",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*", "index.js", "App.tsx"],
+  "exclude": ["node_modules", "android"]
+}

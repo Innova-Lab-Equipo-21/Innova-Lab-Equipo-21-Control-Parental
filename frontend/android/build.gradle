@@ -1,0 +1,31 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Configuración Gradle Raíz
+// Archivo: android/build.gradle
+// Descripción: Repositorios y plugins de compilación para Android y Kotlin 2.x
+// ==============================================================================
+
+buildscript {
+    ext {
+        buildToolsVersion = "35.0.0"
+        minSdkVersion = 26
+        compileSdkVersion = 35
+        targetSdkVersion = 35
+        kotlinVersion = "2.0.21"
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.7.3")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
