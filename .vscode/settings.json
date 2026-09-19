@@ -1,0 +1,40 @@
+{
+  "java.jdt.ls.java.home": "C:\\Program Files\\Android\\Android Studio\\jbr",
+  "java.home": "C:\\Program Files\\Android\\Android Studio\\jbr",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-17",
+      "path": "C:\\Program Files\\Android\\Android Studio\\jbr",
+      "default": true
+    }
+  ],
+  "gradle.autoDetect": "off",
+  "gradle.nestedProjects": false,
+  "gradle.projects": [
+    {
+      "projectPath": "frontend/android"
+    }
+  ],
+  "files.exclude": {
+    "**/node_modules/**": true,
+    "**/.git": true,
+    "**/.gradle/**": true
+  },
+  "search.exclude": {
+    "**/node_modules/**": true,
+    "**/.gradle/**": true
+  },
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/.gradle/**": true,
+    "**/build/**": true,
+    "**/dist/**": true
+  },
+  "java.project.resourceFilters": [
+    "node_modules",
+    ".git"
+  ]
+}
+
