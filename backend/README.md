@@ -141,7 +141,23 @@ curl http://localhost:3000/api/health
 }
 ```
 
-### 2. Autenticación de Responsable (Login)
+### 2. Registro de Usuario Responsable (Crear Cuenta)
+```bash
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "gender": "Masculino",
+    "birthDate": "15/05/1984",
+    "phone": "11 2345-6789",
+    "email": "juan.perez@ejemplo.com",
+    "password": "password123"
+  }'
+```
+*Respuesta:* Retorna el objeto `user` con ID generado y el `token` JWT de sesión.
+
+### 3. Autenticación de Responsable (Login)
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -149,33 +165,41 @@ curl -X POST http://localhost:3000/api/auth/login \
 ```
 *Respuesta:* Retorna el objeto `user` y el `token` JWT necesario para las rutas protegidas.
 
-### 3. Listado de Dispositivos Vinculados (Requiere Token)
+### 4. Recuperación de Contraseña
+```bash
+curl -X POST http://localhost:3000/api/auth/recover-password \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"tutor@baprotege.gob.ar\"}"
+```
+*Respuesta:* Retorna confirmación del procesamiento de la solicitud de recuperación.
+
+### 5. Listado de Dispositivos Vinculados (Requiere Token)
 ```bash
 curl http://localhost:3000/api/devices \
   -H "Authorization: Bearer TU_TOKEN_JWT_AQUI"
 ```
 
-### 4. Generación de Código de Pareamiento (6 Dígitos)
+### 6. Generación de Código de Pareamiento (6 Dígitos)
 ```bash
 curl -X POST http://localhost:3000/api/devices/pair/generate \
   -H "Authorization: Bearer TU_TOKEN_JWT_AQUI"
 ```
 *Respuesta:* Retorna un código numérico temporal (ej: `483921`) con validez de 15 minutos.
 
-### 5. Consulta de Lista Oficial LOTBA
+### 7. Consulta de Lista Oficial LOTBA
 ```bash
 curl http://localhost:3000/api/blocklist/official
 ```
-*Respuesta:* Retorna los 10 dominios oficiales de apuestas no autorizadas con su número de versión.
+*Respuesta:* Retorna los dominios oficiales de apuestas no autorizadas con su número de versión.
 
-### 6. Enviar Latido de Telemetría (Heartbeat)
+### 8. Enviar Latido de Telemetría (Heartbeat)
 ```bash
 curl -X POST http://localhost:3000/api/telemetry/heartbeat \
   -H "Content-Type: application/json" \
   -d "{\"deviceUuid\":\"uuid-samsung-mateo-a54\",\"vpnActive\":true,\"permissionsOk\":true,\"batteryLevel\":85,\"blocklistVersion\":4}"
 ```
 
-### 7. Registrar Intento de Acceso Bloqueado
+### 9. Registrar Intento de Acceso Bloqueado
 ```bash
 curl -X POST http://localhost:3000/api/telemetry/events/blocked \
   -H "Content-Type: application/json" \

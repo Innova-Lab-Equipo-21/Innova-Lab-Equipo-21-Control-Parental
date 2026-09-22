@@ -21,15 +21,21 @@ import { Header } from '../components/Header.js';
 import { ActionButton } from '../components/ActionButton.js';
 import { colors } from '../theme/colors.js';
 import { apiService } from '../services/api.service.js';
+import { LoginScreen } from './LoginScreen.js';
 
 interface ParentDashboardScreenProps {
   onExitMode: () => void;
+  initialUser?: any;
+  initialToken?: string | null;
 }
 
-export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({ onExitMode }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [email, setEmail] = useState('tutor@baprotege.gob.ar');
-  const [password, setPassword] = useState('password123');
+export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
+  onExitMode,
+  initialUser,
+  initialToken,
+}) => {
+  const [isLoggedIn, setIsLoggedIn] = useState(!!initialToken);
+  const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [devices, setDevices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -40,38 +46,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({ on
     }
   }, [isLoggedIn]);
 
-  const handleLogin = async () => {
-    setLoading(true);
-    try {
-      await apiService.login({ email, password });
-      setIsLoggedIn(true);
-    } catch (error: any) {
-      // Si falla login, intentamos registro automático en modo demo
-      try {
-        await apiService.register({
-          email,
-          password,
-          fullName: 'Tutor Responsable',
-        });
-        await apiService.login({ email, password });
-        setIsLoggedIn(true);
-      } catch (regError) {
-        Alert.alert('Acceso Demo', 'Iniciando sesión en modo demostración local.');
-        setIsLoggedIn(true);
-        // Dispositivos simulados si el backend no está encendido
-        setDevices([
-          {
-            id: 'demo-1',
-            deviceName: 'Samsung Galaxy A54 (Mateo)',
-            childName: 'Mateo',
-            status: { effectiveStatus: 'ACTIVE', vpnActive: true },
-            lastSeenAt: 'Hace 30 seg',
-          },
-        ]);
-      }
-    } finally {
-      setLoading(false);
-    }
+  const handleLoginSuccess = (user: any, _token: string) => {
+    setCurrentUser(user);
+    setIsLoggedIn(true);
   };
 
   const loadDevices = async () => {
@@ -99,48 +76,23 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({ on
 
   if (!isLoggedIn) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <Header title="Acceso Responsable" subtitle="Inicia sesión para gestionar los dispositivos" />
-        <View style={styles.loginContainer}>
-          <View style={styles.formCard}>
-            <Text style={styles.label}>Correo Electrónico</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-
-            <Text style={styles.label}>Contraseña</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-
-            <View style={{ marginTop: 20 }}>
-              <ActionButton
-                title="Ingresar al Panel"
-                onPress={handleLogin}
-                loading={loading}
-              />
-              <ActionButton
-                title="Volver"
-                variant="secondary"
-                onPress={onExitMode}
-              />
-            </View>
-          </View>
-        </View>
-      </SafeAreaView>
+      <LoginScreen
+        onLoginSuccess={handleLoginSuccess}
+        onBack={onExitMode}
+      />
     );
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title="Panel del Responsable" subtitle="Monitoreo y Estado Efectivo de Protección" />
+      <Header
+        title="Panel del Responsable"
+        subtitle={
+          currentUser?.fullName
+            ? `Bienvenido/a, ${currentUser.fullName}`
+            : 'Monitoreo y Estado Efectivo de Protección'
+        }
+      />
       <ScrollView contentContainerStyle={styles.container}>
         {/* Generador de código de pareamiento */}
         <View style={styles.pairingSection}>

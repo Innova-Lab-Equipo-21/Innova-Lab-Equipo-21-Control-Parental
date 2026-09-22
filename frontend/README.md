@@ -63,21 +63,24 @@ frontend/
 │   ├── components/                           # Componentes visuales reutilizables
 │   │   ├── ActionButton.tsx                  # Botón con estados de carga y variantes
 │   │   ├── Header.tsx                        # Encabezado institucional
+│   │   ├── Logo.tsx                          # Logotipo genérico con candado abierto y tipografía oficial
 │   │   └── StatusCard.tsx                    # Tarjeta de estado efectivo de protección
 │   ├── screens/                              # Pantallas de la aplicación móvil
+│   │   ├── LoginScreen.tsx                   # Pantalla de Autenticación, Recuperación y Registro
 │   │   ├── PairingScreen.tsx                 # Pantalla de vinculación por código de 6 dígitos
 │   │   ├── ParentDashboardScreen.tsx         # Panel del responsable y gestión de dispositivos
 │   │   ├── ProtectedDeviceScreen.tsx         # Panel de control del menor y simulador de bloqueo
 │   │   └── WelcomeScreen.tsx                 # Selección de rol (Responsable vs. Protegido)
 │   ├── services/                             # Lógica de comunicación y puentes
-│   │   ├── api.service.ts                    # Cliente HTTP Axios conectado a la API REST
+│   │   ├── api.service.ts                    # Cliente HTTP Axios (Login, Register, RecoverPassword, Telemetría)
 │   │   └── vpn.service.ts                    # Servicio puente con ProtectionModule nativo
 │   ├── theme/                                # Tokens de diseño y colores
 │   │   └── colors.ts
 │   ├── types/                                # Definición de tipos TypeScript globales
+│   │   └── index.ts
 │   ├── web/                                  # Simulador web interactivo para pruebas
 │   │   ├── main.tsx                          # Punto de montaje del simulador web
-│   │   ├── simulator.css                     # Estilos de marco de teléfono y panel de red
+│   │   ├── simulator.css                     # Estilos de marco de teléfono, carrusel y panel de red
 │   │   └── WebSimulator.tsx                  # Componente interactivo con teléfono virtual
 │   └── App.tsx                               # Componente raíz de React Native
 ├── index.html                                # Entrada HTML para el simulador web Vite
@@ -150,13 +153,31 @@ Para compilar y ejecutar el proyecto completo en un emulador Android (API 35 rec
 
 ## 🧪 Funcionalidades y Escenarios de Prueba
 
-### 1. Modo Responsable:
-- **Autenticación:** Iniciar sesión con `tutor@baprotege.gob.ar` / `password123`.
-- **Monitoreo:** Consultar estado de los 3 dispositivos vinculados (`Mateo` - Activo, `Sofía` - Activo, `Lucas` - Atención requerida).
-- **Generar Código:** Presionar *"Generar Código (6 dígitos)"* para obtener un token de pareamiento temporal.
-- **Dominios Personalizados:** Agregar sitios a la lista complementaria y eliminarlos.
+### 1. Flujo de Autenticación (`LoginScreen.tsx`):
+- **Logotipo Oficial:** Isotipo de candado abierto 🔓 con badge institucional y texto `"BA Protege+ - Control Parental y Protección Digital"`.
+- **Inicio de Sesión:**
+  - Correo electrónico con botón de borrado rápido (✕).
+  - Contraseña con botón de borrado (✕) y alternador de visibilidad (👁️ / 🙈).
+  - Acceso directo con credenciales demo (`tutor@baprotege.gob.ar` / `password123`).
+- **Recuperación de Contraseña:**
+  - Formulario con instrucciones en español y validación de correo para restablecimiento de acceso.
+- **Creación de Cuenta (Registro):**
+  - Disposición vertical completa de todos los campos:
+    1. `Nombre *` (mínimo 2 caracteres, solo letras).
+    2. `Apellido *` (mínimo 2 caracteres, solo letras).
+    3. `Género` (carrusel horizontal interactivo con tarjetas de selección e indicadores de puntos: *Masculino*, *Femenino*, *Otro*, *No informado*).
+    4. `Fecha de Nacimiento` (`DD/MM/AAAA` con máscara).
+    5. `Teléfono` (`XX XXXX-XXXX` con máscara).
+    6. `Correo Electrónico *` (con botón de borrado).
+    7. `Contraseña *` (mínimo 6 caracteres, con botón de borrado y visibilidad).
+    8. `Confirmar Contraseña *` (validación de coincidencia con contraseña).
 
-### 2. Modo Dispositivo Protegido:
+### 2. Panel del Responsable (`ParentDashboardScreen.tsx`):
+- **Monitoreo en Tiempo Real:** Estado de los dispositivos vinculados (`Mateo` - Activo, `Sofía` - Activo, `Lucas` - Atención requerida).
+- **Generar Código de Pareamiento:** Emisión de token de 6 dígitos válido por 15 minutos.
+- **Dominios Personalizados:** Administración de listas complementarias del tutor.
+
+### 3. Modo Dispositivo Protegido (`ProtectedDeviceScreen.tsx`):
 - **Estado VPN en Vivo:** Alternar entre *"Pausar Protección"* y *"Reanudar Protección"*.
-- **Prueba de Interceptación LOTBA:** Seleccionar un dominio de apuestas prohibido (ej. `apuestas-online-ilegal.bet`) y presionar *"Simular Intento de Navegación"*. Se mostrará la alerta roja y se enviará el evento de bloqueo a la API.
-- **Telemetría:** La app envía un latido automático cada 12 segundos reportando el estado real al backend.
+- **Prueba de Interceptación LOTBA:** Selección y prueba de bloqueo inmediato ante dominios no autorizados.
+- **Telemetría Periódica:** Emisión automática de latidos de estado (cada 12 segundos).

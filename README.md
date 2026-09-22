@@ -110,10 +110,22 @@ baprotege+/
 ├── frontend/                     # Aplicación Mobile (React Native + Kotlin + Simulador Web)
 │   ├── android/                  # Módulos nativos Android (VpnService, BootReceiver, Bridge)
 │   ├── src/
-│   │   ├── components/           # Componentes de UI (Header, StatusCard, ActionButton)
-│   │   ├── screens/              # Pantallas (Welcome, Pairing, ProtectedDevice, ParentDashboard)
+│   │   ├── components/           # Componentes de UI (Header, StatusCard, ActionButton, Logo)
+│   │   │   ├── ActionButton.tsx  # Botón con estados de carga y variantes
+│   │   │   ├── Header.tsx        # Encabezado institucional
+│   │   │   ├── Logo.tsx          # Logotipo genérico con isotipo de candado abierto y tipografía oficial
+│   │   │   └── StatusCard.tsx    # Tarjeta de estado efectivo de protección
+│   │   ├── screens/              # Pantallas de la aplicación móvil
+│   │   │   ├── LoginScreen.tsx   # Autenticación, Recuperación de contraseña y Creación de cuenta
+│   │   │   ├── PairingScreen.tsx # Pantalla de vinculación por código de 6 dígitos
+│   │   │   ├── ParentDashboardScreen.tsx # Panel del responsable y gestión de dispositivos
+│   │   │   ├── ProtectedDeviceScreen.tsx # Panel de control del menor y simulador de bloqueo
+│   │   │   └── WelcomeScreen.tsx # Selección de rol (Responsable vs. Protegido)
 │   │   ├── services/             # Clientes de API REST y puente de protección VpnService
-│   │   ├── theme/                # Paleta de colores e identidad visual
+│   │   │   ├── api.service.ts    # Cliente HTTP Axios (Login, Register, Recovery, Pairing, Telemetría)
+│   │   │   └── vpn.service.ts    # Servicio puente con ProtectionModule nativo
+│   │   ├── theme/                # Paleta de colores e identidad visual (colors.ts)
+│   │   ├── types/                # Definiciones de tipos TypeScript globales
 │   │   ├── web/                  # Simulador interactivo web de pruebas
 │   │   └── App.tsx               # Componente raíz y navegación
 │   ├── index.html                # Entrada del simulador web
@@ -194,18 +206,28 @@ npm run dev
 Abrir en el navegador la URL indicada: **[http://localhost:5173/](http://localhost:5173/)**
 
 #### Escenarios de prueba interactiva:
-1. **Modo Responsable (Padre / Tutor):**
-   - Se inicia sesión automáticamente con las credenciales demo:
-     - **Email:** `tutor@baprotege.gob.ar`
-     - **Contraseña:** `password123`
-   - Se visualizan 3 dispositivos vinculados (`Mateo`, `Sofía`, `Lucas`) con sus estados efectivos (`ACTIVE`, `PERMISSION_REQUIRED`).
-   - Probar el botón **"Generar Código (6 dígitos)"** para emitir un nuevo código de pareamiento temporal.
-   - Probar agregar un nuevo dominio a la **Lista Personalizada**.
-2. **Modo Dispositivo Protegido (Hijo / Menor):**
-   - Probar pausar o reanudar el motor local de protección VPN.
+1. **Autenticación y Registro (Modo Responsable):**
+   - **Pantalla de Login:** Acceso con logotipo genérico de candado abierto, campo de email y contraseña con botón para borrar rápidamente (✕) y alternador de visibilidad (👁️ / 🙈).
+   - **Acceso Rápido Demo:** Botón para autocompletar con `tutor@baprotege.gob.ar` / `password123`.
+   - **Recuperación de Contraseña:** Flujo "¿Olvidaste tu contraseña?" con validación de correo y confirmación de envío de instrucciones.
+   - **Creación de Cuenta (Registro):** Formulario con disposición vertical completa:
+     - `Nombre *` (mínimo 2 caracteres, solo letras).
+     - `Apellido *` (mínimo 2 caracteres, solo letras).
+     - `Género` (carrusel horizontal interactivo: *Masculino*, *Femenino*, *Otro*, *No informado* con indicadores de posición).
+     - `Fecha de Nacimiento` (`DD/MM/AAAA` con máscara).
+     - `Teléfono` (`XX XXXX-XXXX` con máscara).
+     - `Correo Electrónico *` (con validación y botón de borrado).
+     - `Contraseña *` (mínimo 6 caracteres con botón de borrado y visibilidad).
+     - `Confirmar Contraseña *` (validación de coincidencia con botón de borrado y visibilidad).
+2. **Panel de Control del Responsable:**
+   - Visualización de dispositivos vinculados (`Mateo`, `Sofía`, `Lucas`) con sus estados efectivos (`ACTIVE`, `PERMISSION_REQUIRED`).
+   - Botón **"Generar Código (6 dígitos)"** para emitir un nuevo código de pareamiento temporal (15 minutos).
+   - Gestión de **Lista Personalizada** de dominios bloqueados.
+3. **Modo Dispositivo Protegido (Hijo / Menor):**
+   - Pausar o reanudar el motor local de protección VPN.
    - **Simulador de Interceptación LOTBA:** Seleccionar un dominio clandestino (ej. `apuestas-online-ilegal.bet`, `casino-sin-licencia.com`) y pulsar **"Simular Intento de Navegación"**. La app interceptará la solicitud, mostrará la alerta roja de bloqueo y enviará el evento en tiempo real al backend.
    - Observar el envío periódico de **Heartbeats** de telemetría.
-3. **Consola de Red en Tiempo Real:**
+4. **Consola de Red en Tiempo Real:**
    - La barra lateral izquierda muestra el flujo en vivo de solicitudes HTTP (`GET`, `POST`, `BLOCK`).
 
 ---

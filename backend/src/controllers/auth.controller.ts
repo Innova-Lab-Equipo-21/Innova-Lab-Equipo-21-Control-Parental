@@ -16,8 +16,17 @@ export class AuthController {
    */
   public async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, password, fullName } = req.body;
-      const result = await authService.register({ email, password, fullName });
+      const { email, password, fullName, firstName, lastName, gender, birthDate, phone } = req.body;
+      const result = await authService.register({
+        email,
+        password,
+        fullName,
+        firstName,
+        lastName,
+        gender,
+        birthDate,
+        phone,
+      });
 
       res.status(201).json({
         success: true,
@@ -41,6 +50,25 @@ export class AuthController {
       res.status(200).json({
         success: true,
         message: 'Autenticación exitosa',
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Recuperación de contraseña para usuario responsable.
+   * POST /api/auth/recover-password
+   */
+  public async recoverPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+      const result = await authService.recoverPassword(email);
+
+      res.status(200).json({
+        success: true,
+        message: 'Solicitud de recuperación de contraseña procesada',
         data: result,
       } satisfies ApiResponse);
     } catch (error) {

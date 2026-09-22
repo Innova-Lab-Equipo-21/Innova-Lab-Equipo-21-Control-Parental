@@ -32,8 +32,20 @@ export const apiService = {
   // --------------------------------------------------------------------------
   // Autenticación de Responsable
   // --------------------------------------------------------------------------
-  async register(data: { email: string; password: string; fullName: string }) {
+  async register(data: {
+    email: string;
+    password: string;
+    fullName?: string;
+    firstName?: string;
+    lastName?: string;
+    gender?: string;
+    birthDate?: string;
+    phone?: string;
+  }) {
     const response = await apiClient.post('/auth/register', data);
+    if (response.data.data?.token) {
+      await AsyncStorage.setItem('@ba_protege_jwt_token', response.data.data.token);
+    }
     return response.data;
   },
 
@@ -42,6 +54,11 @@ export const apiService = {
     if (response.data.data?.token) {
       await AsyncStorage.setItem('@ba_protege_jwt_token', response.data.data.token);
     }
+    return response.data;
+  },
+
+  async recoverPassword(email: string) {
+    const response = await apiClient.post('/auth/recover-password', { email });
     return response.data;
   },
 

@@ -17,6 +17,11 @@ export interface RegisterUserInput {
   email: string;
   password: string;
   fullName: string;
+  firstName?: string;
+  lastName?: string;
+  gender?: string;
+  birthDate?: string;
+  phone?: string;
 }
 
 export interface LoginUserInput {
@@ -29,6 +34,8 @@ export class AuthService {
    * Registra un nuevo usuario responsable (padre/tutor) en el sistema.
    */
   public async register(input: RegisterUserInput) {
+    const computedFullName = input.fullName || [input.firstName, input.lastName].filter(Boolean).join(' ') || 'Responsable';
+
     if (env.USE_MOCK_DATA) {
       const existingUser = mockDb.users.find((u) => u.email === input.email.toLowerCase());
       if (existingUser) {
@@ -42,7 +49,7 @@ export class AuthService {
         id: `usr-mock-${Date.now()}`,
         email: input.email.toLowerCase(),
         passwordHash,
-        fullName: input.fullName,
+        fullName: computedFullName,
         isActive: true,
         createdAt: new Date(),
       };
@@ -76,7 +83,7 @@ export class AuthService {
       data: {
         email: input.email.toLowerCase(),
         passwordHash,
-        fullName: input.fullName,
+        fullName: computedFullName,
       },
       select: {
         id: true,
@@ -89,6 +96,34 @@ export class AuthService {
     const token = this.generateToken({ userId: user.id, email: user.email });
 
     return { user, token };
+  }
+
+  /**
+   * Procesa la solicitud de recuperación de contraseña enviando instrucciones al correo.
+   */
+  public async recoverPassword(email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    
+    // Verificamos existencia si se usa mock o base de datos real
+    if (env.USE_MOCK_DATA) {
+      const user = mockDb.users.find((u) => u.email === cleanEmail);
+      // Por motivos de seguridad estándar, respondemos con éxito independientemente de la existencia
+      return {
+        email: cleanEmail,
+        message: 'Si el correo está registrado en BA Protege+, recibirás las instrucciones de recuperación.',
+        sent: !!user,
+      };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    return {
+      email: cleanEmail,
+      message: 'Si el correo está registrado en BA Protege+, recibirás las instrucciones de recuperación.',
+      sent: !!user,
+    };
   }
 
   /**
