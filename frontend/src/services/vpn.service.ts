@@ -6,7 +6,7 @@
 // ==============================================================================
 
 import { NativeModules, Platform } from 'react-native';
-import { NativeBlocklistInfo } from '../types/index.js';
+import { NativeBlocklistInfo } from '../types';
 
 const { ProtectionModule } = NativeModules;
 

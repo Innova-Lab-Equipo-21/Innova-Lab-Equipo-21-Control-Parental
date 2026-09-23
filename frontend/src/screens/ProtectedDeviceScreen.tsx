@@ -15,13 +15,13 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { Header } from '../components/Header.js';
-import { StatusCard } from '../components/StatusCard.js';
-import { ActionButton } from '../components/ActionButton.js';
-import { colors } from '../theme/colors.js';
-import { vpnServiceBridge } from '../services/vpn.service.js';
-import { apiService } from '../services/api.service.js';
-import { ProtectionStatus } from '../types/index.js';
+import { Header } from '../components/Header';
+import { StatusCard } from '../components/StatusCard';
+import { ActionButton } from '../components/ActionButton';
+import { colors } from '../theme/colors';
+import { vpnServiceBridge } from '../services/vpn.service';
+import { apiService } from '../services/api.service';
+import { ProtectionStatus } from '../types';
 
 interface ProtectedDeviceScreenProps {
   deviceUuid: string;

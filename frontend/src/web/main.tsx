@@ -7,7 +7,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { WebSimulator } from './WebSimulator.js';
+import { WebSimulator } from './WebSimulator';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -2,8 +2,22 @@
 // Proyecto: BA Protege+
 // Componente: Configuración Gradle
 // Archivo: settings.gradle
-// Descripción: Configuración de módulos para el proyecto Android en Kotlin
+// Descripción: Configuración de módulos e inclusión de dependencias nativas
 // ==============================================================================
+
+pluginManagement {
+    includeBuild("../node_modules/@react-native/gradle-plugin")
+}
+plugins {
+    id("com.facebook.react.settings")
+}
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    ex.autolinkLibrariesFromCommand()
+}
 
 rootProject.name = 'BAProtege'
 include ':app'
+includeBuild('../node_modules/@react-native/gradle-plugin')
+
+include ':react-native-async-storage_async-storage'
+project(':react-native-async-storage_async-storage').projectDir = new File(rootProject.projectDir, '../node_modules/@react-native-async-storage/async-storage/android')

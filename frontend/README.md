@@ -137,17 +137,62 @@ Ingresar a: **[http://localhost:5173/](http://localhost:5173/)**
 
 ## 📱 Ejecución Nativa en Android Studio / Emulador
 
-Para compilar y ejecutar el proyecto completo en un emulador Android (API 35 recomendado) o dispositivo físico:
+Guía paso a paso para ejecutar la aplicación móvil en un emulador de Android Studio (AVD) o en un dispositivo físico.
 
-1. **Verificar que Android SDK Platform 35 o 37 y JDK 17 estén configurados.**
-2. **Iniciar Metro Bundler:**
-   ```bash
-   npm run start
-   ```
-3. **En otra terminal, compilar e instalar en el dispositivo:**
-   ```bash
-   npm run android
-   ```
+### 📋 Requisitos Previos:
+1. **Android Studio** instalado con **Android SDK Platform 34/35/37** y **Build-Tools**.
+2. **AVD (Android Virtual Device)** creado (ejemplo: Pixel 6/7/8 con API 34/35).
+3. **JDK 17** configurado en el sistema (`JAVA_HOME`).
+
+---
+
+### 🚀 Pasos para Probar en el Emulador:
+
+#### 1. Iniciar el Backend API
+Asegúrese de que el backend esté ejecutándose (para permitir el login, pareamiento y telemetría):
+```bash
+cd backend
+npm run dev
+```
+
+#### 2. Iniciar el Emulador
+- Abra Android Studio y navegue a **Virtual Device Manager**.
+- Inicie su dispositivo virtual AVD.
+
+#### 3. Redireccionar Puertos (ADB Reverse)
+Para vincular los puertos de red del emulador con su máquina local:
+```bash
+adb reverse tcp:8081 tcp:8081
+adb reverse tcp:3000 tcp:3000
+```
+
+#### 4. Empaquetar el Bundle JavaScript (Paso Clave para Android)
+Para que la aplicación cargue la interfaz sin errores de script (`Unable to load script`):
+```bash
+cd frontend
+mkdir -p android/app/src/main/assets
+npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+```
+
+#### 5. Iniciar Metro Bundler
+En una terminal dentro de `frontend`:
+```bash
+npm start
+```
+
+#### 6. Compilar e Instalar en el Emulador
+En una segunda terminal dentro de `frontend`:
+```bash
+npm run android
+```
+*(También puede abrir la carpeta `frontend/android` en Android Studio y pulsar **Run ▶️**).*
+
+---
+
+### 🔧 Solución de Problemas Frecuentes:
+- **Red Screen "Unable to load script":** Ejecute el comando de bundle del **Paso 4** e inicie Metro (`npm start`).
+- **Conexión con el Backend en Emulador:** En el emulador, `http://10.0.2.2:3000/api` apunta a su `localhost:3000`. Con `adb reverse tcp:3000 tcp:3000`, `http://localhost:3000/api` también funciona.
+- **Permiso de VpnService:** Al activar la protección en la app, acepte el cuadro de diálogo del sistema Android para permitir la conexión VPN local de filtrado LOTBA.
 
 ---
 

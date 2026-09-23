@@ -7,10 +7,23 @@
 
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+react {
+    /* Folders */
+    //   root = "../../"
+    //   reactNativeDir = "../../node_modules/react-native"
+    //   codegenDir = "../../node_modules/@react-native/codegen"
+    //   cliPath = "../../node_modules/react-native/cli.js"
+}
+
+def jscFlavor = 'org.webkit:android-jsc:+'
 
 android {
+    ndkVersion rootProject.ext.ndkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
     namespace "com.baprotege"
-    compileSdkVersion rootProject.ext.compileSdkVersion
 
     defaultConfig {
         applicationId "com.baprotege"
@@ -33,6 +46,15 @@ android {
 dependencies {
     // React Native Core
     implementation("com.facebook.react:react-android")
+    
+    // React Native Engine (JSC por padrão no RN < 0.70 ou quando Hermes desabilitado)
+    if (hermesEnabled.toBoolean()) {
+        implementation("com.facebook.react:hermes-android")
+    } else {
+        implementation jscFlavor
+    }
+
+    implementation project(':react-native-async-storage_async-storage')
     
     // Kotlin Standard Library
     implementation("org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}")

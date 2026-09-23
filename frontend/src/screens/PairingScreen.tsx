@@ -16,10 +16,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Header } from '../components/Header.js';
-import { ActionButton } from '../components/ActionButton.js';
-import { colors } from '../theme/colors.js';
-import { apiService } from '../services/api.service.js';
+import { Header } from '../components/Header';
+import { ActionButton } from '../components/ActionButton';
+import { colors } from '../theme/colors';
+import { apiService } from '../services/api.service';
 
 interface PairingScreenProps {
   onPairingComplete: (deviceId: string, deviceUuid: string) => void;

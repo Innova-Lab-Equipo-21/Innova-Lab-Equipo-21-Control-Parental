@@ -7,10 +7,10 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
-import { Header } from '../components/Header.js';
-import { ActionButton } from '../components/ActionButton.js';
-import { colors } from '../theme/colors.js';
-import { AppMode } from '../types/index.js';
+import { Header } from '../components/Header';
+import { ActionButton } from '../components/ActionButton';
+import { colors } from '../theme/colors';
+import { AppMode } from '../types';
 
 interface WelcomeScreenProps {
   onSelectMode: (mode: AppMode) => void;

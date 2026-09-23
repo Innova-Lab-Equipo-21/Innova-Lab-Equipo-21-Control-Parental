@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { colors } from '../theme/colors.js';
+import { colors } from '../theme/colors';
 
 interface ActionButtonProps {
   title: string;

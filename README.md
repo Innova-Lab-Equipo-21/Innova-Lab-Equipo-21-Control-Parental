@@ -253,18 +253,71 @@ Cuando se desee utilizar una base de datos PostgreSQL real:
 
 ---
 
-## 📱 Ejecución en Emulador / Dispositivo Android
+## 📱 Ejecución en Emulador / Dispositivo Android (Android Studio)
 
-Para compilar y ejecutar la aplicación móvil nativa con React Native y Android Studio:
+Guía completa para compilar, instalar y probar la aplicación móvil nativa con React Native y Android Studio en un emulador de Android (AVD) o dispositivo físico.
 
-1. Iniciar un emulador Android (AVD con API 35 recomendado) o conectar un dispositivo físico con depuración USB.
-2. Iniciar el empaquetador Metro en una terminal:
-   ```bash
-   cd frontend
-   npm run start
-   ```
-3. En otra terminal, compilar e instalar la app:
-   ```bash
-   cd frontend
-   npm run android
-   ```
+### 📋 Requisitos Previos:
+1. **Android Studio** (versión 2024.1+ / 2026.1.4+) instalado.
+2. **Android SDK Platform 34/35/37** y **Android SDK Build-Tools** instalados desde el *SDK Manager* en Android Studio.
+3. **Android Virtual Device (AVD)** creado e iniciado (recomendado Pixel 6/7/8 con API 34 o 35).
+4. **JDK 17** configurado en las variables de entorno de su sistema (`JAVA_HOME`).
+
+---
+
+### 🚀 Paso a Paso de Ejecución e Instalación:
+
+#### 1. Iniciar el Servidor Backend
+Asegúrese de que la API REST del backend esté ejecutándose en el puerto 3000:
+```bash
+cd backend
+npm run dev
+```
+
+#### 2. Iniciar el Emulador Android
+- Abra **Android Studio**.
+- Diríjase a **Tools > Device Manager** (o *Virtual Device Manager*).
+- Seleccione su emulador AVD y presione el botón **Play (▶️)** para iniciar el dispositivo.
+
+#### 3. Configurar Redireccionamiento de Puertos (ADB Reverse)
+Para permitir que el emulador Android se comunique correctamente con el empaquetador Metro y con el servidor Backend corriendo en su máquina local (`localhost`), ejecute en la terminal:
+```bash
+adb reverse tcp:8081 tcp:8081
+adb reverse tcp:3000 tcp:3000
+```
+> **Nota de red en emuladores:** Por defecto, la dirección IP `10.0.2.2` dentro del emulador apunta al `localhost` de su computadora host.
+
+#### 4. Generar el Bundle JavaScript Estático (Recomendado)
+Para empaquetar el código de React Native dentro de los assets del APK de Android (evitando errores de carga de script):
+```bash
+cd frontend
+mkdir -p android/app/src/main/assets
+npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+```
+
+#### 5. Iniciar el Metro Bundler
+En una terminal dentro de la carpeta `frontend`:
+```bash
+cd frontend
+npm start
+```
+
+#### 6. Compilar e Instalar la App en el Emulador
+En una segunda terminal, ejecute:
+```bash
+cd frontend
+npm run android
+```
+*(También puede abrir la carpeta `frontend/android` directamente en Android Studio y pulsar el botón **Run (Play ▶️)**).*
+
+---
+
+### 🔧 Solución de Problemas Frecuentes en Emulador:
+
+- 🔴 **Error "Unable to load script" (Red Screen):**
+  - Verifique que Metro esté ejecutándose (`npm start`) y ejecute `adb reverse tcp:8081 tcp:8081`.
+  - Asegúrese de haber generado el bundle estático con el comando del **Paso 4**.
+- 🌐 **Error de Conexión con el Backend (`localhost`):**
+  - En el emulador de Android Studio, la URL para acceder a su máquina local es `http://10.0.2.2:3000/api`. Ejecutar `adb reverse tcp:3000 tcp:3000` permite usar `http://localhost:3000/api`.
+- 🔒 **Servicio VPN en Emulador:**
+  - El emulador de Android Studio soporta completamente el `VpnService` nativo de Android. Al pulsar "Activar Protección" en la pantalla de la app, el sistema operativo Android mostrará un diálogo pidiendo confirmación de permiso para la conexión VPN local. Acepte el permiso para activar el filtrado de dominios LOTBA.

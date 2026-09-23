@@ -8,11 +8,11 @@
 
 import React, { useState } from 'react';
 import { StatusBar } from 'react-native';
-import { WelcomeScreen } from './screens/WelcomeScreen.js';
-import { PairingScreen } from './screens/PairingScreen.js';
-import { ProtectedDeviceScreen } from './screens/ProtectedDeviceScreen.js';
-import { ParentDashboardScreen } from './screens/ParentDashboardScreen.js';
-import { AppMode } from './types/index.js';
+import { WelcomeScreen } from './screens/WelcomeScreen';
+import { PairingScreen } from './screens/PairingScreen';
+import { ProtectedDeviceScreen } from './screens/ProtectedDeviceScreen';
+import { ParentDashboardScreen } from './screens/ParentDashboardScreen';
+import { AppMode } from './types';
 
 export function App(): React.JSX.Element {
   const [currentMode, setCurrentMode] = useState<AppMode>('UNSET');

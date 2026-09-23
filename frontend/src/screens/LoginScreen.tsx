@@ -17,10 +17,10 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { Logo } from '../components/Logo.js';
-import { ActionButton } from '../components/ActionButton.js';
-import { colors } from '../theme/colors.js';
-import { apiService } from '../services/api.service.js';
+import { Logo } from '../components/Logo';
+import { ActionButton } from '../components/ActionButton';
+import { colors } from '../theme/colors';
+import { apiService } from '../services/api.service';
 
 type AuthViewMode = 'LOGIN' | 'RECOVERY' | 'REGISTER';
 type GenderOption = 'Masculino' | 'Femenino' | 'Otro' | 'No informado';
