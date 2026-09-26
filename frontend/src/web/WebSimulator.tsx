@@ -23,9 +23,15 @@ type GenderOption = 'Masculino' | 'Femenino' | 'Otro' | 'No informado';
 
 export const WebSimulator: React.FC = () => {
   // Estado global del simulador
-  const [appMode, setAppMode] = useState<'WELCOME' | 'LOGIN' | 'PARENT' | 'CHILD'>('WELCOME');
+  const [appMode, setAppMode] = useState<'ONBOARDING' | 'WELCOME' | 'LOGIN' | 'PARENT' | 'CHILD'>('WELCOME');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [apiConnected, setApiConnected] = useState(false);
+
+  // Estados de Onboarding y Videos
+  const [onbIndex, setOnbIndex] = useState(0);
+  const [onbPlaying, setOnbPlaying] = useState(false);
+  const [onbSeconds, setOnbSeconds] = useState(0);
+  const [onbFaq, setOnbFaq] = useState<number | null>(null);
 
   // Estados de Autenticación
   const [authTab, setAuthTab] = useState<AuthTab>('LOGIN');
@@ -156,6 +162,26 @@ export const WebSimulator: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [appMode, isVpnActive, childPaired, lotbaVersion, deviceUuid]);
+
+  // Simulación de reproducción del video tutorial de Onboarding
+  useEffect(() => {
+    let interval: any = null;
+    const durations = [105, 90, 120];
+    if (onbPlaying) {
+      interval = setInterval(() => {
+        setOnbSeconds((prev) => {
+          if (prev >= durations[onbIndex]) {
+            setOnbPlaying(false);
+            return 0;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [onbPlaying, onbIndex]);
 
   // Manejo de Login en Simulador
   const handleWebLogin = async () => {
@@ -474,10 +500,20 @@ export const WebSimulator: React.FC = () => {
           <div className="section-title">Modo de Operación Móvil</div>
           <div className="scenario-btn-group">
             <button
+              className={`scenario-btn ${appMode === 'ONBOARDING' ? 'active' : ''}`}
+              onClick={() => {
+                setAppMode('ONBOARDING');
+                setOnbPlaying(false);
+              }}
+            >
+              <span>🌟 Onboarding & Videos</span>
+              <span>→</span>
+            </button>
+            <button
               className={`scenario-btn ${appMode === 'WELCOME' ? 'active' : ''}`}
               onClick={() => setAppMode('WELCOME')}
             >
-              <span>🚪 Bienvenida</span>
+              <span>🚪 Selección de Modo</span>
               <span>→</span>
             </button>
             <button
@@ -571,7 +607,326 @@ export const WebSimulator: React.FC = () => {
 
             <div className="phone-content" style={{ overflowY: 'auto' }}>
               {/* ======================================================== */}
-              {/* PANTALLA 1: BIENVENIDA                                   */}
+              {/* PANTALLA 0: ONBOARDING & VIDEOS EXPLICATIVOS             */}
+              {/* ======================================================== */}
+              {appMode === 'ONBOARDING' && (() => {
+                const ONB_VIDEOS = [
+                  {
+                    mode: 'PARENT',
+                    badge: 'MODO RESPONSABLE',
+                    badgeColor: '#0D6EFD',
+                    title: 'Guía para Familias y Tutores',
+                    duration: '01:45',
+                    totalSec: 105,
+                    emoji: '👨‍👩‍👧‍👦',
+                    bg: '#0A3871',
+                    desc: 'Aprendé a registrar tu cuenta, vincular celulares con QR/PIN en 1 minuto, monitorear en tiempo real y recibir alertas.',
+                    highlights: ['Vinculación QR/PIN en 1 minuto', 'Alertas en tiempo real', 'Límites de tiempo de pantalla', 'Privacidad: no lee chats ni fotos'],
+                    steps: [
+                      { sec: 0, title: '1. Creación de cuenta del tutor', desc: 'Registro seguro con email.' },
+                      { sec: 25, title: '2. Código de vinculación', desc: 'Generá un QR o PIN de 6 dígitos.' },
+                      { sec: 55, title: '3. Panel de control en vivo', desc: 'Supervisá intentos bloqueados.' },
+                      { sec: 85, title: '4. Límites de horarios', desc: 'Fomentá el descanso escolar.' }
+                    ]
+                  },
+                  {
+                    mode: 'CHILD',
+                    badge: 'MODO DISPOSITIVO MENOR',
+                    badgeColor: '#F59E0B',
+                    title: 'Protección en el Celular del Menor',
+                    duration: '01:30',
+                    totalSec: 90,
+                    emoji: '📱',
+                    bg: '#78350F',
+                    desc: 'Activación del escudo silencioso con lista oficial LOTBA y pantalla pedagógica de advertencia.',
+                    highlights: ['Bloqueo contra 1.000+ sitios de apuestas', 'Sin ralentizar la conexión', 'Pantalla educativa: "Sos menor"', 'Anti-desinstalación con aviso al tutor'],
+                    steps: [
+                      { sec: 0, title: '1. Vinculación con PIN', desc: 'Ingreso rápido del código de 6 dígitos.' },
+                      { sec: 22, title: '2. Activación escudo LOTBA', desc: 'Filtro local VPN sin intermediarios.' },
+                      { sec: 50, title: '3. Pantalla pedagógica', desc: 'Aviso reflexivo al detectar casinos.' },
+                      { sec: 72, title: '4. Telemetría segura', desc: 'Reporte preventivo al responsable.' }
+                    ]
+                  },
+                  {
+                    mode: 'CHILD',
+                    badge: 'MODO ADULTO (AUTOCONTROL)',
+                    badgeColor: '#8B5CF6',
+                    title: 'Autoprotección y Prevención Adultos',
+                    duration: '02:00',
+                    totalSec: 120,
+                    emoji: '💜',
+                    bg: '#4C1D95',
+                    desc: 'Herramientas de autoprotección voluntaria, barreras contra el juego compulsivo y acceso a líneas confidenciales 0800.',
+                    highlights: ['Bloqueo voluntario de apuestas', 'Límites estrictos de uso nocturno', 'Pantalla de contención y pausa', 'Línea oficial gratuita 0800-444-5682'],
+                    steps: [
+                      { sec: 0, title: '1. Activación voluntaria', desc: 'Blindaje personal preventivo.' },
+                      { sec: 30, title: '2. Configuración de límites', desc: 'Restricción en horarios de riesgo.' },
+                      { sec: 65, title: '3. Pausa reflexiva', desc: 'Toma de conciencia y contención.' },
+                      { sec: 95, title: '4. Ayuda confidencial 24/7', desc: 'Orientación especializada oficial.' }
+                    ]
+                  }
+                ];
+                const active = ONB_VIDEOS[onbIndex];
+                const curStep = [...active.steps].reverse().find((s) => onbSeconds >= s.sec) || active.steps[0];
+                const pct = Math.min(100, Math.round((onbSeconds / active.totalSec) * 100));
+                const fmt = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+                return (
+                  <div style={{ padding: '16px 14px' }}>
+                    {/* Barra superior */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', backgroundColor: '#E2E8F0', padding: '3px 8px', borderRadius: '6px', color: '#475569' }}>
+                        GUÍA DE INICIO • 3 MODOS
+                      </span>
+                      <button
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
+                        onClick={() => setAppMode('WELCOME')}
+                      >
+                        Saltar a Modos ✕
+                      </button>
+                    </div>
+
+                    {/* Hero Onboarding */}
+                    <div style={{ textAlign: 'center', marginBottom: '14px' }}>
+                      <div style={{ display: 'inline-block', backgroundColor: '#E7F1FF', border: '1px solid #B6D4FE', padding: '4px 10px', borderRadius: '14px', fontSize: '11px', fontWeight: '700', color: '#0A58CA', marginBottom: '8px' }}>
+                        🏛️ Oficial • LOTBA / GCBA
+                      </div>
+                      <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--phone-text)', lineHeight: '1.3' }}>
+                        Protección Integral y Cuidado Familiar
+                      </h2>
+                      <p style={{ fontSize: '12px', color: 'var(--phone-subtext)', marginTop: '4px', lineHeight: '1.4' }}>
+                        Prevení el acceso a plataformas de apuestas y construí un entorno digital seguro y confiable.
+                      </p>
+                    </div>
+
+                    {/* Banner de Privacidad */}
+                    <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '12px', marginBottom: '14px', textAlign: 'left' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '16px' }}>🔒</span>
+                        <strong style={{ fontSize: '13px', color: '#166534' }}>Garantía de Privacidad Total</strong>
+                      </div>
+                      <p style={{ fontSize: '11px', color: '#15803D', lineHeight: '1.4', margin: '4px 0 8px' }}>
+                        <strong>No leemos tus chats de WhatsApp, ni fotos ni llamadas.</strong> Funciona mediante filtrado local de red (DNS) contra sitios no autorizados de LOTBA.
+                      </p>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '10px', backgroundColor: '#DCFCE7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>✓ Sin espionaje de chats</span>
+                        <span style={{ fontSize: '10px', backgroundColor: '#DCFCE7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>✓ Base oficial LOTBA</span>
+                        <span style={{ fontSize: '10px', backgroundColor: '#DCFCE7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>✓ Encriptación segura</span>
+                      </div>
+                    </div>
+
+                    {/* Carrusel Selector */}
+                    <div style={{ marginBottom: '10px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--phone-text)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🎬</span> Videos Explicativos Guiados
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--phone-subtext)', marginBottom: '8px' }}>
+                        Mirá cómo funciona paso a paso según cada modo
+                      </div>
+
+                      {/* Tabs */}
+                      <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                        {ONB_VIDEOS.map((v, i) => (
+                          <button
+                            key={i}
+                            style={{
+                              flex: 1,
+                              padding: '8px 4px',
+                              borderRadius: '8px',
+                              border: i === onbIndex ? `2px solid ${v.badgeColor}` : '1px solid #E2E8F0',
+                              backgroundColor: i === onbIndex ? v.badgeColor : '#F1F5F9',
+                              color: i === onbIndex ? '#FFFFFF' : '#475569',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}
+                            onClick={() => {
+                              setOnbIndex(i);
+                              setOnbPlaying(false);
+                              setOnbSeconds(0);
+                            }}
+                          >
+                            <span>{v.emoji}</span>
+                            <span>{i === 0 ? 'Responsable' : i === 1 ? 'Niños' : 'Adultos'}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Video Player Card */}
+                      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+                        <div style={{ backgroundColor: active.bg, padding: '14px', color: '#FFFFFF', minHeight: '190px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ backgroundColor: active.badgeColor, color: '#FFFFFF', fontSize: '10px', fontWeight: '800', padding: '3px 8px', borderRadius: '6px' }}>
+                              {active.badge}
+                            </span>
+                            <span style={{ backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFFFFF', fontSize: '10px', padding: '3px 6px', borderRadius: '4px', fontWeight: '700' }}>
+                              {onbPlaying ? `${fmt(onbSeconds)} / ${active.duration}` : active.duration}
+                            </span>
+                          </div>
+
+                          <div style={{ textAlign: 'center', margin: '10px 0' }}>
+                            <div style={{ fontSize: '36px' }}>{active.emoji}</div>
+                            <div style={{ fontSize: '14px', fontWeight: '800', marginTop: '4px' }}>{active.title}</div>
+
+                            {onbPlaying ? (
+                              <div style={{ backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '4px 8px', marginTop: '6px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '800', color: '#FCD34D' }}>{curStep.title}</div>
+                                <div style={{ fontSize: '10px', color: '#FFFFFF' }}>{curStep.desc}</div>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', marginTop: '4px' }}>
+                                {onbSeconds > 0 ? 'Pausado. Presioná play para continuar.' : 'Tocá reproducir para ver la demostración.'}
+                              </div>
+                            )}
+
+                            <button
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '24px',
+                                backgroundColor: onbPlaying ? '#EF4444' : '#FFFFFF',
+                                color: onbPlaying ? '#FFFFFF' : '#0F172A',
+                                border: 'none',
+                                fontSize: '20px',
+                                cursor: 'pointer',
+                                marginTop: '10px',
+                                boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+                              }}
+                              onClick={() => setOnbPlaying(!onbPlaying)}
+                            >
+                              {onbPlaying ? '⏸' : '▶'}
+                            </button>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div>
+                            <div style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${pct}%`, backgroundColor: active.badgeColor, transition: 'width 0.3s' }}></div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginTop: '4px', color: 'rgba(255,255,255,0.8)' }}>
+                              <span>{fmt(onbSeconds)}</span>
+                              {onbSeconds > 0 && (
+                                <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setOnbSeconds(0); setOnbPlaying(true); }}>
+                                  ↺ Reiniciar
+                                </span>
+                              )}
+                              <span>{active.duration}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Video metadata */}
+                        <div style={{ padding: '12px' }}>
+                          <p style={{ fontSize: '11px', color: '#475569', lineHeight: '1.4', marginBottom: '8px' }}>
+                            {active.desc}
+                          </p>
+                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#1E293B', marginBottom: '4px' }}>Puntos clave:</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '10px' }}>
+                            {active.highlights.map((h, hi) => (
+                              <div key={hi} style={{ fontSize: '11px', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ color: '#10B981', fontWeight: '800' }}>✓</span>
+                                <span>{h}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Paso a paso */}
+                    <div style={{ marginTop: '14px', marginBottom: '14px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--phone-text)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>👣</span> ¿Cómo Funciona Paso a Paso?
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '10px', display: 'flex', gap: '10px' }}>
+                          <div style={{ width: '24px', height: '24px', borderRadius: '12px', backgroundColor: '#0D6EFD', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800' }}>1</div>
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1E293B' }}>Seleccioná el Modo según tu Rol</div>
+                            <div style={{ fontSize: '11px', color: '#64748B', lineHeight: '1.3' }}>Modo Responsable en tu teléfono, o Modo Protegido en el dispositivo a blindar.</div>
+                          </div>
+                        </div>
+
+                        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '10px', display: 'flex', gap: '10px' }}>
+                          <div style={{ width: '24px', height: '24px', borderRadius: '12px', backgroundColor: '#0D6EFD', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800' }}>2</div>
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1E293B' }}>Vinculación Rápida y Segura</div>
+                            <div style={{ fontSize: '11px', color: '#64748B', lineHeight: '1.3' }}>Escaneá el código QR o ingresá el PIN de 6 dígitos sin exponer cuentas de los chicos.</div>
+                          </div>
+                        </div>
+
+                        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '10px', display: 'flex', gap: '10px' }}>
+                          <div style={{ width: '24px', height: '24px', borderRadius: '12px', backgroundColor: '#0D6EFD', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800' }}>3</div>
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1E293B' }}>Escudo Oficial LOTBA Activo</div>
+                            <div style={{ fontSize: '11px', color: '#64748B', lineHeight: '1.3' }}>Se activa el filtro local que bloquea silenciosamente más de 1.000 sitios de juego clandestino.</div>
+                          </div>
+                        </div>
+
+                        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '10px', display: 'flex', gap: '10px' }}>
+                          <div style={{ width: '24px', height: '24px', borderRadius: '12px', backgroundColor: '#0D6EFD', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800' }}>4</div>
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1E293B' }}>Supervisión Saludable y Alertas</div>
+                            <div style={{ fontSize: '11px', color: '#64748B', lineHeight: '1.3' }}>El tutor recibe alertas ante intentos de ingreso y pacta límites diarios.</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botón Comenzar */}
+                    <div style={{ textAlign: 'center', margin: '16px 0' }}>
+                      <button
+                        className="btn-primary"
+                        style={{ width: '100%', padding: '14px', fontSize: '14px', fontWeight: '800' }}
+                        onClick={() => setAppMode('WELCOME')}
+                      >
+                        Comenzar / Seleccionar Modo ➜
+                      </button>
+                    </div>
+
+                    {/* FAQ */}
+                    <div style={{ marginTop: '12px', marginBottom: '16px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B', marginBottom: '8px' }}>Preguntas Frecuentes</div>
+                      {[
+                        { q: '¿La app lee chats de WhatsApp o fotos?', a: 'No. BA Protege+ opera a nivel de red (DNS) y no tiene acceso a mensajes ni multimedia.' },
+                        { q: '¿Qué pasa si se intenta desactivar?', a: 'El sistema notifica inmediatamente al teléfono del tutor responsable.' },
+                        { q: '¿Tiene algún costo de uso?', a: 'Es un servicio 100% gratuito impulsado por LOTBA y el Gobierno de la Ciudad.' }
+                      ].map((faq, fi) => (
+                        <div
+                          key={fi}
+                          style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '10px', marginBottom: '6px', cursor: 'pointer' }}
+                          onClick={() => setOnbFaq(onbFaq === fi ? null : fi)}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', fontWeight: '700', color: '#334155' }}>
+                            <span>{faq.q}</span>
+                            <span style={{ fontSize: '10px', color: '#94A3B8' }}>{onbFaq === fi ? '▲' : '▼'}</span>
+                          </div>
+                          {onbFaq === fi && (
+                            <div style={{ fontSize: '11px', color: '#64748B', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #F1F5F9', lineHeight: '1.4' }}>
+                              {faq.a}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Ayuda 0800 */}
+                    <div style={{ backgroundColor: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#3730A3' }}>Línea de Ayuda al Jugador Problemático</div>
+                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#4338CA', margin: '2px 0' }}>0800-444-5682</div>
+                      <div style={{ fontSize: '10px', color: '#6366F1' }}>Gratuita, anónima y disponible 24hs (LOTBA)</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ======================================================== */}
+              {/* PANTALLA 1: SELECCIÓN DE MODO (BIENVENIDA)               */}
               {/* ======================================================== */}
               {appMode === 'WELCOME' && (
                 <>
@@ -580,6 +935,37 @@ export const WebSimulator: React.FC = () => {
                     <p>Protección Digital contra Apuestas Clandestinas</p>
                   </div>
                   <div className="app-body">
+                    {/* Banner para abrir Onboarding y Videos */}
+                    <div
+                      style={{
+                        backgroundColor: '#EEF2FF',
+                        border: '1px solid #C7D2FE',
+                        borderRadius: '12px',
+                        padding: '10px 14px',
+                        marginBottom: '14px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                      onClick={() => {
+                        setAppMode('ONBOARDING');
+                        setOnbPlaying(false);
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '20px' }}>🎬</span>
+                        <div style={{ textAlign: 'left' }}>
+                          <div style={{ fontSize: '13px', fontWeight: '700', color: '#3730A3' }}>
+                            ¿Primera vez? Mirá el Onboarding
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#6366F1' }}>
+                            3 videos explicativos para cada modo
+                          </div>
+                        </div>
+                      </div>
+                      <span style={{ color: '#4F46E5', fontWeight: '700' }}>➔</span>
+                    </div>
                     <div style={{ textAlign: 'center', padding: '16px 0' }}>
                       <div className="auth-logo-badge">
                         <div className="auth-lock-icon">
@@ -621,13 +1007,30 @@ export const WebSimulator: React.FC = () => {
                     <div className="app-card">
                       <div style={{ fontSize: '24px', marginBottom: '4px' }}>📱</div>
                       <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--phone-text)' }}>
-                        Modo Dispositivo Protegido
+                        Modo Dispositivo Protegido (Menor)
                       </h3>
                       <p style={{ fontSize: '12px', color: 'var(--phone-subtext)', margin: '6px 0 14px' }}>
                         Activa el motor de filtrado local VPN con la lista oficial LOTBA y reporta telemetría.
                       </p>
                       <button className="btn-secondary" onClick={() => setAppMode('CHILD')}>
                         Configurar este Dispositivo
+                      </button>
+                    </div>
+
+                    <div className="app-card" style={{ marginTop: '12px' }}>
+                      <div style={{ fontSize: '24px', marginBottom: '4px' }}>💜</div>
+                      <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--phone-text)' }}>
+                        Modo Adulto (Autoprotección)
+                      </h3>
+                      <p style={{ fontSize: '12px', color: 'var(--phone-subtext)', margin: '6px 0 14px' }}>
+                        Protección voluntaria para mayores de edad contra plataformas de apuestas y acceso a ayuda.
+                      </p>
+                      <button
+                        className="btn-secondary"
+                        style={{ borderColor: '#8B5CF6', color: '#6D28D9' }}
+                        onClick={() => setAppMode('CHILD')}
+                      >
+                        Activar Autoprotección
                       </button>
                     </div>
                   </div>

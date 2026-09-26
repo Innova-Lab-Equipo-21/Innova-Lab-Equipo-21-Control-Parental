@@ -43,6 +43,7 @@ Servidor backend desarrollado en **Node.js 24 (LTS) + Express + TypeScript**, co
 ```text
 backend/
 ├── prisma/
+│   ├── migrations/           # Historial de migraciones SQL aplicadas en PostgreSQL
 │   └── schema.prisma         # Definición del esquema relacional PostgreSQL y modelos
 ├── src/
 │   ├── config/
@@ -56,6 +57,12 @@ backend/
 │   ├── types/                # Definiciones de tipos e interfaces compartidas
 │   ├── app.ts                # Configuración de Express y middlewares globales
 │   └── server.ts             # Punto de entrada y arranque del servidor HTTP
+├── tests/                    # Suite de pruebas automatizadas (Node.js Test Runner + tsx)
+│   ├── health.test.ts        # Verificación de endpoint de salud y manejo 404
+│   ├── auth.test.ts          # Pruebas de registro, validaciones Zod, login y recuperación
+│   ├── blocklist.test.ts     # Pruebas de listas oficiales LOTBA y dominios personalizados
+│   ├── device.test.ts        # Pruebas de códigos de pareamiento y vinculación
+│   └── telemetry.test.ts     # Pruebas de latidos (heartbeats), estados y eventos de seguridad
 ├── .env                      # Variables de entorno activas
 ├── .env.example              # Plantilla de variables de entorno
 ├── package.json              # Dependencias y scripts npm
@@ -103,7 +110,7 @@ HEARTBEAT_TIMEOUT_MINUTES=5
 - Conecta a una instancia activa de PostgreSQL 18.
 - Ejecutar migraciones iniciales para crear las tablas:
   ```bash
-  npx prisma migrate dev --name init
+  npx prisma migrate dev
   ```
 - Generar el cliente de Prisma:
   ```bash
@@ -112,11 +119,29 @@ HEARTBEAT_TIMEOUT_MINUTES=5
 
 ---
 
+## 🧪 Pruebas Automatizadas (Test Suite)
+
+El backend cuenta con una suite integral de **19 pruebas automatizadas** distribuidas en 5 suites, ejecutadas con el test runner nativo de Node.js (`node:test` + `node:assert` + `tsx`) sin dependencias pesadas externas:
+
+```bash
+npm test
+```
+
+### Cobertura de Pruebas:
+- **`health.test.ts`:** Estado operativo del servidor (`GET /api/health` ➜ 200 UP) y fallback global de rutas inexistentes (404).
+- **`auth.test.ts`:** Validación estricta con Zod (rechazo de formatos incorrectos 422), registro exitoso de tutores con hash bcrypt, prevención de emails duplicados (409), autenticación con JWT (200), rechazo de credenciales inválidas (401) y recuperación de clave.
+- **`blocklist.test.ts`:** Descarga de reglas oficiales de LOTBA con dominios de apuestas bloqueados, protección de rutas privadas mediante token Bearer (401), agregado de sitios prohibidos personalizados y eliminación por ID.
+- **`device.test.ts`:** Emisión de código de pareamiento de 6 dígitos para el tutor responsable, validación de códigos incorrectos o expirados (400), vinculación efectiva del dispositivo del menor y listado en el panel.
+- **`telemetry.test.ts`:** Recepción periódica de latidos (*heartbeat*) con cálculo dinámico de estado (`ACTIVE` o `INACTIVE`), registro de intentos de acceso a casinos no autorizados y detección de eventos de evasión (`VPN_DISABLED`).
+
+---
+
 ## 📜 Scripts Disponibles
 
 | Comando | Descripción |
 | :--- | :--- |
 | `npm run dev` | Inicia el servidor con recarga en caliente usando `tsx watch`. |
+| `npm test` | Ejecuta la suite completa de 19 pruebas automatizadas con `tsx --test`. |
 | `npm run build` | Compila el código TypeScript a JavaScript en la carpeta `dist/`. |
 | `npm run start` | Inicia el servidor compilado de producción (`node dist/server.js`). |
 | `npm run lint` | Valida la coherencia de tipos con `tsc --noEmit`. |

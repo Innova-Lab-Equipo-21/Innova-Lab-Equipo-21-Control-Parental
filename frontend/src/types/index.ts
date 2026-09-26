@@ -8,7 +8,7 @@
 /**
  * Modo operativo de la aplicación en el dispositivo actual.
  */
-export type AppMode = 'UNSET' | 'PARENT' | 'CHILD';
+export type AppMode = 'UNSET' | 'PARENT' | 'CHILD' | 'ADULT';
 
 /**
  * Estados de la protección reportados por el motor nativo y el backend.

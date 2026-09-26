@@ -2,12 +2,14 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Entrada de React Native)
 // Archivo: src/App.tsx
-// Descripción: Componente raíz de la aplicación con enrutamiento de modos
-//              (Bienvenida, Pareamiento, Dispositivo Protegido y Responsable).
+// Descripción: Componente raíz de la aplicación con enrutamiento de vistas
+//              (Onboarding con videos, Selección de Modo, Pareamiento,
+//              Dispositivo Protegido y Responsable).
 // ==============================================================================
 
 import React, { useState } from 'react';
 import { StatusBar } from 'react-native';
+import { OnboardingScreen } from './screens/OnboardingScreen';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { PairingScreen } from './screens/PairingScreen';
 import { ProtectedDeviceScreen } from './screens/ProtectedDeviceScreen';
@@ -15,6 +17,7 @@ import { ParentDashboardScreen } from './screens/ParentDashboardScreen';
 import { AppMode } from './types';
 
 export function App(): React.JSX.Element {
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(true);
   const [currentMode, setCurrentMode] = useState<AppMode>('UNSET');
   const [deviceUuid, setDeviceUuid] = useState<string | null>(null);
   const [isPaired, setIsPaired] = useState<boolean>(false);
@@ -35,25 +38,43 @@ export function App(): React.JSX.Element {
   return (
     <>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      {currentMode === 'UNSET' && (
-        <WelcomeScreen onSelectMode={handleSelectMode} />
+
+      {/* Pantalla de Onboarding y Videos */}
+      {showOnboarding && (
+        <OnboardingScreen
+          onComplete={() => setShowOnboarding(false)}
+          onSelectMode={(mode) => {
+            setShowOnboarding(false);
+            setCurrentMode(mode);
+          }}
+        />
       )}
 
-      {currentMode === 'CHILD' && !isPaired && (
+      {/* Pantalla de Selección de Modo (Welcome) */}
+      {!showOnboarding && currentMode === 'UNSET' && (
+        <WelcomeScreen
+          onSelectMode={handleSelectMode}
+          onOpenOnboarding={() => setShowOnboarding(true)}
+        />
+      )}
+
+      {/* Flujo Dispositivo Protegido (Menor o Adulto) */}
+      {!showOnboarding && (currentMode === 'CHILD' || currentMode === 'ADULT') && !isPaired && (
         <PairingScreen
           onPairingComplete={handlePairingComplete}
           onBack={handleExitMode}
         />
       )}
 
-      {currentMode === 'CHILD' && isPaired && (
+      {!showOnboarding && (currentMode === 'CHILD' || currentMode === 'ADULT') && isPaired && (
         <ProtectedDeviceScreen
-          deviceUuid={deviceUuid || 'dev-local-default'}
+          deviceUuid={deviceUuid || (currentMode === 'ADULT' ? 'dev-adult-default' : 'dev-local-default')}
           onExitMode={handleExitMode}
         />
       )}
 
-      {currentMode === 'PARENT' && (
+      {/* Flujo Responsable (Padre / Madre / Tutor) */}
+      {!showOnboarding && currentMode === 'PARENT' && (
         <ParentDashboardScreen onExitMode={handleExitMode} />
       )}
     </>
