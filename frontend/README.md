@@ -137,62 +137,90 @@ Ingresar a: **[http://localhost:5173/](http://localhost:5173/)**
 
 ## 📱 Ejecución Nativa en Android Studio / Emulador
 
-Guía paso a paso para ejecutar la aplicación móvil en un emulador de Android Studio (AVD) o en un dispositivo físico.
-
-### 📋 Requisitos Previos:
-1. **Android Studio** instalado con **Android SDK Platform 34/35/37** y **Build-Tools**.
-2. **AVD (Android Virtual Device)** creado (ejemplo: Pixel 6/7/8 con API 34/35).
-3. **JDK 17** configurado en el sistema (`JAVA_HOME`).
+Guía paso a paso para compilar, instalar y probar la aplicación móvil nativa utilizando `npx react-native run-android` en un emulador de Android Studio (AVD) o dispositivo físico.
 
 ---
 
-### 🚀 Pasos para Probar en el Emulador:
+### ⚙️ 1. Configuración de Variables de Entorno (Requisito JDK 17)
 
-#### 1. Iniciar el Backend API
-Asegúrese de que el backend esté ejecutándose (para permitir el login, pareamiento y telemetría):
+Es **imprescindible utilizar JDK 17** para evitar errores de compilación de Gradle (`Unsupported class file major version 69`).
+
+#### 🅰️ En Linux / macOS (`~/.bashrc` o `~/.zshrc`):
+```bash
+# 1. Instalar JDK 17
+sudo apt update && sudo apt install -y openjdk-17-jdk
+
+# 2. Configurar variables
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/emulator
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export PATH=$JAVA_HOME/bin:$PATH
+
+# 3. Aplicar cambios
+source ~/.bashrc
+```
+
+#### 📝 Configuración de `local.properties`:
+En el archivo `frontend/android/local.properties`, configure la ruta de su Android SDK:
+```properties
+# En Linux:
+sdk.dir=/home/TU_USUARIO/Android/Sdk
+
+# En Windows:
+# sdk.dir=C:\\Users\\TU_USUARIO\\AppData\\Local\\Android\\Sdk
+```
+
+---
+
+### 🚀 2. Pasos para Probar en el Emulador con `npx react-native run-android`:
+
+#### Paso 1: Iniciar el Backend API
 ```bash
 cd backend
 npm run dev
 ```
 
-#### 2. Iniciar el Emulador
+#### Paso 2: Iniciar el Emulador AVD
 - Abra Android Studio y navegue a **Virtual Device Manager**.
-- Inicie su dispositivo virtual AVD.
+- Inicie su dispositivo virtual AVD (recomendado Pixel 6/7/8 con API 34 o 35).
 
-#### 3. Redireccionar Puertos (ADB Reverse)
-Para vincular los puertos de red del emulador con su máquina local:
+#### Paso 3: Redireccionar Puertos (ADB Reverse)
 ```bash
 adb reverse tcp:8081 tcp:8081
 adb reverse tcp:3000 tcp:3000
 ```
 
-#### 4. Empaquetar el Bundle JavaScript (Paso Clave para Android)
-Para que la aplicación cargue la interfaz sin errores de script (`Unable to load script`):
+#### Paso 4: Empaquetar el Bundle JavaScript
 ```bash
 cd frontend
 mkdir -p android/app/src/main/assets
 npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
 ```
 
-#### 5. Iniciar Metro Bundler
+#### Paso 5: Iniciar Metro Bundler
 En una terminal dentro de `frontend`:
 ```bash
 npm start
 ```
 
-#### 6. Compilar e Instalar en el Emulador
+#### Paso 6: Compilar e Instalar con `npx react-native run-android`
 En una segunda terminal dentro de `frontend`:
 ```bash
-npm run android
+npx react-native run-android
 ```
 *(También puede abrir la carpeta `frontend/android` en Android Studio y pulsar **Run ▶️**).*
 
 ---
 
-### 🔧 Solución de Problemas Frecuentes:
-- **Red Screen "Unable to load script":** Ejecute el comando de bundle del **Paso 4** e inicie Metro (`npm start`).
-- **Conexión con el Backend en Emulador:** En el emulador, `http://10.0.2.2:3000/api` apunta a su `localhost:3000`. Con `adb reverse tcp:3000 tcp:3000`, `http://localhost:3000/api` también funciona.
-- **Permiso de VpnService:** Al activar la protección en la app, acepte el cuadro de diálogo del sistema Android para permitir la conexión VPN local de filtrado LOTBA.
+### 🔧 3. Solución de Problemas Frecuentes:
+
+- 🔴 **Error `Unsupported class file major version 69`:** Indico que su sistema tiene Java 25 activo. Configure `JAVA_HOME` apuntando al **JDK 17**.
+- 🔴 **Error `SDK location not found`:** Verifique `ANDROID_HOME` o configure `sdk.dir` en `frontend/android/local.properties`.
+- 🔴 **Red Screen `Unable to load script`:** Ejecute el paso de bundle (`npx react-native bundle ...`) e inicie Metro (`npm start`).
+- 🌐 **Conexión al Backend:** La URL `http://10.0.2.2:3000/api` o `http://localhost:3000/api` (con `adb reverse tcp:3000 tcp:3000`) funcionan correctamente en el emulador.
 
 ---
 
