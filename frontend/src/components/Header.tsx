@@ -1,13 +1,13 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: Frontend Mobile (UI Component)
+// Componente: Header (Encabezado Institucional UI Kit)
 // Archivo: src/components/Header.tsx
-// Descripción: Encabezado institucional con título, subtítulo y badges de estado.
 // ==============================================================================
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../theme/colors';
+import { typography } from '../theme/typography';
 
 interface HeaderProps {
   title: string;
@@ -25,19 +25,18 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 20,
+    paddingVertical: 18,
     paddingHorizontal: 16,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    ...typography.header,
     color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
     marginTop: 4,
   },

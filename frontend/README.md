@@ -5,36 +5,117 @@
 Proyecto: BA Protege+
 Componente: Frontend Mobile
 Archivo: frontend/README.md
-Descripción: Documentación técnica, guía de instalación, ejecución del simulador
-             interactivo y desarrollo de módulos nativos Android en Kotlin.
+Descripción: Documentación técnica, guía de instalación, Kit UI/UX, Flujo de 5 Pasos,
+             Solicitud y Alerta de Permisos Faltantes, Autocontrol con 24h lock y Límite de 5 Dispositivos.
 ==============================================================================
 -->
 
-Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con integración de módulos nativos en **Kotlin 2.x** para filtrado local mediante `VpnService` de Android y un **Simulador Web Interactivo con Vite** para pruebas inmediatas en el navegador.
+Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **Kit UI/UX del Sistema de Diseño oficial**, **Flujo Ordenado de 5 Pasos**, pantalla de **Solicitud de Permisos del Dispositivo** (VPN, Accesibilidad, Notificaciones, Batería) con alertas de permisos pendientes, **Autocontrol del Responsable con bloqueo de 24hs**, gestión de **hasta 5 dispositivos por responsable**, módulos nativos en **Kotlin 2.x** para filtrado local `VpnService` y un **Simulador Web Interactivo con Vite**.
 
 ---
 
 ## 📌 Tabla de Contenidos
 
 1. [Tecnologías y Arquitectura](#-tecnologías-y-arquitectura)
-2. [Estructura del Proyecto](#-estructura-del-proyecto)
-3. [Guía de Instalación y Pruebas Web (Rápida)](#-guía-de-instalación-y-pruebas-web-rápida)
-4. [Módulos Nativos Android en Kotlin](#-módulos-nativos-android-en-kotlin)
-5. [Ejecución Nativa en Android Studio / Emulador](#-ejecución-nativa-en-android-studio--emulador)
-6. [Funcionalidades y Escenarios de Prueba](#-funcionalidades-y-escenarios-de-prueba)
+2. [Flujo Ordenado de 5 Pasos](#-flujo-ordenado-de-5-pasos)
+3. [Sistema de Diseño y Kit UI/UX](#-sistema-de-diseño-y-kit-uiux)
+4. [Nuevas Funcionalidades: Permisos, Autocontrol y 5 Dispositivos](#-nuevas-funcionalidades-permisos-autocontrol-y-5-dispositivos)
+5. [Estructura del Proyecto](#-estructura-del-proyecto)
+6. [Guía de Instalación y Pruebas Web (Rápida)](#-guía-de-instalación-y-pruebas-web-rápida)
+7. [Módulos Nativos Android en Kotlin](#-módulos-nativos-android-en-kotlin)
+8. [Ejecución Nativa en Android Studio / Emulador](#-ejecución-nativa-en-android-studio--emulador)
+9. [Funcionalidades y Escenarios de Prueba](#-funcionalidades-y-escenarios-de-prueba)
 
 ---
 
 ## 🛠️ Tecnologías y Arquitectura
 
 - **Framework Móvil:** React Native 0.87 (TypeScript)
+- **Sistema de Diseño:** Kit UI/UX oficial (`src/theme/` y `src/components/`)
 - **Simulador Web:** Vite 8 + React 18 + TypeScript (puerto `5173`)
 - **Capa Nativa Android:** Kotlin 2.x / Android SDK Platform 35/37 (Java 17)
 - **Motor de Filtrado:** `android.net.VpnService` local con caché offline
-- **Anti-Bypass & Resiliencia:** `BootReceiver` (`RECEIVE_BOOT_COMPLETED`)
+- **Anti-Bypass & Resiliencia:** `BootReceiver` (`RECEIVE_BOOT_COMPLETED`) y validación de tiempo del servidor NTP (`getReliableTimestamp()`)
 - **Servicios en Primer Plano:** `NotificationManager` con canal persistente de seguridad
 - **Puente Nativo:** `ProtectionModule` (`ReactContextBaseJavaModule`)
 - **Cliente HTTP:** Axios con interceptores JWT para comunicación con el backend (`http://localhost:3000/api`)
+
+---
+
+## 🔄 Flujo Ordenado de 5 Pasos
+
+La aplicación se navega a través de un flujo estructurado de 5 fases principales (`App.tsx` y `WebSimulator.tsx`):
+
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│ PASO 1: ONBOARDING Y TUTORIALES EN VIDEO PARA TODOS              │
+└────────────────────────────────┬─────────────────────────────────┘
+                                 │
+                                 ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ PASO 2: SELECCIÓN DE MODO OPERATIVO (Responsable vs. Protegido) │
+└────────────────┬────────────────────────────────┬────────────────┘
+                 │                                │
+                 ▼                                ▼
+┌─────────────────────────────────┐    ┌──────────────────────────┐
+│ PASO 3A: MODO RESPONSABLE       │    │ PASO 3B: MODO PROTEGIDO  │
+│ - Login / Registro / Recovery   │    │ - Pareamiento con Código │
+└────────────────┬────────────────┘    └────────────┬─────────────┘
+                 │                                  │
+                 └────────────────┬─────────────────┘
+                                  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ PASO 4: PANTALLA DE PERMISOS DE ANDROID (Post-Login / Pairing)   │
+│ - Configuración y explicación de los 4 permisos esenciales       │
+└────────────────────────────────┬─────────────────────────────────┘
+                                 │
+                                 ▼
+┌────────────────────────────────┴─────────────────────────────────┐
+│ PASO 5: PANTALLA PRINCIPAL DE DESTINO                            │
+│ - Paso 5A: Dashboard del Responsable (Hasta 5 dispositivos & 24h)│
+│ - Paso 5B: Dispositivo Protegido (Con Alerta de Permisos Pend.)  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎨 Sistema de Diseño y Kit UI/UX
+
+El proyecto cuenta con un **Kit UI/UX estandarizado** basado en las especificaciones oficiales de la carpeta `frontend/ui/` (`uikit.txt` y recursos vectoriales SVG/PNG):
+
+### 1. Tokens de Color Oficiales
+- **Primary (`#007AFF`):** Botones principales, encabezados, selección de modo y elementos activos.
+- **Secondary (`#28A745`):** Estado de protección activa, confirmaciones y operaciones exitosas.
+- **Text Primary (`#1C1C1E`):** Títulos, encabezados y texto principal sobre fondo claro.
+- **Text Secondary (`#8E8E93`):** Subtítulos, textos secundarios, bordes e íconos deshabilitados.
+- **Background (`#F8F9FA`):** Fondo general de las pantallas y contenedores de tarjetas (cards).
+- **Feedback / Error (`#DC3545`):** Sitios bloqueados, alertas críticas y desinstalación.
+- **Feedback / Warning (`#FFC107`):** Advertencias de vinculación, avisos pendientes y alertas.
+
+### 2. Jerarquía Tipográfica (Roboto)
+- **Header / Título:** Roboto Bold `24px` (Line height `32px`).
+- **Subtítulo:** Roboto Medium `18px` (Line height `24px`).
+- **Cuerpo de Texto:** Roboto Regular `14px` (Line height `20px`).
+- **Caption / Microcopy:** Roboto Regular `12px` (Line height `16px`).
+
+---
+
+## 🛡️ Nuevas Funcionalidades: Permisos, Autocontrol y 5 Dispositivos
+
+1. **Pantalla de Solicitud de Permisos (`PermissionsScreen.tsx`):**
+   - Configuración pedagógica de los 4 permisos del sistema Android:
+     1. `Servicio VPN Local (VpnService)`: Filtro de paquetes DNS para dominios LOTBA.
+     2. `Servicio de Accesibilidad`: Protección antidesinstalación sin PIN del tutor.
+     3. `Notificaciones en Primer Plano`: Canal persistente de estado y alertas.
+     4. `Sin Optimización de Batería`: Ejecución continua con pantalla apagada.
+2. **Caja de Alerta de Permisos Faltantes:**
+   - Si el usuario o tutor continúa a la pantalla principal sin otorgar los 4 permisos, se despliega una tarjeta amarilla de advertencia **`⚠️ Permisos Pendientes (X/4 Concedidos)`** detallando exactamente qué permisos faltan (ej. `• Notificaciones en Primer Plano`) con botón directo para configurarlos.
+3. **Auditoría de Permisos de Dispositivos Protegidos:**
+   - En el **Panel del Responsable (`ParentDashboardScreen.tsx`)**, cada tarjeta de dispositivo vinculado muestra la etiqueta de permisos `PERMISOS: 4/4 CONCEDIDOS` y permite desplegar el desglose individual por celular.
+4. **Límite de hasta 5 Dispositivos por Responsable (`MAX_PARENT_DEVICES = 5`):**
+   - Límite de vinculación de hasta 5 celulares por cuenta de responsable.
+5. **Autocontrol del Responsable con Bloqueo de 24 Horas:**
+   - Autoprotección con **Doble Confirmación** y bloqueo inflexible durante 24 horas continuas con cuenta regresiva en vivo en formato corregido `24h 00m`.
 
 ---
 
@@ -43,57 +124,44 @@ Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con integr
 ```text
 frontend/
 ├── android/                                  # Proyecto nativo Android (Gradle, Kotlin)
-│   ├── app/
-│   │   ├── src/main/
-│   │   │   ├── AndroidManifest.xml           # Permisos de VpnService, BootReceiver y Foreground
-│   │   │   └── java/com/baprotege/
-│   │   │       ├── vpn/
-│   │   │       │   ├── ProtectionVpnService.kt # Motor VPN nativo y loop de filtrado de paquetes
-│   │   │       │   ├── LotbaFilterEngine.kt  # Motor de reglas LOTBA y almacenamiento offline
-│   │   │       │   └── VpnNotificationManager.kt # Gestor de notificación persistente
-│   │   │       ├── receiver/
-│   │   │       │   └── BootReceiver.kt       # Resiliencia y arranque automático tras reboot
-│   │   │       └── bridge/
-│   │   │           ├── ProtectionModule.kt   # Módulo puente React Native <-> Kotlin
-│   │   │           └── ProtectionPackage.kt  # Registro del paquete en React Native
-│   │   └── build.gradle                      # Compilación Android (Java 17, SDK 35/37)
-│   ├── build.gradle                          # Plugins Gradle y Kotlin 2.x
-│   └── settings.gradle
 ├── src/
-│   ├── components/                           # Componentes visuales reutilizables
+│   ├── components/                           # Componentes del Kit UI/UX
 │   │   ├── ActionButton.tsx                  # Botón con estados de carga y variantes
-│   │   ├── Header.tsx                        # Encabezado institucional
-│   │   ├── Logo.tsx                          # Logotipo genérico con candado abierto y tipografía oficial
-│   │   └── StatusCard.tsx                    # Tarjeta de estado efectivo de protección
+│   │   ├── Badge.tsx                         # Etiquetas de estado (Activo, Inactivo, Alerta)
+│   │   ├── ControlCard.tsx                   # Tarjetas interactivas para reglas de control
+│   │   ├── Header.tsx                        # Encabezado institucional con jerarquía tipográfica
+│   │   ├── Logo.tsx                          # Logotipo genérico oficial con isotipo
+│   │   ├── PinKeyboard.tsx                   # Teclado numérico interactivo 3x4 para PIN
+│   │   ├── StatusCard.tsx                    # Tarjeta de estado efectivo con Badges
+│   │   └── ToggleSwitch.tsx                  # Switch interactivo OFF/ON
 │   ├── screens/                              # Pantallas de la aplicación móvil
-│   │   ├── LoginScreen.tsx                   # Pantalla de Autenticación, Recuperación y Registro
-│   │   ├── PairingScreen.tsx                 # Pantalla de vinculación por código de 6 dígitos
-│   │   ├── ParentDashboardScreen.tsx         # Panel del responsable y gestión de dispositivos
-│   │   ├── ProtectedDeviceScreen.tsx         # Panel de control del menor y simulador de bloqueo
-│   │   └── WelcomeScreen.tsx                 # Selección de rol (Responsable vs. Protegido)
+│   │   ├── LoginScreen.tsx                   # Autenticación, Registro y Recuperación de contraseña
+│   │   ├── OnboardingScreen.tsx              # Onboarding con carrusel de 3 videos tutoriales
+│   │   ├── PairingScreen.tsx                 # Pareamiento por código de 6 dígitos
+│   │   ├── ParentDashboardScreen.tsx         # Panel del responsable con Alertas de Permisos del Tutor
+│   │   ├── PermissionsScreen.tsx            # Solicitud y explicación de los 4 permisos del sistema
+│   │   ├── ProtectedDeviceScreen.tsx         # Panel del protegido con Alerta de Permisos Faltantes
+│   │   └── WelcomeScreen.tsx                 # Selección de modo de operación
 │   ├── services/                             # Lógica de comunicación y puentes
-│   │   ├── api.service.ts                    # Cliente HTTP Axios (Login, Register, RecoverPassword, Telemetría)
+│   │   ├── api.service.ts                    # API Client, Server Time NTP y Autocontrol 24h
 │   │   └── vpn.service.ts                    # Servicio puente con ProtectionModule nativo
-│   ├── theme/                                # Tokens de diseño y colores
-│   │   └── colors.ts
-│   ├── types/                                # Definición de tipos TypeScript globales
-│   │   └── index.ts
-│   ├── web/                                  # Simulador web interactivo para pruebas
-│   │   ├── main.tsx                          # Punto de montaje del simulador web
-│   │   ├── simulator.css                     # Estilos de marco de teléfono, carrusel y panel de red
-│   │   └── WebSimulator.tsx                  # Componente interactivo con teléfono virtual
-│   └── App.tsx                               # Componente raíz de React Native
-├── index.html                                # Entrada HTML para el simulador web Vite
-├── vite.config.ts                            # Configuración de Vite
-├── package.json                              # Dependencias y scripts npm
-└── tsconfig.json                             # Configuración del compilador TypeScript
+│   ├── theme/                                # Tokens de diseño e interfaz del Kit UI/UX
+│   │   ├── colors.ts                         # Tokens de color oficiales (uikit.txt)
+│   │   ├── typography.ts                     # Escala y jerarquía tipográfica (Roboto)
+│   │   └── index.ts                          # Exportación central del tema
+│   ├── types/                                # Definiciones TypeScript (DevicePermissionsStatus, DeviceInfo)
+├── tests/                                    # Pruebas unitarias
+│   ├── onboarding.test.ts                    # Tests de Onboarding
+│   ├── permissions.test.ts                   # Tests de Permisos y Auditoría
+│   ├── selfControl.test.ts                   # Tests de Autocontrol 24h y Límite de 5 Dispositivos
+│   ├── theme.test.ts                         # Tests del Sistema de Diseño
+│   ├── types.test.ts                         # Tests de tipos TypeScript
+│   └── uikit.test.ts                         # Tests de tokens del UI Kit
 ```
 
 ---
 
 ## ⚡ Guía de Instalación y Pruebas Web (Rápida)
-
-Para probar la interfaz, los flujos de usuario y la comunicación en tiempo real con el backend sin necesidad de compilar Android Studio:
 
 ### 1. Instalar dependencias
 ```bash
@@ -101,156 +169,30 @@ cd frontend
 npm install
 ```
 
-### 2. Iniciar el Simulador Web
-Asegurarse de que el servidor backend esté corriendo en el puerto 3000 (`npm run dev` en `backend/`), luego ejecutar:
+### 2. Ejecutar los Tests Automatizados
+```bash
+npm test
+```
+
+### 3. Iniciar el Simulador Web
 ```bash
 npm run dev
 ```
 
-### 3. Abrir en el navegador
+### 4. Abrir en el navegador
 Ingresar a: **[http://localhost:5173/](http://localhost:5173/)**
-
----
-
-## ⚙️ Módulos Nativos Android en Kotlin
-
-1. **`ProtectionVpnService.kt`**:
-   - Crea una interfaz virtual de túnel local (`10.0.0.2/32`) mediante `VpnService.Builder`.
-   - Implementa `startForeground` con canal de notificación dedicado `ba_protege_vpn_channel`.
-   - Inspecciona paquetes DNS en hilo desacoplado para filtrar sitios clandestinos.
-2. **`LotbaFilterEngine.kt`**:
-   - Mantiene la lista oficial de LOTBA en memoria concurrente (`ConcurrentHashMap`).
-   - **Modo Offline:** Guarda y carga automáticamente la última lista válida en `SharedPreferences`.
-3. **`BootReceiver.kt`**:
-   - Escucha `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` y `QUICKBOOT_POWERON`.
-   - Si la protección estaba activa, reinicia el servicio VPN inmediatamente al encender el celular.
-4. **`ProtectionModule.kt`**:
-   - Expone métodos nativos a TypeScript:
-     - `prepareVpn()`: Solicita autorización del sistema operativo Android.
-     - `startProtection()`: Inicia el servicio VPN local.
-     - `stopProtection()`: Detiene el servicio VPN.
-     - `isProtectionActive()`: Consulta el estado en tiempo real.
-     - `updateBlocklist(version, domains)`: Sincroniza dominios en memoria y caché local.
-     - `getBlocklistInfo()`: Retorna versión y total de dominios registrados.
-
----
-
-## 📱 Ejecución Nativa en Android Studio / Emulador
-
-Guía paso a paso para compilar, instalar y probar la aplicación móvil nativa utilizando `npx react-native run-android` en un emulador de Android Studio (AVD) o dispositivo físico.
-
----
-
-### ⚙️ 1. Configuración de Variables de Entorno (Requisito JDK 17)
-
-Es **imprescindible utilizar JDK 17** para evitar errores de compilación de Gradle (`Unsupported class file major version 69`).
-
-#### 🅰️ En Linux / macOS (`~/.bashrc` o `~/.zshrc`):
-```bash
-# 1. Instalar JDK 17
-sudo apt update && sudo apt install -y openjdk-17-jdk
-
-# 2. Configurar variables
-export ANDROID_HOME=$HOME/Android/Sdk
-export PATH=$PATH:$ANDROID_HOME/emulator
-export PATH=$PATH:$ANDROID_HOME/platform-tools
-export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
-
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-export PATH=$JAVA_HOME/bin:$PATH
-
-# 3. Aplicar cambios
-source ~/.bashrc
-```
-
-#### 📝 Configuración de `local.properties`:
-En el archivo `frontend/android/local.properties`, configure la ruta de su Android SDK:
-```properties
-# En Linux:
-sdk.dir=/home/TU_USUARIO/Android/Sdk
-
-# En Windows:
-# sdk.dir=C:\\Users\\TU_USUARIO\\AppData\\Local\\Android\\Sdk
-```
-
----
-
-### 🚀 2. Pasos para Probar en el Emulador con `npx react-native run-android`:
-
-#### Paso 1: Iniciar el Backend API
-```bash
-cd backend
-npm run dev
-```
-
-#### Paso 2: Iniciar el Emulador AVD
-- Abra Android Studio y navegue a **Virtual Device Manager**.
-- Inicie su dispositivo virtual AVD (recomendado Pixel 6/7/8 con API 34 o 35).
-
-#### Paso 3: Redireccionar Puertos (ADB Reverse)
-```bash
-adb reverse tcp:8081 tcp:8081
-adb reverse tcp:3000 tcp:3000
-```
-
-#### Paso 4: Empaquetar el Bundle JavaScript
-```bash
-cd frontend
-mkdir -p android/app/src/main/assets
-npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
-```
-
-#### Paso 5: Iniciar Metro Bundler
-En una terminal dentro de `frontend`:
-```bash
-npm start
-```
-
-#### Paso 6: Compilar e Instalar con `npx react-native run-android`
-En una segunda terminal dentro de `frontend`:
-```bash
-npx react-native run-android
-```
-*(También puede abrir la carpeta `frontend/android` en Android Studio y pulsar **Run ▶️**).*
-
----
-
-### 🔧 3. Solución de Problemas Frecuentes:
-
-- 🔴 **Error `Unsupported class file major version 69`:** Indico que su sistema tiene Java 25 activo. Configure `JAVA_HOME` apuntando al **JDK 17**.
-- 🔴 **Error `SDK location not found`:** Verifique `ANDROID_HOME` o configure `sdk.dir` en `frontend/android/local.properties`.
-- 🔴 **Red Screen `Unable to load script`:** Ejecute el paso de bundle (`npx react-native bundle ...`) e inicie Metro (`npm start`).
-- 🌐 **Conexión al Backend:** La URL `http://10.0.2.2:3000/api` o `http://localhost:3000/api` (con `adb reverse tcp:3000 tcp:3000`) funcionan correctamente en el emulador.
 
 ---
 
 ## 🧪 Funcionalidades y Escenarios de Prueba
 
-### 1. Flujo de Autenticación (`LoginScreen.tsx`):
-- **Logotipo Oficial:** Isotipo de candado abierto 🔓 con badge institucional y texto `"BA Protege+ - Control Parental y Protección Digital"`.
-- **Inicio de Sesión:**
-  - Correo electrónico con botón de borrado rápido (✕).
-  - Contraseña con botón de borrado (✕) y alternador de visibilidad (👁️ / 🙈).
-  - Acceso directo con credenciales demo (`tutor@baprotege.gob.ar` / `password123`).
-- **Recuperación de Contraseña:**
-  - Formulario con instrucciones en español y validación de correo para restablecimiento de acceso.
-- **Creación de Cuenta (Registro):**
-  - Disposición vertical completa de todos los campos:
-    1. `Nombre *` (mínimo 2 caracteres, solo letras).
-    2. `Apellido *` (mínimo 2 caracteres, solo letras).
-    3. `Género` (carrusel horizontal interactivo con tarjetas de selección e indicadores de puntos: *Masculino*, *Femenino*, *Otro*, *No informado*).
-    4. `Fecha de Nacimiento` (`DD/MM/AAAA` con máscara).
-    5. `Teléfono` (`XX XXXX-XXXX` con máscara).
-    6. `Correo Electrónico *` (con botón de borrado).
-    7. `Contraseña *` (mínimo 6 caracteres, con botón de borrado y visibilidad).
-    8. `Confirmar Contraseña *` (validación de coincidencia con contraseña).
-
-### 2. Panel del Responsable (`ParentDashboardScreen.tsx`):
-- **Monitoreo en Tiempo Real:** Estado de los dispositivos vinculados (`Mateo` - Activo, `Sofía` - Activo, `Lucas` - Atención requerida).
-- **Generar Código de Pareamiento:** Emisión de token de 6 dígitos válido por 15 minutos.
-- **Dominios Personalizados:** Administración de listas complementarias del tutor.
-
-### 3. Modo Dispositivo Protegido (`ProtectedDeviceScreen.tsx`):
-- **Estado VPN en Vivo:** Alternar entre *"Pausar Protección"* y *"Reanudar Protección"*.
-- **Prueba de Interceptación LOTBA:** Selección y prueba de bloqueo inmediato ante dominios no autorizados.
-- **Telemetría Periódica:** Emisión automática de latidos de estado (cada 12 segundos).
+### 1. Flujo Ordenado de 5 Pasos en el Simulador Web:
+- **Paso 1:** Onboarding interactivo con reproductor de video simulado.
+- **Paso 2:** Selección de modo de operación (*Responsable vs. Dispositivo Protegido*).
+- **Paso 3:**
+  - **3A:** Iniciar sesión, recuperar contraseña o crear cuenta responsable.
+  - **3B:** Ingresar el código de pareamiento de 6 dígitos del menor.
+- **Paso 4:** Conceder o probar interactivamente los 4 permisos del sistema (VPN, Accesibilidad, Notificaciones, Batería).
+- **Paso 5:**
+  - **5A (Dashboard):** Visualizar tarjetas con la alerta de permisos pendientes del tutor, límite de 5 dispositivos y autocontrol de 24hs.
+  - **5B (Protegido):** Visualizar la caja amarilla de advertencia informando sobre los permisos pendientes de autorizar.
