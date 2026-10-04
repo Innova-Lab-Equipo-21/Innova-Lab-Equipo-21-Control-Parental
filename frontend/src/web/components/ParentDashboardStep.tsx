@@ -6,8 +6,9 @@
 //              autocontrol de 24hs, generador de código de pareamiento (hasta 5) y auditoría de permisos.
 // ==============================================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { WebPermissionsState } from './PermissionsStep';
+import { CustomBlockedDomain } from '../../types';
 
 interface ParentDashboardStepProps {
   parentUser: any;
@@ -25,6 +26,10 @@ interface ParentDashboardStepProps {
   onAttemptDisableSelfControl: () => void;
   onStartSelfControlFlow: () => void;
   onGeneratePairing: () => void;
+  customSites?: CustomBlockedDomain[];
+  onAddCustomSite?: (domain: string, category: string) => void;
+  onUpdateCustomSite?: (id: string, data: { domain?: string; category?: string; isActive?: boolean }) => void;
+  onDeleteCustomSite?: (id: string) => void;
 }
 
 export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
@@ -43,7 +48,18 @@ export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
   onAttemptDisableSelfControl,
   onStartSelfControlFlow,
   onGeneratePairing,
+  customSites = [],
+  onAddCustomSite,
+  onUpdateCustomSite,
+  onDeleteCustomSite,
 }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isAddingSite, setIsAddingSite] = useState(false);
+  const [newDomain, setNewDomain] = useState('');
+  const [newCategory, setNewCategory] = useState('Apuestas');
+  const [editingSiteId, setEditingSiteId] = useState<string | null>(null);
+  const [editDomain, setEditDomain] = useState('');
+  const [editCategory, setEditCategory] = useState('Apuestas');
   const missingParentPerms: string[] = [];
   if (!webPermissions.vpn) missingParentPerms.push('Servicio VPN Local (Filtrado LOTBA)');
   if (!webPermissions.accessibility) missingParentPerms.push('Servicio de Accesibilidad (Antidesinstalación)');
@@ -393,6 +409,304 @@ export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
         >
           {devices.length >= maxDevices ? 'Límite de 5 Dispositivos Alcanzado' : 'Generar Código de Pareamiento'}
         </button>
+      </div>
+
+      {/* SECCIÓN DE BLOQUEO DE SITIOS PERSONALIZADOS (CRUD) */}
+      <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+          <span style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E' }}>Sitios Web Bloqueados</span>
+          <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#E7F1FF', color: '#0056B3', padding: '3px 8px', borderRadius: '10px' }}>
+            {customSites.length} Sitios
+          </span>
+        </div>
+        <p style={{ fontSize: '12px', color: '#8E8E93', marginBottom: '12px' }}>
+          Lista personalizada de dominios bloqueados adicionalmente a la lista oficial LOTBA.
+        </p>
+
+        {/* Buscador de sitios */}
+        <input
+          type="text"
+          placeholder="🔍 Buscar dominio..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            height: '40px',
+            padding: '0 12px',
+            borderRadius: '10px',
+            border: '1px solid #CED4DA',
+            fontSize: '13px',
+            marginBottom: '10px',
+          }}
+        />
+
+        {/* Botón para agregar con espaciado consistente y ancho alineado a las tarjetas */}
+        <button
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            height: '40px',
+            borderRadius: '10px',
+            backgroundColor: isAddingSite ? '#6C757D' : '#007AFF',
+            color: '#FFF',
+            border: 'none',
+            fontWeight: '700',
+            fontSize: '13px',
+            cursor: 'pointer',
+            marginBottom: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            boxShadow: '0 2px 4px rgba(0, 122, 255, 0.15)',
+            transition: 'all 0.2s ease',
+          }}
+          onClick={() => setIsAddingSite(!isAddingSite)}
+        >
+          {isAddingSite ? '✕ Cancelar' : '+ Bloquear Sitio'}
+        </button>
+
+        {/* Formulario para agregar nuevo sitio */}
+        {isAddingSite && (
+          <div style={{ backgroundColor: '#F8F9FA', borderRadius: '10px', padding: '12px', border: '1px solid #DEE2E6', marginBottom: '12px' }}>
+            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1C1C1E', marginBottom: '8px' }}>
+              Bloquear Nuevo Dominio Web
+            </div>
+            <input
+              type="text"
+              placeholder="ejemplo: casino-ilegal.bet"
+              value={newDomain}
+              onChange={(e) => setNewDomain(e.target.value)}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                height: '36px',
+                padding: '0 10px',
+                borderRadius: '8px',
+                border: '1px solid #CED4DA',
+                fontSize: '12px',
+                marginBottom: '8px',
+              }}
+            />
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '11px', color: '#6C757D', fontWeight: '600' }}>Categoría:</span>
+              {['Apuestas', 'Redes Sociales', 'Juegos', 'Adultos', 'Personalizado'].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #CED4DA',
+                    backgroundColor: newCategory === cat ? '#007AFF' : '#FFF',
+                    color: newCategory === cat ? '#FFF' : '#495057',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setNewCategory(cat)}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            <button
+              style={{
+                width: '100%',
+                height: '36px',
+                borderRadius: '8px',
+                backgroundColor: '#28A745',
+                color: '#FFF',
+                border: 'none',
+                fontWeight: '700',
+                fontSize: '12px',
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                if (!newDomain.trim()) return;
+                onAddCustomSite?.(newDomain, newCategory);
+                setNewDomain('');
+                setIsAddingSite(false);
+              }}
+            >
+              Guardar y Bloquear Dominio
+            </button>
+          </div>
+        )}
+
+        {/* Lista de sitios */}
+        {customSites.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '16px', color: '#8E8E93', fontSize: '12px' }}>
+            No tienes sitios bloqueados en tu lista personalizada.
+          </div>
+        ) : (
+          customSites
+            .filter((s) => s.domain.toLowerCase().includes(searchTerm.toLowerCase()))
+            .map((site) => {
+              const isEditingThis = editingSiteId === site.id;
+              if (isEditingThis) {
+                return (
+                  <div key={site.id} style={{ backgroundColor: '#F8F9FA', borderRadius: '10px', padding: '10px', border: '1px solid #007AFF', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#007AFF', marginBottom: '6px' }}>
+                      Editar Dominio Bloqueado
+                    </div>
+                    <input
+                      type="text"
+                      value={editDomain}
+                      onChange={(e) => setEditDomain(e.target.value)}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        height: '34px',
+                        padding: '0 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #CED4DA',
+                        fontSize: '12px',
+                        marginBottom: '8px',
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      {['Apuestas', 'Redes Sociales', 'Juegos', 'Adultos', 'Personalizado'].map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #CED4DA',
+                            backgroundColor: editCategory === cat ? '#007AFF' : '#FFF',
+                            color: editCategory === cat ? '#FFF' : '#495057',
+                            fontSize: '10px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => setEditCategory(cat)}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        style={{
+                          flex: 1,
+                          height: '32px',
+                          borderRadius: '6px',
+                          backgroundColor: '#007AFF',
+                          color: '#FFF',
+                          border: 'none',
+                          fontWeight: '700',
+                          fontSize: '11px',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => {
+                          if (!editDomain.trim()) return;
+                          onUpdateCustomSite?.(site.id, { domain: editDomain, category: editCategory });
+                          setEditingSiteId(null);
+                        }}
+                      >
+                        Guardar Cambios
+                      </button>
+                      <button
+                        style={{
+                          height: '32px',
+                          padding: '0 12px',
+                          borderRadius: '6px',
+                          backgroundColor: '#E2E3E5',
+                          color: '#495057',
+                          border: 'none',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => setEditingSiteId(null)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={site.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: '10px', padding: '10px 12px', border: '1px solid #DEE2E6', marginBottom: '8px' }}>
+                  <div style={{ flex: 1, marginRight: '8px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1C1C1E' }}>
+                      🌐 {site.domain}
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '3px' }}>
+                      <span style={{ fontSize: '10px', fontWeight: '600', backgroundColor: '#E7F1FF', color: '#0056B3', padding: '2px 6px', borderRadius: '6px' }}>
+                        {site.category || 'Personalizado'}
+                      </span>
+                      <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: site.isActive ? '#D1E7DD' : '#E2E3E5', color: site.isActive ? '#0F5132' : '#6C757D', padding: '2px 6px', borderRadius: '6px' }}>
+                        {site.isActive ? 'BLOQUEADO' : 'PAUSADO'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <button
+                      style={{
+                        padding: '5px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #CED4DA',
+                        backgroundColor: '#FFF',
+                        color: '#495057',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                      }}
+                      onClick={() => onUpdateCustomSite?.(site.id, { isActive: !site.isActive })}
+                      title={site.isActive ? 'Pausar bloqueo' : 'Reanudar bloqueo'}
+                    >
+                      {site.isActive ? '⏸️' : '▶️'}
+                    </button>
+                    <button
+                      style={{
+                        padding: '5px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #CED4DA',
+                        backgroundColor: '#FFF',
+                        color: '#495057',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                      }}
+                      onClick={() => {
+                        setEditingSiteId(site.id);
+                        setEditDomain(site.domain);
+                        setEditCategory(site.category || 'Apuestas');
+                      }}
+                      title="Editar dominio"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      style={{
+                        padding: '5px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #F8D7DA',
+                        backgroundColor: '#FFF5F5',
+                        color: '#DC3545',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                      }}
+                      onClick={() => {
+                        if (confirm(`¿Deseas eliminar "${site.domain}" de tu lista de bloqueo?`)) {
+                          onDeleteCustomSite?.(site.id);
+                        }
+                      }}
+                      title="Eliminar dominio"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+        )}
       </div>
 
       {/* DISPOSITIVOS VINCULADOS CON AUDITORÍA DE PERMISOS */}

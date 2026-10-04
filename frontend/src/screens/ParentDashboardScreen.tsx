@@ -17,6 +17,7 @@ import {
   Alert,
   Modal,
   TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ActionButton } from '../components/ActionButton';
@@ -26,7 +27,7 @@ import { PermissionsScreen, PermissionItemState } from './PermissionsScreen';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { apiService } from '../services/api.service';
-import { MAX_PARENT_DEVICES, SelfControlState, DeviceInfo } from '../types';
+import { MAX_PARENT_DEVICES, SelfControlState, DeviceInfo, CustomBlockedDomain } from '../types';
 import { LoginScreen } from './LoginScreen';
 
 interface ParentDashboardScreenProps {
@@ -73,6 +74,17 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const [showSelfControlModal, setShowSelfControlModal] = useState(false);
   const [confirmationStep, setConfirmationStep] = useState<1 | 2>(1);
 
+  // Estados de Sitios Bloqueados Personalizados (CRUD)
+  const [customSites, setCustomSites] = useState<CustomBlockedDomain[]>([]);
+  const [siteSearch, setSiteSearch] = useState('');
+  const [showAddSiteModal, setShowAddSiteModal] = useState(false);
+  const [newSiteDomain, setNewSiteDomain] = useState('');
+  const [newSiteCategory, setNewSiteCategory] = useState('Apuestas');
+  const [editingSite, setEditingSite] = useState<CustomBlockedDomain | null>(null);
+  const [editSiteDomain, setEditSiteDomain] = useState('');
+  const [editSiteCategory, setEditSiteCategory] = useState('Apuestas');
+  const [loadingSite, setLoadingSite] = useState(false);
+
   // Calcular lista de permisos pendientes del tutor
   const missingLocalPermissions: string[] = [];
   if (permissions) {
@@ -87,6 +99,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     if (isLoggedIn) {
       loadDevices();
       checkSelfControlStatus();
+      loadCustomSites();
     }
   }, [isLoggedIn]);
 
@@ -111,6 +124,101 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     } catch (e) {
       console.error('Error al consultar estado de autocontrol:', e);
     }
+  };
+
+  const loadCustomSites = async () => {
+    try {
+      const res = await apiService.getCustomBlocklist();
+      setCustomSites(res.data?.domains || []);
+    } catch (e) {
+      console.warn('Error al cargar sitios personalizados:', e);
+    }
+  };
+
+  const handleAddSite = async () => {
+    if (!newSiteDomain.trim()) {
+      Alert.alert('Campo Requerido', 'Por favor ingresa un dominio válido (ej. casino-ilegal.bet).');
+      return;
+    }
+    setLoadingSite(true);
+    try {
+      const res = await apiService.addCustomBlockedSite(newSiteDomain, newSiteCategory);
+      setCustomSites((prev) => [res.data, ...prev.filter((d) => d.id !== res.data.id)]);
+      setNewSiteDomain('');
+      setShowAddSiteModal(false);
+      Alert.alert('🛡️ Sitio Bloqueado', `El dominio ${res.data.domain} fue agregado a tu lista de bloqueo.`);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'No se pudo agregar el dominio.');
+    } finally {
+      setLoadingSite(false);
+    }
+  };
+
+  const handleStartEdit = (site: CustomBlockedDomain) => {
+    setEditingSite(site);
+    setEditSiteDomain(site.domain);
+    setEditSiteCategory(site.category || 'Apuestas');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingSite) return;
+    if (!editSiteDomain.trim()) {
+      Alert.alert('Campo Requerido', 'El dominio no puede quedar vacío.');
+      return;
+    }
+    setLoadingSite(true);
+    try {
+      const res = await apiService.updateCustomBlockedSite(editingSite.id, {
+        domain: editSiteDomain,
+        category: editSiteCategory,
+      });
+      setCustomSites((prev) =>
+        prev.map((s) => (s.id === editingSite.id ? res.data : s))
+      );
+      setEditingSite(null);
+      Alert.alert('✅ Sitio Actualizado', `Los cambios en el sitio bloqueado fueron guardados.`);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'No se pudo actualizar el dominio.');
+    } finally {
+      setLoadingSite(false);
+    }
+  };
+
+  const handleToggleSiteActive = async (site: CustomBlockedDomain) => {
+    try {
+      const nextActive = !site.isActive;
+      const res = await apiService.updateCustomBlockedSite(site.id, {
+        isActive: nextActive,
+      });
+      setCustomSites((prev) =>
+        prev.map((s) => (s.id === site.id ? res.data : s))
+      );
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'No se pudo cambiar el estado del bloqueo.');
+    }
+  };
+
+  const handleDeleteSite = (site: CustomBlockedDomain) => {
+    Alert.alert(
+      'Eliminar Sitio Bloqueado',
+      `¿Deseas desbloquear y eliminar permanentemente "${site.domain}" de tu lista?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiService.deleteCustomBlockedSite(site.id);
+              setCustomSites((prev) => prev.filter((s) => s.id !== site.id));
+              Alert.alert('Sitio Eliminado', `El dominio ${site.domain} fue eliminado.`);
+            } catch (e: any) {
+              Alert.alert('Error al eliminar', e.message || 'No se pudo eliminar el dominio.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleGeneratePairingCode = async () => {
@@ -397,6 +505,98 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
           />
         </View>
 
+        {/* Sección de Bloqueo de Sitios Personalizados (CRUD) */}
+        <View style={styles.customSitesSection}>
+          <View style={styles.sitesHeaderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sectionTitle}>Sitios Web Bloqueados</Text>
+              <Text style={styles.sectionSubtitle}>
+                Lista personalizada de dominios bloqueados adicionalmente a la lista oficial LOTBA.
+              </Text>
+            </View>
+            <Badge
+              status={customSites.length > 0 ? 'activo' : 'inactivo'}
+              label={`${customSites.length} SITIOS`}
+            />
+          </View>
+
+          {/* Buscador de sitios */}
+          <TextInput
+            style={styles.searchInput}
+            placeholder="🔍 Buscar dominio bloqueado..."
+            placeholderTextColor={colors.textSecondary}
+            value={siteSearch}
+            onChangeText={setSiteSearch}
+          />
+
+          {/* Botón para abrir modal de agregar */}
+          <ActionButton
+            title="+ Bloquear Nuevo Sitio Web"
+            variant="primary"
+            onPress={() => setShowAddSiteModal(true)}
+          />
+
+          {/* Lista de sitios */}
+          {customSites.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>
+                No tienes sitios personalizados bloqueados. Agrega dominios específicos que desees restringir.
+              </Text>
+            </View>
+          ) : (
+            customSites
+              .filter((s) => s.domain.toLowerCase().includes(siteSearch.toLowerCase()))
+              .map((site) => (
+                <View key={site.id} style={styles.siteCard}>
+                  <View style={styles.siteCardHeader}>
+                    <View style={{ flex: 1, marginRight: 8 }}>
+                      <Text style={styles.siteDomainText}>🌐 {site.domain}</Text>
+                      <View style={styles.siteCategoryBadge}>
+                        <Text style={styles.siteCategoryText}>
+                          {site.category || 'Personalizado'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Badge
+                      status={site.isActive ? 'activo' : 'inactivo'}
+                      label={site.isActive ? 'BLOQUEADO' : 'PAUSADO'}
+                    />
+                  </View>
+
+                  <View style={styles.siteActionsRow}>
+                    <TouchableOpacity
+                      style={styles.siteActionButton}
+                      onPress={() => handleToggleSiteActive(site)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.siteActionText}>
+                        {site.isActive ? '⏸️ Pausar' : '▶️ Reanudar'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.siteActionButton}
+                      onPress={() => handleStartEdit(site)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.siteActionText}>✏️ Editar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.siteActionButton, styles.siteActionDeleteButton]}
+                      onPress={() => handleDeleteSite(site)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.siteActionText, styles.siteActionDeleteText]}>
+                        🗑️ Eliminar
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+          )}
+        </View>
+
         {/* Lista de dispositivos vinculados con auditoría de permisos */}
         <View style={styles.devicesSection}>
           <Text style={styles.sectionTitle}>
@@ -556,6 +756,132 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                   />
                 </View>
               )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal: Agregar Sitio Bloqueado Personalizado */}
+        <Modal
+          visible={showAddSiteModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowAddSiteModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalEmoji}>🛡️</Text>
+              <Text style={styles.modalTitle}>Bloquear Sitio Web</Text>
+              <Text style={styles.modalBody}>
+                Ingresa el dominio o dirección web que deseas restringir en los dispositivos de tu familia.
+              </Text>
+
+              <Text style={styles.inputLabel}>Dominio o URL del Sitio:</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="ejemplo: casino-ilegal.bet"
+                placeholderTextColor={colors.textSecondary}
+                value={newSiteDomain}
+                onChangeText={setNewSiteDomain}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <Text style={styles.inputLabel}>Categoría / Motivo:</Text>
+              <View style={styles.categorySelectorRow}>
+                {['Apuestas', 'Redes Sociales', 'Juegos', 'Adultos', 'Personalizado'].map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.categoryChip,
+                      newSiteCategory === cat && styles.categoryChipActive,
+                    ]}
+                    onPress={() => setNewSiteCategory(cat)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        newSiteCategory === cat && styles.categoryChipTextActive,
+                      ]}
+                    >
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <ActionButton
+                title="Guardar y Bloquear Sitio"
+                variant="primary"
+                loading={loadingSite}
+                onPress={handleAddSite}
+              />
+              <ActionButton
+                title="Cancelar"
+                variant="secondary"
+                onPress={() => setShowAddSiteModal(false)}
+              />
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal: Editar Sitio Bloqueado */}
+        <Modal
+          visible={!!editingSite}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setEditingSite(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalEmoji}>✏️</Text>
+              <Text style={styles.modalTitle}>Editar Sitio Bloqueado</Text>
+              <Text style={styles.modalBody}>
+                Modifica el dominio o la categoría del sitio restringido.
+              </Text>
+
+              <Text style={styles.inputLabel}>Dominio o URL:</Text>
+              <TextInput
+                style={styles.formInput}
+                value={editSiteDomain}
+                onChangeText={setEditSiteDomain}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <Text style={styles.inputLabel}>Categoría:</Text>
+              <View style={styles.categorySelectorRow}>
+                {['Apuestas', 'Redes Sociales', 'Juegos', 'Adultos', 'Personalizado'].map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.categoryChip,
+                      editSiteCategory === cat && styles.categoryChipActive,
+                    ]}
+                    onPress={() => setEditSiteCategory(cat)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        editSiteCategory === cat && styles.categoryChipTextActive,
+                      ]}
+                    >
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <ActionButton
+                title="Guardar Cambios"
+                variant="primary"
+                loading={loadingSite}
+                onPress={handleSaveEdit}
+              />
+              <ActionButton
+                title="Cancelar"
+                variant="secondary"
+                onPress={() => setEditingSite(null)}
+              />
             </View>
           </View>
         </Modal>
@@ -849,5 +1175,137 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  // Estilos de Sitios Web Bloqueados Personalizados (CRUD)
+  customSitesSection: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  sitesHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  searchInput: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: colors.textPrimary,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  siteCard: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  siteCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  siteDomainText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  siteCategoryBadge: {
+    backgroundColor: '#E7F1FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  siteCategoryText: {
+    fontSize: 11,
+    color: '#0056B3',
+    fontWeight: '600',
+  },
+  siteActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+    paddingTop: 8,
+  },
+  siteActionButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  siteActionDeleteButton: {
+    borderColor: '#F8D7DA',
+    backgroundColor: '#FFF5F5',
+  },
+  siteActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  siteActionDeleteText: {
+    color: colors.statusDanger,
+  },
+  categorySelectorRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginVertical: 10,
+  },
+  categoryChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  categoryChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryChipText: {
+    fontSize: 12,
+    color: colors.textPrimary,
+    fontWeight: '600',
+  },
+  categoryChipTextActive: {
+    color: '#FFF',
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  formInput: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: colors.textPrimary,
+    marginBottom: 8,
   },
 });

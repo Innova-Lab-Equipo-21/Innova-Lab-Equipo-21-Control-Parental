@@ -116,3 +116,26 @@ export interface NativeBlocklistInfo {
   version: number;
   totalDomains: number;
 }
+
+/**
+ * Dominio bloqueado personalizado por el responsable.
+ */
+export interface CustomBlockedDomain {
+  id: string;
+  domain: string;
+  category?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+/**
+ * Lista personalizada de bloqueo con versión y colección de dominios.
+ */
+export interface CustomBlocklist {
+  id: string;
+  name: string;
+  type: string;
+  version: number;
+  domains: CustomBlockedDomain[];
+}
+

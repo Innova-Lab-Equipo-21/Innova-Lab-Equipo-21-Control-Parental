@@ -18,6 +18,8 @@ import { PermissionsStep, WebPermissionsState } from './components/PermissionsSt
 import { ParentDashboardStep } from './components/ParentDashboardStep';
 import { ProtectedDeviceStep } from './components/ProtectedDeviceStep';
 import { calculateAge } from '../utils/age';
+import { CustomBlockedDomain } from '../types';
+import { apiService } from '../services/api.service';
 
 const API_BASE = 'http://localhost:3000/api';
 const MAX_PARENT_DEVICES = 5;
@@ -93,6 +95,24 @@ export const WebSimulator: React.FC = () => {
     },
   ]);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
+
+  // Estados de Sitios Bloqueados Personalizados (CRUD)
+  const [customSites, setCustomSites] = useState<CustomBlockedDomain[]>([
+    {
+      id: 'site-1',
+      domain: 'casino-clandestino.net',
+      category: 'Apuestas',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'site-2',
+      domain: 'red-social-peligrosa.org',
+      category: 'Redes Sociales',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    },
+  ]);
 
   // Estados de Autocontrol / Autoprotección del Tutor
   const [selfControlActive, setSelfControlActive] = useState(false);
@@ -175,7 +195,48 @@ export const WebSimulator: React.FC = () => {
         ];
         setLotbaDomains(sample);
       });
+
+    // Cargar lista personalizada de sitios bloqueados
+    apiService.getCustomBlocklist()
+      .then((res) => {
+        if (res.data?.domains && res.data.domains.length > 0) {
+          setCustomSites(res.data.domains);
+          addLog('GET', `Lista personalizada cargada: ${res.data.domains.length} sitios`);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const handleAddCustomSite = async (domain: string, category: string) => {
+    try {
+      const res = await apiService.addCustomBlockedSite(domain, category);
+      setCustomSites((prev) => [res.data, ...prev.filter((d) => d.id !== res.data.id)]);
+      addLog('POST', `Sitio agregado a lista personalizada: ${res.data.domain} (${res.data.category || category})`);
+    } catch (e: any) {
+      alert(e.message || 'No se pudo agregar el dominio');
+    }
+  };
+
+  const handleUpdateCustomSite = async (id: string, data: { domain?: string; category?: string; isActive?: boolean }) => {
+    try {
+      const res = await apiService.updateCustomBlockedSite(id, data);
+      setCustomSites((prev) => prev.map((s) => (s.id === id ? res.data : s)));
+      addLog('POST', `Sitio personalizado actualizado: ${res.data.domain}`);
+    } catch (e: any) {
+      alert(e.message || 'No se pudo actualizar el dominio');
+    }
+  };
+
+  const handleDeleteCustomSite = async (id: string) => {
+    try {
+      const site = customSites.find((s) => s.id === id);
+      await apiService.deleteCustomBlockedSite(id);
+      setCustomSites((prev) => prev.filter((s) => s.id !== id));
+      addLog('INFO', `Sitio eliminado de lista personalizada: ${site?.domain || id}`);
+    } catch (e: any) {
+      alert(e.message || 'No se pudo eliminar el dominio');
+    }
+  };
 
   // Simulación reproductor video tutorial
   useEffect(() => {
@@ -758,6 +819,10 @@ export const WebSimulator: React.FC = () => {
                       setShowSelfControlModal(true);
                     }}
                     onGeneratePairing={handleGeneratePairing}
+                    customSites={customSites}
+                    onAddCustomSite={handleAddCustomSite}
+                    onUpdateCustomSite={handleUpdateCustomSite}
+                    onDeleteCustomSite={handleDeleteCustomSite}
                   />
                 );
               })()}

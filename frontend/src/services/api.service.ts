@@ -9,7 +9,15 @@
 
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MAX_PARENT_DEVICES, SELF_CONTROL_LOCK_HOURS, SELF_CONTROL_UNLOCK_WINDOW_HOURS, SelfControlState, DeviceInfo } from '../types';
+import {
+  MAX_PARENT_DEVICES,
+  SELF_CONTROL_LOCK_HOURS,
+  SELF_CONTROL_UNLOCK_WINDOW_HOURS,
+  SelfControlState,
+  DeviceInfo,
+  CustomBlocklist,
+  CustomBlockedDomain,
+} from '../types';
 
 // URL base para el entorno de desarrollo (10.0.2.2 apunta al localhost del host en el emulador Android)
 export const BASE_API_URL = 'http://10.0.2.2:3000/api';
@@ -438,7 +446,7 @@ export const apiService = {
   },
 
   // --------------------------------------------------------------------------
-  // Listas de Bloqueo
+  // Listas de Bloqueo y Sitios Personalizados (CRUD)
   // --------------------------------------------------------------------------
   async getOfficialLotbaList() {
     const response = await apiClient.get('/blocklist/official');
@@ -448,6 +456,145 @@ export const apiService = {
   async getDeviceBlocklist(deviceUuid: string) {
     const response = await apiClient.get(`/blocklist/device/${deviceUuid}`);
     return response.data;
+  },
+
+  async getCustomBlocklist(): Promise<{ success: boolean; data: CustomBlocklist }> {
+    try {
+      const response = await apiClient.get('/blocklist/custom', { timeout: 300 });
+      if (response.data?.data) {
+        await safeStorage.setItem(
+          '@ba_protege_custom_blocklist',
+          JSON.stringify(response.data.data)
+        );
+      }
+      return response.data;
+    } catch (e) {
+      // Fallback a almacenamiento local / caché para demo offline
+      const cached = await safeStorage.getItem('@ba_protege_custom_blocklist');
+      if (cached) {
+        return { success: true, data: JSON.parse(cached) };
+      }
+      const initialList: CustomBlocklist = {
+        id: 'custom-local-list',
+        name: 'Lista Personalizada del Tutor',
+        type: 'CUSTOM',
+        version: 1,
+        domains: [
+          {
+            id: 'demo-site-1',
+            domain: 'casino-clandestino.net',
+            category: 'Apuestas',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: 'demo-site-2',
+            domain: 'red-social-peligrosa.org',
+            category: 'Redes Sociales',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      };
+      await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(initialList));
+      return { success: true, data: initialList };
+    }
+  },
+
+  async addCustomBlockedSite(
+    domain: string,
+    category: string = 'Personalizado'
+  ): Promise<{ success: boolean; data: CustomBlockedDomain }> {
+    const cleanDomain = domain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+    if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
+      throw new Error('Formato de dominio no válido (ejemplo: sitio.com)');
+    }
+
+    try {
+      const response = await apiClient.post(
+        '/blocklist/custom/domains',
+        {
+          domain: cleanDomain,
+          category,
+        },
+        { timeout: 300 }
+      );
+      return response.data;
+    } catch (e: any) {
+      // Fallback offline
+      const currentListRes = await this.getCustomBlocklist();
+      const list = currentListRes.data;
+      if (list.domains.some((d) => d.domain === cleanDomain)) {
+        throw new Error('El dominio ya se encuentra en tu lista de sitios bloqueados');
+      }
+      const newDomain: CustomBlockedDomain = {
+        id: `dom-${Date.now()}`,
+        domain: cleanDomain,
+        category,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      };
+      list.domains.unshift(newDomain);
+      list.version += 1;
+      await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));
+      return { success: true, data: newDomain };
+    }
+  },
+
+  async updateCustomBlockedSite(
+    domainId: string,
+    data: { domain?: string; category?: string; isActive?: boolean }
+  ): Promise<{ success: boolean; data: CustomBlockedDomain }> {
+    let cleanDomain: string | undefined;
+    if (data.domain) {
+      cleanDomain = data.domain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+      if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
+        throw new Error('Formato de dominio no válido (ejemplo: sitio.com)');
+      }
+    }
+
+    try {
+      const response = await apiClient.put(
+        `/blocklist/custom/domains/${domainId}`,
+        {
+          ...(cleanDomain ? { domain: cleanDomain } : {}),
+          ...(data.category !== undefined ? { category: data.category } : {}),
+          ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        },
+        { timeout: 300 }
+      );
+      return response.data;
+    } catch (e: any) {
+      // Fallback offline
+      const currentListRes = await this.getCustomBlocklist();
+      const list = currentListRes.data;
+      const item = list.domains.find((d) => d.id === domainId);
+      if (!item) throw new Error('Dominio no encontrado');
+      if (cleanDomain) item.domain = cleanDomain;
+      if (data.category !== undefined) item.category = data.category;
+      if (data.isActive !== undefined) item.isActive = data.isActive;
+      list.version += 1;
+      await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));
+      return { success: true, data: item };
+    }
+  },
+
+  async deleteCustomBlockedSite(domainId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await apiClient.delete(`/blocklist/custom/domains/${domainId}`, { timeout: 300 });
+      return response.data;
+    } catch (e: any) {
+      // Fallback offline
+      const currentListRes = await this.getCustomBlocklist();
+      const list = currentListRes.data;
+      const idx = list.domains.findIndex((d) => d.id === domainId);
+      if (idx !== -1) {
+        list.domains.splice(idx, 1);
+        list.version += 1;
+        await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));
+      }
+      return { success: true, message: 'Sitio eliminado correctamente' };
+    }
   },
 
   // --------------------------------------------------------------------------

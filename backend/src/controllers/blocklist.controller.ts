@@ -97,6 +97,38 @@ export class BlocklistController {
   }
 
   /**
+   * Actualiza un dominio de la lista personalizada del responsable.
+   * PUT /api/blocklist/custom/domains/:domainId
+   */
+  public async updateCustomDomain(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) throw new AppError('Usuario no autenticado', 401);
+
+      const { domain, category, isActive } = req.body;
+      const updated = await blocklistService.updateCustomDomain({
+        userId,
+        domainId: req.params.domainId,
+        domain,
+        category,
+        isActive,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Dominio actualizado exitosamente',
+        data: updated,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Elimina un dominio de la lista personalizada del responsable.
    * DELETE /api/blocklist/custom/domains/:domainId
    */
