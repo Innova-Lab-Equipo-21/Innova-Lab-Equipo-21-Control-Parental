@@ -17,6 +17,7 @@ import { PairingStep } from './components/PairingStep';
 import { PermissionsStep, WebPermissionsState } from './components/PermissionsStep';
 import { ParentDashboardStep } from './components/ParentDashboardStep';
 import { ProtectedDeviceStep } from './components/ProtectedDeviceStep';
+import { calculateAge } from '../utils/age';
 
 const API_BASE = 'http://localhost:3000/api';
 const MAX_PARENT_DEVICES = 5;
@@ -290,9 +291,21 @@ export const WebSimulator: React.FC = () => {
       errors.confirmPassword = 'Las contraseñas no coinciden.';
     }
 
+    if (!regFechaNacimiento.trim()) {
+      errors.fechaNacimiento = 'La fecha de nacimiento es obligatoria para verificar mayoría de edad (+18).';
+    } else if (regFechaNacimiento.length !== 10) {
+      errors.fechaNacimiento = 'Formato inválido. Debe ser DD/MM/AAAA.';
+    } else {
+      const age = calculateAge(regFechaNacimiento);
+      if (age === null) {
+        errors.fechaNacimiento = 'Fecha de nacimiento inválida.';
+      } else if (age < 18) {
+        errors.fechaNacimiento = 'Solo personas adultas (+18) pueden registrarse en el Modo Responsable.';
+      }
+    }
+
     setRegErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setAuthError('Por favor, completa correctamente los campos obligatorios.');
       return;
     }
 
@@ -573,7 +586,37 @@ export const WebSimulator: React.FC = () => {
                   onRegNombreChange={setRegNombre}
                   onRegApellidoChange={setRegApellido}
                   onRegGeneroChange={setRegGenero}
-                  onRegFechaNacimientoChange={(v) => setRegFechaNacimiento(formatBirthDate(v))}
+                  onRegFechaNacimientoChange={(v) => {
+                    const formatted = formatBirthDate(v);
+                    setRegFechaNacimiento(formatted);
+                    if (formatted.length === 10) {
+                      const age = calculateAge(formatted);
+                      if (age !== null && age < 18) {
+                        setRegErrors((prev) => ({
+                          ...prev,
+                          fechaNacimiento:
+                            'Solo personas adultas (+18) pueden registrarse en el Modo Responsable.',
+                        }));
+                      } else if (age === null) {
+                        setRegErrors((prev) => ({
+                          ...prev,
+                          fechaNacimiento: 'Fecha de nacimiento inválida.',
+                        }));
+                      } else {
+                        setRegErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.fechaNacimiento;
+                          return copy;
+                        });
+                      }
+                    } else if (regErrors.fechaNacimiento) {
+                      setRegErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.fechaNacimiento;
+                        return copy;
+                      });
+                    }
+                  }}
                   onRegTelefonoChange={(v) => setRegTelefono(formatPhone(v))}
                   onRegEmailChange={setRegEmail}
                   onRegPasswordChange={setRegPassword}

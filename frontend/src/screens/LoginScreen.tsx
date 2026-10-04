@@ -21,6 +21,7 @@ import { Logo } from '../components/Logo';
 import { ActionButton } from '../components/ActionButton';
 import { colors } from '../theme/colors';
 import { apiService } from '../services/api.service';
+import { calculateAge } from '../utils/age';
 
 type AuthViewMode = 'LOGIN' | 'RECOVERY' | 'REGISTER';
 type GenderOption = 'Masculino' | 'Femenino' | 'Otro' | 'No informado';
@@ -205,9 +206,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       errors.apellido = 'El apellido solo debe contener letras.';
     }
 
-    // 3. Validación de Fecha de Nacimiento
-    if (fechaNacimiento.trim().length > 0 && fechaNacimiento.length !== 10) {
+    // 3. Validación de Fecha de Nacimiento (Mayoría de edad obligatoria)
+    if (!fechaNacimiento.trim()) {
+      errors.fechaNacimiento = 'La fecha de nacimiento es obligatoria para verificar mayoría de edad (+18).';
+    } else if (fechaNacimiento.length !== 10) {
       errors.fechaNacimiento = 'Formato inválido. Debe ser DD/MM/AAAA.';
+    } else {
+      const age = calculateAge(fechaNacimiento);
+      if (age === null) {
+        errors.fechaNacimiento = 'Fecha de nacimiento inválida.';
+      } else if (age < 18) {
+        errors.fechaNacimiento = 'Solo personas adultas (+18) pueden registrarse en el Modo Responsable.';
+      }
     }
 
     // 4. Validación de Teléfono
@@ -239,7 +249,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      setErrorMessage('Por favor, corrige los campos marcados en rojo.');
+      setErrorMessage('');
       return;
     }
 
@@ -674,8 +684,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     style={styles.input}
                     value={fechaNacimiento}
                     onChangeText={(t) => {
-                      setFechaNacimiento(formatBirthDate(t));
-                      if (fieldErrors.fechaNacimiento) {
+                      const formatted = formatBirthDate(t);
+                      setFechaNacimiento(formatted);
+                      if (formatted.length === 10) {
+                        const age = calculateAge(formatted);
+                        if (age !== null && age < 18) {
+                          setFieldErrors((prev) => ({
+                            ...prev,
+                            fechaNacimiento:
+                              'Solo personas adultas (+18) pueden registrarse en el Modo Responsable.',
+                          }));
+                        } else if (age === null) {
+                          setFieldErrors((prev) => ({
+                            ...prev,
+                            fechaNacimiento: 'Fecha de nacimiento inválida.',
+                          }));
+                        } else {
+                          setFieldErrors((prev) => ({ ...prev, fechaNacimiento: '' }));
+                        }
+                      } else if (fieldErrors.fechaNacimiento) {
                         setFieldErrors((prev) => ({ ...prev, fechaNacimiento: '' }));
                       }
                     }}

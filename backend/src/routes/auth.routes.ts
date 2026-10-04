@@ -29,7 +29,25 @@ const registerSchema = z.object({
       .min(2, 'El apellido debe tener al menos 2 caracteres')
       .optional(),
     gender: z.enum(['Masculino', 'Femenino', 'Otro', 'No informado']).optional(),
-    birthDate: z.string().optional(),
+    birthDate: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (!val) return true;
+          if (val.length !== 10) return false;
+          const [d, m, y] = val.split('/').map(Number);
+          if (!d || !m || !y) return false;
+          const today = new Date();
+          let age = today.getFullYear() - y;
+          const mDiff = today.getMonth() + 1 - m;
+          if (mDiff < 0 || (mDiff === 0 && today.getDate() < d)) age--;
+          return age >= 18;
+        },
+        {
+          message: 'Solo personas adultas (+18) pueden registrarse en el Modo Responsable',
+        }
+      ),
     phone: z.string().optional(),
   }),
 });

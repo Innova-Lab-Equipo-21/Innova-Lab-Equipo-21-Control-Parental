@@ -257,12 +257,25 @@ export const AuthStep: React.FC<AuthStepProps> = ({
             <div style={{ marginBottom: '10px' }}>
               <label style={{ fontSize: '11px', fontWeight: '700', color: '#1C1C1E', display: 'block', marginBottom: '3px' }}>Fecha de Nacimiento</label>
               <input
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #DEE2E6', padding: '0 10px', fontSize: '12px' }}
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  borderRadius: '8px',
+                  border: regErrors.fechaNacimiento ? '1.5px solid #DC3545' : '1px solid #DEE2E6',
+                  backgroundColor: regErrors.fechaNacimiento ? '#FFF8F8' : '#FFFFFF',
+                  padding: '0 10px',
+                  fontSize: '12px',
+                }}
                 value={regFechaNacimiento}
                 onChange={(e) => onRegFechaNacimientoChange(e.target.value)}
                 placeholder="DD/MM/AAAA"
                 maxLength={10}
               />
+              {regErrors.fechaNacimiento && (
+                <span style={{ color: '#DC3545', fontSize: '10px', display: 'block', marginTop: '3px', fontWeight: '600' }}>
+                  {regErrors.fechaNacimiento}
+                </span>
+              )}
             </div>
 
             <div style={{ marginBottom: '10px' }}>
