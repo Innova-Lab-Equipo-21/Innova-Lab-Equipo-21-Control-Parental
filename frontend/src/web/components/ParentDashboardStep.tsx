@@ -54,12 +54,28 @@ export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
   onDeleteCustomSite,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [isAddingSite, setIsAddingSite] = useState(false);
   const [newDomain, setNewDomain] = useState('');
   const [newCategory, setNewCategory] = useState('Apuestas');
+  const [addError, setAddError] = useState('');
   const [editingSiteId, setEditingSiteId] = useState<string | null>(null);
   const [editDomain, setEditDomain] = useState('');
   const [editCategory, setEditCategory] = useState('Apuestas');
+
+  const handleAddSiteClick = () => {
+    setAddError('');
+    const trimmed = newDomain.trim();
+    if (!trimmed) {
+      setAddError('Por favor ingresa un dominio web (ej: tiktok.com o casino.bet)');
+      return;
+    }
+    const cleanDomain = trimmed.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+    if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
+      setAddError('Formato de dominio no válido (ejemplo: sitio.com)');
+      return;
+    }
+    onAddCustomSite?.(cleanDomain, newCategory);
+    setNewDomain('');
+  };
   const missingParentPerms: string[] = [];
   if (!webPermissions.vpn) missingParentPerms.push('Servicio VPN Local (Filtrado LOTBA)');
   if (!webPermissions.accessibility) missingParentPerms.push('Servicio de Accesibilidad (Antidesinstalación)');
@@ -416,94 +432,68 @@ export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
           <span style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E' }}>Sitios Web Bloqueados</span>
           <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#E7F1FF', color: '#0056B3', padding: '3px 8px', borderRadius: '10px' }}>
-            {customSites.length} Sitios
+            {customSites.length} {customSites.length === 1 ? 'Sitio' : 'Sitios'}
           </span>
         </div>
-        <p style={{ fontSize: '12px', color: '#8E8E93', marginBottom: '12px' }}>
-          Lista personalizada de dominios bloqueados adicionalmente a la lista oficial LOTBA.
+        <p style={{ fontSize: '12px', color: '#8E8E93', marginBottom: '14px' }}>
+          Ingresá los dominios o páginas que deseás restringir adicionalmente a la lista oficial LOTBA.
         </p>
 
-        {/* Buscador de sitios */}
-        <input
-          type="text"
-          placeholder="🔍 Buscar dominio..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            width: '100%',
-            boxSizing: 'border-box',
-            height: '40px',
-            padding: '0 12px',
-            borderRadius: '10px',
-            border: '1px solid #CED4DA',
-            fontSize: '13px',
-            marginBottom: '10px',
-          }}
-        />
-
-        {/* Botón para agregar con espaciado consistente y ancho alineado a las tarjetas */}
-        <button
-          style={{
-            width: '100%',
-            boxSizing: 'border-box',
-            height: '40px',
-            borderRadius: '10px',
-            backgroundColor: isAddingSite ? '#6C757D' : '#007AFF',
-            color: '#FFF',
-            border: 'none',
-            fontWeight: '700',
-            fontSize: '13px',
-            cursor: 'pointer',
-            marginBottom: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            boxShadow: '0 2px 4px rgba(0, 122, 255, 0.15)',
-            transition: 'all 0.2s ease',
-          }}
-          onClick={() => setIsAddingSite(!isAddingSite)}
-        >
-          {isAddingSite ? '✕ Cancelar' : '+ Bloquear Sitio'}
-        </button>
-
-        {/* Formulario para agregar nuevo sitio */}
-        {isAddingSite && (
-          <div style={{ backgroundColor: '#F8F9FA', borderRadius: '10px', padding: '12px', border: '1px solid #DEE2E6', marginBottom: '12px' }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1C1C1E', marginBottom: '8px' }}>
-              Bloquear Nuevo Dominio Web
+        {/* Formulario directo para agregar nuevo sitio */}
+        <div style={{ backgroundColor: '#F8F9FA', borderRadius: '12px', padding: '12px', border: '1px solid #E2E8F0', marginBottom: '16px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#1C1C1E', marginBottom: '6px' }}>
+            Dominio o sitio web a bloquear:
+          </label>
+          <input
+            type="text"
+            placeholder="ejemplo: casino-ilegal.bet o tiktok.com"
+            value={newDomain}
+            onChange={(e) => {
+              setNewDomain(e.target.value);
+              if (addError) setAddError('');
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddSiteClick();
+              }
+            }}
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              height: '40px',
+              padding: '0 12px',
+              borderRadius: '8px',
+              border: addError ? '1.5px solid #DC3545' : '1px solid #CED4DA',
+              fontSize: '13px',
+              marginBottom: '8px',
+            }}
+          />
+          {addError && (
+            <div style={{ fontSize: '11px', color: '#DC3545', fontWeight: '600', marginBottom: '8px' }}>
+              ⚠️ {addError}
             </div>
-            <input
-              type="text"
-              placeholder="ejemplo: casino-ilegal.bet"
-              value={newDomain}
-              onChange={(e) => setNewDomain(e.target.value)}
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                height: '36px',
-                padding: '0 10px',
-                borderRadius: '8px',
-                border: '1px solid #CED4DA',
-                fontSize: '12px',
-                marginBottom: '8px',
-              }}
-            />
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '11px', color: '#6C757D', fontWeight: '600' }}>Categoría:</span>
+          )}
+
+          <div style={{ marginBottom: '10px' }}>
+            <span style={{ display: 'block', fontSize: '11px', color: '#6C757D', fontWeight: '600', marginBottom: '6px' }}>
+              Categoría / Motivo:
+            </span>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {['Apuestas', 'Redes Sociales', 'Juegos', 'Adultos', 'Personalizado'].map((cat) => (
                 <button
                   key={cat}
                   type="button"
                   style={{
-                    padding: '4px 8px',
+                    padding: '4px 10px',
                     borderRadius: '6px',
-                    border: '1px solid #CED4DA',
+                    border: newCategory === cat ? '1px solid #007AFF' : '1px solid #CED4DA',
                     backgroundColor: newCategory === cat ? '#007AFF' : '#FFF',
                     color: newCategory === cat ? '#FFF' : '#495057',
                     fontSize: '11px',
                     fontWeight: '600',
                     cursor: 'pointer',
+                    transition: 'all 0.15s ease',
                   }}
                   onClick={() => setNewCategory(cat)}
                 >
@@ -511,34 +501,66 @@ export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
                 </button>
               ))}
             </div>
-            <button
-              style={{
-                width: '100%',
-                height: '36px',
-                borderRadius: '8px',
-                backgroundColor: '#28A745',
-                color: '#FFF',
-                border: 'none',
-                fontWeight: '700',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-              onClick={() => {
-                if (!newDomain.trim()) return;
-                onAddCustomSite?.(newDomain, newCategory);
-                setNewDomain('');
-                setIsAddingSite(false);
-              }}
-            >
-              Guardar y Bloquear Dominio
-            </button>
           </div>
+
+          <button
+            type="button"
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              height: '40px',
+              borderRadius: '8px',
+              backgroundColor: '#007AFF',
+              color: '#FFF',
+              border: 'none',
+              fontWeight: '700',
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 4px rgba(0, 122, 255, 0.2)',
+            }}
+            onClick={handleAddSiteClick}
+          >
+            🛡️ + Bloquear Sitio
+          </button>
+        </div>
+
+        {/* Encabezado de la lista y buscador si hay varios elementos */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1C1C1E' }}>
+            Mis Sitios Bloqueados
+          </span>
+          <span style={{ fontSize: '11px', color: '#8E8E93' }}>
+            {customSites.filter((s) => s.domain.toLowerCase().includes(searchTerm.toLowerCase())).length} de {customSites.length}
+          </span>
+        </div>
+
+        {customSites.length > 2 && (
+          <input
+            type="text"
+            placeholder="🔍 Filtrar lista de sitios..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              height: '34px',
+              padding: '0 10px',
+              borderRadius: '8px',
+              border: '1px solid #CED4DA',
+              fontSize: '12px',
+              marginBottom: '10px',
+            }}
+          />
         )}
 
         {/* Lista de sitios */}
         {customSites.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '16px', color: '#8E8E93', fontSize: '12px' }}>
-            No tienes sitios bloqueados en tu lista personalizada.
+          <div style={{ textAlign: 'center', padding: '16px', color: '#8E8E93', fontSize: '12px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px dashed #CED4DA' }}>
+            Aún no has agregado sitios personalizados. Ingresa un dominio arriba y presiona <b>"+ Bloquear Sitio"</b>.
           </div>
         ) : (
           customSites

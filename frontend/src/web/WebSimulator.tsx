@@ -508,11 +508,13 @@ export const WebSimulator: React.FC = () => {
   const handleSimulateAccess = () => {
     setBlockedAlert(null);
     const domainToCheck = testDomain.toLowerCase().trim();
-    const isBlocked = lotbaDomains.includes(domainToCheck) || domainToCheck.includes('apuestas') || domainToCheck.includes('casino');
+    const customSiteMatch = customSites.find((s) => s.isActive && s.domain.toLowerCase() === domainToCheck);
+    const isBlocked = !!customSiteMatch || lotbaDomains.includes(domainToCheck) || domainToCheck.includes('apuestas') || domainToCheck.includes('casino');
 
     if (isVpnActive && isBlocked) {
       setBlockedAlert(domainToCheck);
-      addLog('BLOCK', `🛑 [VPN LOCAL] Acceso denegado a: ${domainToCheck} (Coincidencia LOTBA)`);
+      const reason = customSiteMatch ? `Lista Personalizada: ${customSiteMatch.category || 'Bloqueado'}` : 'Coincidencia LOTBA';
+      addLog('BLOCK', `🛑 [VPN LOCAL] Acceso denegado a: ${domainToCheck} (${reason})`);
     } else {
       addLog('INFO', `🌐 Solicitud permitida para: ${domainToCheck}`);
     }
