@@ -9,7 +9,7 @@ Descripción: Documentación general del proyecto de control parental para la
 ==============================================================================
 -->
 
-Sistema integral de control parental y protección digital desarrollado para salvaguardar a niños, niñas, adolescentes y adultos frente a plataformas de apuestas online y sitios de juegos no autorizados, integrando el **Kit UI/UX del Sistema de Diseño oficial**, la lista de la **LOTBA (Lotería de la Ciudad de Buenos Aires)**, **Auditoría de Permisos de Dispositivos Protegidos**, **Autocontrol del Responsable con ciclo de 4 pasos de 24 horas**, **Gestión CRUD de Sitios Web Bloqueados Personalizados**, **Restricción de Mayoría de Edad (+18)** y gestión de **hasta 5 dispositivos por responsable**.
+Sistema integral de control parental y protección digital desarrollado para salvaguardar a niños, niñas, adolescentes y adultos frente a plataformas de apuestas online y sitios de juegos no autorizados, integrando el **Kit UI/UX del Sistema de Diseño oficial**, la lista de la **LOTBA (Lotería de la Ciudad de Buenos Aires)**, **Onboarding con Wizard de 3 Pantallas y Video Optativo**, **Auditoría de Permisos de Dispositivos Protegidos**, **Autocontrol del Responsable con ciclo de 4 pasos de 24 horas**, **Gestión CRUD de Sitios Web Bloqueados Personalizados**, **Restricción de Mayoría de Edad (+18)** y gestión de **hasta 5 dispositivos por responsable**.
 
 ---
 
@@ -150,9 +150,25 @@ Permite al responsable bloquear dominios o sitios web personalizados adicionales
   - **Acciones Rápidas:** Switch para pausar/activar bloqueo, botón para editar (✏️) y botón para eliminar (🗑️) con modal de confirmación preventiva.
   - **Sincronización con el Motor de Filtrado:** Los dominios personalizados activos son inmediatamente interceptados y bloqueados por el motor de navegación simulado.
 
-### 4. Barra de Progreso Circular en Onboarding (Stepper UI Kit)
-- Implementación de un indicador visual de avance por pasos (`<ProgressSteps />`) en el onboarding de bienvenida.
-- Respeta íntegramente los tokens oficiales del Sistema de Diseño (`#007AFF` para el paso activo, `#28A745` para pasos completados y `#F8F9FA` para el contenedor base).
+### 4. Flujo de Onboarding con Wizard de 3 Pantallas y Video Resumen Optativo
+Se implementó un flujo introductorio guiado y pedagógico mediante un **Wizard de 3 Pantallas** estructuradas ([`frontend/src/screens/OnboardingScreen.tsx`](file:///c:/Users/mika/Innova-Lab-Equipo-21-Control-Parental/frontend/src/screens/OnboardingScreen.tsx)), diseñado para transmitir confianza, educar sobre los perfiles y no generar fricción:
+
+- **Stepper Circular Numerado y Líneas Conectoras (`<ProgressSteps />`):**
+  - Indicador visual superior con los pasos `(1) ── (2) ── (3)`.
+  - Construido con los tokens oficiales del Sistema de Diseño (`#007AFF` para el paso en curso, `#28A745` para pasos completados y `#F8F9FA` de fondo).
+  - Permite avanzar, retroceder o saltar la introducción en cualquier momento con el botón *"Saltar introducción ✕"*.
+- **Pantalla 1: Bienvenida Institucional y Garantía de Privacidad Total:**
+  - Respaldo institucional oficial de la **Lotería de la Ciudad de Buenos Aires (LOTBA)**.
+  - **Compromiso ético de privacidad:** Destaca explícitamente que la aplicación **NO lee mensajes de WhatsApp, NO accede a galerías de fotos, llamadas ni contraseñas**.
+  - Explicación de la tecnología de filtrado: opera como un escudo de red local (DNS) que coteja únicamente dominios contra el registro oficial de apuestas ilegales, manteniendo todos los datos encriptados.
+- **Pantalla 2: Explicación Detallada de los 3 Perfiles de Usuario:**
+  - 👨‍👩‍👧‍👦 **Modo Responsable (Tutor):** Para padres, madres o tutores legales. Vinculación rápida de hasta 5 dispositivos por código de 6 dígitos o QR en menos de 1 minuto, monitoreo en vivo de los 4 permisos de Android y recepción de alertas inmediatas.
+  - 📱 **Modo Dispositivo Menor:** Para niños, niñas y adolescentes. Escudo local de protección que bloquea más de 1.000 dominios clandestinos sin ralentizar la navegación, pantalla pedagógica preventiva y protección antidesinstalación.
+  - 💜 **Modo Dispositivo Adulto:** Autoprotección personal y voluntaria para adultos frente a plataformas de apuestas y casinos online, con temporizador estricto de enfriamiento y acceso directo a la línea de ayuda gratuita oficial (0800).
+- **Pantalla 3: Resumen Audiovisual en Pocos Segundos (Optativo) y FAQ:**
+  - **Video Resumen de 35 Segundos:** Reproductor simulado interactivo que recorre dinámicamente los 3 perfiles con subtítulos sincronizados, badges temáticos, cambio de color de pantalla, barra de progreso y botones de reproducir, pausar y reiniciar.
+  - **Naturaleza 100% Optativa:** El video no es obligatorio ni bloqueante; el usuario puede reproducirlo o pulsar directamente *"¡Comenzar! Seleccionar Modo ➔"* para continuar.
+  - **Sección de Preguntas Frecuentes (FAQ):** Preguntas y respuestas desplegables sobre privacidad, funcionamiento técnico del bloqueo y asistencia legal/psicológica.
 
 ### 5. Auditoría de Permisos por Dispositivo (4/4 Android)
 - Supervisión en tiempo real del estado de los 4 permisos críticos del dispositivo protegido:
@@ -281,8 +297,11 @@ npm run dev
 Abrir en el navegador la URL indicada: **[http://localhost:5173/](http://localhost:5173/)**
 
 #### Escenarios de prueba interactiva:
-1. **🌟 Onboarding y Tutoriales en Video:**
-   - Inicio interactivo con los 3 videos paso a paso (*Tutor*, *Menor*, *Adulto*) con reproductor simulado, resumen de puntos clave y barra de tiempo.
+1. **🌟 Onboarding con Wizard de 3 Pantallas y Video Optativo:**
+   - **Navegación Stepper:** Observar la barra superior con los círculos numerados `(1) ── (2) ── (3)` y botón *"Saltar introducción ✕"*.
+   - **Pantalla 1 (Bienvenida y Privacidad):** Leer el aval de LOTBA y el banner de compromiso de privacidad (*sin acceso a WhatsApp, fotos ni chats*). Presionar *"Siguiente: Conocer los 3 Perfiles ➔"*.
+   - **Pantalla 2 (Los 3 Perfiles):** Revisar las tarjetas explicativas de *Modo Responsable*, *Dispositivo Menor* y *Dispositivo Adulto*. Probar el botón *"⬅ Volver"* y avanzar con *"Siguiente: Video Optativo ➔"*.
+   - **Pantalla 3 (Video Resumen y FAQ):** Probar el reproductor interactivo de 35 segundos (play ▶ / pausa ⏸, subtítulos sincronizados y botón de reiniciar ↺), verificar que el video es optativo y se puede avanzar directamente con *"¡Comenzar! Seleccionar Modo ➔"*. Desplegar las preguntas frecuentes (FAQ).
 2. **🔐 Autenticación y Registro con Validación de Mayoría de Edad (+18):**
    - **Pantalla de Login:** Acceso con logotipo genérico de candado abierto, campo de email y contraseña con botón para borrar rápidamente (✕) y alternador de visibilidad (👁️ / 🙈).
    - **Acceso Rápido Demo:** Botón para autocompletar con `tutor@baprotege.gob.ar` / `password123`.
@@ -341,12 +360,12 @@ npm test
 ```
 *Cobertura: 21 tests de integración que validan endpoints REST, sanitización de dominios, auditoría y control de errores.*
 
-#### Tests del Frontend (Componentes, Autocontrol 4 Pasos, Cálculo de Edad +18, CRUD Mobile):
+#### Tests del Frontend (Onboarding Wizard 3 Pasos, Autocontrol 4 Pasos, Validación de Edad +18, Blocklist CRUD):
 ```bash
 cd frontend
 npm test
 ```
-*Cobertura: 39 tests unitarios y de interfaz que validan el cálculo de mayoría de edad, la máquina de estados de autocontrol y la interacción de la lista de bloqueo.*
+*Cobertura: 39 tests unitarios y de interfaz que validan el Wizard de 3 pantallas y video optativo de onboarding, el cálculo de mayoría de edad, la máquina de estados de autocontrol y la interacción de la lista de bloqueo.*
 
 ---
 
