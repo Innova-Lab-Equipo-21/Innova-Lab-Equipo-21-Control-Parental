@@ -99,55 +99,71 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* ======================================================== */}
-        {/* BARRA SUPERIOR DE ACCIONES Y STEPPER                     */}
+        {/* BARRA SUPERIOR Y STEPPER PROGRESS BAR                    */}
         {/* ======================================================== */}
         <View style={styles.topActionBar}>
-          <View style={styles.onboardingPill}>
-            <Text style={styles.onboardingPillText}>
-              WIZARD • PASO {wizardStep} DE 3
-            </Text>
-          </View>
+          <View style={{ flex: 1 }} />
           <TouchableOpacity onPress={onComplete} style={styles.skipBtn}>
             <Text style={styles.skipBtnText}>Saltar introducción ✕</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Stepper horizontal con los 3 pasos */}
-        <View style={styles.stepperContainer}>
-          {[
-            { num: 1, label: '1. Bienvenida' },
-            { num: 2, label: '2. Perfiles' },
-            { num: 3, label: '3. Video Optativo' },
-          ].map((item) => {
-            const isActive = wizardStep === item.num;
-            const isDone = wizardStep > item.num;
-            return (
-              <TouchableOpacity
-                key={item.num}
-                style={[
-                  styles.stepTab,
-                  isActive && styles.stepTabActive,
-                  isDone && styles.stepTabDone,
-                ]}
-                onPress={() => {
-                  setIsPlaying(false);
-                  setWizardStep(item.num as 1 | 2 | 3);
-                }}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.stepTabText,
-                    isActive && styles.stepTabTextActive,
-                    isDone && styles.stepTabTextDone,
-                  ]}
-                >
-                  {isDone ? '✓ ' : ''}
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+        {/* Stepper Progress Bar con Círculos Numerados y Líneas */}
+        <View style={styles.stepperWrapper}>
+          <View style={styles.stepperRow}>
+            {[1, 2, 3].map((stepNum, idx) => {
+              const isCompleted = wizardStep > stepNum;
+              const isCurrent = wizardStep === stepNum;
+              const isActive = isCurrent || isCompleted;
+
+              return (
+                <React.Fragment key={stepNum}>
+                  <View style={styles.stepCircleCol}>
+                    <TouchableOpacity
+                      style={[
+                        styles.stepCircle,
+                        isActive ? styles.stepCircleActive : styles.stepCircleInactive,
+                        isCurrent && styles.stepCircleCurrent,
+                      ]}
+                      onPress={() => {
+                        setIsPlaying(false);
+                        setWizardStep(stepNum as 1 | 2 | 3);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.stepCircleNum,
+                          isActive ? styles.stepCircleNumActive : styles.stepCircleNumInactive,
+                        ]}
+                      >
+                        {stepNum}
+                      </Text>
+                    </TouchableOpacity>
+                    <Text
+                      style={[
+                        styles.stepCircleLabel,
+                        isActive ? styles.stepCircleLabelActive : styles.stepCircleLabelInactive,
+                      ]}
+                    >
+                      Paso {stepNum}
+                    </Text>
+                  </View>
+
+                  {idx < 2 && (
+                    <View
+                      style={[
+                        styles.stepConnectorLine,
+                        wizardStep > stepNum
+                          ? styles.stepConnectorLineActive
+                          : styles.stepConnectorLineInactive,
+                      ]}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </View>
         </View>
 
         {/* ======================================================== */}
@@ -514,42 +530,81 @@ const styles = StyleSheet.create({
   skipBtnText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#0D6EFD',
+    color: colors.primary,
   },
-  stepperContainer: {
+  stepperWrapper: {
+    marginVertical: 6,
+    marginBottom: 18,
+    alignItems: 'center',
+  },
+  stepperRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 300,
   },
-  stepTab: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderRadius: 10,
-    backgroundColor: '#EDF2F7',
+  stepCircleCol: {
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  stepCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderWidth: 2,
   },
-  stepTabActive: {
-    backgroundColor: '#0D6EFD',
-    borderColor: '#0D6EFD',
+  stepCircleActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
-  stepTabDone: {
-    backgroundColor: '#E0F2FE',
-    borderColor: '#BAE6FD',
+  stepCircleInactive: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
   },
-  stepTabText: {
-    fontSize: 11,
+  stepCircleCurrent: {
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stepCircleNum: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  stepCircleNumActive: {
+    color: colors.textLight,
+  },
+  stepCircleNumInactive: {
+    color: colors.textSecondary,
+  },
+  stepCircleLabel: {
+    marginTop: 6,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  stepCircleLabelActive: {
+    color: colors.primary,
     fontWeight: '700',
-    color: '#4A5568',
   },
-  stepTabTextActive: {
-    color: '#FFFFFF',
+  stepCircleLabelInactive: {
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
-  stepTabTextDone: {
-    color: '#0284C7',
+  stepConnectorLine: {
+    flex: 1,
+    height: 2.5,
+    marginHorizontal: 8,
+    marginBottom: 20,
+  },
+  stepConnectorLineActive: {
+    backgroundColor: colors.primary,
+  },
+  stepConnectorLineInactive: {
+    backgroundColor: colors.border,
   },
   heroSection: {
     alignItems: 'center',

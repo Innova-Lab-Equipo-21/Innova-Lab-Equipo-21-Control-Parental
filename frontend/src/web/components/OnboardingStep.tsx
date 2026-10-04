@@ -9,6 +9,7 @@
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
+import { colors } from '../../theme/colors';
 import { ONBOARDING_WIZARD_VIDEO, WizardVideoStep } from '../../data/tutorialVideos';
 
 export interface OnboardingVideo {
@@ -89,28 +90,14 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
   return (
     <div style={{ padding: '16px 14px' }}>
       {/* ======================================================== */}
-      {/* BARRA SUPERIOR CON INDICADOR DE WIZARD                   */}
+      {/* BARRA SUPERIOR Y STEPPER PROGRESS BAR                    */}
       {/* ======================================================== */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: '800',
-              backgroundColor: '#E2E8F0',
-              padding: '3px 8px',
-              borderRadius: '6px',
-              color: '#334155',
-            }}
-          >
-            WIZARD • PASO {wizardStep} DE 3
-          </span>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
         <button
           style={{
             background: 'none',
             border: 'none',
-            color: '#007AFF',
+            color: colors.primary,
             fontSize: '12px',
             fontWeight: '700',
             cursor: 'pointer',
@@ -121,40 +108,81 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
         </button>
       </div>
 
-      {/* Stepper / Indicador visual de los 3 pasos */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
-        {[
-          { num: 1, label: '1. Bienvenida' },
-          { num: 2, label: '2. Perfiles' },
-          { num: 3, label: '3. Video Optativo' },
-        ].map((item) => {
-          const isActive = wizardStep === item.num;
-          const isDone = wizardStep > item.num;
-          return (
-            <button
-              key={item.num}
-              onClick={() => {
-                setVideoPlaying(false);
-                setWizardStep(item.num as 1 | 2 | 3);
-              }}
-              style={{
-                flex: 1,
-                padding: '6px 4px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: isActive ? '#007AFF' : isDone ? '#E0F2FE' : '#F1F5F9',
-                color: isActive ? '#FFF' : isDone ? '#0284C7' : '#64748B',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              {isDone ? '✓ ' : ''}
-              {item.label}
-            </button>
-          );
-        })}
+      {/* Stepper Progress Bar con Círculos Numerados y Líneas Conectoras (Colores Oficiales del UI Kit) */}
+      <div style={{ margin: '4px 0 18px 0', padding: '0 8px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            maxWidth: '300px',
+            margin: '0 auto',
+          }}
+        >
+          {[1, 2, 3].map((stepNum, idx) => {
+            const isCompleted = wizardStep > stepNum;
+            const isCurrent = wizardStep === stepNum;
+            const isActive = isCurrent || isCompleted;
+
+            return (
+              <React.Fragment key={stepNum}>
+                {/* Círculo + Label inferior */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}>
+                  <button
+                    onClick={() => {
+                      setVideoPlaying(false);
+                      setWizardStep(stepNum as 1 | 2 | 3);
+                    }}
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: isActive ? colors.primary : colors.surface,
+                      border: isActive ? `2px solid ${colors.primary}` : `2px solid ${colors.border}`,
+                      color: isActive ? colors.textLight : colors.textSecondary,
+                      fontSize: '15px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                      boxShadow: isCurrent ? '0 0 0 4px rgba(0, 122, 255, 0.18)' : 'none',
+                    }}
+                    aria-label={`Ir al Paso ${stepNum}`}
+                  >
+                    {stepNum}
+                  </button>
+                  <span
+                    style={{
+                      marginTop: '6px',
+                      fontSize: '12px',
+                      fontWeight: isActive ? '700' : '600',
+                      color: isActive ? colors.primary : colors.textSecondary,
+                      letterSpacing: '0.2px',
+                    }}
+                  >
+                    Paso {stepNum}
+                  </span>
+                </div>
+
+                {/* Línea conectora entre círculos */}
+                {idx < 2 && (
+                  <div
+                    style={{
+                      flex: 1,
+                      height: '2.5px',
+                      backgroundColor: wizardStep > stepNum ? colors.primary : colors.border,
+                      margin: '0 8px',
+                      marginBottom: '20px',
+                      transition: 'background-color 0.3s ease',
+                    }}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
 
       {/* ======================================================== */}
