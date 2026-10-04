@@ -113,13 +113,13 @@ export const TUTORIAL_VIDEOS: VideoTutorial[] = [
   {
     id: 'video-adult',
     mode: 'ADULT',
-    badge: 'MODO PROTEGIDO (ADULTOS / AUTOCONTROL)',
+    badge: 'MODO DISPOSITIVO ADULTO',
     badgeColor: '#8B5CF6',
-    title: 'Autoprotección y Prevención para Adultos',
+    title: 'Prevención y Cuidado en Dispositivo Adulto',
     duration: '02:00',
     durationSeconds: 120,
     description:
-      'Descubrí las herramientas de autoprotección voluntaria para personas que desean una barrera efectiva contra las apuestas online, gestión estricta de límites y acceso a líneas confidenciales de ayuda.',
+      'Descubrí las herramientas de prevención voluntaria para personas que desean una barrera efectiva contra las apuestas online, gestión estricta de límites y acceso a líneas confidenciales de ayuda.',
     thumbnailEmoji: '💜',
     thumbnailBg: '#4C1D95',
     highlights: [
@@ -152,3 +152,103 @@ export const TUTORIAL_VIDEOS: VideoTutorial[] = [
     ],
   },
 ];
+
+// ==============================================================================
+// Estructura de las 3 Pantallas Wizard de Onboarding
+// ==============================================================================
+
+export interface WizardStepInfo {
+  stepNumber: number; // 1, 2, 3
+  stepTag: string;
+  title: string;
+  subtitle: string;
+}
+
+export const ONBOARDING_WIZARD_STEPS: WizardStepInfo[] = [
+  {
+    stepNumber: 1,
+    stepTag: 'Paso 1 de 3 • Introducción y Confianza',
+    title: 'Protección Integral y Cuidado Digital Familiar',
+    subtitle:
+      'Iniciativa oficial de LOTBA para prevenir el acceso de menores a sitios de apuestas online ilegales, con total garantía de privacidad sin lectura de chats ni fotos.',
+  },
+  {
+    stepNumber: 2,
+    stepTag: 'Paso 2 de 3 • Los 3 Perfiles de Usuario',
+    title: 'Los 3 Perfiles de Usuario',
+    subtitle:
+      'Elegí la protección según tu rol y conocé las modalidades: Modo Responsable (Tutor), Modo Dispositivo Menor y Modo Dispositivo Adulto.',
+  },
+  {
+    stepNumber: 3,
+    stepTag: 'Paso 3 de 3 • Resumen Audiovisual (Optativo)',
+    title: 'Resumen en Video de Pocos Segundos',
+    subtitle:
+      'Video optativo de 35 segundos que sintetiza en formato dinámico los tres perfiles de usuario explicados en los pasos anteriores.',
+  },
+];
+
+export interface WizardVideoStep {
+  second: number;
+  profile: 'RESPONSABLE' | 'MENOR' | 'ADULTO';
+  profileLabel: string;
+  title: string;
+  description: string;
+  emoji: string;
+  badgeColor: string;
+}
+
+export interface OnboardingWizardVideo {
+  id: string;
+  title: string;
+  badge: string;
+  duration: string;
+  durationSeconds: number;
+  isOptional: boolean;
+  description: string;
+  steps: WizardVideoStep[];
+}
+
+export const ONBOARDING_WIZARD_VIDEO: OnboardingWizardVideo = {
+  id: 'onboarding-wizard-video',
+  title: 'Resumen Oficial: 3 Perfiles en 35 Segundos',
+  badge: 'VIDEO OPTATIVO (35 SEG)',
+  duration: '00:35',
+  durationSeconds: 35,
+  isOptional: true,
+  description:
+    'Resumen audiovisual de 35 segundos que sintetiza los tres perfiles de usuario: Modo Responsable, Modo Dispositivo Menor y Modo Dispositivo Adulto.',
+  steps: [
+    {
+      second: 0,
+      profile: 'RESPONSABLE',
+      profileLabel: 'Perfil 1: Responsable',
+      title: '👨‍👩‍👧‍👦 Modo Responsable (Tutor)',
+      description:
+        'Vinculá hasta 5 celulares por QR o PIN en 1 minuto, monitoreá el escudo y recibí alertas inmediatas sin invadir la privacidad.',
+      emoji: '👨‍👩‍👧‍👦',
+      badgeColor: '#007AFF',
+    },
+    {
+      second: 12,
+      profile: 'MENOR',
+      profileLabel: 'Perfil 2: Dispositivo Menor',
+      title: '📱 Modo Dispositivo Menor',
+      description:
+        'Escudo local LOTBA sin lentitud ni fuga de datos, bloqueo de 1.000+ sitios de apuestas y mensaje pedagógico reflexivo.',
+      emoji: '📱',
+      badgeColor: '#F59E0B',
+    },
+    {
+      second: 24,
+      profile: 'ADULTO',
+      profileLabel: 'Perfil 3: Dispositivo Adulto',
+      title: '💜 Modo Dispositivo Adulto',
+      description:
+        'Prevención voluntaria para adultos, bloqueo consciente y acceso directo y confidencial a la línea de ayuda 0800 oficial.',
+      emoji: '💜',
+      badgeColor: '#8B5CF6',
+    },
+  ],
+};
+

@@ -465,14 +465,14 @@ export const WebSimulator: React.FC = () => {
     },
     {
       mode: 'ADULT',
-      badge: 'MODO ADULTO (AUTOCONTROL)',
+      badge: 'MODO DISPOSITIVO ADULTO',
       badgeColor: '#8B5CF6',
-      title: 'Autoprotección y Prevención Adultos',
+      title: 'Prevención en Dispositivo Adulto',
       duration: '02:00',
       totalSec: 120,
       emoji: '💜',
       bg: '#4C1D95',
-      desc: 'Herramientas de autoprotección voluntaria con bloqueo estricto de 24hs y acceso a ayuda confidencial.',
+      desc: 'Herramientas de prevención voluntaria con bloqueo estricto de 24hs y acceso a ayuda confidencial.',
       highlights: ['Bloqueo voluntario de apuestas', 'Doble confirmación obligatoria', 'Bloqueo inflexible por 24 horas', 'Línea oficial gratuita 0800-444-5682'],
       steps: [
         { sec: 0, title: '1. Activación voluntaria', desc: 'Blindaje personal preventivo.' },
