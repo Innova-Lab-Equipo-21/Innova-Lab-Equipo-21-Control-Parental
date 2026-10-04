@@ -13,6 +13,10 @@ interface ParentDashboardStepProps {
   parentUser: any;
   webPermissions: WebPermissionsState;
   selfControlActive: boolean;
+  selfControlCanDisable?: boolean;
+  selfControlStatus?: 'INACTIVE' | 'ACTIVE_LOCKED' | 'DEACTIVATION_PENDING' | 'DEACTIVATION_READY' | 'TEMPORARILY_UNLOCKED' | 'LOCKED_WAITING' | 'LOCKED_CAN_DISABLE';
+  selfControlRemainingText?: string;
+  onSimulateFastForward24h?: () => void;
   devices: any[];
   maxDevices: number;
   pairingCode: string | null;
@@ -27,6 +31,10 @@ export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
   parentUser,
   webPermissions,
   selfControlActive,
+  selfControlCanDisable = false,
+  selfControlStatus = 'INACTIVE',
+  selfControlRemainingText = '',
+  onSimulateFastForward24h,
   devices,
   maxDevices,
   pairingCode,
@@ -105,30 +113,242 @@ export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
         </div>
       )}
 
-      {/* AUTOCONTROL DEL RESPONSABLE (24H) */}
-      <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', borderWidth: '2px', borderStyle: 'solid', borderColor: selfControlActive ? '#FFC107' : '#E9ECEF', marginBottom: '16px' }}>
+      {/* AUTOCONTROL DEL TUTOR */}
+      <div
+        style={{
+          backgroundColor: '#FFF',
+          borderRadius: '16px',
+          padding: '16px',
+          borderWidth: '2px',
+          borderStyle: 'solid',
+          borderColor:
+            selfControlStatus === 'TEMPORARILY_UNLOCKED'
+              ? '#007AFF'
+              : selfControlStatus === 'DEACTIVATION_READY'
+              ? '#28A745'
+              : selfControlStatus === 'DEACTIVATION_PENDING'
+              ? '#FFC107'
+              : selfControlActive
+              ? '#28A745'
+              : '#E9ECEF',
+          marginBottom: '16px',
+        }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
           <span style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E' }}>Autocontrol del Tutor</span>
-          <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: selfControlActive ? '#FFF3CD' : '#E2E3E5', color: selfControlActive ? '#856404' : '#6C757D', padding: '3px 8px', borderRadius: '10px' }}>
-            {selfControlActive ? '🔒 BLOQUEADO 24H' : 'INACTIVO'}
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: '700',
+              backgroundColor:
+                selfControlStatus === 'TEMPORARILY_UNLOCKED'
+                  ? '#E7F1FF'
+                  : selfControlStatus === 'DEACTIVATION_READY'
+                  ? '#D1E7DD'
+                  : selfControlStatus === 'DEACTIVATION_PENDING'
+                  ? '#FFF3CD'
+                  : selfControlActive
+                  ? '#D1E7DD'
+                  : '#E2E3E5',
+              color:
+                selfControlStatus === 'TEMPORARILY_UNLOCKED'
+                  ? '#0056B3'
+                  : selfControlStatus === 'DEACTIVATION_READY'
+                  ? '#0F5132'
+                  : selfControlStatus === 'DEACTIVATION_PENDING'
+                  ? '#856404'
+                  : selfControlActive
+                  ? '#0F5132'
+                  : '#6C757D',
+              padding: '3px 8px',
+              borderRadius: '10px',
+            }}
+          >
+            {selfControlStatus === 'TEMPORARILY_UNLOCKED'
+              ? '🔓 DESBLOQUEADO (PASE 24H)'
+              : selfControlStatus === 'DEACTIVATION_READY'
+              ? '🔓 DESACTIVACIÓN HABILITADA'
+              : selfControlStatus === 'DEACTIVATION_PENDING'
+              ? '⏳ ESPERA 24H'
+              : selfControlActive
+              ? '🔒 ACTIVA'
+              : 'INACTIVO'}
           </span>
         </div>
+
+        {/* 1. Paso: Temporizador de 24hs activo tras el primer clic */}
+        {selfControlStatus === 'DEACTIVATION_PENDING' && (
+          <div
+            style={{
+              backgroundColor: '#FFF3CD',
+              border: '1px solid #FFC107',
+              borderRadius: '10px',
+              padding: '10px',
+              color: '#856404',
+              fontSize: '12px',
+              fontWeight: '700',
+              marginBottom: '12px',
+            }}
+          >
+            ⚠️ La desactivación se habilitará en 24 horas.
+            <div style={{ fontSize: '11px', fontWeight: '500', marginTop: '3px' }}>
+              Tiempo restante para habilitar el botón: {selfControlRemainingText || '24h 00m'}
+            </div>
+          </div>
+        )}
+
+        {/* 2. Paso: Cumplidas las 24hs de espera */}
+        {selfControlStatus === 'DEACTIVATION_READY' && (
+          <div
+            style={{
+              backgroundColor: '#D1E7DD',
+              border: '1px solid #BADBCC',
+              borderRadius: '10px',
+              padding: '10px',
+              color: '#0F5132',
+              fontSize: '12px',
+              fontWeight: '700',
+              marginBottom: '12px',
+            }}
+          >
+            ✅ Pasaron las 24 horas requeridas.
+            <div style={{ fontSize: '11px', fontWeight: '500', marginTop: '3px' }}>
+              Haz clic nuevamente en el botón para confirmar el desbloqueo real de autoprotección.
+            </div>
+          </div>
+        )}
+
         <p style={{ fontSize: '12px', color: '#8E8E93', marginBottom: '12px', lineHeight: '1.4' }}>
-          {selfControlActive
-            ? 'Protección personal activa. La desactivación está bloqueada obligatoriamente durante 24 horas.'
-            : 'Activa el autocontrol preventivo en tu cuenta mediante doble confirmación.'}
+          {selfControlStatus === 'TEMPORARILY_UNLOCKED'
+            ? `Autoprotección desbloqueada inmediatamente. Pase temporal de 24 horas activo (${selfControlRemainingText || '24h 00m restantes'}). Cumplido ese plazo, la autoprotección se volverá a activar automáticamente.`
+            : selfControlStatus === 'DEACTIVATION_READY'
+            ? 'La desactivación está habilitada. Toca el botón para confirmar el desbloqueo real. Se otorgará un pase temporal de 24 horas.'
+            : selfControlStatus === 'DEACTIVATION_PENDING'
+            ? 'Se inició la solicitud de desactivación. La autoprotección permanece activa durante las 24 horas de espera.'
+            : selfControlActive
+            ? 'La autoprotección está activa en tu dispositivo para bloquear casas de apuestas en tu perfil.'
+            : 'Activa la autoprotección en tu cuenta mediante doble confirmación.'}
         </p>
 
-        {selfControlActive ? (
+        {/* BOTONERA SEGÚN ESTADO */}
+        {selfControlStatus === 'TEMPORARILY_UNLOCKED' ? (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              style={{
+                flex: 1,
+                height: '42px',
+                borderRadius: '10px',
+                backgroundColor: '#007AFF',
+                color: '#FFF',
+                border: 'none',
+                fontWeight: '700',
+                cursor: 'pointer',
+              }}
+              onClick={onStartSelfControlFlow}
+            >
+              🔒 Volver a Activar Ahora
+            </button>
+            {onSimulateFastForward24h && (
+              <button
+                style={{
+                  height: '42px',
+                  borderRadius: '10px',
+                  backgroundColor: '#F8F9FA',
+                  border: '1px solid #DEE2E6',
+                  color: '#495057',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  padding: '0 12px',
+                  cursor: 'pointer',
+                }}
+                onClick={onSimulateFastForward24h}
+                title="Simular que pasaron las 24 horas para ver la reactivación automática"
+              >
+                ⏩ Simular +24h
+              </button>
+            )}
+          </div>
+        ) : selfControlStatus === 'DEACTIVATION_READY' ? (
           <button
-            style={{ width: '100%', height: '42px', borderRadius: '10px', backgroundColor: '#E2E3E5', color: '#6C757D', border: 'none', fontWeight: '700', cursor: 'pointer' }}
+            style={{
+              width: '100%',
+              height: '42px',
+              borderRadius: '10px',
+              backgroundColor: '#28A745',
+              color: '#FFF',
+              border: 'none',
+              fontWeight: '700',
+              cursor: 'pointer',
+            }}
             onClick={onAttemptDisableSelfControl}
           >
-            🔒 Desactivación Bloqueada (24h)
+            🔓 Confirmar Desactivación (Desbloqueo Inmediato)
+          </button>
+        ) : selfControlStatus === 'DEACTIVATION_PENDING' ? (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              style={{
+                flex: 1,
+                height: '42px',
+                borderRadius: '10px',
+                backgroundColor: '#E2E3E5',
+                color: '#6C757D',
+                border: 'none',
+                fontWeight: '700',
+                cursor: 'not-allowed',
+              }}
+              disabled
+            >
+              🔒 La desactivación se habilitará en 24 horas
+            </button>
+            {onSimulateFastForward24h && (
+              <button
+                style={{
+                  height: '42px',
+                  borderRadius: '10px',
+                  backgroundColor: '#F8F9FA',
+                  border: '1px solid #DEE2E6',
+                  color: '#495057',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  padding: '0 12px',
+                  cursor: 'pointer',
+                }}
+                onClick={onSimulateFastForward24h}
+                title="Simular que transcurrieron las 24hs para habilitar el botón"
+              >
+                ⏩ Simular +24h
+              </button>
+            )}
+          </div>
+        ) : selfControlActive ? (
+          <button
+            style={{
+              width: '100%',
+              height: '42px',
+              borderRadius: '10px',
+              backgroundColor: '#DC3545',
+              color: '#FFF',
+              border: 'none',
+              fontWeight: '700',
+              cursor: 'pointer',
+            }}
+            onClick={onAttemptDisableSelfControl}
+          >
+            Desactivar autoprotección
           </button>
         ) : (
           <button
-            style={{ width: '100%', height: '42px', borderRadius: '10px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', fontWeight: '700', cursor: 'pointer' }}
+            style={{
+              width: '100%',
+              height: '42px',
+              borderRadius: '10px',
+              backgroundColor: '#007AFF',
+              color: '#FFF',
+              border: 'none',
+              fontWeight: '700',
+              cursor: 'pointer',
+            }}
             onClick={onStartSelfControlFlow}
           >
             Activar Autocontrol con Doble Confirmación

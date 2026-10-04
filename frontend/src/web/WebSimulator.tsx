@@ -94,9 +94,11 @@ export const WebSimulator: React.FC = () => {
   ]);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
 
-  // Estados de Autocontrol del Responsable (24hs)
+  // Estados de Autocontrol / Autoprotección del Tutor
   const [selfControlActive, setSelfControlActive] = useState(false);
-  const [selfControlExpiresAt, setSelfControlExpiresAt] = useState<number | null>(null);
+  const [selfControlDeactivationAvailableAt, setSelfControlDeactivationAvailableAt] = useState<number | null>(null);
+  const [selfControlUnlockedAt, setSelfControlUnlockedAt] = useState<number | null>(null);
+  const [selfControlAutoRelockAt, setSelfControlAutoRelockAt] = useState<number | null>(null);
   const [showSelfControlModal, setShowSelfControlModal] = useState(false);
   const [selfControlStep, setSelfControlStep] = useState<1 | 2>(1);
 
@@ -378,30 +380,66 @@ export const WebSimulator: React.FC = () => {
     }
   };
 
-  // Autocontrol del Responsable
+  // Autocontrol / Autoprotección del Tutor
   const handleConfirmEnableSelfControl = () => {
-    const expires = Date.now() + 24 * 60 * 60 * 1000;
     setSelfControlActive(true);
-    setSelfControlExpiresAt(expires);
+    setSelfControlDeactivationAvailableAt(null);
+    setSelfControlUnlockedAt(null);
+    setSelfControlAutoRelockAt(null);
     setShowSelfControlModal(false);
-    addLog('POST', `🔒 Autocontrol activado por 24hs (Expiración: ${new Date(expires).toLocaleTimeString()})`);
+    addLog('POST', '🔒 Autoprotección activada en tu perfil.');
   };
 
   const handleAttemptDisableSelfControl = () => {
     if (!selfControlActive) return;
-    const now = Date.now();
-    if (selfControlExpiresAt && now < selfControlExpiresAt) {
-      const remainingMs = selfControlExpiresAt - now;
+    const currentTime = Date.now();
+
+    // 1er Clic: Se muestra el botón "Desactivar autoprotección". Al hacer clic, NO se desactiva.
+    // Se inicia un temporizador de 24 horas y la UI avisa que "La desactivación se habilitará en 24 horas".
+    if (!selfControlDeactivationAvailableAt) {
+      const availableAt = currentTime + 24 * 60 * 60 * 1000;
+      setSelfControlDeactivationAvailableAt(availableAt);
+      alert('⚠️ La desactivación se habilitará en 24 horas.');
+      addLog('INFO', '⏳ Solicitud iniciada: La desactivación se habilitará en 24 horas.');
+      return;
+    }
+
+    // Aún esperando que pasen las 24 horas
+    if (currentTime < selfControlDeactivationAvailableAt) {
+      const remainingMs = selfControlDeactivationAvailableAt - currentTime;
       const totalMinutes = Math.max(0, Math.ceil(remainingMs / (1000 * 60)));
       const hours = Math.floor(totalMinutes / 60);
       const mins = totalMinutes % 60;
       const minsPadded = mins.toString().padStart(2, '0');
-      alert(`🔒 Acción bloqueada: El autocontrol no se puede desactivar hasta cumplir las 24hs obligatorias.\nTiempo restante: ${hours}h ${minsPadded}m.`);
-      addLog('INFO', `Intento denegado de desactivación de autocontrol (Restan ${hours}h ${minsPadded}m)`);
-    } else {
-      setSelfControlActive(false);
-      setSelfControlExpiresAt(null);
-      addLog('POST', `Autocontrol cumplió las 24hs y ha sido desactivado.`);
+      alert(`⚠️ La desactivación se habilitará en 24 horas.\nTiempo restante: ${hours}h ${minsPadded}m.`);
+      addLog('INFO', `Intento de desactivación denegado. La desactivación se habilitará en ${hours}h ${minsPadded}m.`);
+      return;
+    }
+
+    // 2do Clic: Pasaron las 24 horas -> Se desbloquea inmediatamente por un pase temporal de 24 horas.
+    // Cumplido ese plazo, la autoprotección se vuelve a activar automáticamente.
+    const autoRelock = currentTime + 24 * 60 * 60 * 1000;
+    setSelfControlActive(false);
+    setSelfControlDeactivationAvailableAt(null);
+    setSelfControlUnlockedAt(currentTime);
+    setSelfControlAutoRelockAt(autoRelock);
+    alert('🔓 Autoprotección Desbloqueada: Has confirmado el desbloqueo real. Se otorga un pase temporal de 24 horas. Cumplido ese plazo, la autoprotección se volverá a activar automáticamente.');
+    addLog('POST', `🔓 Autoprotección desbloqueada inmediatamente por 24hs (Reactivación automática: ${new Date(autoRelock).toLocaleTimeString()}).`);
+  };
+
+  const handleSimulateFastForward24h = () => {
+    const currentTime = Date.now();
+    if (selfControlActive && selfControlDeactivationAvailableAt) {
+      // Simular que pasaron las 24 horas de espera -> Habilita el segundo clic
+      setSelfControlDeactivationAvailableAt(currentTime - 1000);
+      addLog('INFO', '⏩ [SIMULACIÓN] Pasaron las 24 horas. El botón ahora permite el desbloqueo real con un segundo clic.');
+    } else if (selfControlUnlockedAt && selfControlAutoRelockAt) {
+      // Simular que pasaron las 24 horas del pase temporal -> Se reactiva automáticamente
+      setSelfControlActive(true);
+      setSelfControlDeactivationAvailableAt(null);
+      setSelfControlUnlockedAt(null);
+      setSelfControlAutoRelockAt(null);
+      addLog('POST', '🔒 [SIMULACIÓN] Cumplido el plazo de 24 horas del pase temporal. Autoprotección re-activada automáticamente.');
     }
   };
 
@@ -662,24 +700,67 @@ export const WebSimulator: React.FC = () => {
               )}
 
               {/* PASO 5A: DASHBOARD DEL RESPONSABLE */}
-              {appMode === 'PARENT' && (
-                <ParentDashboardStep
-                  parentUser={parentUser}
-                  webPermissions={webPermissions}
-                  selfControlActive={selfControlActive}
-                  devices={devices}
-                  maxDevices={MAX_PARENT_DEVICES}
-                  pairingCode={pairingCode}
-                  onExit={() => setAppMode('WELCOME')}
-                  onOpenPermissions={() => setAppMode('PERMISSIONS')}
-                  onAttemptDisableSelfControl={handleAttemptDisableSelfControl}
-                  onStartSelfControlFlow={() => {
-                    setSelfControlStep(1);
-                    setShowSelfControlModal(true);
-                  }}
-                  onGeneratePairing={handleGeneratePairing}
-                />
-              )}
+              {appMode === 'PARENT' && (() => {
+                const currentTime = Date.now();
+                let currentSelfControlStatus: 'INACTIVE' | 'ACTIVE_LOCKED' | 'DEACTIVATION_PENDING' | 'DEACTIVATION_READY' | 'TEMPORARILY_UNLOCKED' = 'INACTIVE';
+                let currentSelfControlCanDisable = false;
+                let currentSelfControlRemainingText = '';
+
+                if (selfControlUnlockedAt && selfControlAutoRelockAt && !selfControlActive) {
+                  if (currentTime >= selfControlAutoRelockAt) {
+                    currentSelfControlStatus = 'ACTIVE_LOCKED';
+                    currentSelfControlCanDisable = false;
+                  } else {
+                    currentSelfControlStatus = 'TEMPORARILY_UNLOCKED';
+                    const remainingMs = selfControlAutoRelockAt - currentTime;
+                    const totalMinutes = Math.max(0, Math.ceil(remainingMs / (1000 * 60)));
+                    const hours = Math.floor(totalMinutes / 60);
+                    const mins = totalMinutes % 60;
+                    currentSelfControlRemainingText = `${hours}h ${mins.toString().padStart(2, '0')}m`;
+                  }
+                } else if (selfControlActive) {
+                  if (selfControlDeactivationAvailableAt) {
+                    if (currentTime >= selfControlDeactivationAvailableAt) {
+                      currentSelfControlStatus = 'DEACTIVATION_READY';
+                      currentSelfControlCanDisable = true;
+                    } else {
+                      currentSelfControlStatus = 'DEACTIVATION_PENDING';
+                      currentSelfControlCanDisable = false;
+                      const remainingMs = selfControlDeactivationAvailableAt - currentTime;
+                      const totalMinutes = Math.max(0, Math.ceil(remainingMs / (1000 * 60)));
+                      const hours = Math.floor(totalMinutes / 60);
+                      const mins = totalMinutes % 60;
+                      currentSelfControlRemainingText = `${hours}h ${mins.toString().padStart(2, '0')}m`;
+                    }
+                  } else {
+                    currentSelfControlStatus = 'ACTIVE_LOCKED';
+                    currentSelfControlCanDisable = false;
+                  }
+                }
+
+                return (
+                  <ParentDashboardStep
+                    parentUser={parentUser}
+                    webPermissions={webPermissions}
+                    selfControlActive={selfControlActive}
+                    selfControlCanDisable={currentSelfControlCanDisable}
+                    selfControlStatus={currentSelfControlStatus}
+                    selfControlRemainingText={currentSelfControlRemainingText}
+                    onSimulateFastForward24h={handleSimulateFastForward24h}
+                    devices={devices}
+                    maxDevices={MAX_PARENT_DEVICES}
+                    pairingCode={pairingCode}
+                    onExit={() => setAppMode('WELCOME')}
+                    onOpenPermissions={() => setAppMode('PERMISSIONS')}
+                    onAttemptDisableSelfControl={handleAttemptDisableSelfControl}
+                    onStartSelfControlFlow={() => {
+                      setSelfControlStep(1);
+                      setShowSelfControlModal(true);
+                    }}
+                    onGeneratePairing={handleGeneratePairing}
+                  />
+                );
+              })()}
 
               {/* PASO 5B: DISPOSITIVO PROTEGIDO */}
               {appMode === 'CHILD' && (
@@ -706,12 +787,12 @@ export const WebSimulator: React.FC = () => {
               {selfControlStep === 1 ? (
                 <div>
                   <div style={{ fontSize: '40px', marginBottom: '8px' }}>🔒</div>
-                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#1C1C1E', marginBottom: '8px' }}>Confirmación 1 de 2: Autocontrol</h3>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#1C1C1E', marginBottom: '8px' }}>Confirmación 1 de 2: Autocontrol del Tutor</h3>
                   <p style={{ fontSize: '13px', color: '#8E8E93', marginBottom: '14px', lineHeight: '1.4' }}>
                     Al activar el autocontrol, se aplicarán restricciones de acceso a sitios de apuestas en tu perfil.
                   </p>
                   <div style={{ backgroundColor: '#FFF3CD', border: '1px solid #FFC107', borderRadius: '10px', padding: '10px', color: '#856404', fontSize: '11px', fontWeight: '600', marginBottom: '16px' }}>
-                    ⚠️ IMPORTANTE: La desactivación quedará ESTRICTAMENTE BLOQUEADA durante 24 horas obligatorias.
+                    ⚠️ IMPORTANTE: El bloqueo se queda permanente y deberás esperar 24 hs obligatorias para desactivar.
                   </div>
                   <button
                     style={{ width: '100%', height: '44px', borderRadius: '10px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', fontWeight: '700', marginBottom: '8px', cursor: 'pointer' }}
@@ -729,15 +810,15 @@ export const WebSimulator: React.FC = () => {
               ) : (
                 <div>
                   <div style={{ fontSize: '40px', marginBottom: '8px' }}>⚠️</div>
-                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#1C1C1E', marginBottom: '8px' }}>Confirmación 2 de 2: Bloqueo de 24hs</h3>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#1C1C1E', marginBottom: '8px' }}>Confirmación 2 de 2: Activar Bloqueo Permanente</h3>
                   <p style={{ fontSize: '13px', color: '#8E8E93', marginBottom: '16px', lineHeight: '1.4' }}>
-                    ¿Confirmas que deseas activar la autoprotección ahora? No podrás desactivarla hasta dentro de 24 horas.
+                    ¿Confirmas activar la autoprotección? El bloqueo quedará permanente. Pasadas las 24 hs, podrás tocar el botón para desbloquear inmediatamente por 24 hs.
                   </p>
                   <button
                     style={{ width: '100%', height: '44px', borderRadius: '10px', backgroundColor: '#DC3545', color: '#FFF', border: 'none', fontWeight: '700', marginBottom: '8px', cursor: 'pointer' }}
                     onClick={handleConfirmEnableSelfControl}
                   >
-                    🔒 Confirmar y Activar por 24hs
+                    🔒 Confirmar y Activar Autocontrol
                   </button>
                   <button
                     style={{ width: '100%', height: '44px', borderRadius: '10px', backgroundColor: '#E2E3E5', color: '#6C757D', border: 'none', fontWeight: '700', cursor: 'pointer' }}

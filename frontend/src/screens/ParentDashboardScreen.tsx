@@ -155,7 +155,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       setSelfControl(newState);
       Alert.alert(
         '🛡️ Autocontrol Activado Exitosamente',
-        'La protección de autocontrol está activa. La desactivación quedará strictly bloqueada durante las próximas 24 horas.',
+        'La protección de autocontrol está activa de forma permanente. Para desactivarla, deberás solicitar la desactivación y esperar 24 horas.',
       );
     } catch (e: any) {
       Alert.alert('Error', e.message || 'No se pudo activar el autocontrol.');
@@ -164,15 +164,32 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     }
   };
 
+  const handleDisableSelfControl = async () => {
+    try {
+      const newState = await apiService.disableSelfControl();
+      setSelfControl(newState);
+      if (newState.status === 'DEACTIVATION_PENDING') {
+        Alert.alert(
+          '⏳ Solicitud de Desactivación Iniciada',
+          'La desactivación se habilitará en 24 horas. Durante este tiempo de espera, la autoprotección permanecerá activa.',
+        );
+      } else if (newState.status === 'TEMPORARILY_UNLOCKED') {
+        Alert.alert(
+          '🔓 Autoprotección Desbloqueada',
+          'Has desactivado la autoprotección inmediatamente. Se otorgó un pase temporal de 24 horas. Cumplido ese plazo, la autoprotección se volverá a activar automáticamente.',
+        );
+      }
+    } catch (e: any) {
+      Alert.alert(
+        '🔒 Desactivación en Espera',
+        e.message || 'La desactivación se habilitará en 24 horas.',
+      );
+    }
+  };
+
   const handleAttemptToggleSelfControl = async (newVal: boolean) => {
     if (!newVal) {
-      try {
-        const newState = await apiService.disableSelfControl();
-        setSelfControl(newState);
-        Alert.alert('Autocontrol Desactivado', 'Has cumplido las 24 horas obligatorias de protección.');
-      } catch (e: any) {
-        Alert.alert('🔒 Desactivación Bloqueada por 24hs', e.message || 'El autocontrol no puede desactivarse antes de las 24 horas.');
-      }
+      await handleDisableSelfControl();
     } else {
       handleStartSelfControlFlow();
     }
@@ -245,29 +262,73 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
           </View>
         )}
 
-        {/* Sección de Autocontrol del Responsable con Bloqueo de 24hs */}
+        {/* Sección de Autocontrol del Tutor */}
         <View style={styles.selfControlSection}>
           <View style={styles.selfControlHeaderRow}>
-            <Text style={styles.sectionTitle}>Autocontrol del Responsable</Text>
-            <Badge status={selfControl.active ? 'alerta' : 'inactivo'} label={selfControl.active ? '🔒 BLOQUEADO 24H' : 'INACTIVO'} />
+            <Text style={styles.sectionTitle}>Autocontrol del Tutor</Text>
+            <Badge
+              status={
+                selfControl.status === 'TEMPORARILY_UNLOCKED'
+                  ? 'activo'
+                  : selfControl.status === 'DEACTIVATION_READY'
+                  ? 'activo'
+                  : selfControl.status === 'DEACTIVATION_PENDING'
+                  ? 'alerta'
+                  : selfControl.active
+                  ? 'alerta'
+                  : 'inactivo'
+              }
+              label={
+                selfControl.status === 'TEMPORARILY_UNLOCKED'
+                  ? '🔓 DESBLOQUEADO (PASE 24H)'
+                  : selfControl.status === 'DEACTIVATION_READY'
+                  ? '🔓 DESACTIVACIÓN HABILITADA'
+                  : selfControl.status === 'DEACTIVATION_PENDING'
+                  ? '⏳ ESPERA 24H'
+                  : selfControl.active
+                  ? '🔒 ACTIVA'
+                  : 'INACTIVO'
+              }
+            />
           </View>
           <Text style={styles.sectionSubtitle}>
-            Protección personal para el tutor. Al activarse mediante doble confirmación, la desactivación queda bloqueada por 24 horas.
+            {selfControl.status === 'TEMPORARILY_UNLOCKED'
+              ? `Autoprotección desbloqueada inmediatamente. Pase temporal de 24 horas activo (restan ${selfControl.remainingUnlockHours ?? selfControl.remainingHours}h ${(selfControl.remainingUnlockMinutes ?? selfControl.remainingMinutes).toString().padStart(2, '0')}m). Cumplido ese plazo, la autoprotección se volverá a activar automáticamente.`
+              : selfControl.status === 'DEACTIVATION_READY'
+              ? 'Pasaron las 24 horas requeridas. Hacé clic por segunda vez para desbloquear inmediatamente por 24 horas.'
+              : selfControl.status === 'DEACTIVATION_PENDING'
+              ? `La desactivación se habilitará en 24 horas. Tiempo restante de espera: ${selfControl.remainingWaitHours ?? selfControl.remainingHours}h ${(selfControl.remainingWaitMinutes ?? selfControl.remainingMinutes).toString().padStart(2, '0')}m.`
+              : selfControl.active
+              ? 'La autoprotección está activa en tu perfil. Al solicitar la desactivación se iniciará una espera de 24 horas.'
+              : 'Una vez activada la autoprotección mediante doble confirmación, el bloqueo se queda permanente y para desactivarla se requerirá iniciar una espera de 24 hs.'}
           </Text>
 
-          <ControlCard
-            title="Autoprotección de Tutor (24 Horas)"
-            description={
-              selfControl.active
-                ? `Activo. Tiempo restante de bloqueo: ${selfControl.remainingHours}h ${selfControl.remainingMinutes.toString().padStart(2, '0')}m.`
-                : 'Activa la restricción voluntaria de acceso a casas de apuestas en tu propio perfil.'
-            }
-            active={selfControl.active}
-            status={selfControl.active ? 'alerta' : 'inactivo'}
-            onToggle={handleAttemptToggleSelfControl}
-          />
-
-          {!selfControl.active && (
+          {selfControl.status === 'TEMPORARILY_UNLOCKED' ? (
+            <ActionButton
+              title="🔒 Volver a Activar Ahora"
+              variant="primary"
+              onPress={handleStartSelfControlFlow}
+            />
+          ) : selfControl.status === 'DEACTIVATION_READY' ? (
+            <ActionButton
+              title="🔓 Confirmar Desactivación (Desbloqueo Inmediato)"
+              variant="danger"
+              onPress={handleDisableSelfControl}
+            />
+          ) : selfControl.status === 'DEACTIVATION_PENDING' ? (
+            <ActionButton
+              title={`🔒 La desactivación se habilitará en ${selfControl.remainingWaitHours ?? selfControl.remainingHours}h ${(selfControl.remainingWaitMinutes ?? selfControl.remainingMinutes).toString().padStart(2, '0')}m`}
+              variant="secondary"
+              disabled
+              onPress={handleDisableSelfControl}
+            />
+          ) : selfControl.active ? (
+            <ActionButton
+              title="Desactivar autoprotección"
+              variant="danger"
+              onPress={handleDisableSelfControl}
+            />
+          ) : (
             <ActionButton
               title="Activar Autocontrol con Doble Confirmación"
               variant="primary"
@@ -454,13 +515,13 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               {confirmationStep === 1 ? (
                 <View>
                   <Text style={styles.modalEmoji}>🔒</Text>
-                  <Text style={styles.modalTitle}>Confirmación 1 de 2: Autocontrol del Responsable</Text>
+                  <Text style={styles.modalTitle}>Confirmación 1 de 2: Autocontrol del Tutor</Text>
                   <Text style={styles.modalBody}>
                     Al activar el autocontrol, se aplicarán restricciones de acceso a sitios de apuestas en tu perfil.
                   </Text>
                   <View style={styles.warningBox}>
                     <Text style={styles.warningBoxText}>
-                      ⚠️ IMPORTANTE: Una vez activado, la desactivación quedará ESTRICTAMENTE BLOQUEADA durante 24 horas obligatorias.
+                      ⚠️ IMPORTANTE: El bloqueo se queda permanente y deberás esperar 24 hs obligatorias para desactivar.
                     </Text>
                   </View>
 
@@ -478,13 +539,13 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               ) : (
                 <View>
                   <Text style={styles.modalEmoji}>⚠️</Text>
-                  <Text style={styles.modalTitle}>Confirmación 2 de 2: Activar Bloqueo Obligatorio por 24hs</Text>
+                  <Text style={styles.modalTitle}>Confirmación 2 de 2: Activar Bloqueo Permanente</Text>
                   <Text style={styles.modalBody}>
-                    ¿Confirmas que deseas activar la protección de autocontrol ahora? No podrás desactivarla hasta dentro de 24 horas.
+                    ¿Confirmas activar la autoprotección? El bloqueo quedará permanente. Pasadas las 24 hs, podrás tocar el botón para desbloquear inmediatamente por 24 hs.
                   </Text>
 
                   <ActionButton
-                    title="🔒 Confirmar y Activar Autocontrol por 24hs"
+                    title="🔒 Confirmar y Activar Autocontrol"
                     variant="danger"
                     onPress={handleFinalSelfControlActivation}
                   />
