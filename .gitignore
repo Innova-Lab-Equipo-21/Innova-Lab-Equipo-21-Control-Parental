@@ -17,6 +17,11 @@ pnpm-debug.log*
 .env.test.local
 .env.production.local
 
+# Firebase Service Accounts (claves privadas)
+backend/ba-protege-firebase-adminsdk-*.json
+backend/firebase-service-account.json
+backend/*firebase-adminsdk*.json
+
 # Compilación y builds
 dist/
 build/

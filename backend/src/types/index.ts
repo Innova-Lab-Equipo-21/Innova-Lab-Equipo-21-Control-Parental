@@ -44,3 +44,12 @@ export interface HeartbeatPayload {
   blocklistVersion: number;
   appVersion?: string;
 }
+
+export interface FirebaseAuthLoginResponse {
+  idToken: string;
+  email: string;
+  refreshToken: string;
+  expiresIn: string;
+  localId: string;
+  registered?: boolean;
+}

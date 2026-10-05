@@ -20,9 +20,8 @@ const environmentSchema = z.object({
     .string()
     .transform((val) => val === 'true' || val === '1')
     .default('true'),
-  JWT_SECRET: z.string().min(8, 'JWT_SECRET debe tener al menos 8 caracteres').default('ba_protege_default_jwt_secret_key_2026'),
-  JWT_EXPIRES_IN: z.string().default('7d'),
   HEARTBEAT_TIMEOUT_MINUTES: z.string().transform(Number).default('5'),
+  FIREBASE_API_KEY: z.string().default(''),
 });
 
 // Validar y parsear las variables de entorno actuales

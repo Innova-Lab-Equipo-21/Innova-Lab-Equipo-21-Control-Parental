@@ -2,23 +2,24 @@
 // Proyecto: BA Protege+
 // Componente: Backend API
 // Archivo: src/middlewares/auth.middleware.ts
-// Descripción: Middleware para verificar la autenticación mediante token JWT en rutas protegidas.
+// Descripción: Middleware para verificar la autenticación mediante Firebase ID Tokens.
 // ==============================================================================
 
 import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { env } from '../config/environment.js';
-import { AuthenticatedRequest, JwtUserPayload, ApiResponse } from '../types/index.js';
+import { auth } from '../config/firebase.js';
+// import jwt from 'jsonwebtoken';
+// import { env } from '../config/environment.js';
+import { AuthenticatedRequest, /*JwtUserPayload,*/ ApiResponse } from '../types/index.js';
 import { AppError } from './error.middleware.js';
 
 /**
- * Middleware para validar el token JWT presente en el encabezado Authorization.
+ * Middleware para validar el ID Token de Firebase presente en el encabezado Authorization.
  */
-export function requireAuth(
+export async function requireAuth(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
-): void {
+): Promise<void> {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -29,13 +30,18 @@ export function requireAuth(
     return;
   }
 
-  const token = authHeader.split(' ')[1];
+  const idToken = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtUserPayload;
-    req.user = decoded;
+    // Verificación asíncrona del token enviado desde la app de Android
+    const decoded = await auth.verifyIdToken(idToken);
+
+    req.user = {
+      userId: decoded.uid,
+      email: decoded.email || '',
+    };
     next();
   } catch (_error) {
-    throw new AppError('Token de autenticación expirado o inválido', 401);
+    next(new AppError('Token de autenticación expirado o inválido', 401));
   }
 }

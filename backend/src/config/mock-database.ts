@@ -13,7 +13,6 @@ const DEFAULT_PASSWORD_HASH = bcrypt.hashSync('password123', 10);
 export interface MockUser {
   id: string;
   email: string;
-  passwordHash: string;
   fullName: string;
   isActive: boolean;
   createdAt: Date;
@@ -111,7 +110,6 @@ class MockDatabase {
     this.users.push({
       id: defaultUserId,
       email: 'tutor@baprotege.gob.ar',
-      passwordHash: DEFAULT_PASSWORD_HASH,
       fullName: 'Carlos Gutiérrez (Tutor)',
       isActive: true,
       createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
