@@ -2,10 +2,10 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla de Onboarding - Flujo Wizard de 3 Pantallas)
 // Archivo: src/screens/OnboardingScreen.tsx
-// Descripción: Flujo guiado de 3 pantallas wizard:
-//              1. Bienvenida institucional, propósito de protección y garantía total de privacidad.
-//              2. Explicación detallada de los 3 perfiles de usuario (Responsable, Menor, Dispositivo Adulto).
-//              3. Video resumen de 35 segundos optativo que sintetiza los 3 perfiles en formato audiovisual.
+// Descripción: Flujo guiado de 3 pantallas wizard exactamente alineado al diseño oficial:
+//              Paso 1: Bienvenida, propósito de protección y capacidades clave.
+//              Paso 2: Explicación de los 2 modos operativos (Modo Responsable y Modo Protegido).
+//              Paso 3: Video explicativo paso a paso con reproductor integrado.
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -17,14 +17,10 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { Header } from '../components/Header';
-import { colors } from '../theme/colors';
+import { Logo } from '../components/Logo';
+import { Icon } from '../components/Icon';
 import { AppMode } from '../types';
-import {
-  ONBOARDING_WIZARD_VIDEO,
-  ONBOARDING_WIZARD_STEPS,
-  WizardVideoStep,
-} from '../data/tutorialVideos';
+import { ONBOARDING_WIZARD_VIDEO } from '../data/tutorialVideos';
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -33,19 +29,15 @@ interface OnboardingScreenProps {
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   onComplete,
-  onSelectMode,
 }) => {
-  // Estado del Wizard: Pantalla 1, 2 o 3
+  // Estado del Wizard: Paso 1, 2 o 3
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
 
-  // Estados del Video Resumen Optativo (Pantalla 3)
+  // Estados del Video (Paso 3)
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [playbackSeconds, setPlaybackSeconds] = useState<number>(0);
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const totalDuration = ONBOARDING_WIZARD_VIDEO.durationSeconds || 35;
 
-  const totalDuration = ONBOARDING_WIZARD_VIDEO.durationSeconds; // 35 segundos
-
-  // Simulación de reproducción interactiva del video optativo de 35 segundos
   useEffect(() => {
     let interval: any = null;
     if (isPlaying) {
@@ -68,47 +60,18 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     setIsPlaying((prev) => !prev);
   };
 
-  const handleRestartVideo = () => {
-    setPlaybackSeconds(0);
-    setIsPlaying(true);
-  };
-
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  // Paso actual sincronizado con los segundos del video
-  const activeVideoStep: WizardVideoStep =
-    [...ONBOARDING_WIZARD_VIDEO.steps]
-      .reverse()
-      .find((step) => playbackSeconds >= step.second) || ONBOARDING_WIZARD_VIDEO.steps[0];
-
-  const progressPercent = Math.min(
-    100,
-    Math.round((playbackSeconds / totalDuration) * 100)
-  );
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header
-        title="BA Protege+"
-        subtitle="Onboarding y Tutoriales Oficiales"
-      />
-
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* ======================================================== */}
-        {/* BARRA SUPERIOR Y STEPPER PROGRESS BAR                    */}
-        {/* ======================================================== */}
-        <View style={styles.topActionBar}>
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity onPress={onComplete} style={styles.skipBtn}>
-            <Text style={styles.skipBtnText}>Saltar introducción ✕</Text>
-          </TouchableOpacity>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Encabezado con Logotipo Oficial Completo Centrado */}
+        <View style={styles.headerLogoContainer}>
+          <Logo variant="complete" size="md" align="center" />
         </View>
 
-        {/* Stepper Progress Bar con Círculos Numerados y Líneas */}
+        {/* Stepper Progress Bar con 3 Pasos */}
         <View style={styles.stepperWrapper}>
           <View style={styles.stepperRow}>
             {[1, 2, 3].map((stepNum, idx) => {
@@ -118,37 +81,28 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
               return (
                 <React.Fragment key={stepNum}>
-                  <View style={styles.stepCircleCol}>
-                    <TouchableOpacity
-                      style={[
-                        styles.stepCircle,
-                        isActive ? styles.stepCircleActive : styles.stepCircleInactive,
-                        isCurrent && styles.stepCircleCurrent,
-                      ]}
-                      onPress={() => {
-                        setIsPlaying(false);
-                        setWizardStep(stepNum as 1 | 2 | 3);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.stepCircleNum,
-                          isActive ? styles.stepCircleNumActive : styles.stepCircleNumInactive,
-                        ]}
-                      >
-                        {stepNum}
-                      </Text>
-                    </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.stepCircle,
+                      isActive ? styles.stepCircleActive : styles.stepCircleInactive,
+                    ]}
+                    onPress={() => {
+                      setIsPlaying(false);
+                      setWizardStep(stepNum as 1 | 2 | 3);
+                    }}
+                    activeOpacity={0.8}
+                  >
                     <Text
                       style={[
-                        styles.stepCircleLabel,
-                        isActive ? styles.stepCircleLabelActive : styles.stepCircleLabelInactive,
+                        styles.stepCircleNum,
+                        isActive
+                          ? styles.stepCircleNumActive
+                          : styles.stepCircleNumInactive,
                       ]}
                     >
-                      Paso {stepNum}
+                      {stepNum}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
 
                   {idx < 2 && (
                     <View
@@ -167,329 +121,182 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         </View>
 
         {/* ======================================================== */}
-        {/* PANTALLA WIZARD 1: INTRODUCCIÓN Y PRIVACIDAD TOTAL       */}
+        {/* PASO 1: BIENVENIDA Y PROPÓSITO DE PROTECCIÓN             */}
         {/* ======================================================== */}
         {wizardStep === 1 && (
-          <View>
-            <View style={styles.heroSection}>
-              <View style={styles.govBadge}>
-                <Text style={styles.govBadgeIcon}>🏛️</Text>
-                <Text style={styles.govBadgeText}>
-                  Iniciativa Oficial • Lotería de la Ciudad de Buenos Aires (LOTBA)
+          <View style={styles.contentCard}>
+            <Text style={styles.mainTitle}>¡Te damos la bienvenida a BA Protege +!</Text>
+            <Text style={styles.subtitleBold}>Con esta app vas a poder:</Text>
+
+            <View style={styles.bulletList}>
+              {/* Item 1 */}
+              <View style={styles.bulletItem}>
+                <View style={styles.bulletIconCircle}>
+                  <Icon name="ojo" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.bulletText}>
+                  Proteger lo que ven los menores de 18 años.
                 </Text>
               </View>
 
-              <View style={styles.heroIconBadge}>
-                <Text style={styles.heroEmoji}>🛡️</Text>
+              {/* Item 2 */}
+              <View style={styles.bulletItem}>
+                <View style={styles.bulletIconCircle}>
+                  <Icon name="manos" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.bulletText}>
+                  Acompañar y cuidar a adultos con ludopatía o uso problemático del celular.
+                </Text>
               </View>
 
-              <Text style={styles.heroTitle}>
-                Protección Integral y Cuidado Digital Familiar
-              </Text>
-
-              <Text style={styles.heroDescription}>
-                Una herramienta diseñada para prevenir la exposición y el acceso de niños, niñas y
-                adolescentes a plataformas de apuestas online y juego compulsivo no regulado.
-              </Text>
-            </View>
-
-            {/* Banner de Garantía de Privacidad */}
-            <View style={styles.trustBanner}>
-              <View style={styles.trustHeader}>
-                <Text style={styles.trustIcon}>🔒</Text>
-                <Text style={styles.trustTitle}>Garantía de Confianza y Privacidad Total</Text>
-              </View>
-              <Text style={styles.trustText}>
-                En <Text style={styles.boldText}>BA Protege+</Text> cuidamos a tu familia sin invadir su intimidad.
-                La aplicación <Text style={styles.highlightText}>NO lee conversaciones de WhatsApp, NO accede a fotos, llamadas ni contraseñas</Text>.
-                Funciona mediante un escudo de red local que analiza únicamente nombres de dominio contra el listado oficial de sitios de apuestas no autorizados.
-              </Text>
-              <View style={styles.trustPillRow}>
-                <View style={styles.trustPill}>
-                  <Text style={styles.trustPillIcon}>✓</Text>
-                  <Text style={styles.trustPillText}>Sin espionaje de chats</Text>
+              {/* Item 3 */}
+              <View style={styles.bulletItem}>
+                <View style={styles.bulletIconCircle}>
+                  <Icon name="reloj" size={20} color="#007AFF" />
                 </View>
-                <View style={styles.trustPill}>
-                  <Text style={styles.trustPillIcon}>✓</Text>
-                  <Text style={styles.trustPillText}>Listado oficial LOTBA</Text>
-                </View>
-                <View style={styles.trustPill}>
-                  <Text style={styles.trustPillIcon}>✓</Text>
-                  <Text style={styles.trustPillText}>Datos encriptados</Text>
-                </View>
+                <Text style={styles.bulletText}>
+                  Autocontrolar tu propia navegación.
+                </Text>
               </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.mainStartBtn}
-              onPress={() => setWizardStep(2)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.mainStartBtnText}>Siguiente: Conocer los 3 Perfiles ➔</Text>
-            </TouchableOpacity>
+            {/* Botón de Acción Paso 1 */}
+            <View style={styles.singleButtonContainer}>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => setWizardStep(2)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryButtonText}>Continuar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
         {/* ======================================================== */}
-        {/* PANTALLA WIZARD 2: EXPLICACIÓN DE LOS 3 PERFILES          */}
+        {/* PASO 2: CÓMO FUNCIONA LA APP Y LOS 2 MODOS              */}
         {/* ======================================================== */}
         {wizardStep === 2 && (
-          <View>
-            <View style={styles.sectionHeaderCentered}>
-              <Text style={styles.sectionTitle}>Los 3 Perfiles de Usuario</Text>
-              <Text style={styles.sectionSubtitle}>
-                Cada integrante de la familia cuenta con herramientas diseñadas a su medida:
-              </Text>
-            </View>
+          <View style={styles.contentCard}>
+            <Text style={styles.mainTitle}>¿Cómo funciona la app?</Text>
+            <Text style={styles.subtitleBold}>
+              Podés usarla de dos formas distintas:
+            </Text>
 
-            <View style={styles.profilesList}>
-              {/* Perfil 1: Responsable */}
-              <View style={[styles.profileCard, { borderColor: '#BFDBFE', backgroundColor: '#EFF6FF' }]}>
-                <View style={styles.profileHeader}>
-                  <Text style={[styles.profileTitle, { color: '#1D4ED8' }]}>
-                    👨‍👩‍👧‍👦 Modo Responsable (Tutor)
-                  </Text>
-                  <View style={[styles.profileTag, { backgroundColor: '#DBEAFE' }]}>
-                    <Text style={[styles.profileTagText, { color: '#1E40AF' }]}>Hasta 5 disp.</Text>
+            <View style={styles.cardsContainer}>
+              {/* Tarjeta 1: Modo Responsable */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardHeader}>
+                  <Text style={styles.modeCardHeaderTitle}>Modo responsable</Text>
+                </View>
+                <View style={styles.modeCardBody}>
+                  <View style={styles.checkItem}>
+                    <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                    <Text style={styles.checkText}>
+                      Configurás las reglas desde tu dispositivo.
+                    </Text>
+                  </View>
+                  <View style={styles.checkItem}>
+                    <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                    <Text style={styles.checkText}>
+                      Controlás el bloqueo de sitios web y apps.
+                    </Text>
                   </View>
                 </View>
-                <Text style={styles.profileBody}>
-                  Para madres, padres o tutores legales. Vinculá hasta 5 dispositivos por QR o PIN en menos de 1 minuto, monitoreá el estado del escudo en vivo y recibí alertas inmediatas.
-                </Text>
               </View>
 
-              {/* Perfil 2: Dispositivo Menor */}
-              <View style={[styles.profileCard, { borderColor: '#FDE68A', backgroundColor: '#FFFBEB' }]}>
-                <View style={styles.profileHeader}>
-                  <Text style={[styles.profileTitle, { color: '#B45309' }]}>
-                    📱 Modo Dispositivo Menor
-                  </Text>
-                  <View style={[styles.profileTag, { backgroundColor: '#FEF3C7' }]}>
-                    <Text style={[styles.profileTagText, { color: '#92400E' }]}>Escudo LOTBA</Text>
+              {/* Tarjeta 2: Modo Protegido */}
+              <View style={styles.modeCard}>
+                <View style={styles.modeCardHeader}>
+                  <Text style={styles.modeCardHeaderTitle}>Modo protegido</Text>
+                </View>
+                <View style={styles.modeCardBody}>
+                  <View style={styles.checkItem}>
+                    <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                    <Text style={styles.checkText}>
+                      Tu dispositivo recibe la protección de un adulto responsable.
+                    </Text>
+                  </View>
+                  <View style={styles.checkItem}>
+                    <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                    <Text style={styles.checkText}>
+                      Recibís recomendaciones para un consumo digital más seguro.
+                    </Text>
                   </View>
                 </View>
-                <Text style={styles.profileBody}>
-                  Para niños, niñas y adolescentes. Escudo local que bloquea más de 1.000 sitios de apuestas online ilegales sin ralentizar la red, con pantalla pedagógica preventiva y aviso antidesinstalación.
-                </Text>
-              </View>
-
-              {/* Perfil 3: Dispositivo Adulto */}
-              <View style={[styles.profileCard, { borderColor: '#E9D5FF', backgroundColor: '#FAF5FF' }]}>
-                <View style={styles.profileHeader}>
-                  <Text style={[styles.profileTitle, { color: '#7E22CE' }]}>
-                    💜 Modo Dispositivo Adulto
-                  </Text>
-                  <View style={[styles.profileTag, { backgroundColor: '#F3E8FF' }]}>
-                    <Text style={[styles.profileTagText, { color: '#6B21A8' }]}>Voluntario</Text>
-                  </View>
-                </View>
-                <Text style={styles.profileBody}>
-                  Para adultos que eligen blindar su propio teléfono de forma voluntaria. Bloqueo preventivo de sitios y apps de juego, pausas conscientes y acceso a la línea oficial y gratuita 0800.
-                </Text>
               </View>
             </View>
 
-            {/* Botonera de Navegación Wizard */}
-            <View style={styles.wizardNavButtons}>
+            {/* Botonera Paso 2 */}
+            <View style={styles.dualButtonContainer}>
               <TouchableOpacity
-                style={styles.backBtn}
+                style={styles.secondaryButton}
                 onPress={() => setWizardStep(1)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.backBtnText}>⬅ Volver</Text>
+                <Text style={styles.secondaryButtonText}>Volver</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={styles.nextBtn}
+                style={styles.primaryButtonHalf}
                 onPress={() => setWizardStep(3)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.nextBtnText}>Siguiente: Video Optativo ➔</Text>
+                <Text style={styles.primaryButtonText}>Continuar</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
 
         {/* ======================================================== */}
-        {/* PANTALLA WIZARD 3: VIDEO RESUMEN DE POCOS SEGUNDOS (OPTATIVO) */}
+        {/* PASO 3: EXPLICACIÓN EN VIDEO                             */}
         {/* ======================================================== */}
         {wizardStep === 3 && (
-          <View>
-            <View style={styles.sectionHeaderCentered}>
-              <View style={styles.optionalBadge}>
-                <Text style={styles.optionalBadgeText}>🎬 REPRODUCCIÓN OPTATIVA • 35 SEGUNDOS</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Resumen Audiovisual en Pocos Segundos</Text>
-              <Text style={styles.sectionSubtitle}>
-                Sintetiza en 35 segundos los tres perfiles explicados en las pantallas anteriores. Podés verlo o continuar directamente:
-              </Text>
-            </View>
+          <View style={styles.contentCard}>
+            <Text style={styles.mainTitle}>¿Todavía tenés dudas?</Text>
+            <Text style={styles.subtitleBold}>
+              Te explicamos el paso a paso en este video:
+            </Text>
 
-            {/* Tarjeta del Reproductor de Video */}
-            <View style={styles.videoPlayerCard}>
-              <View
-                style={[
-                  styles.videoScreen,
-                  { backgroundColor: activeVideoStep.badgeColor },
-                ]}
-              >
-                <View style={styles.videoTopBar}>
-                  <View style={styles.videoBadge}>
-                    <Text style={styles.videoBadgeText}>
-                      {activeVideoStep.profileLabel}
-                    </Text>
-                  </View>
-                  <View style={styles.durationPill}>
-                    <Text style={styles.durationText}>
-                      {isPlaying
-                        ? `${formatTime(playbackSeconds)} / ${ONBOARDING_WIZARD_VIDEO.duration}`
-                        : ONBOARDING_WIZARD_VIDEO.duration}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.videoCenterContent}>
-                  <Text style={styles.videoBigEmoji}>{activeVideoStep.emoji}</Text>
-                  <Text style={styles.videoScreenTitle} numberOfLines={2}>
-                    {activeVideoStep.title}
-                  </Text>
-
-                  {/* Subtítulos sincronizados */}
-                  <View style={styles.subtitleBox}>
-                    <Text style={styles.subtitleDesc}>{activeVideoStep.description}</Text>
-                  </View>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.playButtonCircle,
-                      isPlaying && styles.playButtonCircleActive,
-                    ]}
-                    onPress={handleTogglePlay}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.playButtonIcon}>{isPlaying ? '⏸' : '▶'}</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.progressBarWrapper}>
-                  <View style={styles.progressBarBg}>
-                    <View
-                      style={[
-                        styles.progressBarFill,
-                        {
-                          width: `${progressPercent}%`,
-                          backgroundColor: '#FFFFFF',
-                        },
-                      ]}
-                    />
-                  </View>
-                  <View style={styles.progressInfoRow}>
-                    <Text style={styles.progressTimeText}>
-                      {formatTime(playbackSeconds)}
-                    </Text>
-                    {playbackSeconds > 0 && (
-                      <TouchableOpacity
-                        onPress={handleRestartVideo}
-                        style={styles.restartBtn}
-                      >
-                        <Text style={styles.restartText}>↺ Reiniciar</Text>
-                      </TouchableOpacity>
-                    )}
-                    <Text style={styles.progressTimeText}>
-                      {ONBOARDING_WIZARD_VIDEO.duration}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.videoMetaContainer}>
-                <Text style={styles.videoMetaDescription}>
-                  {ONBOARDING_WIZARD_VIDEO.description}
-                </Text>
-                <Text style={styles.optionalNote}>
-                  💡 Este video es optativo. Podés avanzar directamente al siguiente paso sin necesidad de reproducirlo.
-                </Text>
-              </View>
-            </View>
-
-            {/* Botonera de Acción Final */}
-            <View style={styles.wizardNavButtons}>
+            {/* Reproductor de Video con Fondo Negro */}
+            <View style={styles.videoContainer}>
               <TouchableOpacity
-                style={styles.backBtn}
+                style={styles.videoPlayCircle}
+                onPress={handleTogglePlay}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.videoPlayIcon}>
+                  {isPlaying ? '⏸' : '▶'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Botonera Paso 3 */}
+            <View style={styles.dualButtonContainer}>
+              <TouchableOpacity
+                style={styles.secondaryButton}
                 onPress={() => {
                   setIsPlaying(false);
                   setWizardStep(2);
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={styles.backBtnText}>⬅ Volver</Text>
+                <Text style={styles.secondaryButtonText}>Volver</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={styles.nextBtn}
+                style={styles.primaryButtonHalf}
                 onPress={() => {
                   setIsPlaying(false);
                   onComplete();
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={styles.nextBtnText}>¡Comenzar! Seleccionar Modo ➔</Text>
+                <Text style={styles.primaryButtonText}>Elegir modo</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
-
-        {/* ======================================================== */}
-        {/* PREGUNTAS FRECUENTES (FAQ) Y ASISTENCIA OFICIAL           */}
-        {/* ======================================================== */}
-        <View style={styles.faqSection}>
-          <Text style={styles.faqSectionTitle}>Preguntas Frecuentes sobre la Protección</Text>
-
-          {[
-            {
-              question: '¿La aplicación lee los mensajes privados o revisa fotos?',
-              answer:
-                'No. BA Protege+ fue concebida bajo principios de máxima privacidad. La aplicación opera a nivel de red (DNS) para contrastar direcciones web contra el registro de apuestas, sin inspeccionar mensajes de chat, galerías de fotos ni datos personales.',
-            },
-            {
-              question: '¿Cómo se actualizan los sitios bloqueados?',
-              answer:
-                'La lista se actualiza automáticamente en segundo plano cuando el dispositivo tiene conexión a internet, sincronizándose con la base de datos oficial provista por LOTBA.',
-            },
-            {
-              question: '¿Tiene algún costo de suscripción?',
-              answer:
-                'No. Es un servicio público y gratuito impulsado por el Gobierno de la Ciudad de Buenos Aires para la prevención del juego compulsivo en menores y familias.',
-            },
-          ].map((faq, index) => {
-            const isOpen = expandedFaq === index;
-            return (
-              <TouchableOpacity
-                key={index}
-                style={styles.faqItem}
-                onPress={() => setExpandedFaq(isOpen ? null : index)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.faqQuestionRow}>
-                  <Text style={styles.faqQuestionText}>{faq.question}</Text>
-                  <Text style={styles.faqToggleIcon}>{isOpen ? '▲' : '▼'}</Text>
-                </View>
-                {isOpen && <Text style={styles.faqAnswerText}>{faq.answer}</Text>}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Banner de Línea Oficial de Ayuda */}
-        <View style={styles.helpBanner}>
-          <Text style={styles.helpEmoji}>📞</Text>
-          <Text style={styles.helpTitle}>Línea de Orientación al Jugador Problemático</Text>
-          <Text style={styles.helpPhone}>0800-444-5682</Text>
-          <Text style={styles.helpText}>
-            Llamada gratuita, anónima y confidencial disponible las 24 horas del día, los 365 días del año.
-            Lotería de la Ciudad de Buenos Aires.
-          </Text>
-        </View>
-
-        <View style={styles.footerSpace} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -498,582 +305,207 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
   scrollContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 32,
   },
-  topActionBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  headerLogoContainer: {
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  onboardingPill: {
-    backgroundColor: '#E2E8F0',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-  },
-  onboardingPillText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#475569',
-    letterSpacing: 0.5,
-  },
-  skipBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  skipBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary,
+    marginBottom: 16,
   },
   stepperWrapper: {
-    marginVertical: 6,
-    marginBottom: 18,
     alignItems: 'center',
+    marginVertical: 12,
+    marginBottom: 28,
   },
   stepperRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     width: '100%',
-    maxWidth: 300,
-  },
-  stepCircleCol: {
-    alignItems: 'center',
-    zIndex: 2,
+    maxWidth: 240,
   },
   stepCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
   },
   stepCircleActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: '#007AFF',
   },
   stepCircleInactive: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-  },
-  stepCircleCurrent: {
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#E5E7EB',
   },
   stepCircleNum: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  stepCircleNumActive: {
-    color: colors.textLight,
-  },
-  stepCircleNumInactive: {
-    color: colors.textSecondary,
-  },
-  stepCircleLabel: {
-    marginTop: 6,
-    fontSize: 12,
-    letterSpacing: 0.2,
-  },
-  stepCircleLabelActive: {
-    color: colors.primary,
+    fontSize: 14,
     fontWeight: '700',
   },
-  stepCircleLabelInactive: {
-    color: colors.textSecondary,
-    fontWeight: '600',
+  stepCircleNumActive: {
+    color: '#FFFFFF',
+  },
+  stepCircleNumInactive: {
+    color: '#9CA3AF',
   },
   stepConnectorLine: {
     flex: 1,
-    height: 2.5,
-    marginHorizontal: 8,
-    marginBottom: 20,
+    height: 3,
+    marginHorizontal: 6,
   },
   stepConnectorLineActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#007AFF',
   },
   stepConnectorLineInactive: {
-    backgroundColor: colors.border,
+    backgroundColor: '#E5E7EB',
   },
-  heroSection: {
-    alignItems: 'center',
-    marginVertical: 12,
+  contentCard: {
+    marginTop: 4,
   },
-  govBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E7F1FF',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#B6D4FE',
-  },
-  govBadgeIcon: {
-    fontSize: 14,
-    marginRight: 6,
-  },
-  govBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0A58CA',
-    letterSpacing: 0.2,
-  },
-  heroIconBadge: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#E7F1FF',
-  },
-  heroEmoji: {
-    fontSize: 34,
-  },
-  heroTitle: {
-    fontSize: 20,
+  mainTitle: {
+    fontSize: 22,
     fontWeight: '800',
-    color: '#1A202C',
-    textAlign: 'center',
-    lineHeight: 26,
-    paddingHorizontal: 8,
-  },
-  heroDescription: {
-    fontSize: 13,
-    color: '#4A5568',
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 19,
-    paddingHorizontal: 10,
-  },
-  trustBanner: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginVertical: 14,
-    borderWidth: 1,
-    borderColor: '#C3E6CB',
-    shadowColor: '#198754',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  trustHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  trustIcon: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  trustTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#155724',
-  },
-  trustText: {
-    fontSize: 12,
-    color: '#2D3748',
-    lineHeight: 18,
+    color: '#000000',
     marginBottom: 10,
+    lineHeight: 28,
   },
-  boldText: {
+  subtitleBold: {
+    fontSize: 15,
     fontWeight: '700',
+    color: '#1C1C1E',
+    marginBottom: 20,
   },
-  highlightText: {
-    fontWeight: '700',
-    color: '#0F5132',
+  bulletList: {
+    gap: 18,
+    marginBottom: 40,
   },
-  trustPillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  trustPill: {
+  bulletItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D1E7DD',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
   },
-  trustPillIcon: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#0F5132',
-    marginRight: 5,
-  },
-  trustPillText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#0F5132',
-  },
-  sectionHeaderCentered: {
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1A202C',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 17,
-    paddingHorizontal: 8,
-  },
-  profilesList: {
-    gap: 10,
-    marginBottom: 16,
-  },
-  profileCard: {
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1.5,
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  profileTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  profileTag: {
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  profileTagText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  profileBody: {
-    fontSize: 12,
-    color: '#334155',
-    lineHeight: 17,
-  },
-  wizardNavButtons: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  backBtn: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: 12,
-    backgroundColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  nextBtn: {
-    flex: 2,
-    paddingVertical: 13,
-    borderRadius: 12,
-    backgroundColor: '#0D6EFD',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0D6EFD',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  nextBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  mainStartBtn: {
-    backgroundColor: '#0D6EFD',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 16,
-    shadowColor: '#0D6EFD',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  mainStartBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  optionalBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#FCD34D',
-    marginBottom: 8,
-  },
-  optionalBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#92400E',
-    letterSpacing: 0.4,
-  },
-  videoPlayerCard: {
-    backgroundColor: '#FFFFFF',
+  bulletIconCircle: {
+    width: 36,
+    height: 36,
     borderRadius: 18,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    marginBottom: 14,
-  },
-  videoScreen: {
-    padding: 16,
-    minHeight: 230,
-    justifyContent: 'space-between',
-  },
-  videoTopBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: '#EBF5FF',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
   },
-  videoBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 6,
+  bulletText: {
+    fontSize: 14,
+    color: '#1C1C1E',
+    fontWeight: '500',
+    flex: 1,
+    lineHeight: 20,
   },
-  videoBadgeText: {
+  singleButtonContainer: {
+    alignItems: 'flex-end',
+    marginTop: 20,
+  },
+  primaryButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  durationPill: {
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  durationText: {
-    color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 15,
     fontWeight: '700',
   },
-  videoCenterContent: {
-    alignItems: 'center',
-    marginVertical: 6,
+  cardsContainer: {
+    gap: 16,
+    marginBottom: 28,
   },
-  videoBigEmoji: {
-    fontSize: 38,
-    marginBottom: 4,
+  modeCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#007AFF',
   },
-  videoScreenTitle: {
+  modeCardHeader: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  modeCardHeaderTitle: {
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: 6,
-    textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
-  subtitleBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-    alignItems: 'center',
+  modeCardBody: {
+    backgroundColor: '#F0F7FF',
+    padding: 14,
+    gap: 12,
   },
-  subtitleDesc: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 15,
+  checkItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
-  playButtonCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+  checkIconWrapper: {
+    marginRight: 10,
+    marginTop: 1,
+  },
+  checkText: {
+    fontSize: 13,
+    color: '#1C1C1E',
+    fontWeight: '500',
+    flex: 1,
+    lineHeight: 18,
+  },
+  dualButtonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  secondaryButton: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: '#007AFF',
     backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
   },
-  playButtonCircleActive: {
-    backgroundColor: '#EF4444',
+  secondaryButtonText: {
+    color: '#007AFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
-  playButtonIcon: {
+  primaryButtonHalf: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoContainer: {
+    backgroundColor: '#000000',
+    borderRadius: 16,
+    height: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+  },
+  videoPlayCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoPlayIcon: {
+    color: '#FFFFFF',
     fontSize: 22,
     marginLeft: 2,
-    color: '#1A202C',
-  },
-  progressBarWrapper: {
-    marginTop: 6,
-  },
-  progressBarBg: {
-    height: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-  },
-  progressInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  progressTimeText: {
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  restartBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  restartText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  videoMetaContainer: {
-    padding: 14,
-  },
-  videoMetaDescription: {
-    fontSize: 12,
-    color: '#4A5568',
-    lineHeight: 17,
-    marginBottom: 8,
-  },
-  optionalNote: {
-    fontSize: 11,
-    color: '#64748B',
-    fontStyle: 'italic',
-  },
-  faqSection: {
-    marginTop: 10,
-    marginBottom: 14,
-  },
-  faqSectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1A202C',
-    marginBottom: 10,
-  },
-  faqItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  faqQuestionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  faqQuestionText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#2D3748',
-    flex: 1,
-    paddingRight: 8,
-  },
-  faqToggleIcon: {
-    fontSize: 10,
-    color: '#A0AEC0',
-  },
-  faqAnswerText: {
-    fontSize: 11,
-    color: '#4A5568',
-    lineHeight: 16,
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 6,
-  },
-  helpBanner: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  helpEmoji: {
-    fontSize: 28,
-    marginBottom: 4,
-  },
-  helpTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#3730A3',
-    textAlign: 'center',
-  },
-  helpPhone: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#4338CA',
-    marginVertical: 4,
-    letterSpacing: 1,
-  },
-  helpText: {
-    fontSize: 11,
-    color: '#4F46E5',
-    textAlign: 'center',
-    lineHeight: 15,
-  },
-  footerSpace: {
-    height: 30,
   },
 });

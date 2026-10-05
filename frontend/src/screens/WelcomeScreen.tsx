@@ -2,8 +2,10 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla de Selección de Modo)
 // Archivo: src/screens/WelcomeScreen.tsx
-// Descripción: Pantalla de selección de modo (Responsable, Menor, Adulto)
-//              con acceso directo a la pantalla de Onboarding y tutoriales en video.
+// Descripción: Selección de modo compacta sin scroll.
+//              - Bloque 1: Modo Responsable destacado con tarjeta con borde.
+//              - Bloque 2: Modo Protegido dentro de contenedor unificado con borde externo.
+//              - Acceso a tutoriales y línea oficial en el rodapé.
 // ==============================================================================
 
 import React from 'react';
@@ -12,12 +14,9 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { Header } from '../components/Header';
-import { ActionButton } from '../components/ActionButton';
-import { colors } from '../theme/colors';
+import { Logo } from '../components/Logo';
 import { AppMode } from '../types';
 
 interface WelcomeScreenProps {
@@ -31,97 +30,115 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header
-        title="BA Protege+"
-        subtitle="Protección Digital contra Apuestas Clandestinas"
-      />
+      <View style={styles.container}>
+        {/* Encabezado Superior con Logo Centralizado */}
+        <View style={styles.headerRow}>
+          <Logo variant="complete" size="md" align="center" />
+        </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Banner para abrir el Onboarding y Videos */}
-        {onOpenOnboarding && (
-          <TouchableOpacity
-            style={styles.onboardingBanner}
-            onPress={onOpenOnboarding}
-            activeOpacity={0.85}
-          >
-            <View style={styles.onboardingBannerIcon}>
-              <Text style={{ fontSize: 20 }}>🎬</Text>
-            </View>
-            <View style={styles.onboardingBannerTextCol}>
-              <Text style={styles.onboardingBannerTitle}>
-                ¿Primera vez en la app? Mirá el tutorial
-              </Text>
-              <Text style={styles.onboardingBannerSubtitle}>
-                3 videos explicativos paso a paso para cada modo
-              </Text>
-            </View>
-            <Text style={styles.onboardingBannerArrow}>➔</Text>
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.infoSection}>
-          <View style={styles.lockBadge}>
-            <Text style={styles.lockEmoji}>🔒</Text>
-          </View>
-          <Text style={styles.heroTitle}>Selecciona el Modo de Operación</Text>
-          <Text style={styles.heroDescription}>
-            Control Parental Oficial y Protección Digital respaldada por LOTBA
+        {/* Título de la Pantalla */}
+        <View style={styles.titleSection}>
+          <Text style={styles.mainTitle}>Seleccioná el modo de la app</Text>
+          <Text style={styles.mainSubtitle}>
+            Elegí el rol correspondiente a este dispositivo:
           </Text>
         </View>
 
-        <View style={styles.cardsContainer}>
-          {/* Tarjeta 1: Modo Responsable */}
-          <View style={styles.optionCard}>
-            <Text style={styles.cardEmoji}>👨‍👩‍👧‍👦</Text>
-            <Text style={styles.cardTitle}>Modo Responsable</Text>
-            <Text style={styles.cardText}>
-              Supervisa el estado de protección de los celulares de tus hijos, recibe alertas y administra restricciones de uso.
-            </Text>
-            <ActionButton
-              title="Continuar como Responsable"
-              variant="primary"
-              onPress={() => onSelectMode('PARENT')}
-            />
+        {/* ======================================================== */}
+        {/* 1. MODO RESPONSABLE (BLOQUE CON BORDE DESTACADO)         */}
+        {/* ======================================================== */}
+        <View style={styles.featuredCard}>
+          <View style={styles.featuredBadgeRow}>
+            <Text style={styles.featuredBadgeText}>MODO RESPONSABLE</Text>
           </View>
 
-          {/* Tarjeta 2: Modo Menor */}
-          <View style={styles.optionCard}>
-            <Text style={styles.cardEmoji}>📱</Text>
-            <Text style={styles.cardTitle}>Modo Dispositivo Protegido (Menor)</Text>
-            <Text style={styles.cardText}>
-              Activa el motor de filtrado local VPN con la lista oficial LOTBA y reporta telemetría segura.
-            </Text>
-            <ActionButton
-              title="Configurar este Dispositivo"
-              variant="secondary"
-              onPress={() => onSelectMode('CHILD')}
-            />
+          <View style={styles.featuredHeaderRow}>
+            <Text style={styles.featuredEmoji}>👨‍👩‍👧‍👦</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.featuredTitle}>Tutor</Text>
+              <Text style={styles.featuredDesc}>
+                Configurá reglas, supervisá el escudo en vivo y administrá tus dispositivos.
+              </Text>
+            </View>
           </View>
 
-          {/* Tarjeta 3: Modo Adulto */}
-          <View style={[styles.optionCard, styles.optionCardAdult]}>
-            <Text style={styles.cardEmoji}>💜</Text>
-            <Text style={styles.cardTitle}>Modo Adulto (Autoprotección)</Text>
-            <Text style={styles.cardText}>
-              Protección voluntaria para mayores de edad contra plataformas de apuestas y acceso directo a asistencia.
+          <TouchableOpacity
+            style={styles.featuredBtn}
+            onPress={() => onSelectMode('PARENT')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.featuredBtnText}>Configurar Tutor</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ======================================================== */}
+        {/* 2. MODO PROTEGIDO (BLOQUE UNIFICADO CON BORDE EXTERNO)    */}
+        {/* ======================================================== */}
+        <View style={styles.protectedContainerCard}>
+          <View style={styles.protectedBadgeRow}>
+            <Text style={styles.protectedBadgeText}>
+              MODO PROTEGIDO (RECIBE REGLAS DE UN TUTOR)
             </Text>
+          </View>
+
+          <View style={styles.protectedRow}>
+            {/* Tarjeta Menor */}
             <TouchableOpacity
-              style={styles.adultBtn}
+              style={styles.protectedCard}
+              onPress={() => onSelectMode('CHILD')}
+              activeOpacity={0.85}
+            >
+              <View style={styles.protectedCardHeader}>
+                <Text style={styles.protectedEmoji}>📱</Text>
+                <Text style={styles.protectedTitle}>Menor</Text>
+              </View>
+              <Text style={styles.protectedDesc}>
+                Para niños y adolescentes. Recibe filtrado de red del tutor.
+              </Text>
+              <View style={styles.protectedBtn}>
+                <Text style={styles.protectedBtnText}>Configurar Menor</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Tarjeta Adulto */}
+            <TouchableOpacity
+              style={[styles.protectedCard, styles.adultCard]}
               onPress={() => onSelectMode('ADULT')}
               activeOpacity={0.85}
             >
-              <Text style={styles.adultBtnText}>Activar Autoprotección</Text>
+              <View style={styles.protectedCardHeader}>
+                <Text style={styles.protectedEmoji}>💜</Text>
+                <Text style={[styles.protectedTitle, styles.adultTitle]}>Adulto</Text>
+              </View>
+              <Text style={styles.protectedDesc}>
+                Acompañamiento en ludopatía bajo tutela de un responsable.
+              </Text>
+              <View style={[styles.protectedBtn, styles.adultBtn]}>
+                <Text style={[styles.protectedBtnText, styles.adultBtnText]}>Configurar Adulto</Text>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Línea de ayuda al pie */}
-        <View style={styles.helpFooter}>
-          <Text style={styles.helpFooterText}>
-            Línea de Orientación al Jugador Problemático: <Text style={{ fontWeight: '700' }}>0800-444-5682</Text> (Gratuito y 24hs)
+        {/* ======================================================== */}
+        {/* RODAPÉ (TUTORIALES Y LÍNEA DE ORIENTACIÓN)               */}
+        {/* ======================================================== */}
+        <View style={styles.footerContainer}>
+          {onOpenOnboarding && (
+            <TouchableOpacity
+              style={styles.footerTutorialBtn}
+              onPress={onOpenOnboarding}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.footerTutorialText}>Cómo funciona la app?</Text>
+            </TouchableOpacity>
+          )}
+
+          <Text style={styles.footerHelpText}>
+            📞 Línea gratuita de orientación 24hs: <Text style={styles.boldText}>0800-444-5682</Text>
           </Text>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -129,127 +146,190 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
   container: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  onboardingBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  onboardingBannerIcon: {
-    marginRight: 10,
-  },
-  onboardingBannerTextCol: {
     flex: 1,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 14,
+    justifyContent: 'space-between',
   },
-  onboardingBannerTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#3730A3',
-  },
-  onboardingBannerSubtitle: {
-    fontSize: 11,
-    color: '#6366F1',
-    marginTop: 1,
-  },
-  onboardingBannerArrow: {
-    fontSize: 14,
-    color: '#4F46E5',
-    marginLeft: 6,
-  },
-  infoSection: {
-    alignItems: 'center',
-    marginVertical: 14,
-  },
-  lockBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#E7F1FF',
+  headerRow: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
-  },
-  lockEmoji: {
-    fontSize: 28,
-  },
-  heroTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  heroDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 4,
-    paddingHorizontal: 16,
-  },
-  cardsContainer: {
-    gap: 16,
-  },
-  optionCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  optionCardAdult: {
-    borderColor: '#E9D5FF',
-    backgroundColor: '#FAF5FF',
-  },
-  cardEmoji: {
-    fontSize: 28,
-    marginBottom: 8,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    marginTop: 2,
     marginBottom: 6,
   },
-  cardText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 16,
+  titleSection: {
+    alignItems: 'center',
+    marginVertical: 2,
   },
-  adultBtn: {
-    backgroundColor: '#8B5CF6',
-    paddingVertical: 12,
+  mainTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#000000',
+    textAlign: 'center',
+  },
+  mainSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  featuredCard: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#007AFF',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
+    marginVertical: 4,
+  },
+  featuredBadgeRow: {
+    marginBottom: 6,
+  },
+  featuredBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0056B3',
+    letterSpacing: 0.5,
+  },
+  featuredHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  featuredEmoji: {
+    fontSize: 28,
+    marginRight: 10,
+  },
+  featuredTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#007AFF',
+    marginBottom: 2,
+  },
+  featuredDesc: {
+    fontSize: 12,
+    color: '#1C1C1E',
+    lineHeight: 16,
+  },
+  featuredBtn: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  adultBtnText: {
+  featuredBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
-  helpFooter: {
-    marginTop: 24,
+  protectedContainerCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
     padding: 12,
-    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#007AFF',
+    marginVertical: 4,
   },
-  helpFooterText: {
+  protectedBadgeRow: {
+    marginBottom: 8,
+  },
+  protectedBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0056B3',
+    letterSpacing: 0.4,
+  },
+  protectedRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  protectedCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'space-between',
+  },
+  adultCard: {
+    backgroundColor: '#FAF5FF',
+    borderColor: '#E9D5FF',
+  },
+  protectedCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  protectedEmoji: {
+    fontSize: 18,
+    marginRight: 6,
+  },
+  protectedTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1C1C1E',
+  },
+  adultTitle: {
+    color: '#7E22CE',
+  },
+  protectedDesc: {
+    fontSize: 11,
+    color: '#4B5563',
+    lineHeight: 15,
+    marginBottom: 8,
+  },
+  protectedBtn: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  protectedBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  adultBtn: {
+    backgroundColor: '#7E22CE',
+  },
+  adultBtnText: {
+    color: '#FFFFFF',
+  },
+  footerContainer: {
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  footerTutorialBtn: {
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  footerTutorialText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#3730A3',
+  },
+  footerHelpText: {
     fontSize: 11,
     color: '#64748B',
     textAlign: 'center',
+  },
+  boldText: {
+    fontWeight: '700',
   },
 });
