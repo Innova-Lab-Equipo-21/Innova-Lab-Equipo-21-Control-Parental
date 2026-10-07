@@ -2,18 +2,17 @@
 // Proyecto: BA Protege+
 // Componente: Web Simulator - WelcomeStep (Paso 2)
 // Archivo: src/web/components/WelcomeStep.tsx
-// Descripción: Selección de modo compacta sin scroll en simulador web.
-//              - Bloque 1: Modo Responsable destacado arriba.
-//              - Bloque 2: Modo Protegido dentro de contenedor unificado con borde externo.
+// Descripción: Selección de modo (Modo responsable vs Modo protegido) alineada con OnboardingStep.
 // ==============================================================================
 
 import React from 'react';
 import { Logo } from '../../components/Logo';
+import { Icon } from '../../components/Icon';
 
 interface WelcomeStepProps {
   onSelectParentFlow: () => void;
   onSelectChildFlow: () => void;
-  onOpenTutorials?: () => void;
+  onOpenTutorials?: (step?: 1 | 2 | 3) => void;
 }
 
 export const WelcomeStep: React.FC<WelcomeStepProps> = ({
@@ -22,195 +21,163 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({
   onOpenTutorials,
 }) => {
   return (
-    <div style={{ padding: '16px 18px', backgroundColor: '#FFFFFF', minHeight: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
-      {/* Encabezado Superior con Logo */}
-      <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 6px' }}>
+    <div style={{ padding: '20px 18px', backgroundColor: '#FFFFFF', minHeight: '100%', boxSizing: 'border-box' }}>
+      {/* Encabezado Superior con Logo Centralizado (Mismo tamaño y posición que Onboarding) */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
         <Logo variant="complete" size="md" align="center" />
       </div>
 
-      {/* Título de la Pantalla */}
-      <div style={{ textAlign: 'center', margin: '2px 0 10px' }}>
-        <h1 style={{ fontSize: '19px', fontWeight: '800', color: '#000000', margin: 0 }}>
-          Seleccioná el modo de la app
+      {/* Títulos de la Pantalla (Misma escala y posición que Onboarding) */}
+      <div style={{ marginBottom: '16px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', lineHeight: 1.25 }}>
+          Elegí cómo vas a usar la app
         </h1>
-        <p style={{ fontSize: '13px', color: '#64748B', margin: '2px 0 0 0' }}>
-          Elegí el rol correspondiente a este dispositivo:
+        <p style={{ fontSize: '15px', color: '#1C1C1E', margin: 0, lineHeight: 1.35 }}>
+          Seleccioná el modo que más se adecúa a tus necesidades.
         </p>
       </div>
 
-      {/* ======================================================== */}
-      {/* 1. MODO RESPONSABLE (BLOQUE CON BORDE DESTACADO)         */}
-      {/* ======================================================== */}
+      {/* CARD 1: MODO RESPONSABLE */}
       <div
         style={{
           backgroundColor: '#F0F7FF',
-          borderRadius: '14px',
+          borderRadius: '16px',
           padding: '14px',
           border: '1.5px solid #007AFF',
-          boxShadow: '0 3px 8px rgba(0, 122, 255, 0.12)',
-          margin: '2px 0 10px 0',
+          marginBottom: '14px',
+          boxSizing: 'border-box',
         }}
       >
-        <div style={{ fontSize: '10px', fontWeight: '800', color: '#0056B3', letterSpacing: '0.5px', marginBottom: '6px' }}>
-          MODO RESPONSABLE
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+          <Icon name="escudo" size={22} color="#007AFF" style={{ marginRight: '8px' }} />
+          <h2 style={{ fontSize: '17px', fontWeight: '700', color: '#007AFF', margin: 0 }}>
+            Modo responsable
+          </h2>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-          <span style={{ fontSize: '28px', marginRight: '10px' }}>👨‍👩‍👧‍👦</span>
-          <div>
-            <h2 style={{ fontSize: '16px', fontWeight: '800', color: '#007AFF', margin: '0 0 2px 0' }}>
-              Tutor
-            </h2>
-            <p style={{ fontSize: '12px', color: '#1C1C1E', margin: 0, lineHeight: '1.35' }}>
-              Configurá reglas, supervisá el escudo en vivo y administrá tus dispositivos.
-            </p>
-          </div>
-        </div>
+        <p style={{ fontSize: '12.5px', color: '#1C1C1E', margin: '0 0 10px 0', lineHeight: '1.35' }}>
+          Ideal para quienes gestionan reglas, restricciones y bloqueos de sitios web y apps en este u otros dispositivos.
+        </p>
 
-        <button
-          onClick={onSelectParentFlow}
+        <div
           style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '10px',
-            backgroundColor: '#007AFF',
-            color: '#FFFFFF',
-            border: 'none',
-            fontWeight: '700',
-            fontSize: '14px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(0, 122, 255, 0.25)',
+            backgroundColor: '#D0E2FF',
+            borderRadius: '14px',
+            padding: '5px 10px',
+            display: 'inline-block',
+            marginBottom: '10px',
+            fontSize: '12px',
+            fontWeight: '500',
+            color: '#1C1C1E',
           }}
         >
-          Configurar Tutor
-        </button>
+          Basado en PIN y contraseña.
+        </div>
+
+        <div style={{ textAlign: 'center' }}>
+          <button
+            onClick={onSelectParentFlow}
+            style={{
+              padding: '8px 0',
+              width: '145px',
+              borderRadius: '10px',
+              backgroundColor: '#007AFF',
+              color: '#FFFFFF',
+              border: 'none',
+              fontWeight: '700',
+              fontSize: '14px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0, 122, 255, 0.25)',
+            }}
+          >
+            Empezar
+          </button>
+        </div>
       </div>
 
-      {/* ======================================================== */}
-      {/* 2. MODO PROTEGIDO (BLOQUE UNIFICADO CON BORDE EXTERNO)    */}
-      {/* ======================================================== */}
+      {/* CARD 2: MODO PROTEGIDO */}
       <div
         style={{
-          backgroundColor: '#F8FAFC',
-          borderRadius: '14px',
-          padding: '12px',
+          backgroundColor: '#F0F7FF',
+          borderRadius: '16px',
+          padding: '14px',
           border: '1.5px solid #007AFF',
-          margin: '2px 0 10px 0',
+          marginBottom: '10px',
+          boxSizing: 'border-box',
         }}
       >
-        <div style={{ fontSize: '10px', fontWeight: '800', color: '#0056B3', letterSpacing: '0.4px', marginBottom: '8px' }}>
-          MODO PROTEGIDO (RECIBE REGLAS DE UN TUTOR)
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+          <Icon name="corazon" size={22} color="#007AFF" style={{ marginRight: '8px' }} />
+          <h2 style={{ fontSize: '17px', fontWeight: '700', color: '#007AFF', margin: 0 }}>
+            Modo protegido
+          </h2>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {/* Tarjeta Menor */}
-          <div
-            onClick={onSelectChildFlow}
-            style={{
-              flex: 1,
-              backgroundColor: '#FFFFFF',
-              borderRadius: '12px',
-              padding: '10px',
-              border: '1px solid #E2E8F0',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                <span style={{ fontSize: '18px' }}>📱</span>
-                <span style={{ fontSize: '14px', fontWeight: '800', color: '#1C1C1E' }}>Menor</span>
-              </div>
-              <p style={{ fontSize: '11px', color: '#4B5563', margin: '0 0 8px 0', lineHeight: '1.35' }}>
-                Para niños y adolescentes. Recibe filtrado de red del tutor.
-              </p>
-            </div>
-            <button
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '8px',
-                backgroundColor: '#007AFF',
-                color: '#FFFFFF',
-                border: 'none',
-                fontWeight: '700',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-            >
-              Configurar Menor
-            </button>
-          </div>
-
-          {/* Tarjeta Adulto */}
-          <div
-            onClick={onSelectChildFlow}
-            style={{
-              flex: 1,
-              backgroundColor: '#FAF5FF',
-              borderRadius: '12px',
-              padding: '10px',
-              border: '1px solid #E9D5FF',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                <span style={{ fontSize: '18px' }}>💜</span>
-                <span style={{ fontSize: '14px', fontWeight: '800', color: '#7E22CE' }}>Adulto</span>
-              </div>
-              <p style={{ fontSize: '11px', color: '#4B5563', margin: '0 0 8px 0', lineHeight: '1.35' }}>
-                Acompañamiento en ludopatía bajo tutela de un responsable.
-              </p>
-            </div>
-            <button
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '8px',
-                backgroundColor: '#7E22CE',
-                color: '#FFFFFF',
-                border: 'none',
-                fontWeight: '700',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-            >
-              Configurar Adulto
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* RODAPÉ CON TUTORIALES Y LÍNEA OFICIAL */}
-      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', paddingTop: '2px' }}>
-        {onOpenTutorials && (
-          <button
-            onClick={onOpenTutorials}
-            style={{
-              backgroundColor: '#EEF2FF',
-              color: '#3730A3',
-              border: '1px solid #C7D2FE',
-              padding: '6px 16px',
-              borderRadius: '16px',
-              fontSize: '12px',
-              fontWeight: '700',
-              cursor: 'pointer',
-            }}
-          >
-            Cómo funciona la app?
-          </button>
-        )}
-
-        <p style={{ fontSize: '11px', color: '#64748B', margin: 0 }}>
-          📞 Línea gratuita de orientación 24hs: <strong>0800-444-5682</strong>
+        <p style={{ fontSize: '12.5px', color: '#1C1C1E', margin: '0 0 10px 0', lineHeight: '1.35' }}>
+          Para dispositivos que reciben protección y navegación segura configurada por un adulto responsable.
         </p>
+
+        <div
+          style={{
+            backgroundColor: '#D0E2FF',
+            borderRadius: '14px',
+            padding: '5px 10px',
+            display: 'inline-block',
+            marginBottom: '10px',
+            fontSize: '12px',
+            fontWeight: '500',
+            color: '#1C1C1E',
+          }}
+        >
+          Basado en supervisión externa.
+        </div>
+
+        <div style={{ textAlign: 'center' }}>
+          <button
+            onClick={onSelectChildFlow}
+            style={{
+              padding: '8px 0',
+              width: '145px',
+              borderRadius: '10px',
+              backgroundColor: '#007AFF',
+              color: '#FFFFFF',
+              border: 'none',
+              fontWeight: '700',
+              fontSize: '14px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0, 122, 255, 0.25)',
+            }}
+          >
+            Empezar
+          </button>
+        </div>
       </div>
+
+      {/* Botón de Ayuda (Alineado abajo a la derecha del cuadro Modo protegido) */}
+      {onOpenTutorials && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
+          <button
+            onClick={() => onOpenTutorials(3)}
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '19px',
+              backgroundColor: '#007AFF',
+              color: '#FFFFFF',
+              border: 'none',
+              fontWeight: '700',
+              fontSize: '18px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0, 122, 255, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ?
+          </button>
+        </div>
+      )}
     </div>
   );
 };

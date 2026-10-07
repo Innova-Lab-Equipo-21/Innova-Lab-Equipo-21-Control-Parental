@@ -6,6 +6,7 @@
 // ==============================================================================
 
 import React from 'react';
+import { Logo } from '../../components/Logo';
 
 type AuthTab = 'LOGIN' | 'RECOVERY' | 'REGISTER';
 type GenderOption = 'Masculino' | 'Femenino' | 'Otro' | 'No informado';
@@ -79,6 +80,10 @@ export const AuthStep: React.FC<AuthStepProps> = ({
 }) => {
   return (
     <div style={{ padding: '16px 14px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+        <Logo variant="complete" size="md" align="center" />
+      </div>
+
       {authError && (
         <div style={{ backgroundColor: '#F8D7DA', border: '1px solid #F5C2C7', color: '#842029', borderRadius: '10px', padding: '10px', fontSize: '12px', marginBottom: '14px' }}>
           ⚠️ {authError}

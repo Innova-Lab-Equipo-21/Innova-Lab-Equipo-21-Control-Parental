@@ -13,6 +13,11 @@ Descripción: Manifiesto de Android con permisos de VpnService, arranque automá
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Permiso de Cámara para Escaneo de Código QR -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
     <!-- Permiso para persistencia tras reinicio del dispositivo (BootReceiver) -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 

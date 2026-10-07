@@ -2,8 +2,9 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla de Dispositivo Protegido)
 // Archivo: src/screens/ProtectedDeviceScreen.tsx
-// Descripción: Panel de control local del dispositivo protegido con estado de VPN en vivo,
-//              alerta pedagógica de permisos faltantes, teclado PIN y tarjetas del UI Kit.
+// Descripción: Panel de control del dispositivo protegido diferenciado para Menor
+//              y Adulto en tratamiento con contenidos educativos especializados,
+//              línea de orientación 24hs, estado VPN y teclado PIN.
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -32,6 +33,7 @@ import { ProtectionStatus } from '../types';
 interface ProtectedDeviceScreenProps {
   deviceUuid: string;
   onExitMode: () => void;
+  mode?: 'CHILD' | 'ADULT';
   permissions?: PermissionItemState;
   onOpenPermissions?: () => void;
 }
@@ -39,6 +41,7 @@ interface ProtectedDeviceScreenProps {
 export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
   deviceUuid,
   onExitMode,
+  mode = 'CHILD',
   permissions,
   onOpenPermissions,
 }) => {
@@ -194,11 +197,23 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
     }
   };
 
+  const handleCallAssistance = () => {
+    Alert.alert(
+      '📞 Línea de Orientación 24hs',
+      'Llamando a la Línea Gratuita de Asistencia y Prevención de Ludopatía: 0800-444-5682',
+      [{ text: 'Aceptar', style: 'default' }]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <Header
-        title="Dispositivo Protegido"
-        subtitle={`UUID: ${deviceUuid.substring(0, 14)}...`}
+        title={mode === 'ADULT' ? 'Dispositivo Adulto Protegido' : 'Dispositivo Menor Protegido'}
+        subtitle={
+          mode === 'ADULT'
+            ? 'Acompañamiento digital y autoprotección activa'
+            : 'Protección digital contra casas de apuestas e internet seguro'
+        }
       />
       <ScrollView contentContainerStyle={styles.container}>
         {/* Caja de Alerta de Permisos Faltantes */}
@@ -234,6 +249,111 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
           blocklistVersion={blocklistVersion}
           lastSyncText={lastSyncText}
         />
+
+        {/* CONTENIDO EDUCATIVO Y DE ORIENTACIÓN ESPECIALIZADO POR PERFIL */}
+        {mode === 'ADULT' ? (
+          /* DASHBOARD Y RECURSOS PARA ADULTO PROTEGIDO */
+          <View style={styles.educationalSection}>
+            <Text style={styles.sectionTitle}>Acompañamiento y Prevención 💜</Text>
+            <Text style={styles.sectionSubtitle}>
+              Recursos de autoprotección, orientación profesional y manejo de impulsos.
+            </Text>
+
+            {/* Tarjeta 1: Asistencia 24/7 */}
+            <View style={[styles.eduCard, styles.adultSpecialCard]}>
+              <View style={styles.eduCardHeader}>
+                <Text style={styles.eduCardEmoji}>📞</Text>
+                <Text style={[styles.eduCardTitle, styles.adultTitleText]}>
+                  Línea de Asistencia al Jugador Compulsivo
+                </Text>
+              </View>
+              <Text style={styles.eduCardBody}>
+                Atención confidencial, gratuita y profesional las 24hs para contención emocional y prevención de recaídas.
+              </Text>
+
+              <View style={{ marginTop: 10 }}>
+                <ActionButton
+                  title="📞 Llamar a Línea 0800-444-5682 (24hs)"
+                  variant="primary"
+                  onPress={handleCallAssistance}
+                />
+              </View>
+            </View>
+
+            {/* Tarjeta 2: Manejo de Impulsos */}
+            <View style={styles.eduCard}>
+              <View style={styles.eduCardHeader}>
+                <Text style={styles.eduCardEmoji}>🧠</Text>
+                <Text style={styles.eduCardTitle}>
+                  Estrategias para el Manejo de Impulsos
+                </Text>
+              </View>
+              <Text style={styles.eduCardBody}>
+                Aprende a reconocer señales de ansiedad. Pausa antes de actuar, respira profundo y reemplaza el impulso de juego por hábitos saludables.
+              </Text>
+            </View>
+
+            {/* Tarjeta 3: Red de Apoyo */}
+            <View style={styles.eduCard}>
+              <View style={styles.eduCardHeader}>
+                <Text style={styles.eduCardEmoji}>🤝</Text>
+                <Text style={styles.eduCardTitle}>
+                  Red de Apoyo y Transparencia
+                </Text>
+              </View>
+              <Text style={styles.eduCardBody}>
+                Mantén comunicación abierta con tu tutor o referente asignado. Compartir tus metas fortalece el camino de recuperación.
+              </Text>
+            </View>
+          </View>
+        ) : (
+          /* DASHBOARD Y RECURSOS PARA MENOR PROTEGIDO */
+          <View style={styles.educationalSection}>
+            <Text style={styles.sectionTitle}>Aprende a Navegar Seguro 🚀</Text>
+            <Text style={styles.sectionSubtitle}>
+              Información sobre tu seguridad digital y protección en internet.
+            </Text>
+
+            {/* Tarjeta 1 */}
+            <View style={styles.eduCard}>
+              <View style={styles.eduCardHeader}>
+                <Text style={styles.eduCardEmoji}>🎮</Text>
+                <Text style={styles.eduCardTitle}>
+                  ¿Por qué las apuestas están prohibidas para menores?
+                </Text>
+              </View>
+              <Text style={styles.eduCardBody}>
+                Las apuestas online generan riesgos de adicción y pérdidas económicas. Por ley, la participación está restringida a mayores de 18 años.
+              </Text>
+            </View>
+
+            {/* Tarjeta 2 */}
+            <View style={styles.eduCard}>
+              <View style={styles.eduCardHeader}>
+                <Text style={styles.eduCardEmoji}>🛡️</Text>
+                <Text style={styles.eduCardTitle}>
+                  Consejos para cuidar tu privacidad
+                </Text>
+              </View>
+              <Text style={styles.eduCardBody}>
+                Nunca compartas tus contraseñas, no abras enlaces desconocidos en redes sociales y avisa a tu tutor si ves publicidad sospechosa.
+              </Text>
+            </View>
+
+            {/* Tarjeta 3 */}
+            <View style={styles.eduCard}>
+              <View style={styles.eduCardHeader}>
+                <Text style={styles.eduCardEmoji}>📞</Text>
+                <Text style={styles.eduCardTitle}>
+                  Línea Gratuita de Orientación 24hs
+                </Text>
+              </View>
+              <Text style={styles.eduCardBody}>
+                Si tienes dudas sobre seguridad en internet, puedes comunicarte gratis las 24hs al <Text style={styles.boldText}>0800-444-5682</Text>.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Tarjetas de Control del Kit UI/UX */}
         <View style={styles.rulesContainer}>
@@ -377,7 +497,55 @@ const styles = StyleSheet.create({
     ...typography.subtitle,
     color: colors.textPrimary,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
+  },
+  sectionSubtitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: 10,
+  },
+  educationalSection: {
+    marginVertical: 10,
+  },
+  eduCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  adultSpecialCard: {
+    backgroundColor: '#FAF5FF',
+    borderColor: '#E9D5FF',
+    borderWidth: 1.5,
+  },
+  eduCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  eduCardEmoji: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  eduCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  adultTitleText: {
+    color: '#7E22CE',
+  },
+  eduCardBody: {
+    fontSize: 12.5,
+    color: colors.textSecondary,
+    lineHeight: 17,
+  },
+  boldText: {
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
   actionsCard: {
     backgroundColor: colors.surface,

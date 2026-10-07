@@ -25,13 +25,21 @@ import { ONBOARDING_WIZARD_VIDEO } from '../data/tutorialVideos';
 interface OnboardingScreenProps {
   onComplete: () => void;
   onSelectMode?: (mode: AppMode) => void;
+  initialStep?: 1 | 2 | 3;
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   onComplete,
+  initialStep = 1,
 }) => {
   // Estado del Wizard: Paso 1, 2 o 3
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(initialStep);
+
+  useEffect(() => {
+    if (initialStep) {
+      setWizardStep(initialStep);
+    }
+  }, [initialStep]);
 
   // Estados del Video (Paso 3)
   const [isPlaying, setIsPlaying] = useState<boolean>(false);

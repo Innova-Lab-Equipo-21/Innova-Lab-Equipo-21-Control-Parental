@@ -3,8 +3,7 @@
 // Componente: Frontend Mobile (Pantalla de Solicitud de Permisos del Dispositivo)
 // Archivo: src/screens/PermissionsScreen.tsx
 // Descripción: Pantalla de solicitud y explicación pedagógica de los 4 permisos
-//              esenciales del sistema (VPN, Accesibilidad, Notificaciones, Batería).
-//              Aparece tras el Login del Responsable y tras el Emparejamiento.
+//              esenciales con estructura de acordeones individuales y compactos.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -19,6 +18,7 @@ import {
 import { Header } from '../components/Header';
 import { ActionButton } from '../components/ActionButton';
 import { Badge } from '../components/Badge';
+import { AccordionSection } from '../components/dashboard/AccordionSection';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { vpnServiceBridge } from '../services/vpn.service';
@@ -64,7 +64,6 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       setPermissions((prev) => ({ ...prev, vpn: true }));
       Alert.alert('Permiso VPN Concedido', 'El servicio de filtrado local VPN ha sido autorizado.');
     } catch (e: any) {
-      // Simulación de concesión
       setPermissions((prev) => ({ ...prev, vpn: true }));
       Alert.alert('Permiso VPN Autorizado', 'Túnel local de protección de red preparado.');
     } finally {
@@ -119,33 +118,29 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         }
       />
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Banner Explicativo */}
+        {/* Banner Explicativo Compacto */}
         <View style={styles.bannerCard}>
-          <Text style={styles.bannerEmoji}>🛡️</Text>
-          <Text style={styles.bannerTitle}>Configuración de Protección Android</Text>
-          <Text style={styles.bannerText}>
-            Para garantizar que la protección no sea evadida y el filtrado funcione en segundo plano, se requieren 4 permisos esenciales.
-          </Text>
-          <View style={styles.badgeProgressRow}>
-            <Text style={styles.progressText}>Estado de Permisos:</Text>
+          <View style={styles.bannerHeaderRow}>
+            <Text style={styles.bannerTitle}>🛡️ Configuración Android ({grantedCount}/4)</Text>
             <Badge
               status={grantedCount === 4 ? 'activo' : grantedCount > 0 ? 'alerta' : 'inactivo'}
               label={`${grantedCount}/4 CONCEDIDOS`}
             />
           </View>
+          <Text style={styles.bannerText}>
+            Toca cada permiso para desplegar su explicación y autorizarlo. Se requieren los 4 permisos para garantizar protección continua.
+          </Text>
         </View>
 
         {/* Permiso 1: VpnService */}
-        <View style={styles.permissionCard}>
-          <View style={styles.cardHeader}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.cardIcon}>🌐</Text>
-            </View>
-            <View style={styles.titleCol}>
-              <Text style={styles.permTitle}>1. Servicio de Filtrado VPN</Text>
-              <Badge status={permissions.vpn ? 'activo' : 'inactivo'} label={permissions.vpn ? 'CONCEDIDO' : 'REQUERIDO'} />
-            </View>
-          </View>
+        <AccordionSection
+          title="1. Servicio de Filtrado VPN"
+          subtitle="Intercepta y bloquea sitios LOTBA no autorizados"
+          badgeLabel={permissions.vpn ? 'CONCEDIDO' : 'REQUERIDO'}
+          badgeStatus={permissions.vpn ? 'activo' : 'inactivo'}
+          icon="🌐"
+          initialExpanded={!permissions.vpn}
+        >
           <Text style={styles.permDesc}>
             Crea un túnel local en el dispositivo para interceptar y bloquear solicitudes a casas de apuestas clandestinas de la lista oficial LOTBA.
           </Text>
@@ -157,19 +152,17 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               loading={loadingKey === 'vpn'}
             />
           )}
-        </View>
+        </AccordionSection>
 
         {/* Permiso 2: Servicio de Accesibilidad */}
-        <View style={styles.permissionCard}>
-          <View style={styles.cardHeader}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.cardIcon}>🔒</Text>
-            </View>
-            <View style={styles.titleCol}>
-              <Text style={styles.permTitle}>2. Servicio de Accesibilidad</Text>
-              <Badge status={permissions.accessibility ? 'activo' : 'inactivo'} label={permissions.accessibility ? 'CONCEDIDO' : 'REQUERIDO'} />
-            </View>
-          </View>
+        <AccordionSection
+          title="2. Servicio de Accesibilidad"
+          subtitle="Protección antidesinstalación sin PIN del tutor"
+          badgeLabel={permissions.accessibility ? 'CONCEDIDO' : 'REQUERIDO'}
+          badgeStatus={permissions.accessibility ? 'activo' : 'inactivo'}
+          icon="🔒"
+          initialExpanded={!permissions.accessibility}
+        >
           <Text style={styles.permDesc}>
             Protección Antidesinstalación: Impide que el menor o un tercero cierre forzadamente la app o la elimine sin autorizar el PIN del tutor.
           </Text>
@@ -181,19 +174,17 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               loading={loadingKey === 'accessibility'}
             />
           )}
-        </View>
+        </AccordionSection>
 
         {/* Permiso 3: Notificaciones */}
-        <View style={styles.permissionCard}>
-          <View style={styles.cardHeader}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.cardIcon}>🔔</Text>
-            </View>
-            <View style={styles.titleCol}>
-              <Text style={styles.permTitle}>3. Notificaciones del Sistema</Text>
-              <Badge status={permissions.notifications ? 'activo' : 'inactivo'} label={permissions.notifications ? 'CONCEDIDO' : 'REQUERIDO'} />
-            </View>
-          </View>
+        <AccordionSection
+          title="3. Notificaciones del Sistema"
+          subtitle="Avisos de estado y alertas en tiempo real"
+          badgeLabel={permissions.notifications ? 'CONCEDIDO' : 'REQUERIDO'}
+          badgeStatus={permissions.notifications ? 'activo' : 'inactivo'}
+          icon="🔔"
+          initialExpanded={!permissions.notifications}
+        >
           <Text style={styles.permDesc}>
             Mantiene la notificación de servicio persistente de seguridad en la barra de estado y envía alertas de intento de bloqueo.
           </Text>
@@ -204,19 +195,17 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               onPress={handleRequestNotifications}
             />
           )}
-        </View>
+        </AccordionSection>
 
         {/* Permiso 4: Exención de Batería */}
-        <View style={styles.permissionCard}>
-          <View style={styles.cardHeader}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.cardIcon}>🔋</Text>
-            </View>
-            <View style={styles.titleCol}>
-              <Text style={styles.permTitle}>4. Sin Optimización de Batería</Text>
-              <Badge status={permissions.batteryOptimization ? 'activo' : 'inactivo'} label={permissions.batteryOptimization ? 'CONCEDIDO' : 'REQUERIDO'} />
-            </View>
-          </View>
+        <AccordionSection
+          title="4. Sin Optimización de Batería"
+          subtitle="Ejecución continua con pantalla apagada"
+          badgeLabel={permissions.batteryOptimization ? 'CONCEDIDO' : 'REQUERIDO'}
+          badgeStatus={permissions.batteryOptimization ? 'activo' : 'inactivo'}
+          icon="🔋"
+          initialExpanded={!permissions.batteryOptimization}
+        >
           <Text style={styles.permDesc}>
             Evita que el ahorro de energía de Android suspenda o detenga el motor de filtrado cuando el celular esté con pantalla apagada.
           </Text>
@@ -228,7 +217,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               loading={loadingKey === 'battery'}
             />
           )}
-        </View>
+        </AccordionSection>
 
         {/* Botones de Acción Final */}
         <View style={styles.footerSection}>
@@ -248,7 +237,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
 
           {onBack && (
             <ActionButton
-              title="Volver Atras"
+              title="Volver Atrás"
               variant="secondary"
               onPress={onBack}
             />
@@ -266,90 +255,39 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 32,
   },
   bannerCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    marginBottom: 16,
-  },
-  bannerEmoji: {
-    fontSize: 36,
-    marginBottom: 8,
-  },
-  bannerTitle: {
-    ...typography.subtitle,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  bannerText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
     marginBottom: 12,
   },
-  badgeProgressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  progressText: {
-    ...typography.caption,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  permissionCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  iconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  cardIcon: {
-    fontSize: 20,
-  },
-  titleCol: {
-    flex: 1,
+  bannerHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 6,
   },
-  permTitle: {
-    ...typography.subtitle,
-    fontSize: 15,
-    fontWeight: '700',
+  bannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
     color: colors.textPrimary,
   },
-  permDesc: {
-    ...typography.body,
+  bannerText: {
+    fontSize: 12,
     color: colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 10,
+    lineHeight: 16,
+  },
+  permDesc: {
+    fontSize: 12.5,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    marginVertical: 8,
   },
   footerSection: {
-    marginTop: 16,
+    marginTop: 12,
   },
 });

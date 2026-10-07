@@ -4,8 +4,7 @@
 // Archivo: tests/onboarding.test.ts
 // Descripción: Suite de tests unitarios para verificar la integridad del Onboarding:
 //              - Flujo Wizard de 3 Pantallas.
-//              - Video resumen optativo de pocos segundos en la pantalla 3 que cubre
-//                los 3 perfiles (Responsable, Dispositivo Menor y Dispositivo Adulto).
+//              - Video explicativo único oficial de onboarding.
 //              - Videos tutoriales y estructura de pasos.
 // ==============================================================================
 
@@ -26,9 +25,9 @@ describe('Pantalla de Onboarding y Flujo Wizard de 3 Pantallas', () => {
 
     // Pantalla 1: Bienvenida y Privacidad
     assert.match(ONBOARDING_WIZARD_STEPS[0].title, /Protección Integral/i);
-    // Pantalla 2: Los 3 perfiles
-    assert.match(ONBOARDING_WIZARD_STEPS[1].title, /Perfiles/i);
-    // Pantalla 3: Resumen audiovisual optativo
+    // Pantalla 2: Modalidades
+    assert.match(ONBOARDING_WIZARD_STEPS[1].title, /Modalidades/i);
+    // Pantalla 3: Resumen audiovisual
     assert.match(ONBOARDING_WIZARD_STEPS[2].title, /Video/i);
   });
 
@@ -41,7 +40,7 @@ describe('Pantalla de Onboarding y Flujo Wizard de 3 Pantallas', () => {
     );
     assert.ok(
       ONBOARDING_WIZARD_VIDEO.durationSeconds >= 20,
-      'El video debe tener duración suficiente para explicar los 3 perfiles'
+      'El video debe tener duración suficiente para explicar los perfiles'
     );
     assert.match(ONBOARDING_WIZARD_VIDEO.duration, /^\d{2}:\d{2}$/, 'Debe cumplir formato mm:ss');
   });
@@ -61,13 +60,8 @@ describe('Pantalla de Onboarding y Flujo Wizard de 3 Pantallas', () => {
     }
   });
 
-  test('Debe contener exactamente 3 videos explicativos (uno por modo)', () => {
-    assert.equal(TUTORIAL_VIDEOS.length, 3, 'Debe haber exactamente 3 videos');
-
-    const modes = TUTORIAL_VIDEOS.map((v) => v.mode);
-    assert.ok(modes.includes('PARENT'), 'Debe existir video para Modo Responsable');
-    assert.ok(modes.includes('CHILD'), 'Debe existir video para Modo Menor');
-    assert.ok(modes.includes('ADULT'), 'Debe existir video para Modo Adulto');
+  test('Debe contener el video explicativo oficial de onboarding', () => {
+    assert.equal(TUTORIAL_VIDEOS.length, 1, 'Debe haber exactamente 1 video explicativo de onboarding');
   });
 
   test('Cada video debe contar con duración positiva y formato mm:ss', () => {

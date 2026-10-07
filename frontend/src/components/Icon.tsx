@@ -14,6 +14,8 @@ import busquedaPng from '../assets/icons/busqueda.png';
 import campanaPng from '../assets/icons/campana.png';
 import candadoPng from '../assets/icons/candado.png';
 import checkPng from '../assets/icons/check.png';
+import corazonPng from '../assets/icons/corazon.png';
+import escudoPng from '../assets/icons/escudo.png';
 import manosPng from '../assets/icons/manos.png';
 import ojoPng from '../assets/icons/ojo.png';
 import relojPng from '../assets/icons/reloj.png';
@@ -30,7 +32,9 @@ export type IconName =
   | 'busqueda'
   | 'campana'
   | 'candado'
-  | 'usuario';
+  | 'usuario'
+  | 'escudo'
+  | 'corazon';
 
 interface IconProps {
   name: IconName;
@@ -45,6 +49,8 @@ const ICON_MAP: Record<IconName, any> = {
   campana: campanaPng,
   candado: candadoPng,
   check: checkPng,
+  corazon: corazonPng,
+  escudo: escudoPng,
   manos: manosPng,
   ojo: ojoPng,
   reloj: relojPng,

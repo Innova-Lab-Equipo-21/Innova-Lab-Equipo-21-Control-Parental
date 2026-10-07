@@ -2,8 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: Web Simulator - ProtectedDeviceStep (Paso 5B)
 // Archivo: src/web/components/ProtectedDeviceStep.tsx
-// Descripción: Paso 5B del flujo para la pantalla del dispositivo protegido con alerta de permisos
-//              faltantes, tarjeta de estado VPN, simulador de bloqueo LOTBA y teclado PIN.
+// Descripción: Paso 5B del flujo para la pantalla del dispositivo protegido diferenciado
+//              para Menor y Adulto con recursos educativos y línea de ayuda.
 // ==============================================================================
 
 import React from 'react';
@@ -14,6 +14,7 @@ interface ProtectedDeviceStepProps {
   isVpnActive: boolean;
   testDomain: string;
   blockedAlert: string | null;
+  mode?: 'CHILD' | 'ADULT';
   onExit: () => void;
   onOpenPermissions: () => void;
   onOpenPinModal: () => void;
@@ -26,6 +27,7 @@ export const ProtectedDeviceStep: React.FC<ProtectedDeviceStepProps> = ({
   isVpnActive,
   testDomain,
   blockedAlert,
+  mode = 'CHILD',
   onExit,
   onOpenPermissions,
   onOpenPinModal,
@@ -42,10 +44,12 @@ export const ProtectedDeviceStep: React.FC<ProtectedDeviceStepProps> = ({
     <div style={{ padding: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <div>
-          <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#FEF3C7', color: '#92400E', padding: '2px 6px', borderRadius: '4px' }}>
-            PASO 5B • DISPOSITIVO PROTEGIDO
+          <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: mode === 'ADULT' ? '#FAF5FF' : '#FEF3C7', color: mode === 'ADULT' ? '#7E22CE' : '#92400E', padding: '2px 6px', borderRadius: '4px' }}>
+            {mode === 'ADULT' ? 'PASO 5B • ADULTO PROTEGIDO' : 'PASO 5B • MENOR PROTEGIDO'}
           </span>
-          <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1C1C1E', marginTop: '2px' }}>Dispositivo Protegido</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1C1C1E', marginTop: '2px' }}>
+            {mode === 'ADULT' ? 'Acompañamiento Adulto' : 'Dispositivo Protegido'}
+          </h2>
         </div>
         <button
           style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
@@ -101,6 +105,37 @@ export const ProtectedDeviceStep: React.FC<ProtectedDeviceStepProps> = ({
           {isVpnActive ? 'Pausar Protección (Ingresar PIN)' : 'Reanudar Protección'}
         </button>
       </div>
+
+      {/* CONTENIDO EDUCATIVO Y DE ASISTENCIA DIFERENCIADO */}
+      {mode === 'ADULT' ? (
+        <div style={{ backgroundColor: '#FAF5FF', borderRadius: '16px', padding: '16px', border: '1.5px solid #E9D5FF', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#7E22CE', margin: '0 0 4px 0' }}>
+            💜 Asistencia y Manejo de Impulsos
+          </h3>
+          <p style={{ fontSize: '12px', color: '#4B5563', margin: '0 0 10px 0', lineHeight: '1.4' }}>
+            Línea de Asistencia al Jugador Compulsivo disponible las 24hs para orientación confidencial.
+          </p>
+
+          <button
+            style={{ width: '100%', height: '38px', borderRadius: '10px', backgroundColor: '#7E22CE', color: '#FFF', border: 'none', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+            onClick={() => alert('📞 Llamando a la Línea Gratuita de Asistencia 0800-444-5682 (24hs)...')}
+          >
+            📞 Llamar a Línea 0800-444-5682
+          </button>
+        </div>
+      ) : (
+        <div style={{ backgroundColor: '#F0F7FF', borderRadius: '16px', padding: '16px', border: '1.5px solid #C7D2FE', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0056B3', margin: '0 0 4px 0' }}>
+            🚀 Aprende a Navegar Seguro
+          </h3>
+          <p style={{ fontSize: '12px', color: '#1C1C1E', margin: '0 0 6px 0', lineHeight: '1.4' }}>
+            🎮 Las apuestas online están prohibidas para menores de 18 años por ley para proteger tu bienestar.
+          </p>
+          <p style={{ fontSize: '11px', color: '#64748B', margin: 0 }}>
+            📞 Si tienes dudas, consulta a tu tutor o llama gratis al <strong>0800-444-5682</strong>.
+          </p>
+        </div>
+      )}
 
       {/* SIMULADOR DE INTERCEPTACIÓN */}
       <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF' }}>

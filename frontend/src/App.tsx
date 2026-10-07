@@ -24,6 +24,7 @@ import { AppMode } from './types';
 export function App(): React.JSX.Element {
   // 1) Onboarding inicial
   const [showOnboarding, setShowOnboarding] = useState<boolean>(true);
+  const [onboardingInitialStep, setOnboardingInitialStep] = useState<1 | 2 | 3>(1);
 
   // 2) Modo Operativo elegido
   const [currentMode, setCurrentMode] = useState<AppMode>('UNSET');
@@ -83,9 +84,14 @@ export function App(): React.JSX.Element {
       {/* PASO 1: Onboarding para todos los usuarios */}
       {showOnboarding && (
         <OnboardingScreen
-          onComplete={() => setShowOnboarding(false)}
+          initialStep={onboardingInitialStep}
+          onComplete={() => {
+            setShowOnboarding(false);
+            setOnboardingInitialStep(1);
+          }}
           onSelectMode={(mode) => {
             setShowOnboarding(false);
+            setOnboardingInitialStep(1);
             handleSelectMode(mode);
           }}
         />
@@ -95,13 +101,17 @@ export function App(): React.JSX.Element {
       {!showOnboarding && currentMode === 'UNSET' && (
         <WelcomeScreen
           onSelectMode={handleSelectMode}
-          onOpenOnboarding={() => setShowOnboarding(true)}
+          onOpenOnboarding={(step = 3) => {
+            setOnboardingInitialStep(step);
+            setShowOnboarding(true);
+          }}
         />
       )}
 
-      {/* PASO 3A: Modo Responsable -> Pantalla de Login / Autenticación */}
+      {/* PASO 3A: Modo Responsable -> Pantalla de Crear Cuenta / Autenticación */}
       {!showOnboarding && currentMode === 'PARENT' && !isParentLoggedIn && (
         <LoginScreen
+          initialViewMode="REGISTER"
           onLoginSuccess={handleLoginSuccess}
           onBack={handleExitMode}
         />

@@ -405,7 +405,17 @@ export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
             <div style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '4px', color: '#0056B3' }}>
               {pairingCode}
             </div>
-            <div style={{ fontSize: '11px', color: '#0056B3', marginTop: '2px' }}>Válido por 15 minutos</div>
+            <div style={{ fontSize: '11px', color: '#0056B3', marginTop: '2px', marginBottom: '10px' }}>Válido por 15 minutos</div>
+
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: '10px', padding: '12px', border: '1.5px dashed #C7D2FE', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: '#1C1C1E' }}>Código QR de Vinculación</div>
+              <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '8px' }}>Apunta la cámara del menor aquí</div>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${pairingCode}&color=007AFF&bgcolor=FFFFFF`}
+                alt="QR Code"
+                style={{ width: '130px', height: '130px', borderRadius: '6px' }}
+              />
+            </div>
           </div>
         )}
 

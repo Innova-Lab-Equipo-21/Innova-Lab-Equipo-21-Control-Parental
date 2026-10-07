@@ -35,13 +35,21 @@ interface OnboardingStepProps {
   onChangeVideoIndex?: (index: number) => void;
   onTogglePlay?: () => void;
   onNextStep: () => void;
+  initialStep?: 1 | 2 | 3;
 }
 
 export const OnboardingStep: React.FC<OnboardingStepProps> = ({
   onNextStep,
+  initialStep = 1,
 }) => {
   // Estado del Wizard: Paso 1, 2 o 3
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(initialStep);
+
+  useEffect(() => {
+    if (initialStep) {
+      setWizardStep(initialStep);
+    }
+  }, [initialStep]);
 
   // Estados del Video (Paso 3)
   const [videoPlaying, setVideoPlaying] = useState<boolean>(false);

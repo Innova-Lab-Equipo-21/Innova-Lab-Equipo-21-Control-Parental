@@ -31,6 +31,7 @@ export const WebSimulator: React.FC = () => {
   // 1) Paso 1 por defecto: ONBOARDING
   const [appMode, setAppMode] = useState<SimulatorAppMode>('ONBOARDING');
   const [targetFlow, setTargetFlow] = useState<'PARENT' | 'CHILD'>('PARENT');
+  const [onboardingStep, setOnboardingStep] = useState<1 | 2 | 3>(1);
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [apiConnected, setApiConnected] = useState(false);
@@ -634,6 +635,7 @@ export const WebSimulator: React.FC = () => {
               {/* PASO 1: ONBOARDING */}
               {appMode === 'ONBOARDING' && (
                 <OnboardingStep
+                  initialStep={onboardingStep}
                   onbVideos={ONB_VIDEOS}
                   onbIndex={onbIndex}
                   onbPlaying={onbPlaying}
@@ -644,7 +646,10 @@ export const WebSimulator: React.FC = () => {
                     setOnbSeconds(0);
                   }}
                   onTogglePlay={() => setOnbPlaying(!onbPlaying)}
-                  onNextStep={() => setAppMode('WELCOME')}
+                  onNextStep={() => {
+                    setOnboardingStep(1);
+                    setAppMode('WELCOME');
+                  }}
                 />
               )}
 
@@ -653,11 +658,16 @@ export const WebSimulator: React.FC = () => {
                 <WelcomeStep
                   onSelectParentFlow={() => {
                     setTargetFlow('PARENT');
+                    setAuthTab('REGISTER');
                     setAppMode('LOGIN');
                   }}
                   onSelectChildFlow={() => {
                     setTargetFlow('CHILD');
                     setAppMode('PAIRING');
+                  }}
+                  onOpenTutorials={(step = 3) => {
+                    setOnboardingStep(step);
+                    setAppMode('ONBOARDING');
                   }}
                 />
               )}
