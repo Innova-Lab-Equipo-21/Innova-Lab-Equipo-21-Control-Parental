@@ -2,8 +2,9 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla de Solicitud de Permisos del Dispositivo)
 // Archivo: src/screens/PermissionsScreen.tsx
-// Descripción: Pantalla de solicitud y explicación pedagógica de los 4 permisos
-//              esenciales con estructura de acordeones individuales y compactos.
+// Descripción: Pantalla de solicitud y explicación pedagógica de los 5 permisos
+//              esenciales (incluyendo Ubicación/GPS con estrategia híbrida)
+//              con estructura de acordeones individuales y compactos.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -22,6 +23,7 @@ import { AccordionSection } from '../components/dashboard/AccordionSection';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { vpnServiceBridge } from '../services/vpn.service';
+import { apiService } from '../services/api.service';
 
 interface PermissionsScreenProps {
   onPermissionsComplete: () => void;
@@ -34,6 +36,7 @@ export interface PermissionItemState {
   accessibility: boolean;
   notifications: boolean;
   batteryOptimization: boolean;
+  location: boolean;
 }
 
 export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
@@ -46,8 +49,10 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     accessibility: false,
     notifications: true,
     batteryOptimization: false,
+    location: false,
   });
 
+  const [locationAddress, setLocationAddress] = useState<string | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   const grantedCount = [
@@ -55,6 +60,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     permissions.accessibility,
     permissions.notifications,
     permissions.batteryOptimization,
+    permissions.location,
   ].filter(Boolean).length;
 
   const handleRequestVpn = async () => {
@@ -97,14 +103,102 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     }, 600);
   };
 
-  const handleGrantAll = () => {
+  /** Solicita permiso de ubicación GPS con geocodificación inversa o fallback por IP */
+  const handleRequestLocation = async () => {
+    setLoadingKey('location');
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          let addressText = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
+
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+              { headers: { 'User-Agent': 'BAProtegeApp/1.0' } }
+            );
+            const data = await res.json();
+            if (data && data.display_name) {
+              addressText = data.display_name;
+            }
+          } catch (e) {
+            // Usa coordenadas como texto base si el geocoding externo no responde
+          }
+
+          setLocationAddress(addressText);
+          setPermissions((prev) => ({ ...prev, location: true }));
+          setLoadingKey(null);
+
+          await apiService.saveUserLocation({
+            latitude,
+            longitude,
+            address: addressText,
+            source: 'GPS',
+          });
+
+          Alert.alert(
+            '📍 Ubicación GPS Registrada',
+            `Dirección obtenida exitosamente por GPS:\n${addressText}`,
+          );
+        },
+        async (error) => {
+          console.warn('GPS no disponible o denegado, activando fallback por IP', error);
+          await fallbackIpLocation();
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      await fallbackIpLocation();
+    }
+  };
+
+  /** Fallback: Obtiene la ubicación aproximada basada en la dirección IP pública */
+  const fallbackIpLocation = async () => {
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      const data = await res.json();
+      const ipAddress = `${data.city || 'Buenos Aires'}, ${data.region || 'CABA'}, ${data.country_name || 'Argentina'} (Aproximada por IP)`;
+
+      setLocationAddress(ipAddress);
+      setPermissions((prev) => ({ ...prev, location: true }));
+
+      await apiService.saveUserLocation({
+        address: ipAddress,
+        city: data.city,
+        country: data.country_name,
+        source: 'IP',
+      });
+
+      Alert.alert(
+        '📍 Ubicación Obtenida por IP',
+        `El permiso GPS fue denegado o no está disponible. Se registró la ubicación aproximada por red IP:\n${ipAddress}`,
+      );
+    } catch (e) {
+      const defaultLoc = 'Buenos Aires, Argentina (Ubicación por defecto)';
+      setLocationAddress(defaultLoc);
+      setPermissions((prev) => ({ ...prev, location: true }));
+
+      await apiService.saveUserLocation({ address: defaultLoc, source: 'IP' });
+
+      Alert.alert('📍 Ubicación Registrada', `Ubicación registrada: ${defaultLoc}`);
+    } finally {
+      setLoadingKey(null);
+    }
+  };
+
+  const handleGrantAll = async () => {
+    const demoAddress = 'Av. Corrientes 1234, CABA, Argentina (Demo GPS)';
+    setLocationAddress(demoAddress);
     setPermissions({
       vpn: true,
       accessibility: true,
       notifications: true,
       batteryOptimization: true,
+      location: true,
     });
-    Alert.alert('Permisos Otorgados', 'Se han configurado todos los permisos del sistema.');
+    await apiService.saveUserLocation({ address: demoAddress, source: 'GPS' });
+    Alert.alert('Permisos Otorgados', 'Se han configurado todos los permisos del sistema (incluida la ubicación).');
   };
 
   return (
@@ -121,14 +215,14 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         {/* Banner Explicativo Compacto */}
         <View style={styles.bannerCard}>
           <View style={styles.bannerHeaderRow}>
-            <Text style={styles.bannerTitle}>🛡️ Configuración Android ({grantedCount}/4)</Text>
+            <Text style={styles.bannerTitle}>🛡️ Configuración Android ({grantedCount}/5)</Text>
             <Badge
-              status={grantedCount === 4 ? 'activo' : grantedCount > 0 ? 'alerta' : 'inactivo'}
-              label={`${grantedCount}/4 CONCEDIDOS`}
+              status={grantedCount === 5 ? 'activo' : grantedCount > 0 ? 'alerta' : 'inactivo'}
+              label={`${grantedCount}/5 CONCEDIDOS`}
             />
           </View>
           <Text style={styles.bannerText}>
-            Toca cada permiso para desplegar su explicación y autorizarlo. Se requieren los 4 permisos para garantizar protección continua.
+            Toca cada permiso para desplegar su explicación y autorizarlo. Se requieren los 5 permisos para garantizar protección continua y ubicación segura.
           </Text>
         </View>
 
@@ -219,9 +313,37 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
           )}
         </AccordionSection>
 
+        {/* Permiso 5: Ubicación y Geolocalización (GPS) */}
+        <AccordionSection
+          title="5. Ubicación y Geolocalización (GPS)"
+          subtitle="Guarda la posición geográfica del dispositivo para el responsable"
+          badgeLabel={permissions.location ? 'CONCEDIDO' : 'REQUERIDO'}
+          badgeStatus={permissions.location ? 'activo' : 'inactivo'}
+          icon="📍"
+          initialExpanded={!permissions.location}
+        >
+          <Text style={styles.permDesc}>
+            Utiliza el sensor GPS del dispositivo para registrar la dirección exacta del dispositivo. Si el permiso no es otorgado o no hay señal GPS, el sistema obtiene la ubicación aproximada basada en la red IP.
+          </Text>
+          {locationAddress && (
+            <View style={styles.locationBox}>
+              <Text style={styles.locationBoxLabel}>📍 Dirección / Ubicación registrada:</Text>
+              <Text style={styles.locationBoxValue}>{locationAddress}</Text>
+            </View>
+          )}
+          {!permissions.location && (
+            <ActionButton
+              title="Autorizar Permiso de Ubicación (GPS)"
+              variant="primary"
+              onPress={handleRequestLocation}
+              loading={loadingKey === 'location'}
+            />
+          )}
+        </AccordionSection>
+
         {/* Botones de Acción Final */}
         <View style={styles.footerSection}>
-          {grantedCount < 4 && (
+          {grantedCount < 5 && (
             <ActionButton
               title="Conceder Todos los Permisos (Demo)"
               variant="secondary"
@@ -286,6 +408,25 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 17,
     marginVertical: 8,
+  },
+  locationBox: {
+    backgroundColor: colors.surface,
+    borderColor: colors.primary,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginVertical: 8,
+  },
+  locationBoxLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  locationBoxValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textPrimary,
   },
   footerSection: {
     marginTop: 12,

@@ -63,8 +63,9 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
     if (!permissions.accessibility) missingPermissions.push('Servicio de Accesibilidad (Antidesinstalación)');
     if (!permissions.notifications) missingPermissions.push('Notificaciones del Sistema');
     if (!permissions.batteryOptimization) missingPermissions.push('Exención de Batería (Segundo Plano)');
+    if (!permissions.location) missingPermissions.push('Ubicación y Geolocalización (GPS)');
   }
-  const grantedCount = permissions ? 4 - missingPermissions.length : 4;
+  const grantedCount = permissions ? 5 - missingPermissions.length : 5;
 
   useEffect(() => {
     checkVpnStatus();

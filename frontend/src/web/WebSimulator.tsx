@@ -42,6 +42,7 @@ export const WebSimulator: React.FC = () => {
     accessibility: false,
     notifications: true,
     batteryOptimization: false,
+    location: false,
   });
 
   // Estados de Onboarding y Videos Explicativos
@@ -139,6 +140,7 @@ export const WebSimulator: React.FC = () => {
     webPermissions.accessibility,
     webPermissions.notifications,
     webPermissions.batteryOptimization,
+    webPermissions.location,
   ].filter(Boolean).length;
 
   // Registrar entrada en consola de telemetría

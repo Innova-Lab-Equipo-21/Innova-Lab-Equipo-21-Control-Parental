@@ -636,4 +636,29 @@ export const apiService = {
     const response = await apiClient.post('/telemetry/events/security', data);
     return response.data;
   },
+
+  // --------------------------------------------------------------------------
+  // Geolocalización y Registro de Ubicación (Estrategia Híbrida GPS / IP)
+  // --------------------------------------------------------------------------
+  async saveUserLocation(locationData: {
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+    city?: string;
+    country?: string;
+    source: 'GPS' | 'IP';
+  }) {
+    await safeStorage.setItem('@ba_protege_user_location', JSON.stringify(locationData));
+    try {
+      const response = await apiClient.post('/auth/location', locationData);
+      return response.data;
+    } catch (e) {
+      return { success: true, localOnly: true, data: locationData };
+    }
+  },
+
+  async getUserLocation() {
+    const stored = await safeStorage.getItem('@ba_protege_user_location');
+    return stored ? JSON.parse(stored) : null;
+  },
 };

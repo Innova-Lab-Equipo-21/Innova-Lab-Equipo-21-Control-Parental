@@ -27,15 +27,16 @@ export const TutorPermissionsSection: React.FC<TutorPermissionsSectionProps> = (
     if (!permissions.accessibility) missingLocalPermissions.push('Servicio de Accesibilidad (Antidesinstalación)');
     if (!permissions.notifications) missingLocalPermissions.push('Notificaciones del Sistema');
     if (!permissions.batteryOptimization) missingLocalPermissions.push('Exención de Batería (Segundo Plano)');
+    if (!permissions.location) missingLocalPermissions.push('Ubicación y Geolocalización (GPS)');
   }
-  const localGrantedCount = permissions ? 4 - missingLocalPermissions.length : 4;
+  const localGrantedCount = permissions ? 5 - missingLocalPermissions.length : 5;
 
   if (missingLocalPermissions.length > 0) {
     return (
       <View style={styles.warningBannerCard}>
         <View style={styles.warningHeaderRow}>
           <Text style={styles.warningTitle}>
-            ⚠️ Permisos Pendientes del Tutor ({localGrantedCount}/4 Concedidos)
+            ⚠️ Permisos Pendientes del Tutor ({localGrantedCount}/5 Concedidos)
           </Text>
           <Badge status="alerta" label="INCOMPLETO" />
         </View>
@@ -62,7 +63,7 @@ export const TutorPermissionsSection: React.FC<TutorPermissionsSectionProps> = (
     <View style={styles.permissionsBar}>
       <View style={styles.permissionsTextCol}>
         <Text style={styles.permissionsTitle}>Permisos del Dispositivo Tutor</Text>
-        <Text style={styles.permissionsDesc}>Todos los permisos configurados (4/4 Concedidos).</Text>
+        <Text style={styles.permissionsDesc}>Todos los permisos configurados (5/5 Concedidos).</Text>
       </View>
       <ActionButton
         title="Auditar ⚙️"

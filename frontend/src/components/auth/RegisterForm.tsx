@@ -54,6 +54,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Estado para Términos y Condiciones y Políticas de Privacidad
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
   // Refs para navegación fluida con Enter entre campos
   const nombreInputRef = useRef<TextInput>(null);
   const apellidoInputRef = useRef<TextInput>(null);
@@ -158,7 +163,18 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     };
 
     const errors = validateRegisterFields(formData);
+
+    // Validación obligatoria de aceptación de Términos y Políticas de Privacidad
+    if (!acceptTerms) {
+      errors.acceptTerms = 'Debes aceptar los Términos y condiciones y Políticas de privacidad para continuar.';
+    }
+
     setFieldErrors(errors);
+
+    if (!acceptTerms) {
+      setErrorMessage('Debes aceptar los Términos y condiciones y las Políticas de privacidad para crear tu cuenta.');
+      return;
+    }
 
     // Verificar si hay errores o si es menor de edad
     const age = calculateAge(fechaNacimiento);
@@ -664,6 +680,49 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         ) : null}
       </View>
 
+      {/* Checkbox de Términos y Condiciones y Políticas de Privacidad */}
+      <View style={styles.termsGroupContainer}>
+        <View style={styles.termsRow}>
+          <TouchableOpacity
+            style={styles.checkboxTouch}
+            onPress={() => {
+              const nextVal = !acceptTerms;
+              setAcceptTerms(nextVal);
+              if (nextVal && fieldErrors.acceptTerms) {
+                setFieldErrors((prev) => ({ ...prev, acceptTerms: '' }));
+              }
+            }}
+            activeOpacity={0.8}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <View style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}>
+              {acceptTerms && <Text style={styles.checkboxCheckmark}>✓</Text>}
+            </View>
+          </TouchableOpacity>
+
+          <Text style={styles.termsText}>
+            Acepto{' '}
+            <Text
+              style={styles.termsLink}
+              onPress={() => setShowTermsModal(true)}
+            >
+              Términos y condiciones
+            </Text>
+            {' '}y{' '}
+            <Text
+              style={styles.termsLink}
+              onPress={() => setShowPrivacyModal(true)}
+            >
+              Políticas de privacidad
+            </Text>
+          </Text>
+        </View>
+
+        {fieldErrors.acceptTerms ? (
+          <Text style={styles.fieldErrorText}>{fieldErrors.acceptTerms}</Text>
+        ) : null}
+      </View>
+
       {/* Acciones */}
       <View style={styles.actionsSection}>
         <ActionButton
@@ -804,6 +863,124 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             </View>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Modal de Términos y Condiciones */}
+      <Modal
+        visible={showTermsModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowTermsModal(false)}
+      >
+        <View style={styles.legalModalOverlay}>
+          <View style={styles.legalModalCard}>
+            <View style={styles.legalModalHeader}>
+              <Text style={styles.legalModalTitle}>📜 Términos y Condiciones</Text>
+              <TouchableOpacity
+                onPress={() => setShowTermsModal(false)}
+                style={styles.legalModalCloseBtn}
+              >
+                <Text style={styles.legalModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.legalModalSubtitle}>
+              BA Protege+ • Lotería de la Ciudad de Buenos Aires (LOTBA)
+            </Text>
+
+            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={true}>
+              <Text style={styles.legalSectionTitle}>1. Aceptación del Servicio</Text>
+              <Text style={styles.legalParagraph}>
+                Al crear una cuenta en BA Protege+, aceptas cumplir íntegramente con los presentes Términos y Condiciones. Esta plataforma es provista por el Gobierno de la Ciudad Autónoma de Buenos Aires a través de LOTBA S.E. para la prevención del juego ilegal y la protección de menores.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>2. Requisito de Mayoría de Edad</Text>
+              <Text style={styles.legalParagraph}>
+                El registro en el Modo Responsable está reservado exclusivamente a padres, madres, tutores legales o adultos responsables mayores de 18 años. Queda estrictamente prohibida la creación de cuentas por menores de edad.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>3. Uso del Servicio de Filtrado VPN</Text>
+              <Text style={styles.legalParagraph}>
+                La aplicación instala un túnel de filtrado local (VPN) en el dispositivo para bloquear automáticamente solicitudes hacia plataformas de apuestas no autorizadas o clandestinas enumeradas en la lista oficial de LOTBA.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>4. Protección Anti-Desinstalación</Text>
+              <Text style={styles.legalParagraph}>
+                Con el fin de asegurar la efectividad del control parental, el sistema utiliza permisos de Accesibilidad de Android para prevenir el cierre o desinstalación no autorizada de la aplicación sin la clave PIN del tutor.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>5. Modificaciones y Actualizaciones</Text>
+              <Text style={styles.legalParagraph}>
+                LOTBA se reserva el derecho de actualizar la lista de dominios bloqueados y las funcionalidades del sistema en cualquier momento para mantener la protección activa.
+              </Text>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.legalModalConfirmBtn}
+              onPress={() => setShowTermsModal(false)}
+            >
+              <Text style={styles.legalModalConfirmBtnText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de Políticas de Privacidad */}
+      <Modal
+        visible={showPrivacyModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowPrivacyModal(false)}
+      >
+        <View style={styles.legalModalOverlay}>
+          <View style={styles.legalModalCard}>
+            <View style={styles.legalModalHeader}>
+              <Text style={styles.legalModalTitle}>🛡️ Políticas de Privacidad</Text>
+              <TouchableOpacity
+                onPress={() => setShowPrivacyModal(false)}
+                style={styles.legalModalCloseBtn}
+              >
+                <Text style={styles.legalModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.legalModalSubtitle}>
+              Protección de Datos Personales • Ley N° 25.326
+            </Text>
+
+            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={true}>
+              <Text style={styles.legalSectionTitle}>1. Compromiso de Privacidad</Text>
+              <Text style={styles.legalParagraph}>
+                BA Protege+ garantiza el tratamiento confidencial y seguro de todos los datos personales de acuerdo con la Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>2. Información Recolectada</Text>
+              <Text style={styles.legalParagraph}>
+                Recolectamos datos mínimos e indispensables: nombre, apellido, correo electrónico, teléfono, fecha de nacimiento, identificador de dispositivo y registros de intentos de acceso a sitios bloqueados.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>3. Uso de Datos y Geolocalización</Text>
+              <Text style={styles.legalParagraph}>
+                La información de geolocalización e IP se utiliza únicamente para auditar la seguridad del dispositivo y la vinculación de cuentas. Nunca comercializamos, vendemos ni compartimos datos con anunciantes ni terceros.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>4. Seguridad e Inmutabilidad</Text>
+              <Text style={styles.legalParagraph}>
+                Toda la comunicación entre el dispositivo y nuestros servidores viaja cifrada con protocolo TLS 1.3/HTTPS. Los registros de auditoría de seguridad se guardan de forma inmutable.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>5. Derechos del Usuario</Text>
+              <Text style={styles.legalParagraph}>
+                Como titular de los datos, tienes derecho a rectificar, actualizar o solicitar la supresión de tu información personal en cualquier momento escribiendo al soporte oficial de BA Protege+.
+              </Text>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.legalModalConfirmBtn}
+              onPress={() => setShowPrivacyModal(false)}
+            >
+              <Text style={styles.legalModalConfirmBtnText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -1123,6 +1300,129 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalConfirmBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  // Estilos del Checkbox de Términos y Condiciones y Políticas de Privacidad
+  termsGroupContainer: {
+    marginVertical: 12,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+  },
+  checkboxTouch: {
+    paddingRight: 10,
+    paddingVertical: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    borderWidth: 1.8,
+    borderColor: '#007AFF',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  checkboxCheckmark: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    lineHeight: 15,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13.5,
+    color: colors.textPrimary,
+    lineHeight: 19,
+    fontWeight: '400',
+  },
+  termsLink: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+
+  // Estilos de Modales Legales
+  legalModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+  },
+  legalModalCard: {
+    width: '100%',
+    maxHeight: '85%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  legalModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  legalModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  legalModalCloseBtn: {
+    padding: 6,
+  },
+  legalModalCloseText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  legalModalSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  legalModalBody: {
+    marginVertical: 6,
+    paddingRight: 4,
+  },
+  legalSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  legalParagraph: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  legalModalConfirmBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  legalModalConfirmBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',

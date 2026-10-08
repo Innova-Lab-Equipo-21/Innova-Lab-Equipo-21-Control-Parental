@@ -21,12 +21,13 @@ Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **K
 2. [Flujo Ordenado de 5 Pasos](#-flujo-ordenado-de-5-pasos)
 3. [Sistema de Diseño y Kit UI/UX](#-sistema-de-diseño-y-kit-uiux)
 4. [Rediseño de Selección de Modo (Paso 2)](#-rediseño-de-selección-de-modo-paso-2)
-5. [Arquitectura de Autenticación Modular y Registro (+18)](#-arquitectura-de-autenticación-modular-y-registro-18)
-6. [Vinculación Dual por Código y QR Code](#-vinculación-dual-por-código-y-qr-code)
-7. [Panel del Responsable Modular con Acordeones](#-panel-del-responsable-modular-con-acordeones)
-8. [Dashboards Especializados para Menor y Adulto Protegido](#-dashboards-especializados-para-menor-y-adulto-protegido)
-9. [Estructura del Proyecto](#-estructura-del-proyecto)
-10. [Guía de Instalación y Pruebas Rápida](#-guía-de-instalación-y-pruebas-rápida)
+5. [Arquitectura de Autenticación, Registro (+18) y Términos Legales](#-arquitectura-de-autenticación-registro-18-y-términos-legales)
+6. [Configuración de Permisos y Geolocalización Híbrida (Paso 4)](#-configuración-de-permisos-y-geolocalización-híbrida-paso-4)
+7. [Vinculación Dual por Código y QR Code](#-vinculación-dual-por-código-y-qr-code)
+8. [Panel del Responsable Modular con Acordeones](#-panel-del-responsable-modular-con-acordeones)
+9. [Dashboards Especializados para Menor y Adulto Protegido](#-dashboards-especializados-para-menor-y-adulto-protegido)
+10. [Estructura del Proyecto](#-estructura-del-proyecto)
+11. [Guía de Instalación y Pruebas Rápida](#-guía-de-instalación-y-pruebas-rápida)
 
 ---
 
@@ -117,7 +118,7 @@ La pantalla de Selección de Modo (`WelcomeScreen.tsx` y `WelcomeStep.tsx`) fue 
 
 ---
 
-## 🔐 Arquitectura de Autenticación Modular y Registro (+18)
+## 🔐 Arquitectura de Autenticación, Registro (+18) y Términos Legales
 
 El módulo de autenticación fue refactorizado pasando de un archivo monolítico a una **arquitectura limpia y modular (`src/components/auth/`)**:
 
@@ -132,11 +133,35 @@ El módulo de autenticación fue refactorizado pasando de un archivo monolítico
 - **Destacado de Borde al Enfocar (`inputFocusedBorder`):** Borde activo azul (`borderColor: '#007AFF'`, `borderWidth: 2`) al seleccionar cualquier entrada de texto.
 - **Verificación Obligatoria de Mayoría de Edad (+18):** Al seleccionar o ingresar la fecha de nacimiento, el sistema calcula la edad exacta. Si es menor de 18 años, muestra inmediatamente una alerta nativa:
   > *"Solo personas adultas (+18) pueden registrarse en el Modo Responsable. Tu registro no podrá ser confirmado."*
+- **Aceptación Obligatoria de Términos y Políticas de Privacidad:** Checkbox interactivo en el formulario posicionado directamente antes del botón de creación de cuenta (`Acepto Términos y condiciones y Políticas de privacidad`). Bloquea la confirmación del registro hasta ser activado.
+- **Modales Legales Desplegables:** Ventanas modales integradas para lectura de los **Términos y Condiciones** (marco regulatorio LOTBA S.E. para la prevención del juego ilegal en CABA) y las **Políticas de Privacidad** (Ley N° 25.326 de Protección de Datos Personales).
 - **Selector de Calendario Interactivo:** Selector con cómputo automático de días reales por mes y año (evitando fechas inválidas como 30 de febrero).
 - **Reglas de Campos:** Nombre y Apellido (mínimo 2 caracteres y solo letras), Teléfono (mínimo 10 dígitos), Correo (formato regex válido) y Confirmación de Contraseña coincidente.
 - **Opción de Registro con Google:** Botón integrado *"Registrarse con Google"* / *"Continuar con Google"*.
 - **Ícono Oficial de Visibilidad:** Conmutación de contraseñas con el ícono unificado `@src/assets/icons/ojo.png` (`<Icon name="ojo" ... />`).
 - **Carrusel de Género Limpio:** Opciones horizontales sin emojis (`Masculino`, `Femenino`, `Otro`, `No informado`).
+
+---
+
+## 📍 Configuración de Permisos y Geolocalización Híbrida (Paso 4)
+
+La pantalla de solicitud y auditoría de permisos (`PermissionsScreen.tsx`) fue ampliada a **5 permisos esenciales de Android** organizados en acordeones individuales:
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│ 1. 🌐 Servicio de Filtrado VPN (VpnService)                            │
+│ 2. 🔒 Servicio de Accesibilidad (Antidesinstalación con PIN)           │
+│ 3. 🔔 Notificaciones del Sistema (Alertas en tiempo real)              │
+│ 4. 🔋 Sin Optimización de Batería (Ejecución continua en segundo plano)│
+│ 5. 📍 Ubicación y Geolocalización (GPS / Red IP)                       │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### Estrategia Híbrida de Geolocalización
+1. **Captura por GPS Satelital (Alta Precisión):** Al presionar *"Autorizar Permiso de Ubicación (GPS)"*, la aplicación solicita coordenadas `(latitud, longitud)` al sensor del dispositivo y realiza **Geocodificación Inversa** con la API de OpenStreetMap (Nominatim) para obtener la calle, altura, barrio y ciudad exactos.
+2. **Fallback Automático por Red IP (100% Silencioso):** Si el sensor GPS no está disponible o el usuario rechaza el permiso, el sistema consulta automáticamente la geolocalización por IP pública (`ipapi.co`), registrando la ciudad y provincia aproximadas.
+3. **Persistencia y Sincronización Backend:** La ubicación obtenida se guarda localmente (`@ba_protege_user_location`) y se envía al backend a través de `apiService.saveUserLocation()` y el endpoint `POST /api/auth/location`.
+4. **Auditoría Unificada (`5/5 CONCEDIDOS`):** Sincronización completa del estado de los 5 permisos en `TutorPermissionsSection.tsx`, `ProtectedDeviceScreen.tsx`, `PermissionsStep.tsx` y `WebSimulator.tsx`.
 
 ---
 
@@ -199,7 +224,7 @@ frontend/
 │   │   ├── auth/                             # Módulo de Autenticación Refactorizado
 │   │   │   ├── LoginForm.tsx                 # Formulario de Inicio de Sesión
 │   │   │   ├── RecoveryForm.tsx              # Formulario de Recuperación
-│   │   │   └── RegisterForm.tsx              # Formulario de Registro (+18, Google, Focus)
+│   │   │   └── RegisterForm.tsx              # Formulario de Registro (+18, Google, Focus, Términos Legales)
 │   │   ├── dashboard/                        # Subcomponentes Modulares del Panel del Tutor
 │   │   │   ├── AccordionSection.tsx          # Contenedor Desplegable con Badges
 │   │   │   ├── CustomSitesSection.tsx        # CRUD de Sitios Personalizados con Buscador
@@ -207,7 +232,7 @@ frontend/
 │   │   │   ├── PairingSection.tsx            # Generador de Código y Muestra de QR
 │   │   │   ├── ProtectedDevicesSection.tsx   # Auditoría de Dispositivos Vinculados
 │   │   │   ├── SelfControlSection.tsx        # Autocontrol de 24h con Temporizador
-│   │   │   └── TutorPermissionsSection.tsx   # Estado de Permisos del Tutor
+│   │   │   └── TutorPermissionsSection.tsx   # Auditoría de Permisos del Tutor (5/5 Concedidos)
 │   │   ├── ActionButton.tsx                  # Botón con estados de carga y variantes
 │   │   ├── Badge.tsx                         # Etiquetas de estado (Activo, Inactivo, Alerta)
 │   │   ├── ControlCard.tsx                   # Tarjetas interactivas para reglas de control
@@ -224,11 +249,11 @@ frontend/
 │   │   ├── OnboardingScreen.tsx              # Onboarding con video tutorial oficial
 │   │   ├── PairingScreen.tsx                 # Pareamiento por código de 6 dígitos o QR
 │   │   ├── ParentDashboardScreen.tsx         # Panel del responsable modularizado con Acordeones
-│   │   ├── PermissionsScreen.tsx            # Solicitud y explicación de los 4 permisos con Acordeones
+│   │   ├── PermissionsScreen.tsx            # Solicitud de los 5 permisos con GPS e IP Híbrida
 │   │   ├── ProtectedDeviceScreen.tsx         # Panel del protegido diferenciado (Menor / Adulto)
 │   │   └── WelcomeScreen.tsx                 # Selección de modo compacta sin scroll
 │   ├── services/                             # Lógica de comunicación y puentes
-│   │   ├── api.service.ts                    # API Client, Server Time NTP y Autocontrol 24h
+│   │   ├── api.service.ts                    # API Client, Server Time, Autocontrol 24h y Ubicación (GPS/IP)
 │   │   └── vpn.service.ts                    # Servicio puente con ProtectionModule nativo
 │   ├── theme/                                # Tokens de diseño e interfaz del Kit UI/UX
 │   │   ├── colors.ts                         # Tokens de color oficiales (uikit.txt)

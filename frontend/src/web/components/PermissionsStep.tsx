@@ -2,7 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: Web Simulator - PermissionsStep (Paso 4)
 // Archivo: src/web/components/PermissionsStep.tsx
-// Descripción: Paso 4 del flujo para la solicitud y prueba interactiva de los 4 permisos de Android.
+// Descripción: Paso 4 del flujo para la solicitud y prueba interactiva de los 5 permisos de Android.
 // ==============================================================================
 
 import React from 'react';
@@ -12,6 +12,7 @@ export interface WebPermissionsState {
   accessibility: boolean;
   notifications: boolean;
   batteryOptimization: boolean;
+  location: boolean;
 }
 
 interface PermissionsStepProps {
@@ -39,8 +40,8 @@ export const PermissionsStep: React.FC<PermissionsStepProps> = ({
         <p style={{ fontSize: '12px', color: '#8E8E93' }}>
           {targetFlow === 'PARENT' ? 'Configuración inicial post-login del responsable' : 'Configuración requerida post-emparejamiento'}
         </p>
-        <div style={{ display: 'inline-block', backgroundColor: grantedPermsCount === 4 ? '#D1E7DD' : '#FFF3CD', color: grantedPermsCount === 4 ? '#28A745' : '#856404', fontSize: '11px', fontWeight: '800', padding: '4px 10px', borderRadius: '12px', marginTop: '6px' }}>
-          {grantedPermsCount}/4 PERMISOS CONCEDIDOS
+        <div style={{ display: 'inline-block', backgroundColor: grantedPermsCount === 5 ? '#D1E7DD' : '#FFF3CD', color: grantedPermsCount === 5 ? '#28A745' : '#856404', fontSize: '11px', fontWeight: '800', padding: '4px 10px', borderRadius: '12px', marginTop: '6px' }}>
+          {grantedPermsCount}/5 PERMISOS CONCEDIDOS
         </div>
       </div>
 
@@ -93,7 +94,7 @@ export const PermissionsStep: React.FC<PermissionsStepProps> = ({
       </div>
 
       {/* Permiso 4: Batería */}
-      <div style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '12px', border: '1px solid #E9ECEF', marginBottom: '12px' }}>
+      <div style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '12px', border: '1px solid #E9ECEF', marginBottom: '8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
           <span style={{ fontSize: '13px', fontWeight: '700', color: '#1C1C1E' }}>4. 🔋 Exención Batería</span>
           <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: webPermissions.batteryOptimization ? '#D1E7DD' : '#E2E3E5', color: webPermissions.batteryOptimization ? '#28A745' : '#6C757D', padding: '2px 6px', borderRadius: '6px' }}>
@@ -105,6 +106,22 @@ export const PermissionsStep: React.FC<PermissionsStepProps> = ({
           onClick={() => onTogglePerm('batteryOptimization')}
         >
           {webPermissions.batteryOptimization ? '✓ Concedida' : 'Conceder Exención'}
+        </button>
+      </div>
+
+      {/* Permiso 5: Ubicación GPS */}
+      <div style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '12px', border: '1px solid #E9ECEF', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1C1C1E' }}>5. 📍 Ubicación GPS</span>
+          <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: webPermissions.location ? '#D1E7DD' : '#E2E3E5', color: webPermissions.location ? '#28A745' : '#6C757D', padding: '2px 6px', borderRadius: '6px' }}>
+            {webPermissions.location ? '✓ OK' : 'REQUERIDO'}
+          </span>
+        </div>
+        <button
+          style={{ width: '100%', height: '32px', borderRadius: '6px', backgroundColor: webPermissions.location ? '#D1E7DD' : '#007AFF', color: webPermissions.location ? '#28A745' : '#FFF', border: 'none', fontWeight: '700', fontSize: '11px', cursor: 'pointer' }}
+          onClick={() => onTogglePerm('location')}
+        >
+          {webPermissions.location ? '✓ Ubicación Registrada' : 'Autorizar Ubicación GPS'}
         </button>
       </div>
 

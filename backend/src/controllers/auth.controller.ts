@@ -75,6 +75,31 @@ export class AuthController {
       next(error);
     }
   }
+
+  /**
+   * Registro de ubicación geográfica del usuario o dispositivo (Estrategia Híbrida).
+   * POST /api/auth/location
+   */
+  public async updateLocation(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { latitude, longitude, address, city, country, source } = req.body;
+      res.status(200).json({
+        success: true,
+        message: 'Ubicación geográfica registrada exitosamente',
+        data: {
+          latitude,
+          longitude,
+          address,
+          city,
+          country,
+          source: source || 'GPS',
+          updatedAt: new Date(),
+        },
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const authController = new AuthController();

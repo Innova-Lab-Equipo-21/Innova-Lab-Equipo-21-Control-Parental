@@ -67,6 +67,18 @@ const recoverPasswordSchema = z.object({
   }),
 });
 
+// Esquema de validación para ubicación
+const locationSchema = z.object({
+  body: z.object({
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    country: z.string().optional(),
+    source: z.enum(['GPS', 'IP']).optional(),
+  }),
+});
+
 router.post('/register', validateRequest(registerSchema), (req, res, next) =>
   authController.register(req, res, next),
 );
@@ -77,6 +89,10 @@ router.post('/login', validateRequest(loginSchema), (req, res, next) =>
 
 router.post('/recover-password', validateRequest(recoverPasswordSchema), (req, res, next) =>
   authController.recoverPassword(req, res, next),
+);
+
+router.post('/location', validateRequest(locationSchema), (req, res, next) =>
+  authController.updateLocation(req, res, next),
 );
 
 export const authRoutes = router;
