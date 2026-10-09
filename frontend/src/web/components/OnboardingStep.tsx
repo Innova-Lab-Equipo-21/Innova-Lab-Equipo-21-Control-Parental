@@ -79,282 +79,357 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
   };
 
   return (
-    <div style={{ padding: '20px 18px', backgroundColor: '#FFFFFF', minHeight: '100%' }}>
-      {/* Logotipo Oficial Completo Centrado no topo */}
-      <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 16px' }}>
-        <Logo variant="complete" size="md" align="center" />
-      </div>
+    <div
+      style={{
+        padding: '20px 18px',
+        backgroundColor: '#FFFFFF',
+        minHeight: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* Contenido Principal (Header + Stepper + Paso Actual) */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Logotipo Oficial Completo Centrado no topo */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 16px' }}>
+          <Logo variant="complete" size="md" align="center" />
+        </div>
 
-      {/* Stepper Progress Bar con Círculos y Líneas */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '14px 0 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '220px' }}>
-          {[1, 2, 3].map((stepNum, idx) => {
-            const isCompleted = wizardStep > stepNum;
-            const isCurrent = wizardStep === stepNum;
-            const isActive = isCurrent || isCompleted;
+        {/* Stepper Progress Bar con Círculos y Líneas */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '14px 0 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '220px' }}>
+            {[1, 2, 3].map((stepNum, idx) => {
+              const isCompleted = wizardStep > stepNum;
+              const isCurrent = wizardStep === stepNum;
+              const isActive = isCurrent || isCompleted;
 
-            return (
-              <React.Fragment key={stepNum}>
-                <button
-                  onClick={() => {
-                    setVideoPlaying(false);
-                    setWizardStep(stepNum as 1 | 2 | 3);
-                  }}
+              return (
+                <React.Fragment key={stepNum}>
+                  <button
+                    onClick={() => {
+                      setVideoPlaying(false);
+                      setWizardStep(stepNum as 1 | 2 | 3);
+                    }}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: isActive ? '#007AFF' : '#E5E7EB',
+                      color: isActive ? '#FFFFFF' : '#9CA3AF',
+                      border: 'none',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                    }}
+                    aria-label={`Ir al Paso ${stepNum}`}
+                  >
+                    {stepNum}
+                  </button>
+
+                  {idx < 2 && (
+                    <div
+                      style={{
+                        flex: 1,
+                        height: '3px',
+                        backgroundColor: wizardStep > stepNum ? '#007AFF' : '#E5E7EB',
+                        margin: '0 6px',
+                        transition: 'background-color 0.3s ease',
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ======================================================== */}
+        {/* PASO 1: BIENVENIDA Y PROPÓSITO DE PROTECCIÓN             */}
+        {/* ======================================================== */}
+        {wizardStep === 1 && (
+          <div style={{ flex: 1 }}>
+            <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', marginBottom: '10px', lineHeight: '1.25' }}>
+              ¡Te damos la bienvenida a BA Protege +!
+            </h1>
+            <p style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E', marginBottom: '20px' }}>
+              Con esta app vas a poder:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '24px' }}>
+              {/* Item 1 */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '18px',
+                    backgroundColor: '#EBF5FF',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: isActive ? '#007AFF' : '#E5E7EB',
-                    color: isActive ? '#FFFFFF' : '#9CA3AF',
-                    border: 'none',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
+                    marginRight: '14px',
+                    flexShrink: 0,
                   }}
-                  aria-label={`Ir al Paso ${stepNum}`}
                 >
-                  {stepNum}
-                </button>
-
-                {idx < 2 && (
-                  <div
-                    style={{
-                      flex: 1,
-                      height: '3px',
-                      backgroundColor: wizardStep > stepNum ? '#007AFF' : '#E5E7EB',
-                      margin: '0 6px',
-                      transition: 'background-color 0.3s ease',
-                    }}
-                  />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ======================================================== */}
-      {/* PASO 1: BIENVENIDA Y PROPÓSITO DE PROTECCIÓN             */}
-      {/* ======================================================== */}
-      {wizardStep === 1 && (
-        <div>
-          <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', marginBottom: '10px', lineHeight: '1.25' }}>
-            ¡Te damos la bienvenida a BA Protege +!
-          </h1>
-          <p style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E', marginBottom: '20px' }}>
-            Con esta app vas a poder:
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '36px' }}>
-            {/* Item 1 */}
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '18px',
-                  backgroundColor: '#EBF5FF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: '14px',
-                  flexShrink: 0,
-                }}
-              >
-                <Icon name="ojo" size={20} color="#007AFF" />
+                  <Icon name="ojo" size={20} color="#007AFF" />
+                </div>
+                <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                  Proteger lo que ven los menores de 18 años.
+                </span>
               </div>
-              <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
-                Proteger lo que ven los menores de 18 años.
-              </span>
-            </div>
 
-            {/* Item 2 */}
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '18px',
-                  backgroundColor: '#EBF5FF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: '14px',
-                  flexShrink: 0,
-                }}
-              >
-                <Icon name="manos" size={20} color="#007AFF" />
+              {/* Item 2 */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '18px',
+                    backgroundColor: '#EBF5FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: '14px',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon name="manos" size={20} color="#007AFF" />
+                </div>
+                <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                  Acompañar y cuidar a adultos con ludopatía o uso problemático del celular.
+                </span>
               </div>
-              <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
-                Acompañar y cuidar a adultos con ludopatía o uso problemático del celular.
-              </span>
-            </div>
 
-            {/* Item 3 */}
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '18px',
-                  backgroundColor: '#EBF5FF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: '14px',
-                  flexShrink: 0,
-                }}
-              >
-                <Icon name="reloj" size={20} color="#007AFF" />
+              {/* Item 3 */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '18px',
+                    backgroundColor: '#EBF5FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: '14px',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon name="reloj" size={20} color="#007AFF" />
+                </div>
+                <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                  Autocontrolar tu propia navegación.
+                </span>
               </div>
-              <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
-                Autocontrolar tu propia navegación.
-              </span>
             </div>
           </div>
+        )}
 
-          {/* Botón de Acción Paso 1 */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+        {/* ======================================================== */}
+        {/* PASO 2: CÓMO FUNCIONA LA APP Y LOS 2 MODOS              */}
+        {/* ======================================================== */}
+        {wizardStep === 2 && (
+          <div style={{ flex: 1 }}>
+            <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', marginBottom: '8px' }}>
+              ¿Cómo funciona la app?
+            </h1>
+            <p style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E', marginBottom: '18px' }}>
+              Podés usarla de dos formas distintas:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+              {/* Tarjeta 1: Modo responsable */}
+              <div
+                style={{
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  border: '1.5px solid #007AFF',
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: '#007AFF',
+                    color: '#FFFFFF',
+                    padding: '10px 14px',
+                    fontSize: '15px',
+                    fontWeight: '800',
+                  }}
+                >
+                  Modo responsable
+                </div>
+                <div
+                  style={{
+                    backgroundColor: '#F0F7FF',
+                    padding: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                    <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
+                    <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                      Configurás las reglas desde tu dispositivo.
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                    <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
+                    <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                      Controlás el bloqueo de sitios web y apps.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tarjeta 2: Modo protegido */}
+              <div
+                style={{
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  border: '1.5px solid #007AFF',
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: '#007AFF',
+                    color: '#FFFFFF',
+                    padding: '10px 14px',
+                    fontSize: '15px',
+                    fontWeight: '800',
+                  }}
+                >
+                  Modo protegido
+                </div>
+                <div
+                  style={{
+                    backgroundColor: '#F0F7FF',
+                    padding: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                    <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
+                    <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                      Tu dispositivo recibe la protección de un adulto responsable.
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                    <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
+                    <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                      Recibís recomendaciones para un consumo digital más seguro.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* PASO 3: EXPLICACIÓN EN VIDEO                             */}
+        {/* ======================================================== */}
+        {wizardStep === 3 && (
+          <div style={{ flex: 1 }}>
+            <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', marginBottom: '8px' }}>
+              ¿Todavía tenés dudas?
+            </h1>
+            <p style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E', marginBottom: '18px' }}>
+              Te explicamos el paso a paso en este video:
+            </p>
+
+            {/* Reproductor de Video con Fondo Negro */}
+            <div
+              style={{
+                backgroundColor: '#000000',
+                borderRadius: '16px',
+                height: '220px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '24px',
+              }}
+            >
+              <button
+                onClick={handleTogglePlay}
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '28px',
+                  backgroundColor: '#007AFF',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '22px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0, 122, 255, 0.4)',
+                }}
+              >
+                {videoPlaying ? '⏸' : '▶'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* RODAPÉ DE LA TELA (FOOTER) - BOTONES DE ACCIÓN DEL APP */}
+      <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
+        {wizardStep === 1 && (
+          <div style={{ display: 'flex', width: '100%' }}>
             <button
               onClick={() => setWizardStep(2)}
               style={{
+                flex: 1,
+                width: '100%',
+                height: '50px',
                 backgroundColor: '#007AFF',
                 color: '#FFFFFF',
                 border: 'none',
-                padding: '12px 28px',
-                borderRadius: '10px',
-                fontSize: '15px',
+                borderRadius: '12px',
+                fontSize: '16px',
                 fontWeight: '700',
                 cursor: 'pointer',
                 boxShadow: '0 2px 8px rgba(0, 122, 255, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s ease',
               }}
             >
               Continuar
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ======================================================== */}
-      {/* PASO 2: CÓMO FUNCIONA LA APP Y LOS 2 MODOS              */}
-      {/* ======================================================== */}
-      {wizardStep === 2 && (
-        <div>
-          <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', marginBottom: '8px' }}>
-            ¿Cómo funciona la app?
-          </h1>
-          <p style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E', marginBottom: '18px' }}>
-            Podés usarla de dos formas distintas:
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '28px' }}>
-            {/* Tarjeta 1: Modo responsable */}
-            <div
-              style={{
-                borderRadius: '12px',
-                overflow: 'hidden',
-                border: '1.5px solid #007AFF',
-              }}
-            >
-              <div
-                style={{
-                  backgroundColor: '#007AFF',
-                  color: '#FFFFFF',
-                  padding: '10px 14px',
-                  fontSize: '15px',
-                  fontWeight: '800',
-                }}
-              >
-                Modo responsable
-              </div>
-              <div
-                style={{
-                  backgroundColor: '#F0F7FF',
-                  padding: '14px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
-                  <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
-                    Configurás las reglas desde tu dispositivo.
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
-                  <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
-                    Controlás el bloqueo de sitios web y apps.
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Tarjeta 2: Modo protegido */}
-            <div
-              style={{
-                borderRadius: '12px',
-                overflow: 'hidden',
-                border: '1.5px solid #007AFF',
-              }}
-            >
-              <div
-                style={{
-                  backgroundColor: '#007AFF',
-                  color: '#FFFFFF',
-                  padding: '10px 14px',
-                  fontSize: '15px',
-                  fontWeight: '800',
-                }}
-              >
-                Modo protegido
-              </div>
-              <div
-                style={{
-                  backgroundColor: '#F0F7FF',
-                  padding: '14px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
-                  <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
-                    Tu dispositivo recibe la protección de un adulto responsable.
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
-                  <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
-                    Recibís recomendaciones para un consumo digital más seguro.
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Botonera Paso 2 */}
+        {wizardStep === 2 && (
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
               onClick={() => setWizardStep(1)}
               style={{
                 flex: 1,
+                height: '50px',
                 backgroundColor: '#FFFFFF',
                 color: '#007AFF',
                 border: '1.5px solid #007AFF',
-                padding: '12px',
-                borderRadius: '10px',
-                fontSize: '15px',
+                borderRadius: '12px',
+                fontSize: '16px',
                 fontWeight: '700',
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.25s ease',
               }}
             >
               Volver
@@ -363,69 +438,27 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
               onClick={() => setWizardStep(3)}
               style={{
                 flex: 1,
+                height: '50px',
                 backgroundColor: '#007AFF',
                 color: '#FFFFFF',
                 border: 'none',
-                padding: '12px',
-                borderRadius: '10px',
-                fontSize: '15px',
+                borderRadius: '12px',
+                fontSize: '16px',
                 fontWeight: '700',
                 cursor: 'pointer',
                 boxShadow: '0 2px 8px rgba(0, 122, 255, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s ease',
               }}
             >
               Continuar
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ======================================================== */}
-      {/* PASO 3: EXPLICACIÓN EN VIDEO                             */}
-      {/* ======================================================== */}
-      {wizardStep === 3 && (
-        <div>
-          <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', marginBottom: '8px' }}>
-            ¿Todavía tenés dudas?
-          </h1>
-          <p style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E', marginBottom: '18px' }}>
-            Te explicamos el paso a paso en este video:
-          </p>
-
-          {/* Reproductor de Video con Fondo Negro */}
-          <div
-            style={{
-              backgroundColor: '#000000',
-              borderRadius: '16px',
-              height: '220px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '28px',
-            }}
-          >
-            <button
-              onClick={handleTogglePlay}
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '28px',
-                backgroundColor: '#007AFF',
-                color: '#FFFFFF',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '22px',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0, 122, 255, 0.4)',
-              }}
-            >
-              {videoPlaying ? '⏸' : '▶'}
-            </button>
-          </div>
-
-          {/* Botonera Paso 3 */}
+        {wizardStep === 3 && (
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
               onClick={() => {
@@ -434,14 +467,18 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
               }}
               style={{
                 flex: 1,
+                height: '50px',
                 backgroundColor: '#FFFFFF',
                 color: '#007AFF',
                 border: '1.5px solid #007AFF',
-                padding: '12px',
-                borderRadius: '10px',
-                fontSize: '15px',
+                borderRadius: '12px',
+                fontSize: '16px',
                 fontWeight: '700',
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.25s ease',
               }}
             >
               Volver
@@ -453,22 +490,26 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
               }}
               style={{
                 flex: 1,
+                height: '50px',
                 backgroundColor: '#007AFF',
                 color: '#FFFFFF',
                 border: 'none',
-                padding: '12px',
-                borderRadius: '10px',
-                fontSize: '15px',
+                borderRadius: '12px',
+                fontSize: '16px',
                 fontWeight: '700',
                 cursor: 'pointer',
                 boxShadow: '0 2px 8px rgba(0, 122, 255, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s ease',
               }}
             >
               Elegir modo
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

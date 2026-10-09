@@ -73,169 +73,204 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        {/* Encabezado con Logotipo Oficial Completo Centrado */}
-        <View style={styles.headerLogoContainer}>
-          <Logo variant="complete" size="md" align="center" />
-        </View>
-
-        {/* Stepper Progress Bar con 3 Pasos */}
-        <View style={styles.stepperWrapper}>
-          <View style={styles.stepperRow}>
-            {[1, 2, 3].map((stepNum, idx) => {
-              const isCompleted = wizardStep > stepNum;
-              const isCurrent = wizardStep === stepNum;
-              const isActive = isCurrent || isCompleted;
-
-              return (
-                <React.Fragment key={stepNum}>
-                  <TouchableOpacity
-                    style={[
-                      styles.stepCircle,
-                      isActive ? styles.stepCircleActive : styles.stepCircleInactive,
-                    ]}
-                    onPress={() => {
-                      setIsPlaying(false);
-                      setWizardStep(stepNum as 1 | 2 | 3);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        styles.stepCircleNum,
-                        isActive
-                          ? styles.stepCircleNumActive
-                          : styles.stepCircleNumInactive,
-                      ]}
-                    >
-                      {stepNum}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {idx < 2 && (
-                    <View
-                      style={[
-                        styles.stepConnectorLine,
-                        wizardStep > stepNum
-                          ? styles.stepConnectorLineActive
-                          : styles.stepConnectorLineInactive,
-                      ]}
-                    />
-                  )}
-                </React.Fragment>
-              );
-            })}
+        <View style={styles.mainContent}>
+          {/* Encabezado con Logotipo Oficial Completo Centrado */}
+          <View style={styles.headerLogoContainer}>
+            <Logo variant="complete" size="md" align="center" />
           </View>
-        </View>
 
-        {/* ======================================================== */}
-        {/* PASO 1: BIENVENIDA Y PROPÓSITO DE PROTECCIÓN             */}
-        {/* ======================================================== */}
-        {wizardStep === 1 && (
-          <View style={styles.contentCard}>
-            <Text style={styles.mainTitle}>¡Te damos la bienvenida a BA Protege +!</Text>
-            <Text style={styles.subtitleBold}>Con esta app vas a poder:</Text>
+          {/* Stepper Progress Bar con 3 Pasos */}
+          <View style={styles.stepperWrapper}>
+            <View style={styles.stepperRow}>
+              {[1, 2, 3].map((stepNum, idx) => {
+                const isCompleted = wizardStep > stepNum;
+                const isCurrent = wizardStep === stepNum;
+                const isActive = isCurrent || isCompleted;
 
-            <View style={styles.bulletList}>
-              {/* Item 1 */}
-              <View style={styles.bulletItem}>
-                <View style={styles.bulletIconCircle}>
-                  <Icon name="ojo" size={20} color="#007AFF" />
+                return (
+                  <React.Fragment key={stepNum}>
+                    <TouchableOpacity
+                      style={[
+                        styles.stepCircle,
+                        isActive ? styles.stepCircleActive : styles.stepCircleInactive,
+                      ]}
+                      onPress={() => {
+                        setIsPlaying(false);
+                        setWizardStep(stepNum as 1 | 2 | 3);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.stepCircleNum,
+                          isActive
+                            ? styles.stepCircleNumActive
+                            : styles.stepCircleNumInactive,
+                        ]}
+                      >
+                        {stepNum}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {idx < 2 && (
+                      <View
+                        style={[
+                          styles.stepConnectorLine,
+                          wizardStep > stepNum
+                            ? styles.stepConnectorLineActive
+                            : styles.stepConnectorLineInactive,
+                        ]}
+                      />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* ======================================================== */}
+          {/* PASO 1: BIENVENIDA Y PROPÓSITO DE PROTECCIÓN             */}
+          {/* ======================================================== */}
+          {wizardStep === 1 && (
+            <View style={styles.contentCard}>
+              <Text style={styles.mainTitle}>¡Te damos la bienvenida a BA Protege +!</Text>
+              <Text style={styles.subtitleBold}>Con esta app vas a poder:</Text>
+
+              <View style={styles.bulletList}>
+                {/* Item 1 */}
+                <View style={styles.bulletItem}>
+                  <View style={styles.bulletIconCircle}>
+                    <Icon name="ojo" size={20} color="#007AFF" />
+                  </View>
+                  <Text style={styles.bulletText}>
+                    Proteger lo que ven los menores de 18 años.
+                  </Text>
                 </View>
-                <Text style={styles.bulletText}>
-                  Proteger lo que ven los menores de 18 años.
-                </Text>
-              </View>
 
-              {/* Item 2 */}
-              <View style={styles.bulletItem}>
-                <View style={styles.bulletIconCircle}>
-                  <Icon name="manos" size={20} color="#007AFF" />
+                {/* Item 2 */}
+                <View style={styles.bulletItem}>
+                  <View style={styles.bulletIconCircle}>
+                    <Icon name="manos" size={20} color="#007AFF" />
+                  </View>
+                  <Text style={styles.bulletText}>
+                    Acompañar y cuidar a adultos con ludopatía o uso problemático del celular.
+                  </Text>
                 </View>
-                <Text style={styles.bulletText}>
-                  Acompañar y cuidar a adultos con ludopatía o uso problemático del celular.
-                </Text>
-              </View>
 
-              {/* Item 3 */}
-              <View style={styles.bulletItem}>
-                <View style={styles.bulletIconCircle}>
-                  <Icon name="reloj" size={20} color="#007AFF" />
+                {/* Item 3 */}
+                <View style={styles.bulletItem}>
+                  <View style={styles.bulletIconCircle}>
+                    <Icon name="reloj" size={20} color="#007AFF" />
+                  </View>
+                  <Text style={styles.bulletText}>
+                    Autocontrolar tu propia navegación.
+                  </Text>
                 </View>
-                <Text style={styles.bulletText}>
-                  Autocontrolar tu propia navegación.
-                </Text>
               </View>
             </View>
+          )}
 
-            {/* Botón de Acción Paso 1 */}
+          {/* ======================================================== */}
+          {/* PASO 2: CÓMO FUNCIONA LA APP Y LOS 2 MODOS              */}
+          {/* ======================================================== */}
+          {wizardStep === 2 && (
+            <View style={styles.contentCard}>
+              <Text style={styles.mainTitle}>¿Cómo funciona la app?</Text>
+              <Text style={styles.subtitleBold}>
+                Podés usarla de dos formas distintas:
+              </Text>
+
+              <View style={styles.cardsContainer}>
+                {/* Tarjeta 1: Modo Responsable */}
+                <View style={styles.modeCard}>
+                  <View style={styles.modeCardHeader}>
+                    <Text style={styles.modeCardHeaderTitle}>Modo responsable</Text>
+                  </View>
+                  <View style={styles.modeCardBody}>
+                    <View style={styles.checkItem}>
+                      <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                      <Text style={styles.checkText}>
+                        Configurás las reglas desde tu dispositivo.
+                      </Text>
+                    </View>
+                    <View style={styles.checkItem}>
+                      <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                      <Text style={styles.checkText}>
+                        Controlás el bloqueo de sitios web y apps.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Tarjeta 2: Modo Protegido */}
+                <View style={styles.modeCard}>
+                  <View style={styles.modeCardHeader}>
+                    <Text style={styles.modeCardHeaderTitle}>Modo protegido</Text>
+                  </View>
+                  <View style={styles.modeCardBody}>
+                    <View style={styles.checkItem}>
+                      <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                      <Text style={styles.checkText}>
+                        Tu dispositivo recibe la protección de un adulto responsable.
+                      </Text>
+                    </View>
+                    <View style={styles.checkItem}>
+                      <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                      <Text style={styles.checkText}>
+                        Recibís recomendaciones para un consumo digital más seguro.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* ======================================================== */}
+          {/* PASO 3: EXPLICACIÓN EN VIDEO                             */}
+          {/* ======================================================== */}
+          {wizardStep === 3 && (
+            <View style={styles.contentCard}>
+              <Text style={styles.mainTitle}>¿Todavía tenés dudas?</Text>
+              <Text style={styles.subtitleBold}>
+                Te explicamos el paso a paso en este video:
+              </Text>
+
+              {/* Reproductor de Video con Fondo Negro */}
+              <View style={styles.videoContainer}>
+                <TouchableOpacity
+                  style={styles.videoPlayCircle}
+                  onPress={handleTogglePlay}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.videoPlayIcon}>
+                    {isPlaying ? '⏸' : '▶'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* ======================================================== */}
+        {/* RODAPÉ DE LA TELA (FOOTER) - BOTONES DE ACCIÓN DEL APP   */}
+        {/* ======================================================== */}
+        <View style={styles.footerContainer}>
+          {wizardStep === 1 && (
             <View style={styles.singleButtonContainer}>
               <TouchableOpacity
-                style={styles.primaryButton}
+                style={styles.primaryButtonFull}
                 onPress={() => setWizardStep(2)}
                 activeOpacity={0.85}
               >
                 <Text style={styles.primaryButtonText}>Continuar</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        )}
+          )}
 
-        {/* ======================================================== */}
-        {/* PASO 2: CÓMO FUNCIONA LA APP Y LOS 2 MODOS              */}
-        {/* ======================================================== */}
-        {wizardStep === 2 && (
-          <View style={styles.contentCard}>
-            <Text style={styles.mainTitle}>¿Cómo funciona la app?</Text>
-            <Text style={styles.subtitleBold}>
-              Podés usarla de dos formas distintas:
-            </Text>
-
-            <View style={styles.cardsContainer}>
-              {/* Tarjeta 1: Modo Responsable */}
-              <View style={styles.modeCard}>
-                <View style={styles.modeCardHeader}>
-                  <Text style={styles.modeCardHeaderTitle}>Modo responsable</Text>
-                </View>
-                <View style={styles.modeCardBody}>
-                  <View style={styles.checkItem}>
-                    <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
-                    <Text style={styles.checkText}>
-                      Configurás las reglas desde tu dispositivo.
-                    </Text>
-                  </View>
-                  <View style={styles.checkItem}>
-                    <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
-                    <Text style={styles.checkText}>
-                      Controlás el bloqueo de sitios web y apps.
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Tarjeta 2: Modo Protegido */}
-              <View style={styles.modeCard}>
-                <View style={styles.modeCardHeader}>
-                  <Text style={styles.modeCardHeaderTitle}>Modo protegido</Text>
-                </View>
-                <View style={styles.modeCardBody}>
-                  <View style={styles.checkItem}>
-                    <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
-                    <Text style={styles.checkText}>
-                      Tu dispositivo recibe la protección de un adulto responsable.
-                    </Text>
-                  </View>
-                  <View style={styles.checkItem}>
-                    <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
-                    <Text style={styles.checkText}>
-                      Recibís recomendaciones para un consumo digital más seguro.
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            {/* Botonera Paso 2 */}
+          {wizardStep === 2 && (
             <View style={styles.dualButtonContainer}>
               <TouchableOpacity
                 style={styles.secondaryButton}
@@ -253,33 +288,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                 <Text style={styles.primaryButtonText}>Continuar</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        )}
+          )}
 
-        {/* ======================================================== */}
-        {/* PASO 3: EXPLICACIÓN EN VIDEO                             */}
-        {/* ======================================================== */}
-        {wizardStep === 3 && (
-          <View style={styles.contentCard}>
-            <Text style={styles.mainTitle}>¿Todavía tenés dudas?</Text>
-            <Text style={styles.subtitleBold}>
-              Te explicamos el paso a paso en este video:
-            </Text>
-
-            {/* Reproductor de Video con Fondo Negro */}
-            <View style={styles.videoContainer}>
-              <TouchableOpacity
-                style={styles.videoPlayCircle}
-                onPress={handleTogglePlay}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.videoPlayIcon}>
-                  {isPlaying ? '⏸' : '▶'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Botonera Paso 3 */}
+          {wizardStep === 3 && (
             <View style={styles.dualButtonContainer}>
               <TouchableOpacity
                 style={styles.secondaryButton}
@@ -303,8 +314,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                 <Text style={styles.primaryButtonText}>Elegir modo</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        )}
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -316,9 +327,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   scrollContainer: {
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 32,
+    paddingBottom: 24,
+    justifyContent: 'space-between',
+  },
+  mainContent: {
+    flex: 1,
   },
   headerLogoContainer: {
     alignItems: 'center',
@@ -388,7 +404,7 @@ const styles = StyleSheet.create({
   },
   bulletList: {
     gap: 18,
-    marginBottom: 40,
+    marginBottom: 24,
   },
   bulletItem: {
     flexDirection: 'row',
@@ -410,26 +426,9 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
-  singleButtonContainer: {
-    alignItems: 'flex-end',
-    marginTop: 20,
-  },
-  primaryButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
   cardsContainer: {
     gap: 16,
-    marginBottom: 28,
+    marginBottom: 24,
   },
   modeCard: {
     borderRadius: 12,
@@ -467,41 +466,13 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 18,
   },
-  dualButtonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
-  secondaryButton: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: '#007AFF',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: '#007AFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  primaryButtonHalf: {
-    flex: 1,
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   videoContainer: {
     backgroundColor: '#000000',
     borderRadius: 16,
     height: 220,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 28,
+    marginBottom: 24,
   },
   videoPlayCircle: {
     width: 56,
@@ -515,5 +486,64 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 22,
     marginLeft: 2,
+  },
+  footerContainer: {
+    marginTop: 'auto',
+    paddingTop: 16,
+  },
+  singleButtonContainer: {
+    flexDirection: 'row',
+    width: '100%',
+  },
+  primaryButtonFull: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#007AFF',
+    height: 50,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  dualButtonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  secondaryButton: {
+    flex: 1,
+    height: 50,
+    borderWidth: 1.5,
+    borderColor: '#007AFF',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  primaryButtonHalf: {
+    flex: 1,
+    height: 50,
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

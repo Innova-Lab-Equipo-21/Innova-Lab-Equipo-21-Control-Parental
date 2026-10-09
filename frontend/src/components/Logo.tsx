@@ -2,7 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile & Web (Design System)
 // Archivo: src/components/Logo.tsx
-// Descripción: Componente de logotipo oficial utilizando la imagen PNG transparente del proyecto.
+// Descripción: Componente de logotipo oficial utilizando la imagen PNG logo_baprotege.png.
 // ==============================================================================
 
 import React from 'react';

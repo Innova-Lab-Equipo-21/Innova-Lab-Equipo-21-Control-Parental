@@ -1,0 +1,240 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: ActivitySection (Historial de Actividad y Auditoría)
+// Archivo: src/components/dashboard/actividad/ActivitySection.tsx
+// ==============================================================================
+
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { colors } from '../../../theme/colors';
+
+export interface ActivityLogItem {
+  id: string;
+  type: 'BLOCK' | 'ALERT' | 'SYSTEM' | 'LOCATION';
+  title: string;
+  detail: string;
+  device: string;
+  timestamp: string;
+}
+
+const sampleLogs: ActivityLogItem[] = [
+  {
+    id: '1',
+    type: 'BLOCK',
+    title: 'Intento de acceso bloqueado',
+    detail: 'Se interceptó el dominio clandestino casino-ilegal.bet',
+    device: 'Celular Sofía (Modo Protegido)',
+    timestamp: 'Hace 12 min',
+  },
+  {
+    id: '2',
+    type: 'SYSTEM',
+    title: 'Sincronización VPN Local',
+    detail: 'Lista oficial LOTBA actualizada con 450 dominios bloqueados',
+    device: 'Dispositivo Responsable',
+    timestamp: 'Hace 45 min',
+  },
+  {
+    id: '3',
+    type: 'LOCATION',
+    title: 'Ubicación GPS registrada',
+    detail: 'Av. Corrientes 1234, CABA, Argentina',
+    device: 'Tablet Mateo (Modo Protegido)',
+    timestamp: 'Hace 2 horas',
+  },
+  {
+    id: '4',
+    type: 'ALERT',
+    title: 'Protección Antidesinstalación',
+    detail: 'Intento de cierre de la app sin PIN del tutor bloqueado',
+    device: 'Celular Sofía (Modo Protegido)',
+    timestamp: 'Hace 3 horas',
+  },
+  {
+    id: '5',
+    type: 'BLOCK',
+    title: 'Dominio personalizado restringido',
+    detail: 'Acceso a tiktok.com bloqueado según regla configurada',
+    device: 'Tablet Mateo (Modo Protegido)',
+    timestamp: 'Ayer, 18:30 hs',
+  },
+];
+
+export const ActivitySection: React.FC = () => {
+  const [filter, setFilter] = useState<'ALL' | 'BLOCK' | 'ALERT' | 'SYSTEM'>('ALL');
+
+  const filteredLogs = sampleLogs.filter((log) => {
+    if (filter === 'ALL') return true;
+    return log.type === filter;
+  });
+
+  const getBadgeStyle = (type: ActivityLogItem['type']) => {
+    switch (type) {
+      case 'BLOCK':
+        return { bg: colors.statusDangerBg, text: colors.statusDanger, icon: '🚫', label: 'BLOQUEO' };
+      case 'ALERT':
+        return { bg: colors.statusWarningBg, text: '#856404', icon: '⚠️', label: 'ALERTA' };
+      case 'LOCATION':
+        return { bg: colors.primaryLight, text: colors.primaryDark, icon: '📍', label: 'UBICACIÓN' };
+      case 'SYSTEM':
+      default:
+        return { bg: colors.statusActiveBg, text: colors.statusActive, icon: '🛡️', label: 'SISTEMA' };
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Historial de Actividad y Auditoría</Text>
+      <Text style={styles.subtitle}>
+        Eventos de seguridad y bloqueos en tiempo real de dispositivos vinculados.
+      </Text>
+
+      {/* Filtros */}
+      <View style={styles.filterRow}>
+        {(
+          [
+            { key: 'ALL', label: 'Todos' },
+            { key: 'BLOCK', label: 'Bloqueos' },
+            { key: 'ALERT', label: 'Alertas' },
+            { key: 'SYSTEM', label: 'Sistema' },
+          ] as const
+        ).map((f) => (
+          <TouchableOpacity
+            key={f.key}
+            style={[styles.filterChip, filter === f.key && styles.activeFilterChip]}
+            onPress={() => setFilter(f.key)}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                filter === f.key && styles.activeFilterChipText,
+              ]}
+            >
+              {f.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Lista de Registros */}
+      <ScrollView style={styles.logList} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+        {filteredLogs.map((item) => {
+          const badge = getBadgeStyle(item.type);
+
+          return (
+            <View key={item.id} style={styles.logCard}>
+              <View style={styles.logHeader}>
+                <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+                  <Text style={[styles.badgeText, { color: badge.text }]}>
+                    {badge.icon} {badge.label}
+                  </Text>
+                </View>
+                <Text style={styles.timestamp}>{item.timestamp}</Text>
+              </View>
+
+              <Text style={styles.logTitle}>{item.title}</Text>
+              <Text style={styles.logDetail}>{item.detail}</Text>
+              <Text style={styles.deviceText}>📱 {item.device}</Text>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 14,
+    lineHeight: 18,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  filterChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  activeFilterChip: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  activeFilterChipText: {
+    color: '#FFFFFF',
+  },
+  logList: {
+    maxHeight: 380,
+  },
+  logCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: 10,
+  },
+  logHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  badge: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  timestamp: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '500',
+  },
+  logTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 3,
+  },
+  logDetail: {
+    fontSize: 12.5,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    marginBottom: 6,
+  },
+  deviceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+});

@@ -1,16 +1,16 @@
 // ==============================================================================
 // Proyecto: BA Protege+
 // Componente: TutorPermissionsSection (Auditoría de Permisos del Dispositivo Tutor)
-// Archivo: src/components/dashboard/TutorPermissionsSection.tsx
+// Archivo: src/components/dashboard/cuenta/TutorPermissionsSection.tsx
 // ==============================================================================
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { ActionButton } from '../ActionButton';
-import { Badge } from '../Badge';
-import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
-import { PermissionItemState } from '../../screens/PermissionsScreen';
+import { ActionButton } from '../../ActionButton';
+import { Badge } from '../../Badge';
+import { colors } from '../../../theme/colors';
+import { typography } from '../../../theme/typography';
+import { PermissionItemState } from '../../../screens/PermissionsScreen';
 
 interface TutorPermissionsSectionProps {
   permissions?: PermissionItemState;

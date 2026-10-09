@@ -1,7 +1,7 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: AccordionSection (Sección Desplegable para Panel del Responsable)
-// Archivo: src/components/dashboard/AccordionSection.tsx
+// Componente: SeccionDesplegable (Sección Desplegable para Panel del Responsable)
+// Archivo: src/components/dashboard/SeccionDesplegable.tsx
 // Descripción: Componente contenedor desplegable (Acordeón) con encabezado,
 //              insignias de estado e indicador de expansión.
 // ==============================================================================
@@ -11,7 +11,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors } from '../../theme/colors';
 import { Badge } from '../Badge';
 
-interface AccordionSectionProps {
+interface SeccionDesplegableProps {
   title: string;
   subtitle?: string;
   badgeLabel?: string;
@@ -21,7 +21,7 @@ interface AccordionSectionProps {
   children: React.ReactNode;
 }
 
-export const AccordionSection: React.FC<AccordionSectionProps> = ({
+export const SeccionDesplegable: React.FC<SeccionDesplegableProps> = ({
   title,
   subtitle,
   badgeLabel,
@@ -57,6 +57,9 @@ export const AccordionSection: React.FC<AccordionSectionProps> = ({
     </View>
   );
 };
+
+// Aliases para compatibilidad hacia atrás
+export const AccordionSection = SeccionDesplegable;
 
 const styles = StyleSheet.create({
   container: {

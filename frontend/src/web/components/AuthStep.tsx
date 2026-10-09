@@ -144,11 +144,47 @@ export const AuthStep: React.FC<AuthStepProps> = ({
             </button>
 
             <button
-              style={{ width: '100%', height: '36px', borderRadius: '8px', backgroundColor: '#E7F1FF', color: '#0056B3', border: 'none', fontSize: '11px', fontWeight: '700', cursor: 'pointer', marginBottom: '14px' }}
+              style={{ width: '100%', height: '36px', borderRadius: '8px', backgroundColor: '#E7F1FF', color: '#0056B3', border: 'none', fontSize: '11px', fontWeight: '700', cursor: 'pointer', marginBottom: '10px' }}
               onClick={onFillDemo}
             >
               ⚡ Cargar Credenciales Demo ➔ Paso 4
             </button>
+
+            {/* Divisor "o" */}
+            <div style={{ display: 'flex', alignItems: 'center', margin: '12px 0' }}>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#E9ECEF' }} />
+              <span style={{ padding: '0 10px', fontSize: '13px', color: '#8E8E93', fontWeight: '500' }}>o</span>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#E9ECEF' }} />
+            </div>
+
+            {/* Botón de Google Cuadrado Centrado con logo_google.png */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+              <button
+                type="button"
+                onClick={onLoginSubmit}
+                style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '12px',
+                  backgroundColor: '#F3F4F6',
+                  border: '1px solid #E5E7EB',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <img source={undefined} src="/src/assets/logo/logo_google.png" alt="Google" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+              </button>
+            </div>
+
+            {/* Texto Legal: Políticas de Privacidad y Términos y condiciones */}
+            <div style={{ textAlign: 'center', marginBottom: '12px', fontSize: '13px', color: '#1C1C1E', lineHeight: '1.4' }}>
+              Este sitio está sujeto a{' '}
+              <span style={{ color: '#007AFF', fontWeight: '600', cursor: 'pointer' }}>Políticas de Privacidad</span>
+              {' y '}
+              <span style={{ color: '#007AFF', fontWeight: '600', cursor: 'pointer' }}>Términos y condiciones</span>
+            </div>
 
             <div style={{ textAlign: 'center', paddingTop: '10px', borderTop: '1px solid #E9ECEF' }}>
               <button

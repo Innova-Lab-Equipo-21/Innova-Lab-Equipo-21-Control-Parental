@@ -2,7 +2,9 @@
 // Proyecto: BA Protege+
 // Componente: LoginForm (Formulario de Inicio de Sesión)
 // Archivo: src/components/auth/LoginForm.tsx
-// Descripción: Formulario modular para inicio de sesión de tutores responsables.
+// Descripción: Formulario modular para inicio de sesión de tutores responsables
+//              con integración de Google Sign-In, aviso legal y modales de
+//              Términos y Condiciones y Políticas de Privacidad.
 // ==============================================================================
 
 import React, { useState, useRef } from 'react';
@@ -13,6 +15,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { ActionButton } from '../ActionButton';
 import { Icon } from '../Icon';
@@ -37,6 +42,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Estados para Modales Legales
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // Refs para navegación fluida con tecla Enter
   const emailInputRef = useRef<TextInput>(null);
@@ -220,22 +229,45 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </Text>
         </TouchableOpacity>
 
-        {/* Divisor "o ingresá con" */}
+        {/* Divisor "o" */}
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>o ingresá con</Text>
+          <Text style={styles.dividerText}>o</Text>
           <View style={styles.dividerLine} />
         </View>
 
-        {/* Botón Continuar con Google */}
+        {/* Botón de Google Cuadrado/Centrado con logo_google.png */}
         <TouchableOpacity
-          style={styles.googleButton}
+          style={styles.googleIconButton}
           onPress={handleGoogleLogin}
           activeOpacity={0.85}
         >
-          <Text style={styles.googleIconText}>G</Text>
-          <Text style={styles.googleButtonText}>Continuar con Google</Text>
+          <Image
+            source={require('../../assets/logo/logo_google.png')}
+            style={styles.googleIconImage}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
+
+        {/* Texto Legal: Políticas de Privacidad y Términos y condiciones */}
+        <View style={styles.legalNoticeContainer}>
+          <Text style={styles.legalNoticeText}>
+            Este sitio está sujeto a{' '}
+            <Text
+              style={styles.legalLink}
+              onPress={() => setShowPrivacyModal(true)}
+            >
+              Políticas de Privacidad
+            </Text>
+            {' y '}
+            <Text
+              style={styles.legalLink}
+              onPress={() => setShowTermsModal(true)}
+            >
+              Términos y condiciones
+            </Text>
+          </Text>
+        </View>
 
         <TouchableOpacity
           style={styles.secondaryCardButton}
@@ -246,6 +278,124 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal de Términos y Condiciones */}
+      <Modal
+        visible={showTermsModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowTermsModal(false)}
+      >
+        <View style={styles.legalModalOverlay}>
+          <View style={styles.legalModalCard}>
+            <View style={styles.legalModalHeader}>
+              <Text style={styles.legalModalTitle}>📜 Términos y Condiciones</Text>
+              <TouchableOpacity
+                onPress={() => setShowTermsModal(false)}
+                style={styles.legalModalCloseBtn}
+              >
+                <Text style={styles.legalModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.legalModalSubtitle}>
+              BA Protege+ • Lotería de la Ciudad de Buenos Aires (LOTBA)
+            </Text>
+
+            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={true}>
+              <Text style={styles.legalSectionTitle}>1. Aceptación del Servicio</Text>
+              <Text style={styles.legalParagraph}>
+                Al crear una cuenta e iniciar sesión en BA Protege+, aceptas cumplir íntegramente con los presentes Términos y Condiciones. Esta plataforma es provista por el Gobierno de la Ciudad Autónoma de Buenos Aires a través de LOTBA S.E. para la prevención del juego ilegal y la protección de menores.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>2. Requisito de Mayoría de Edad</Text>
+              <Text style={styles.legalParagraph}>
+                El acceso al Modo Responsable está reservado exclusivamente a padres, madres, tutores legales o adultos responsables mayores de 18 años. Queda estrictamente prohibida la creación de cuentas por menores de edad.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>3. Uso del Servicio de Filtrado VPN</Text>
+              <Text style={styles.legalParagraph}>
+                La aplicación instala un túnel de filtrado local (VPN) en el dispositivo para bloquear automáticamente solicitudes hacia plataformas de apuestas no autorizadas o clandestinas enumeradas en la lista oficial de LOTBA.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>4. Protección Anti-Desinstalación</Text>
+              <Text style={styles.legalParagraph}>
+                Con el fin de asegurar la efectividad del control parental, el sistema utiliza permisos de Accesibilidad de Android para prevenir el cierre o desinstalación no autorizada de la aplicación sin la clave PIN del tutor.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>5. Modificaciones y Actualizaciones</Text>
+              <Text style={styles.legalParagraph}>
+                LOTBA se reserva el derecho de actualizar la lista de dominios bloqueados y las funcionalidades del sistema en cualquier momento para mantener la protección activa.
+              </Text>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.legalModalConfirmBtn}
+              onPress={() => setShowTermsModal(false)}
+            >
+              <Text style={styles.legalModalConfirmBtnText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de Políticas de Privacidad */}
+      <Modal
+        visible={showPrivacyModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowPrivacyModal(false)}
+      >
+        <View style={styles.legalModalOverlay}>
+          <View style={styles.legalModalCard}>
+            <View style={styles.legalModalHeader}>
+              <Text style={styles.legalModalTitle}>🛡️ Políticas de Privacidad</Text>
+              <TouchableOpacity
+                onPress={() => setShowPrivacyModal(false)}
+                style={styles.legalModalCloseBtn}
+              >
+                <Text style={styles.legalModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.legalModalSubtitle}>
+              Protección de Datos Personales • Ley N° 25.326
+            </Text>
+
+            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={true}>
+              <Text style={styles.legalSectionTitle}>1. Compromiso de Privacidad</Text>
+              <Text style={styles.legalParagraph}>
+                BA Protege+ garantiza el tratamiento confidencial y seguro de todos los datos personales de acuerdo con la Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>2. Información Recolectada</Text>
+              <Text style={styles.legalParagraph}>
+                Recolectamos datos mínimos e indispensables: nombre, apellido, correo electrónico, teléfono, fecha de nacimiento, identificador de dispositivo y registros de intentos de acceso a sitios bloqueados.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>3. Uso de Datos y Geolocalización</Text>
+              <Text style={styles.legalParagraph}>
+                La información de geolocalización e IP se utiliza únicamente para auditar la seguridad del dispositivo y la vinculación de cuentas. Nunca comercializamos, vendemos ni compartimos datos con anunciantes ni terceros.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>4. Seguridad e Inmutabilidad</Text>
+              <Text style={styles.legalParagraph}>
+                Toda la comunicación entre el dispositivo y nuestros servidores viaja cifrada con protocolo TLS 1.3/HTTPS. Los registros de auditoría de seguridad se guardan de forma inmutable.
+              </Text>
+
+              <Text style={styles.legalSectionTitle}>5. Derechos del Usuario</Text>
+              <Text style={styles.legalParagraph}>
+                Como titular de los datos, tienes derecho a rectificar, actualizar o solicitar la supresión de tu información personal en cualquier momento escribiendo al soporte oficial de BA Protege+.
+              </Text>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.legalModalConfirmBtn}
+              onPress={() => setShowPrivacyModal(false)}
+            >
+              <Text style={styles.legalModalConfirmBtnText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -356,7 +506,7 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 12,
+    marginVertical: 14,
   },
   dividerLine: {
     flex: 1,
@@ -365,38 +515,41 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     paddingHorizontal: 12,
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textMuted,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontWeight: '500',
   },
-  googleButton: {
-    flexDirection: 'row',
+  googleIconButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#DADCE0',
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 16,
-    marginVertical: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    alignSelf: 'center',
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  googleIconText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#4285F4',
-    marginRight: 10,
+  googleIconImage: {
+    width: 28,
+    height: 28,
   },
-  googleButtonText: {
-    fontSize: 15,
+  legalNoticeContainer: {
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+  },
+  legalNoticeText: {
+    fontSize: 13.5,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  legalLink: {
+    color: colors.primary,
     fontWeight: '600',
-    color: '#3C4043',
   },
   secondaryCardButton: {
     alignItems: 'center',
@@ -410,6 +563,82 @@ const styles = StyleSheet.create({
   },
   highlightText: {
     color: colors.primary,
+    fontWeight: '700',
+  },
+
+  // Estilos de Modales Legales
+  legalModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+  },
+  legalModalCard: {
+    width: '100%',
+    maxHeight: '85%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  legalModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  legalModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  legalModalCloseBtn: {
+    padding: 6,
+  },
+  legalModalCloseText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  legalModalSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  legalModalBody: {
+    marginVertical: 6,
+    paddingRight: 4,
+  },
+  legalSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  legalParagraph: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  legalModalConfirmBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  legalModalConfirmBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '700',
   },
 });

@@ -2,13 +2,18 @@
 // Proyecto: BA Protege+
 // Componente: Web Simulator - ParentDashboardStep (Paso 5A)
 // Archivo: src/web/components/ParentDashboardStep.tsx
-// Descripción: Paso 5A del flujo con panel del responsable, alerta de permisos del tutor,
-//              autocontrol de 24hs, generador de código de pareamiento (hasta 5) y auditoría de permisos.
+// Descripción: Paso 5A del flujo con panel del responsable, barra de navegación
+//              inferior (Navbar 5 pestañas: Panel, Dispositivos, Sitios, Actividad,
+//              Cuenta) con íconos PNG, resalte #E5F1FF y etiquetas de texto,
+//              búsqueda y ordenamiento en dispositivos y desvinculación con doble confirmación.
 // ==============================================================================
 
 import React, { useState } from 'react';
 import { WebPermissionsState } from './PermissionsStep';
 import { CustomBlockedDomain } from '../../types';
+import logoBaPng from '../../assets/logo/logo_ba.png';
+
+type DashboardTab = 'inicio' | 'dispositivos' | 'sitios' | 'actividad' | 'cuenta';
 
 interface ParentDashboardStepProps {
   parentUser: any;
@@ -30,7 +35,26 @@ interface ParentDashboardStepProps {
   onAddCustomSite?: (domain: string, category: string) => void;
   onUpdateCustomSite?: (id: string, data: { domain?: string; category?: string; isActive?: boolean }) => void;
   onDeleteCustomSite?: (id: string) => void;
+  onUnbindDevice?: (deviceId: string) => void;
 }
+
+const navTabs: DashboardTab[] = ['inicio', 'dispositivos', 'sitios', 'actividad', 'cuenta'];
+
+const webNavIcons: Record<DashboardTab, string> = {
+  inicio: '/src/assets/icons/navbar/inicio.png',
+  dispositivos: '/src/assets/icons/navbar/dispositivos.png',
+  sitios: '/src/assets/icons/navbar/sitios.png',
+  actividad: '/src/assets/icons/navbar/actividad.png',
+  cuenta: '/src/assets/icons/navbar/cuenta.png',
+};
+
+const webNavLabels: Record<DashboardTab, string> = {
+  inicio: 'Panel',
+  dispositivos: 'Dispositivos',
+  sitios: 'Sitios',
+  actividad: 'Actividad',
+  cuenta: 'Cuenta',
+};
 
 export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
   parentUser,
@@ -52,8 +76,18 @@ export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
   onAddCustomSite,
   onUpdateCustomSite,
   onDeleteCustomSite,
+  onUnbindDevice,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('inicio');
+  const [activityFilter, setActivityFilter] = useState<'ALL' | 'BLOCK' | 'ALERT' | 'SYSTEM'>('ALL');
+
+  // Filtros y orden de Dispositivos
+  const [deviceSearch, setDeviceSearch] = useState('');
+  const [deviceSort, setDeviceSort] = useState<'NAME' | 'DATE'>('NAME');
+  const [unbindingDev, setUnbindingDev] = useState<any | null>(null);
+  const [unbindStep, setUnbindStep] = useState<1 | 2>(1);
+
+  // CRUD de Sitios
   const [newDomain, setNewDomain] = useState('');
   const [newCategory, setNewCategory] = useState('Apuestas');
   const [addError, setAddError] = useState('');
@@ -73,714 +107,516 @@ export const ParentDashboardStep: React.FC<ParentDashboardStepProps> = ({
       setAddError('Formato de dominio no válido (ejemplo: sitio.com)');
       return;
     }
-    onAddCustomSite?.(cleanDomain, newCategory);
+
+    if (onAddCustomSite) {
+      onAddCustomSite(cleanDomain, newCategory);
+    }
     setNewDomain('');
   };
-  const missingParentPerms: string[] = [];
-  if (!webPermissions.vpn) missingParentPerms.push('Servicio VPN Local (Filtrado LOTBA)');
-  if (!webPermissions.accessibility) missingParentPerms.push('Servicio de Accesibilidad (Antidesinstalación)');
-  if (!webPermissions.notifications) missingParentPerms.push('Notificaciones en Primer Plano');
-  if (!webPermissions.batteryOptimization) missingParentPerms.push('Exención de Batería (Segundo Plano)');
+
+  // Filtrado y ordenamiento de dispositivos
+  const filteredDevices = devices.filter((dev) => {
+    const term = deviceSearch.toLowerCase().trim();
+    if (!term) return true;
+    return (
+      (dev.name && dev.name.toLowerCase().includes(term)) ||
+      (dev.childName && dev.childName.toLowerCase().includes(term)) ||
+      (dev.deviceId && dev.deviceId.toLowerCase().includes(term))
+    );
+  });
+
+  const sortedDevices = [...filteredDevices].sort((a, b) => {
+    if (deviceSort === 'NAME') {
+      const nameA = a.name || a.childName || '';
+      const nameB = b.name || b.childName || '';
+      return nameA.localeCompare(nameB);
+    } else {
+      const dateA = a.pairedAt || a.createdAt || '';
+      const dateB = b.pairedAt || b.createdAt || '';
+      return dateB.localeCompare(dateA);
+    }
+  });
+
+  const handleConfirmUnbind = () => {
+    if (unbindingDev && onUnbindDevice) {
+      onUnbindDevice(unbindingDev.id || unbindingDev.deviceId);
+    }
+    setUnbindingDev(null);
+    setUnbindStep(1);
+  };
 
   return (
-    <div style={{ padding: '16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div>
-          <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#E7F1FF', color: '#0056B3', padding: '2px 6px', borderRadius: '4px' }}>
-            PASO 5A • DASHBOARD
-          </span>
-          <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1C1C1E', marginTop: '2px' }}>Panel Responsable</h2>
-          <p style={{ fontSize: '12px', color: '#8E8E93' }}>
-            Bienvenido/a, {parentUser?.fullName || 'Tutor Responsable'}
-          </p>
-        </div>
-        <button
-          style={{ background: 'none', border: 'none', color: '#DC3545', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
-          onClick={onExit}
-        >
-          Salir
-        </button>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', backgroundColor: '#F8F9FA' }}>
+      {/* CONTENIDO DE LA PESTAÑA SELECCIONADA */}
+      <div style={{ flex: 1, padding: '16px 16px 24px 16px' }}>
 
-      {/* CAJA DE ALERTA DE PERMISOS FALTANTES DEL TUTOR */}
-      {missingParentPerms.length > 0 ? (
-        <div style={{ backgroundColor: '#FFF3CD', border: '1.5px solid #FFC107', borderRadius: '16px', padding: '14px', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <span style={{ fontSize: '13px', fontWeight: '800', color: '#856404' }}>
-              ⚠️ Permisos Pendientes del Tutor ({4 - missingParentPerms.length}/4 Concedidos)
-            </span>
-            <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#FFC107', color: '#FFF', padding: '2px 8px', borderRadius: '6px' }}>
-              ALERTA
-            </span>
-          </div>
-          <p style={{ fontSize: '12px', color: '#856404', marginBottom: '8px', lineHeight: '1.4' }}>
-            Tu dispositivo de responsable no cuenta con todos los permisos habilitados. Faltan autorizar:
-          </p>
-          <div style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: '10px', padding: '8px 10px', marginBottom: '12px' }}>
-            {missingParentPerms.map((pText, idx) => (
-              <div key={idx} style={{ fontSize: '11px', fontWeight: '700', color: '#856404', marginBottom: '3px' }}>
-                • {pText}
-              </div>
-            ))}
-          </div>
-          <button
-            style={{ width: '100%', height: '38px', borderRadius: '10px', backgroundColor: '#D97706', color: '#FFF', border: 'none', fontWeight: '800', fontSize: '12px', cursor: 'pointer' }}
-            onClick={onOpenPermissions}
-          >
-            Configurar Permisos Faltantes ⚙️
-          </button>
-        </div>
-      ) : (
-        <div style={{ backgroundColor: '#E7F1FF', borderRadius: '12px', padding: '12px', border: '1px solid #B6D4FE', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* VISTA 1: INICIO (PANEL) */}
+        {activeTab === 'inicio' && (
           <div>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: '#0056B3' }}>Permisos del Tutor</div>
-            <div style={{ fontSize: '11px', color: '#0A58CA' }}>Todos los permisos activos (4/4 OK)</div>
-          </div>
-          <button
-            style={{ padding: '6px 12px', borderRadius: '8px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
-            onClick={onOpenPermissions}
-          >
-            Auditar ⚙️
-          </button>
-        </div>
-      )}
-
-      {/* AUTOCONTROL DEL TUTOR */}
-      <div
-        style={{
-          backgroundColor: '#FFF',
-          borderRadius: '16px',
-          padding: '16px',
-          borderWidth: '2px',
-          borderStyle: 'solid',
-          borderColor:
-            selfControlStatus === 'TEMPORARILY_UNLOCKED'
-              ? '#007AFF'
-              : selfControlStatus === 'DEACTIVATION_READY'
-              ? '#28A745'
-              : selfControlStatus === 'DEACTIVATION_PENDING'
-              ? '#FFC107'
-              : selfControlActive
-              ? '#28A745'
-              : '#E9ECEF',
-          marginBottom: '16px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-          <span style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E' }}>Autocontrol del Tutor</span>
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: '700',
-              backgroundColor:
-                selfControlStatus === 'TEMPORARILY_UNLOCKED'
-                  ? '#E7F1FF'
-                  : selfControlStatus === 'DEACTIVATION_READY'
-                  ? '#D1E7DD'
-                  : selfControlStatus === 'DEACTIVATION_PENDING'
-                  ? '#FFF3CD'
-                  : selfControlActive
-                  ? '#D1E7DD'
-                  : '#E2E3E5',
-              color:
-                selfControlStatus === 'TEMPORARILY_UNLOCKED'
-                  ? '#0056B3'
-                  : selfControlStatus === 'DEACTIVATION_READY'
-                  ? '#0F5132'
-                  : selfControlStatus === 'DEACTIVATION_PENDING'
-                  ? '#856404'
-                  : selfControlActive
-                  ? '#0F5132'
-                  : '#6C757D',
-              padding: '3px 8px',
-              borderRadius: '10px',
-            }}
-          >
-            {selfControlStatus === 'TEMPORARILY_UNLOCKED'
-              ? '🔓 DESBLOQUEADO (PASE 24H)'
-              : selfControlStatus === 'DEACTIVATION_READY'
-              ? '🔓 DESACTIVACIÓN HABILITADA'
-              : selfControlStatus === 'DEACTIVATION_PENDING'
-              ? '⏳ ESPERA 24H'
-              : selfControlActive
-              ? '🔒 ACTIVA'
-              : 'INACTIVO'}
-          </span>
-        </div>
-
-        {/* 1. Paso: Temporizador de 24hs activo tras el primer clic */}
-        {selfControlStatus === 'DEACTIVATION_PENDING' && (
-          <div
-            style={{
-              backgroundColor: '#FFF3CD',
-              border: '1px solid #FFC107',
-              borderRadius: '10px',
-              padding: '10px',
-              color: '#856404',
-              fontSize: '12px',
-              fontWeight: '700',
-              marginBottom: '12px',
-            }}
-          >
-            ⚠️ La desactivación se habilitará en 24 horas.
-            <div style={{ fontSize: '11px', fontWeight: '500', marginTop: '3px' }}>
-              Tiempo restante para habilitar el botón: {selfControlRemainingText || '24h 00m'}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#007AFF', color: '#FFF', padding: '3px 8px', borderRadius: '6px' }}>
+                  MODO RESPONSABLE
+                </span>
+                <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1C1C1E', marginTop: '4px', margin: 0 }}>
+                  Panel del Responsable
+                </h2>
+                <p style={{ fontSize: '12px', color: '#8E8E93', margin: '2px 0 0 0' }}>
+                  Monitoreo, Permisos de Dispositivos y Autocontrol
+                </p>
+              </div>
+              <img src={logoBaPng} alt="BA Protege+" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
             </div>
-          </div>
-        )}
 
-        {/* 2. Paso: Cumplidas las 24hs de espera */}
-        {selfControlStatus === 'DEACTIVATION_READY' && (
-          <div
-            style={{
-              backgroundColor: '#D1E7DD',
-              border: '1px solid #BADBCC',
-              borderRadius: '10px',
-              padding: '10px',
-              color: '#0F5132',
-              fontSize: '12px',
-              fontWeight: '700',
-              marginBottom: '12px',
-            }}
-          >
-            ✅ Pasaron las 24 horas requeridas.
-            <div style={{ fontSize: '11px', fontWeight: '500', marginTop: '3px' }}>
-              Haz clic nuevamente en el botón para confirmar el desbloqueo real de autoprotección.
+            {/* Tarjetas de Resumen General */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
+              <div style={{ backgroundColor: '#FFF', borderRadius: '14px', padding: '12px', textAlign: 'center', border: '1px solid #E9ECEF' }}>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: '#007AFF' }}>{devices.length}/{maxDevices}</div>
+                <div style={{ fontSize: '11px', color: '#8E8E93', fontWeight: '600' }}>Dispositivos</div>
+              </div>
+              <div style={{ backgroundColor: '#FFF', borderRadius: '14px', padding: '12px', textAlign: 'center', border: '1px solid #E9ECEF' }}>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: '#198754' }}>3/3</div>
+                <div style={{ fontSize: '11px', color: '#8E8E93', fontWeight: '600' }}>Reglas</div>
+              </div>
+              <div style={{ backgroundColor: '#FFF', borderRadius: '14px', padding: '12px', textAlign: 'center', border: '1px solid #E9ECEF' }}>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: selfControlActive ? '#DC3545' : '#6C757D' }}>
+                  {selfControlActive ? '🔒' : 'Off'}
+                </div>
+                <div style={{ fontSize: '11px', color: '#8E8E93', fontWeight: '600' }}>Autocontrol</div>
+              </div>
             </div>
-          </div>
-        )}
 
-        <p style={{ fontSize: '12px', color: '#8E8E93', marginBottom: '12px', lineHeight: '1.4' }}>
-          {selfControlStatus === 'TEMPORARILY_UNLOCKED'
-            ? `Autoprotección desbloqueada inmediatamente. Pase temporal de 24 horas activo (${selfControlRemainingText || '24h 00m restantes'}). Cumplido ese plazo, la autoprotección se volverá a activar automáticamente.`
-            : selfControlStatus === 'DEACTIVATION_READY'
-            ? 'La desactivación está habilitada. Toca el botón para confirmar el desbloqueo real. Se otorgará un pase temporal de 24 horas.'
-            : selfControlStatus === 'DEACTIVATION_PENDING'
-            ? 'Se inició la solicitud de desactivación. La autoprotección permanece activa durante las 24 horas de espera.'
-            : selfControlActive
-            ? 'La autoprotección está activa en tu dispositivo para bloquear casas de apuestas en tu perfil.'
-            : 'Activa la autoprotección en tu cuenta mediante doble confirmación.'}
-        </p>
+            {/* SECCIÓN 1: VINCULAR DISPOSITIVO MENOR */}
+            <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E' }}>📱 Vincular Dispositivo Menor</span>
+                <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#E7F1FF', color: '#0056B3', padding: '3px 8px', borderRadius: '10px' }}>
+                  {devices.length}/{maxDevices} VINCULADOS
+                </span>
+              </div>
+              <p style={{ fontSize: '12px', color: '#8E8E93', marginBottom: '14px' }}>
+                Genera un código numérico o QR para vincular el celular del menor de forma remota.
+              </p>
 
-        {/* BOTONERA SEGÚN ESTADO */}
-        {selfControlStatus === 'TEMPORARILY_UNLOCKED' ? (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              style={{
-                flex: 1,
-                height: '42px',
-                borderRadius: '10px',
-                backgroundColor: '#007AFF',
-                color: '#FFF',
-                border: 'none',
-                fontWeight: '700',
-                cursor: 'pointer',
-              }}
-              onClick={onStartSelfControlFlow}
-            >
-              🔒 Volver a Activar Ahora
-            </button>
-            {onSimulateFastForward24h && (
+              {pairingCode && (
+                <div style={{ backgroundColor: '#E7F1FF', borderRadius: '12px', padding: '14px', textAlign: 'center', marginBottom: '14px', border: '1px solid #B6D4FE' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#0056B3', marginBottom: '4px' }}>
+                    CÓDIGO DE VINCULACIÓN GENERADO
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '6px', color: '#0056B3' }}>
+                    {pairingCode}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#0A58CA', marginTop: '4px' }}>
+                    Válido por 15 minutos • Ingresar en el dispositivo del protegido
+                  </div>
+                  <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center' }}>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${pairingCode}&color=007AFF&bgcolor=FFFFFF`}
+                      alt="QR Vinculación"
+                      style={{ width: '130px', height: '130px', borderRadius: '6px' }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <button
                 style={{
+                  width: '100%',
                   height: '42px',
                   borderRadius: '10px',
-                  backgroundColor: '#F8F9FA',
-                  border: '1px solid #DEE2E6',
-                  color: '#495057',
-                  fontSize: '11px',
+                  backgroundColor: devices.length >= maxDevices ? '#E2E3E5' : '#28A745',
+                  color: devices.length >= maxDevices ? '#6C757D' : '#FFF',
+                  border: 'none',
                   fontWeight: '700',
-                  padding: '0 12px',
-                  cursor: 'pointer',
+                  cursor: devices.length >= maxDevices ? 'not-allowed' : 'pointer',
                 }}
-                onClick={onSimulateFastForward24h}
-                title="Simular que pasaron las 24 horas para ver la reactivación automática"
+                onClick={onGeneratePairing}
+                disabled={devices.length >= maxDevices}
               >
-                ⏩ Simular +24h
+                {devices.length >= maxDevices ? 'Límite de 5 Dispositivos Alcanzado' : 'Generar Código de Pareamiento'}
               </button>
-            )}
-          </div>
-        ) : selfControlStatus === 'DEACTIVATION_READY' ? (
-          <button
-            style={{
-              width: '100%',
-              height: '42px',
-              borderRadius: '10px',
-              backgroundColor: '#28A745',
-              color: '#FFF',
-              border: 'none',
-              fontWeight: '700',
-              cursor: 'pointer',
-            }}
-            onClick={onAttemptDisableSelfControl}
-          >
-            🔓 Confirmar Desactivación (Desbloqueo Inmediato)
-          </button>
-        ) : selfControlStatus === 'DEACTIVATION_PENDING' ? (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              style={{
-                flex: 1,
-                height: '42px',
-                borderRadius: '10px',
-                backgroundColor: '#E2E3E5',
-                color: '#6C757D',
-                border: 'none',
-                fontWeight: '700',
-                cursor: 'not-allowed',
-              }}
-              disabled
-            >
-              🔒 La desactivación se habilitará en 24 horas
-            </button>
-            {onSimulateFastForward24h && (
-              <button
-                style={{
-                  height: '42px',
-                  borderRadius: '10px',
-                  backgroundColor: '#F8F9FA',
-                  border: '1px solid #DEE2E6',
-                  color: '#495057',
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  padding: '0 12px',
-                  cursor: 'pointer',
-                }}
-                onClick={onSimulateFastForward24h}
-                title="Simular que transcurrieron las 24hs para habilitar el botón"
-              >
-                ⏩ Simular +24h
-              </button>
-            )}
-          </div>
-        ) : selfControlActive ? (
-          <button
-            style={{
-              width: '100%',
-              height: '42px',
-              borderRadius: '10px',
-              backgroundColor: '#DC3545',
-              color: '#FFF',
-              border: 'none',
-              fontWeight: '700',
-              cursor: 'pointer',
-            }}
-            onClick={onAttemptDisableSelfControl}
-          >
-            Desactivar autoprotección
-          </button>
-        ) : (
-          <button
-            style={{
-              width: '100%',
-              height: '42px',
-              borderRadius: '10px',
-              backgroundColor: '#007AFF',
-              color: '#FFF',
-              border: 'none',
-              fontWeight: '700',
-              cursor: 'pointer',
-            }}
-            onClick={onStartSelfControlFlow}
-          >
-            Activar Autocontrol con Doble Confirmación
-          </button>
-        )}
-      </div>
-
-      {/* VINCULACIÓN (LÍMITE 5 DISPOSITIVOS) */}
-      <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-          <span style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E' }}>Vincular Nuevo Dispositivo</span>
-          <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#E7F1FF', color: '#0056B3', padding: '3px 8px', borderRadius: '10px' }}>
-            {devices.length}/{maxDevices} Dispositivos
-          </span>
-        </div>
-        <p style={{ fontSize: '12px', color: '#8E8E93', marginBottom: '12px' }}>
-          Límite de hasta {maxDevices} dispositivos por responsable.
-        </p>
-
-        {pairingCode && (
-          <div style={{ backgroundColor: '#E7F1FF', borderRadius: '12px', padding: '12px', textAlign: 'center', marginBottom: '12px' }}>
-            <div style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '4px', color: '#0056B3' }}>
-              {pairingCode}
-            </div>
-            <div style={{ fontSize: '11px', color: '#0056B3', marginTop: '2px', marginBottom: '10px' }}>Válido por 15 minutos</div>
-
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: '10px', padding: '12px', border: '1.5px dashed #C7D2FE', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ fontSize: '12px', fontWeight: '700', color: '#1C1C1E' }}>Código QR de Vinculación</div>
-              <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '8px' }}>Apunta la cámara del menor aquí</div>
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${pairingCode}&color=007AFF&bgcolor=FFFFFF`}
-                alt="QR Code"
-                style={{ width: '130px', height: '130px', borderRadius: '6px' }}
-              />
             </div>
           </div>
         )}
 
-        <button
-          style={{
-            width: '100%',
-            height: '42px',
-            borderRadius: '10px',
-            backgroundColor: devices.length >= maxDevices ? '#E2E3E5' : '#28A745',
-            color: devices.length >= maxDevices ? '#6C757D' : '#FFF',
-            border: 'none',
-            fontWeight: '700',
-            cursor: devices.length >= maxDevices ? 'not-allowed' : 'pointer',
-          }}
-          onClick={onGeneratePairing}
-          disabled={devices.length >= maxDevices}
-        >
-          {devices.length >= maxDevices ? 'Límite de 5 Dispositivos Alcanzado' : 'Generar Código de Pareamiento'}
-        </button>
-      </div>
-
-      {/* SECCIÓN DE BLOQUEO DE SITIOS PERSONALIZADOS (CRUD) */}
-      <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-          <span style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E' }}>Sitios Web Bloqueados</span>
-          <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#E7F1FF', color: '#0056B3', padding: '3px 8px', borderRadius: '10px' }}>
-            {customSites.length} {customSites.length === 1 ? 'Sitio' : 'Sitios'}
-          </span>
-        </div>
-        <p style={{ fontSize: '12px', color: '#8E8E93', marginBottom: '14px' }}>
-          Ingresá los dominios o páginas que deseás restringir adicionalmente a la lista oficial LOTBA.
-        </p>
-
-        {/* Formulario directo para agregar nuevo sitio */}
-        <div style={{ backgroundColor: '#F8F9FA', borderRadius: '12px', padding: '12px', border: '1px solid #E2E8F0', marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#1C1C1E', marginBottom: '6px' }}>
-            Dominio o sitio web a bloquear:
-          </label>
-          <input
-            type="text"
-            placeholder="ejemplo: casino-ilegal.bet o tiktok.com"
-            value={newDomain}
-            onChange={(e) => {
-              setNewDomain(e.target.value);
-              if (addError) setAddError('');
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddSiteClick();
-              }
-            }}
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              height: '40px',
-              padding: '0 12px',
-              borderRadius: '8px',
-              border: addError ? '1.5px solid #DC3545' : '1px solid #CED4DA',
-              fontSize: '13px',
-              marginBottom: '8px',
-            }}
-          />
-          {addError && (
-            <div style={{ fontSize: '11px', color: '#DC3545', fontWeight: '600', marginBottom: '8px' }}>
-              ⚠️ {addError}
-            </div>
-          )}
-
-          <div style={{ marginBottom: '10px' }}>
-            <span style={{ display: 'block', fontSize: '11px', color: '#6C757D', fontWeight: '600', marginBottom: '6px' }}>
-              Categoría / Motivo:
-            </span>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {['Apuestas', 'Redes Sociales', 'Juegos', 'Adultos', 'Personalizado'].map((cat) => (
+        {/* VISTA 2: DISPOSITIVOS */}
+        {activeTab === 'dispositivos' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <button
-                  key={cat}
                   type="button"
+                  onClick={() => setActiveTab('inicio')}
+                  style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Volver a Inicio"
+                >
+                  <img src="/src/assets/icons/volver.png" alt="Volver" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                </button>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1C1C1E', margin: 0 }}>Mis Dispositivos Protegidos</h2>
+                  <p style={{ fontSize: '12px', color: '#8E8E93', margin: '2px 0 0 0' }}>
+                    Administración de hasta {maxDevices} celulares vinculados
+                  </p>
+                </div>
+              </div>
+              <img src={logoBaPng} alt="BA Protege+" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+            </div>
+
+            {/* Buscador y Filtros */}
+            <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF', marginBottom: '16px' }}>
+              <input
+                type="text"
+                placeholder="🔍 Buscar por dispositivo o protegido..."
+                value={deviceSearch}
+                onChange={(e) => setDeviceSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  height: '38px',
+                  borderRadius: '10px',
+                  border: '1px solid #CED4DA',
+                  padding: '0 12px',
+                  fontSize: '13px',
+                  marginBottom: '10px',
+                }}
+              />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#6C757D' }}>Ordenar por:</span>
+                <button
+                  type="button"
+                  onClick={() => setDeviceSort('NAME')}
                   style={{
                     padding: '4px 10px',
                     borderRadius: '6px',
-                    border: newCategory === cat ? '1px solid #007AFF' : '1px solid #CED4DA',
-                    backgroundColor: newCategory === cat ? '#007AFF' : '#FFF',
-                    color: newCategory === cat ? '#FFF' : '#495057',
+                    border: 'none',
+                    backgroundColor: deviceSort === 'NAME' ? '#007AFF' : '#F1F5F9',
+                    color: deviceSort === 'NAME' ? '#FFF' : '#475569',
                     fontSize: '11px',
-                    fontWeight: '600',
+                    fontWeight: '700',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
                   }}
-                  onClick={() => setNewCategory(cat)}
                 >
-                  {cat}
+                  🔤 Nombre
                 </button>
-              ))}
-            </div>
-          </div>
+                <button
+                  type="button"
+                  onClick={() => setDeviceSort('DATE')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: deviceSort === 'DATE' ? '#007AFF' : '#F1F5F9',
+                    color: deviceSort === 'DATE' ? '#FFF' : '#475569',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                  }}
+                >
+                  📅 Fecha vinculación
+                </button>
+              </div>
 
-          <button
-            type="button"
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              height: '40px',
-              borderRadius: '8px',
-              backgroundColor: '#007AFF',
-              color: '#FFF',
-              border: 'none',
-              fontWeight: '700',
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 4px rgba(0, 122, 255, 0.2)',
-            }}
-            onClick={handleAddSiteClick}
-          >
-            🛡️ + Bloquear Sitio
-          </button>
-        </div>
-
-        {/* Encabezado de la lista y buscador si hay varios elementos */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1C1C1E' }}>
-            Mis Sitios Bloqueados
-          </span>
-          <span style={{ fontSize: '11px', color: '#8E8E93' }}>
-            {customSites.filter((s) => s.domain.toLowerCase().includes(searchTerm.toLowerCase())).length} de {customSites.length}
-          </span>
-        </div>
-
-        {customSites.length > 2 && (
-          <input
-            type="text"
-            placeholder="🔍 Filtrar lista de sitios..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              height: '34px',
-              padding: '0 10px',
-              borderRadius: '8px',
-              border: '1px solid #CED4DA',
-              fontSize: '12px',
-              marginBottom: '10px',
-            }}
-          />
-        )}
-
-        {/* Lista de sitios */}
-        {customSites.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '16px', color: '#8E8E93', fontSize: '12px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px dashed #CED4DA' }}>
-            Aún no has agregado sitios personalizados. Ingresa un dominio arriba y presiona <b>"+ Bloquear Sitio"</b>.
-          </div>
-        ) : (
-          customSites
-            .filter((s) => s.domain.toLowerCase().includes(searchTerm.toLowerCase()))
-            .map((site) => {
-              const isEditingThis = editingSiteId === site.id;
-              if (isEditingThis) {
-                return (
-                  <div key={site.id} style={{ backgroundColor: '#F8F9FA', borderRadius: '10px', padding: '10px', border: '1px solid #007AFF', marginBottom: '8px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#007AFF', marginBottom: '6px' }}>
-                      Editar Dominio Bloqueado
+              {sortedDevices.length === 0 ? (
+                <div style={{ padding: '16px', textAlign: 'center', backgroundColor: '#F8F9FA', borderRadius: '10px', color: '#8E8E93', fontSize: '12px', border: '1px dashed #CED4DA' }}>
+                  No se encontraron dispositivos.
+                </div>
+              ) : (
+                sortedDevices.map((dev: any, idx: number) => (
+                  <div key={idx} style={{ backgroundColor: '#F8F9FA', borderRadius: '12px', padding: '12px', marginBottom: '10px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#1C1C1E' }}>📱 {dev.name || dev.childName || `Dispositivo ${idx + 1}`}</span>
+                      <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#D1E7DD', color: '#0F5132', padding: '2px 6px', borderRadius: '4px' }}>PROTEGIDO</span>
                     </div>
-                    <input
-                      type="text"
-                      value={editDomain}
-                      onChange={(e) => setEditDomain(e.target.value)}
-                      style={{
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        height: '34px',
-                        padding: '0 10px',
-                        borderRadius: '6px',
-                        border: '1px solid #CED4DA',
-                        fontSize: '12px',
-                        marginBottom: '8px',
-                      }}
-                    />
-                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                      {['Apuestas', 'Redes Sociales', 'Juegos', 'Adultos', 'Personalizado'].map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            border: '1px solid #CED4DA',
-                            backgroundColor: editCategory === cat ? '#007AFF' : '#FFF',
-                            color: editCategory === cat ? '#FFF' : '#495057',
-                            fontSize: '10px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                          }}
-                          onClick={() => setEditCategory(cat)}
-                        >
-                          {cat}
-                        </button>
-                      ))}
+                    <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px', marginBottom: '8px' }}>
+                      Protegido: {dev.childName || 'Sofía'} • Sincronización: Activa
                     </div>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        style={{
-                          flex: 1,
-                          height: '32px',
-                          borderRadius: '6px',
-                          backgroundColor: '#007AFF',
-                          color: '#FFF',
-                          border: 'none',
-                          fontWeight: '700',
-                          fontSize: '11px',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => {
-                          if (!editDomain.trim()) return;
-                          onUpdateCustomSite?.(site.id, { domain: editDomain, category: editCategory });
-                          setEditingSiteId(null);
-                        }}
-                      >
-                        Guardar Cambios
-                      </button>
-                      <button
-                        style={{
-                          height: '32px',
-                          padding: '0 12px',
-                          borderRadius: '6px',
-                          backgroundColor: '#E2E3E5',
-                          color: '#495057',
-                          border: 'none',
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => setEditingSiteId(null)}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
-                <div key={site.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: '10px', padding: '10px 12px', border: '1px solid #DEE2E6', marginBottom: '8px' }}>
-                  <div style={{ flex: 1, marginRight: '8px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1C1C1E' }}>
-                      🌐 {site.domain}
-                    </div>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '3px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '600', backgroundColor: '#E7F1FF', color: '#0056B3', padding: '2px 6px', borderRadius: '6px' }}>
-                        {site.category || 'Personalizado'}
-                      </span>
-                      <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: site.isActive ? '#D1E7DD' : '#E2E3E5', color: site.isActive ? '#0F5132' : '#6C757D', padding: '2px 6px', borderRadius: '6px' }}>
-                        {site.isActive ? 'BLOQUEADO' : 'PAUSADO'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <button
-                      style={{
-                        padding: '5px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid #CED4DA',
-                        backgroundColor: '#FFF',
-                        color: '#495057',
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        fontWeight: '600',
-                      }}
-                      onClick={() => onUpdateCustomSite?.(site.id, { isActive: !site.isActive })}
-                      title={site.isActive ? 'Pausar bloqueo' : 'Reanudar bloqueo'}
-                    >
-                      {site.isActive ? '⏸️' : '▶️'}
-                    </button>
-                    <button
-                      style={{
-                        padding: '5px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid #CED4DA',
-                        backgroundColor: '#FFF',
-                        color: '#495057',
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        fontWeight: '600',
-                      }}
+                      type="button"
                       onClick={() => {
-                        setEditingSiteId(site.id);
-                        setEditDomain(site.domain);
-                        setEditCategory(site.category || 'Apuestas');
+                        setUnbindingDev(dev);
+                        setUnbindStep(1);
                       }}
-                      title="Editar dominio"
-                    >
-                      ✏️
-                    </button>
-                    <button
                       style={{
-                        padding: '5px 8px',
+                        padding: '4px 10px',
                         borderRadius: '6px',
                         border: '1px solid #F8D7DA',
                         backgroundColor: '#FFF5F5',
                         color: '#DC3545',
                         fontSize: '11px',
+                        fontWeight: '700',
                         cursor: 'pointer',
-                        fontWeight: '600',
                       }}
-                      onClick={() => {
-                        if (confirm(`¿Deseas eliminar "${site.domain}" de tu lista de bloqueo?`)) {
-                          onDeleteCustomSite?.(site.id);
-                        }
-                      }}
-                      title="Eliminar dominio"
                     >
-                      🗑️
+                      🔗 Desvincular Dispositivo
                     </button>
                   </div>
-                </div>
-              );
-            })
+                ))
+              )}
+            </div>
+          </div>
         )}
-      </div>
 
-      {/* DISPOSITIVOS VINCULADOS CON AUDITORÍA DE PERMISOS */}
-      <div>
-        <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#1C1C1E', marginBottom: '8px' }}>
-          Auditoría de Dispositivos Protegidos ({devices.length}/{maxDevices})
-        </h3>
-        {devices.map((dev) => {
-          const perms = dev.permissions || {
-            vpn: true,
-            accessibility: true,
-            notifications: true,
-            batteryOptimization: true,
-            grantedCount: 4,
-          };
-          return (
-            <div key={dev.id || dev.deviceId} style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '12px', border: '1px solid #E9ECEF', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        {/* VISTA 3: SITIOS */}
+        {activeTab === 'sitios' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('inicio')}
+                  style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Volver a Inicio"
+                >
+                  <img src="/src/assets/icons/volver.png" alt="Volver" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                </button>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1C1C1E' }}>{dev.deviceName}</div>
-                  <div style={{ fontSize: '11px', color: '#8E8E93' }}>Asignado a: {dev.childName || 'Menor'}</div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1C1C1E', margin: 0 }}>Gestión de Sitios Web</h2>
+                  <p style={{ fontSize: '12px', color: '#8E8E93', margin: '2px 0 0 0' }}>Filtro oficial LOTBA y dominios personalizados</p>
                 </div>
-                <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: '#D1E7DD', color: '#28A745', padding: '4px 8px', borderRadius: '8px' }}>
-                  PROTEGIDO
+              </div>
+              <img src={logoBaPng} alt="BA Protege+" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+            </div>
+
+            {/* SECCIÓN DE BLOQUEO DE SITIOS PERSONALIZADOS (CRUD) */}
+            <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E' }}>Sitios Web Bloqueados</span>
+                <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#E7F1FF', color: '#0056B3', padding: '3px 8px', borderRadius: '10px' }}>
+                  {customSites.length} {customSites.length === 1 ? 'Sitio' : 'Sitios'}
                 </span>
               </div>
 
-              <div style={{ backgroundColor: '#F8F9FA', borderRadius: '8px', padding: '8px 10px', fontSize: '11px', border: '1px solid #DEE2E6' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: '700', color: '#1C1C1E' }}>Permisos Android:</span>
-                  <span style={{ fontWeight: '800', color: perms.grantedCount === 4 ? '#28A745' : '#D97706' }}>
-                    {perms.grantedCount}/4 CONCEDIDOS
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', color: '#6C757D', fontSize: '10px', marginTop: '4px' }}>
-                  <div>🌐 VPN: <strong style={{ color: perms.vpn ? '#28A745' : '#DC3545' }}>{perms.vpn ? '✓ OK' : '✕ Pendiente'}</strong></div>
-                  <div>🔒 Antidesinstalación: <strong style={{ color: perms.accessibility ? '#28A745' : '#DC3545' }}>{perms.accessibility ? '✓ OK' : '✕ Pendiente'}</strong></div>
-                  <div>🔔 Notificaciones: <strong style={{ color: perms.notifications ? '#28A745' : '#DC3545' }}>{perms.notifications ? '✓ OK' : '✕ Pendiente'}</strong></div>
-                  <div>🔋 Batería: <strong style={{ color: perms.batteryOptimization ? '#28A745' : '#DC3545' }}>{perms.batteryOptimization ? '✓ OK' : '✕ Pendiente'}</strong></div>
-                </div>
+              {/* Formulario directo para agregar nuevo sitio */}
+              <div style={{ backgroundColor: '#F8F9FA', borderRadius: '12px', padding: '12px', border: '1px solid #E2E8F0', marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#1C1C1E', marginBottom: '6px' }}>
+                  Dominio o sitio web a bloquear:
+                </label>
+                <input
+                  type="text"
+                  placeholder="ejemplo: casino-ilegal.bet o tiktok.com"
+                  value={newDomain}
+                  onChange={(e) => {
+                    setNewDomain(e.target.value);
+                    if (addError) setAddError('');
+                  }}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    height: '40px',
+                    padding: '0 12px',
+                    borderRadius: '8px',
+                    border: addError ? '1.5px solid #DC3545' : '1px solid #CED4DA',
+                    fontSize: '13px',
+                    marginBottom: '8px',
+                  }}
+                />
+                {addError && (
+                  <div style={{ fontSize: '11px', color: '#DC3545', fontWeight: '600', marginBottom: '8px' }}>
+                    ⚠️ {addError}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleAddSiteClick}
+                  style={{
+                    width: '100%',
+                    height: '38px',
+                    borderRadius: '8px',
+                    backgroundColor: '#007AFF',
+                    color: '#FFF',
+                    border: 'none',
+                    fontWeight: '700',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ➕ Agregar Sitio a Bloquear
+                </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* VISTA 4: ACTIVIDAD */}
+        {activeTab === 'actividad' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('inicio')}
+                  style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Volver a Inicio"
+                >
+                  <img src="/src/assets/icons/volver.png" alt="Volver" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                </button>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1C1C1E', margin: 0 }}>Actividad del Sistema</h2>
+                  <p style={{ fontSize: '12px', color: '#8E8E93', margin: '2px 0 0 0' }}>Auditoría de bloqueos, alertas y geolocalización</p>
+                </div>
+              </div>
+              <img src={logoBaPng} alt="BA Protege+" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+            </div>
+
+            <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF' }}>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#1C1C1E', marginBottom: '10px' }}>
+                Registro de Bloqueos en Tiempo Real
+              </div>
+              <div style={{ backgroundColor: '#FFF3CD', color: '#856404', borderRadius: '10px', padding: '10px', fontSize: '12px', fontWeight: '600', marginBottom: '10px' }}>
+                🚫 Intento de acceso bloqueado: <b>bet365-ilegal.net</b> (Sofía - Hace 10 min)
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VISTA 5: CUENTA */}
+        {activeTab === 'cuenta' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('inicio')}
+                  style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Volver a Inicio"
+                >
+                  <img src="/src/assets/icons/volver.png" alt="Volver" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                </button>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1C1C1E', margin: 0 }}>Perfil y Cuenta</h2>
+                  <p style={{ fontSize: '12px', color: '#8E8E93', margin: '2px 0 0 0' }}>Ajustes del responsable y autoprotección</p>
+                </div>
+              </div>
+              <img src={logoBaPng} alt="BA Protege+" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+            </div>
+
+            <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF', marginBottom: '16px' }}>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#1C1C1E' }}>{parentUser?.fullName || 'Tutor Responsable'}</div>
+              <div style={{ fontSize: '12px', color: '#8E8E93', marginTop: '2px' }}>{parentUser?.email || 'tutor@baprotege.gob.ar'}</div>
+            </div>
+
+            <button
+              style={{ width: '100%', height: '42px', borderRadius: '10px', backgroundColor: '#F8D7DA', color: '#842029', border: '1px solid #F5C2C7', fontWeight: '700', cursor: 'pointer' }}
+              onClick={onExit}
+            >
+              Cerrar Sesión del Panel
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* MODAL DE DESVINCULACIÓN EN SIMULADOR WEB */}
+      {unbindingDev && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '20px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: '28px', marginBottom: '8px' }}>🔗</div>
+            <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#1C1C1E', margin: '0 0 8px 0' }}>
+              {unbindStep === 1 ? 'Confirmación 1 de 2' : 'Confirmación Final'}
+            </h3>
+            <p style={{ fontSize: '12px', color: '#475569', margin: '0 0 12px 0' }}>
+              {unbindStep === 1
+                ? `¿Deseas desvincular el dispositivo "${unbindingDev.name || 'Protegido'}"?`
+                : '¿Estás seguro de eliminar permanentemente la vinculación?'}
+            </p>
+
+            {unbindStep === 1 ? (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setUnbindStep(2)}
+                  style={{ width: '100%', height: '38px', borderRadius: '8px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', fontWeight: '700', fontSize: '12px', marginBottom: '8px', cursor: 'pointer' }}
+                >
+                  Entiendo las consecuencias, Continuar ➔
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUnbindingDev(null)}
+                  style={{ width: '100%', height: '36px', borderRadius: '8px', backgroundColor: '#E2E8F0', color: '#475569', border: 'none', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <div>
+                <button
+                  type="button"
+                  onClick={handleConfirmUnbind}
+                  style={{ width: '100%', height: '38px', borderRadius: '8px', backgroundColor: '#DC3545', color: '#FFF', border: 'none', fontWeight: '700', fontSize: '12px', marginBottom: '8px', cursor: 'pointer' }}
+                >
+                  🔗 Confirmar y Desvincular
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUnbindStep(1)}
+                  style={{ width: '100%', height: '36px', borderRadius: '8px', backgroundColor: '#E2E8F0', color: '#475569', border: 'none', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  Volver Atrás
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* BARRA DE NAVEGACIÓN INFERIOR (NAVBAR CON 5 OPCIONES, HIGHLIGHT #E5F1FF Y TEXTO) */}
+      <div
+        style={{
+          position: 'sticky',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#FFFFFF',
+          borderTop: '1px solid #E9ECEF',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          padding: '6px 4px',
+          height: '66px',
+          boxSizing: 'border-box',
+          boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.05)',
+        }}
+      >
+        {navTabs.map((tab) => {
+          const isActive = activeTab === tab;
+
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                flex: 1,
+                maxWidth: '72px',
+                padding: '5px 2px',
+                borderRadius: '12px',
+                backgroundColor: isActive ? '#E5F1FF' : 'transparent',
+                border: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease',
+              }}
+              aria-label={`Navegar a ${webNavLabels[tab]}`}
+            >
+              <img
+                src={webNavIcons[tab]}
+                alt={tab}
+                style={{ width: '22px', height: '22px', objectFit: 'contain', marginBottom: '2px' }}
+              />
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: isActive ? '700' : '600',
+                  color: isActive ? '#0056B3' : '#64748B',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {webNavLabels[tab]}
+              </span>
+            </button>
           );
         })}
       </div>

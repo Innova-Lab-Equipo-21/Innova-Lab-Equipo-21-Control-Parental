@@ -19,7 +19,7 @@ import {
 import { Header } from '../components/Header';
 import { ActionButton } from '../components/ActionButton';
 import { Badge } from '../components/Badge';
-import { AccordionSection } from '../components/dashboard/AccordionSection';
+import { SeccionDesplegable } from '../components/dashboard/SeccionDesplegable';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { vpnServiceBridge } from '../services/vpn.service';
@@ -227,7 +227,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         </View>
 
         {/* Permiso 1: VpnService */}
-        <AccordionSection
+        <SeccionDesplegable
           title="1. Servicio de Filtrado VPN"
           subtitle="Intercepta y bloquea sitios LOTBA no autorizados"
           badgeLabel={permissions.vpn ? 'CONCEDIDO' : 'REQUERIDO'}
@@ -246,10 +246,10 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               loading={loadingKey === 'vpn'}
             />
           )}
-        </AccordionSection>
+        </SeccionDesplegable>
 
         {/* Permiso 2: Servicio de Accesibilidad */}
-        <AccordionSection
+        <SeccionDesplegable
           title="2. Servicio de Accesibilidad"
           subtitle="Protección antidesinstalación sin PIN del tutor"
           badgeLabel={permissions.accessibility ? 'CONCEDIDO' : 'REQUERIDO'}
@@ -268,10 +268,10 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               loading={loadingKey === 'accessibility'}
             />
           )}
-        </AccordionSection>
+        </SeccionDesplegable>
 
         {/* Permiso 3: Notificaciones */}
-        <AccordionSection
+        <SeccionDesplegable
           title="3. Notificaciones del Sistema"
           subtitle="Avisos de estado y alertas en tiempo real"
           badgeLabel={permissions.notifications ? 'CONCEDIDO' : 'REQUERIDO'}
@@ -289,10 +289,10 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               onPress={handleRequestNotifications}
             />
           )}
-        </AccordionSection>
+        </SeccionDesplegable>
 
         {/* Permiso 4: Exención de Batería */}
-        <AccordionSection
+        <SeccionDesplegable
           title="4. Sin Optimización de Batería"
           subtitle="Ejecución continua con pantalla apagada"
           badgeLabel={permissions.batteryOptimization ? 'CONCEDIDO' : 'REQUERIDO'}
@@ -311,10 +311,10 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               loading={loadingKey === 'battery'}
             />
           )}
-        </AccordionSection>
+        </SeccionDesplegable>
 
         {/* Permiso 5: Ubicación y Geolocalización (GPS) */}
-        <AccordionSection
+        <SeccionDesplegable
           title="5. Ubicación y Geolocalización (GPS)"
           subtitle="Guarda la posición geográfica del dispositivo para el responsable"
           badgeLabel={permissions.location ? 'CONCEDIDO' : 'REQUERIDO'}
@@ -339,7 +339,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               loading={loadingKey === 'location'}
             />
           )}
-        </AccordionSection>
+        </SeccionDesplegable>
 
         {/* Botones de Acción Final */}
         <View style={styles.footerSection}>

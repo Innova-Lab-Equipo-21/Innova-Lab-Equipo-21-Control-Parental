@@ -1,15 +1,15 @@
 // ==============================================================================
 // Proyecto: BA Protege+
 // Componente: SelfControlSection (Sección de Autocontrol del Responsable 24h)
-// Archivo: src/components/dashboard/SelfControlSection.tsx
+// Archivo: src/components/dashboard/cuenta/SelfControlSection.tsx
 // ==============================================================================
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { ActionButton } from '../ActionButton';
-import { Badge } from '../Badge';
-import { colors } from '../../theme/colors';
-import { SelfControlState } from '../../types';
+import { ActionButton } from '../../ActionButton';
+import { Badge } from '../../Badge';
+import { colors } from '../../../theme/colors';
+import { SelfControlState } from '../../../types';
 
 interface SelfControlSectionProps {
   selfControl: SelfControlState;

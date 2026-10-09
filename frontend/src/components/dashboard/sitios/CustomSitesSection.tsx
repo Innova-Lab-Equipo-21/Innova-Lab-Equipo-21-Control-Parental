@@ -1,7 +1,7 @@
 // ==============================================================================
 // Proyecto: BA Protege+
 // Componente: CustomSitesSection (Gestión CRUD de Sitios Bloqueados Personalizados)
-// Archivo: src/components/dashboard/CustomSitesSection.tsx
+// Archivo: src/components/dashboard/sitios/CustomSitesSection.tsx
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -14,11 +14,11 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import { ActionButton } from '../ActionButton';
-import { Badge } from '../Badge';
-import { colors } from '../../theme/colors';
-import { CustomBlockedDomain } from '../../types';
-import { apiService } from '../../services/api.service';
+import { ActionButton } from '../../ActionButton';
+import { Badge } from '../../Badge';
+import { colors } from '../../../theme/colors';
+import { CustomBlockedDomain } from '../../../types';
+import { apiService } from '../../../services/api.service';
 
 interface CustomSitesSectionProps {
   customSites: CustomBlockedDomain[];

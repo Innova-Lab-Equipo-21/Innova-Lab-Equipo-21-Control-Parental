@@ -1,13 +1,13 @@
 // ==============================================================================
 // Proyecto: BA Protege+
 // Componente: GlobalRulesSection (Reglas de Control Parental Global)
-// Archivo: src/components/dashboard/GlobalRulesSection.tsx
+// Archivo: src/components/dashboard/sitios/GlobalRulesSection.tsx
 // ==============================================================================
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { ControlCard } from '../ControlCard';
-import { colors } from '../../theme/colors';
+import { ControlCard } from '../../ControlCard';
+import { colors } from '../../../theme/colors';
 
 interface GlobalRulesSectionProps {
   ruleBetting: boolean;

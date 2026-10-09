@@ -2,7 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Panel de Control de Responsable)
 // Archivo: src/screens/ParentDashboardScreen.tsx
-// Descripción: Panel de control modularizado con acordeones para reducir scroll.
+// Descripción: Panel de control con barra de navegación inferior (Navbar 5 pestañas:
+//              Inicio, Dispositivos, Sitios, Actividad y Cuenta) e íconos en @navbar.
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -14,6 +15,7 @@ import {
   ScrollView,
   Alert,
   Modal,
+  TouchableOpacity,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ActionButton } from '../components/ActionButton';
@@ -23,14 +25,13 @@ import { colors } from '../theme/colors';
 import { apiService } from '../services/api.service';
 import { MAX_PARENT_DEVICES, SelfControlState, DeviceInfo, CustomBlockedDomain } from '../types';
 
-// Subcomponentes modulares de acordeón
-import { AccordionSection } from '../components/dashboard/AccordionSection';
-import { TutorPermissionsSection } from '../components/dashboard/TutorPermissionsSection';
-import { SelfControlSection } from '../components/dashboard/SelfControlSection';
-import { PairingSection } from '../components/dashboard/PairingSection';
-import { GlobalRulesSection } from '../components/dashboard/GlobalRulesSection';
-import { CustomSitesSection } from '../components/dashboard/CustomSitesSection';
-import { ProtectedDevicesSection } from '../components/dashboard/ProtectedDevicesSection';
+// Subcomponentes modulares organizados por carpetas de la Navbar
+import { SeccionDesplegable } from '../components/dashboard/SeccionDesplegable';
+import { DashboardNavbar, DashboardTab } from '../components/dashboard/DashboardNavbar';
+import { ProtectedDevicesSection, PairingSection } from '../components/dashboard/dispositivos';
+import { CustomSitesSection, GlobalRulesSection } from '../components/dashboard/sitios';
+import { ActivitySection } from '../components/dashboard/actividad';
+import { SelfControlSection, TutorPermissionsSection } from '../components/dashboard/cuenta';
 
 interface ParentDashboardScreenProps {
   onExitMode: () => void;
@@ -50,6 +51,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Pestaña Activa de la Navbar (Default: 'inicio')
+  const [activeTab, setActiveTab] = useState<DashboardTab>('inicio');
 
   // Modal de Permisos del Dispositivo local del Responsable
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
@@ -212,181 +216,287 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header
-        title="Panel del Responsable"
-        subtitle={
-          currentUser?.fullName
-            ? `Bienvenido/a, ${currentUser.fullName}`
-            : 'Monitoreo, Permisos de Dispositivos y Autocontrol'
-        }
-      />
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* GRUPO 1: PERMISOS DEL TUTOR */}
-        <TutorPermissionsSection
-          permissions={permissions}
-          onConfigurePermissions={() => setShowPermissionsModal(true)}
-        />
-
-        {/* GRUPO 2: VINCULAR DISPOSITIVO MENOR (CÓDIGO Y QR) */}
-        <AccordionSection
-          title="Vincular Dispositivo Menor"
-          subtitle="Generar código y QR para vincular celular"
-          badgeLabel={`${devices.length}/${MAX_PARENT_DEVICES} VINCULADOS`}
-          badgeStatus="activo"
-          icon="📱"
-          initialExpanded={true}
-        >
-          <PairingSection
-            pairingCode={pairingCode}
-            deviceCount={devices.length}
-            loading={loading}
-            onGenerateCode={handleGeneratePairingCode}
+      {/* VISTA 1: INICIO (HOME) */}
+      {activeTab === 'inicio' && (
+        <>
+          <Header
+            title="Panel del Responsable"
+            subtitle={
+              currentUser?.fullName
+                ? `Bienvenido/a, ${currentUser.fullName}`
+                : 'Monitoreo, Permisos de Dispositivos y Autocontrol'
+            }
+            useBaLogo={true}
           />
-        </AccordionSection>
+          <ScrollView contentContainerStyle={styles.container}>
+            {/* Tarjetas de Resumen General */}
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>{devices.length}/{MAX_PARENT_DEVICES}</Text>
+                <Text style={styles.summaryLabel}>Dispositivos</Text>
+              </View>
 
-        {/* GRUPO 3: AUTOCONTROL DEL TUTOR */}
-        <AccordionSection
-          title="Autocontrol del Tutor"
-          subtitle="Protección permanente con desbloqueo de 24hs"
-          badgeLabel={
-            selfControl.status === 'TEMPORARILY_UNLOCKED'
-              ? 'PASE 24H'
-              : selfControl.status === 'DEACTIVATION_PENDING'
-              ? 'ESPERA 24H'
-              : selfControl.active
-              ? 'ACTIVA'
-              : 'INACTIVO'
-          }
-          badgeStatus={
-            selfControl.active || selfControl.status === 'DEACTIVATION_PENDING'
-              ? 'alerta'
-              : 'inactivo'
-          }
-          icon="🔒"
-          initialExpanded={false}
-        >
-          <SelfControlSection
-            selfControl={selfControl}
-            onStartSelfControlFlow={handleStartSelfControlFlow}
-            onDisableSelfControl={handleDisableSelfControl}
-          />
-        </AccordionSection>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>3/3</Text>
+                <Text style={styles.summaryLabel}>Reglas Activas</Text>
+              </View>
 
-        {/* GRUPO 4: REGLAS DE PROTECCIÓN GLOBAL */}
-        <AccordionSection
-          title="Reglas de Protección Global"
-          subtitle="Filtros LOTBA y protección antidesinstalación"
-          badgeLabel="3 REGLAS"
-          badgeStatus="activo"
-          icon="🛡️"
-          initialExpanded={false}
-        >
-          <GlobalRulesSection
-            ruleBetting={ruleBetting}
-            ruleAlerts={ruleAlerts}
-            ruleUninstallProtection={ruleUninstallProtection}
-            onToggleBetting={setRuleBetting}
-            onToggleAlerts={setRuleAlerts}
-            onToggleUninstallProtection={setRuleUninstallProtection}
-          />
-        </AccordionSection>
-
-        {/* GRUPO 5: SITIOS WEB BLOQUEADOS PERSONALIZADOS */}
-        <AccordionSection
-          title="Sitios Web Bloqueados"
-          subtitle="Dominios adicionales bloqueados manualmente"
-          badgeLabel={`${customSites.length} SITIOS`}
-          badgeStatus={customSites.length > 0 ? 'activo' : 'inactivo'}
-          icon="🌐"
-          initialExpanded={false}
-        >
-          <CustomSitesSection
-            customSites={customSites}
-            onRefreshList={loadCustomSites}
-          />
-        </AccordionSection>
-
-        {/* GRUPO 6: AUDITORÍA DE DISPOSITIVOS PROTEGIDOS */}
-        <AccordionSection
-          title={`Dispositivos Protegidos (${devices.length}/${MAX_PARENT_DEVICES})`}
-          subtitle="Auditoría detallada de permisos por celular"
-          badgeLabel={`${devices.length} DISPOSITIVOS`}
-          badgeStatus="activo"
-          icon="📊"
-          initialExpanded={true}
-        >
-          <ProtectedDevicesSection devices={devices} />
-        </AccordionSection>
-
-        {/* Botón de Salida */}
-        <View style={styles.footer}>
-          <ActionButton
-            title="Cerrar Sesión del Panel"
-            variant="secondary"
-            onPress={() => {
-              setIsLoggedIn(false);
-              onExitMode();
-            }}
-          />
-        </View>
-
-        {/* Modal de Doble Confirmación de Autocontrol */}
-        <Modal
-          visible={showSelfControlModal}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowSelfControlModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              {confirmationStep === 1 ? (
-                <View>
-                  <Text style={styles.modalEmoji}>🔒</Text>
-                  <Text style={styles.modalTitle}>Confirmación 1 de 2: Autocontrol del Tutor</Text>
-                  <Text style={styles.modalBody}>
-                    Al activar el autocontrol, se aplicarán restricciones de acceso a sitios de apuestas en tu perfil.
-                  </Text>
-                  <View style={styles.warningBox}>
-                    <Text style={styles.warningBoxText}>
-                      ⚠️ IMPORTANTE: El bloqueo se queda permanente y deberás esperar 24 hs obligatorias para desactivar.
-                    </Text>
-                  </View>
-
-                  <ActionButton
-                    title="Entiendo las condiciones, Continuar ➔"
-                    variant="primary"
-                    onPress={handleConfirmStep1}
-                  />
-                  <ActionButton
-                    title="Cancelar"
-                    variant="secondary"
-                    onPress={() => setShowSelfControlModal(false)}
-                  />
-                </View>
-              ) : (
-                <View>
-                  <Text style={styles.modalEmoji}>⚠️</Text>
-                  <Text style={styles.modalTitle}>Confirmación 2 de 2: Activar Bloqueo Permanente</Text>
-                  <Text style={styles.modalBody}>
-                    ¿Confirmas activar la autoprotección? El bloqueo quedará permanente. Pasadas las 24 hs, podrás tocar el botón para desbloquear inmediatamente por 24 hs.
-                  </Text>
-
-                  <ActionButton
-                    title="🔒 Confirmar y Activar Autocontrol"
-                    variant="danger"
-                    onPress={handleFinalSelfControlActivation}
-                  />
-                  <ActionButton
-                    title="Volver Atrás"
-                    variant="secondary"
-                    onPress={() => setConfirmationStep(1)}
-                  />
-                </View>
-              )}
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>
+                  {selfControl.active ? '🔒 Activa' : 'Off'}
+                </Text>
+                <Text style={styles.summaryLabel}>Autocontrol</Text>
+              </View>
             </View>
+
+            {/* SECCIÓN 1: VINCULAR DISPOSITIVO MENOR */}
+            <SeccionDesplegable
+              title="Vincular Dispositivo Menor"
+              subtitle="Generar código y QR para vincular celular"
+              badgeLabel={`${devices.length}/${MAX_PARENT_DEVICES} VINCULADOS`}
+              badgeStatus="activo"
+              icon="📱"
+              initialExpanded={true}
+            >
+              <PairingSection
+                pairingCode={pairingCode}
+                deviceCount={devices.length}
+                loading={loading}
+                onGenerateCode={handleGeneratePairingCode}
+              />
+            </SeccionDesplegable>
+
+            {/* SECCIÓN 2: REGLAS DE PROTECCIÓN GLOBAL */}
+            <SeccionDesplegable
+              title="Reglas de Protección Global"
+              subtitle="Filtros LOTBA y protección antidesinstalación"
+              badgeLabel="3 REGLAS"
+              badgeStatus="activo"
+              icon="🛡️"
+              initialExpanded={false}
+            >
+              <GlobalRulesSection
+                ruleBetting={ruleBetting}
+                ruleAlerts={ruleAlerts}
+                ruleUninstallProtection={ruleUninstallProtection}
+                onToggleBetting={setRuleBetting}
+                onToggleAlerts={setRuleAlerts}
+                onToggleUninstallProtection={setRuleUninstallProtection}
+              />
+            </SeccionDesplegable>
+          </ScrollView>
+        </>
+      )}
+
+      {/* VISTA 2: DISPOSITIVOS */}
+      {activeTab === 'dispositivos' && (
+        <>
+          <Header
+            title="Mis Dispositivos Protegidos"
+            subtitle={`Administración de hasta ${MAX_PARENT_DEVICES} celulares vinculados`}
+            onBack={() => setActiveTab('inicio')}
+            useBaLogo={true}
+          />
+          <ScrollView contentContainerStyle={styles.container}>
+            <ProtectedDevicesSection devices={devices} />
+
+            {devices.length < MAX_PARENT_DEVICES && (
+              <View style={styles.sectionMargin}>
+                <ActionButton
+                  title="📱 Vincular Nuevo Dispositivo"
+                  variant="primary"
+                  onPress={() => setActiveTab('inicio')}
+                />
+              </View>
+            )}
+          </ScrollView>
+        </>
+      )}
+
+      {/* VISTA 3: SITIOS */}
+      {activeTab === 'sitios' && (
+        <>
+          <Header
+            title="Gestión de Sitios Web"
+            subtitle="Filtro oficial LOTBA y dominios bloqueados manualmente"
+            onBack={() => setActiveTab('inicio')}
+            useBaLogo={true}
+          />
+          <ScrollView contentContainerStyle={styles.container}>
+            {/* Banner Informativo de Filtro LOTBA */}
+            <View style={styles.infoBanner}>
+              <Text style={styles.infoBannerTitle}>🌐 Lista Oficial LOTBA Activa</Text>
+              <Text style={styles.infoBannerText}>
+                Se bloquean automáticamente más de 450 plataformas de apuestas clandestinas e ilegales.
+              </Text>
+            </View>
+
+            <CustomSitesSection
+              customSites={customSites}
+              onRefreshList={loadCustomSites}
+            />
+          </ScrollView>
+        </>
+      )}
+
+      {/* VISTA 4: ACTIVIDAD */}
+      {activeTab === 'actividad' && (
+        <>
+          <Header
+            title="Actividad del Sistema"
+            subtitle="Auditoría de bloqueos, alertas y geolocalización"
+            onBack={() => setActiveTab('inicio')}
+            useBaLogo={true}
+          />
+          <ScrollView contentContainerStyle={styles.container}>
+            <ActivitySection />
+          </ScrollView>
+        </>
+      )}
+
+      {/* VISTA 5: CUENTA */}
+      {activeTab === 'cuenta' && (
+        <>
+          <Header
+            title="Perfil y Cuenta"
+            subtitle="Ajustes del responsable, permisos y autoprotección"
+            onBack={() => setActiveTab('inicio')}
+            useBaLogo={true}
+          />
+          <ScrollView contentContainerStyle={styles.container}>
+            {/* Tarjeta de Perfil del Usuario */}
+            <View style={styles.profileCard}>
+              <View style={styles.profileHeader}>
+                <View style={styles.profileAvatar}>
+                  <Text style={styles.profileAvatarText}>
+                    {currentUser?.fullName?.charAt(0) || 'T'}
+                  </Text>
+                </View>
+                <View style={styles.profileInfo}>
+                  <Text style={styles.profileName}>
+                    {currentUser?.fullName || 'Tutor Responsable'}
+                  </Text>
+                  <Text style={styles.profileEmail}>
+                    {currentUser?.email || 'tutor@baprotege.gob.ar'}
+                  </Text>
+                  <View style={styles.verifiedBadge}>
+                    <Text style={styles.verifiedBadgeText}>✓ Mayor de 18 años verificado</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Configuración de Permisos del Dispositivo del Tutor */}
+            <TutorPermissionsSection
+              permissions={permissions}
+              onConfigurePermissions={() => setShowPermissionsModal(true)}
+            />
+
+            {/* Autocontrol del Tutor */}
+            <SeccionDesplegable
+              title="Autocontrol del Tutor"
+              subtitle="Protección permanente con desbloqueo de 24hs"
+              badgeLabel={
+                selfControl.status === 'TEMPORARILY_UNLOCKED'
+                  ? 'PASE 24H'
+                  : selfControl.status === 'DEACTIVATION_PENDING'
+                  ? 'ESPERA 24H'
+                  : selfControl.active
+                  ? 'ACTIVA'
+                  : 'INACTIVO'
+              }
+              badgeStatus={
+                selfControl.active || selfControl.status === 'DEACTIVATION_PENDING'
+                  ? 'alerta'
+                  : 'inactivo'
+              }
+              icon="🔒"
+              initialExpanded={true}
+            >
+              <SelfControlSection
+                selfControl={selfControl}
+                onStartSelfControlFlow={handleStartSelfControlFlow}
+                onDisableSelfControl={handleDisableSelfControl}
+              />
+            </SeccionDesplegable>
+
+            {/* Botón de Salida */}
+            <View style={styles.footer}>
+              <ActionButton
+                title="Cerrar Sesión del Panel"
+                variant="secondary"
+                onPress={() => {
+                  setIsLoggedIn(false);
+                  onExitMode();
+                }}
+              />
+            </View>
+          </ScrollView>
+        </>
+      )}
+
+      {/* BARRA DE NAVEGACIÓN INFERIOR (NAVBAR CON 5 OPCIONES Y DESTAQUE) */}
+      <DashboardNavbar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+      />
+
+      {/* Modal de Doble Confirmación de Autocontrol */}
+      <Modal
+        visible={showSelfControlModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowSelfControlModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {confirmationStep === 1 ? (
+              <View>
+                <Text style={styles.modalEmoji}>🔒</Text>
+                <Text style={styles.modalTitle}>Confirmación 1 de 2: Autocontrol del Tutor</Text>
+                <Text style={styles.modalBody}>
+                  Al activar el autocontrol, se aplicarán restricciones de acceso a sitios de apuestas en tu perfil.
+                </Text>
+                <View style={styles.warningBox}>
+                  <Text style={styles.warningBoxText}>
+                    ⚠️ IMPORTANTE: El bloqueo se queda permanente y deberás esperar 24 hs obligatorias para desactivar.
+                  </Text>
+                </View>
+
+                <ActionButton
+                  title="Entiendo las condiciones, Continuar ➔"
+                  variant="primary"
+                  onPress={handleConfirmStep1}
+                />
+                <ActionButton
+                  title="Cancelar"
+                  variant="secondary"
+                  onPress={() => setShowSelfControlModal(false)}
+                />
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.modalEmoji}>⚠️</Text>
+                <Text style={styles.modalTitle}>Confirmación 2 de 2: Activar Bloqueo Permanente</Text>
+                <Text style={styles.modalBody}>
+                  ¿Confirmas activar la autoprotección? El bloqueo quedará permanente. Pasadas las 24 hs, podrás tocar el botón para desbloquear inmediatamente por 24 hs.
+                </Text>
+
+                <ActionButton
+                  title="🔒 Confirmar y Activar Autocontrol"
+                  variant="danger"
+                  onPress={handleFinalSelfControlActivation}
+                />
+                <ActionButton
+                  title="Volver Atrás"
+                  variant="secondary"
+                  onPress={() => setConfirmationStep(1)}
+                />
+              </View>
+            )}
           </View>
-        </Modal>
-      </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -400,8 +510,113 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 28,
   },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  sectionMargin: {
+    marginTop: 12,
+  },
+  infoBanner: {
+    backgroundColor: '#E7F1FF',
+    borderColor: '#B6D4FE',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  infoBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0056B3',
+    marginBottom: 2,
+  },
+  infoBannerText: {
+    fontSize: 12,
+    color: '#0A58CA',
+    lineHeight: 16,
+  },
+  profileCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: 16,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  profileAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  profileEmail: {
+    fontSize: 12.5,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  verifiedBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#D1E7DD',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  verifiedBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0F5132',
+  },
   footer: {
     marginTop: 12,
+    marginBottom: 12,
   },
   modalOverlay: {
     flex: 1,

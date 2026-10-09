@@ -1,8 +1,10 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: Frontend Mobile (Pantalla de Pareamiento)
+// Componente: Frontend Mobile (Pantalla de Pareamiento / Vinculación de Dispositivo)
 // Archivo: src/screens/PairingScreen.tsx
-// Descripción: Flujo de vinculación mediante Código de 6 Dígitos o Escaneo de QR.
+// Descripción: Flujo guiado de vinculación mediante Código de 6 Dígitos o Escaneo de QR,
+//              con visualización de casillas de dígitos e integración con el botón Volver.
+//              (Los datos del dispositivo y protegido son configurados desde el perfil del tutor).
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -17,6 +19,7 @@ import {
   Platform,
   TouchableOpacity,
   PermissionsAndroid,
+  ScrollView,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { Logo } from '../components/Logo';
@@ -37,16 +40,16 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
 }) => {
   const [method, setMethod] = useState<PairingMethod>('CODE');
   const [code, setCode] = useState('');
-  const [deviceName, setDeviceName] = useState('Samsung Galaxy A54');
-  const [childName, setChildName] = useState('Mateo');
   const [loading, setLoading] = useState(false);
   const [isScanningQR, setIsScanningQR] = useState(false);
+
+  const isCodeComplete = code.trim().length === 6;
 
   const handlePairing = async (pairingCodeOverride?: string) => {
     const activeCode = (pairingCodeOverride || code).trim();
     if (activeCode.length !== 6) {
       Alert.alert(
-        'Código incompleto',
+        'Código Incompleto',
         'Por favor ingresa o escanea un código numérico de 6 dígitos provisto por el responsable.'
       );
       return;
@@ -59,19 +62,19 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       const result = await apiService.confirmPairing({
         pairingCode: activeCode,
         deviceUuid,
-        deviceName: deviceName.trim(),
-        childName: childName.trim(),
+        deviceName: 'Dispositivo Protegido',
+        childName: 'Protegido',
         osVersion: 'Android 14 / SDK 35',
         appVersion: '1.0.0',
       });
 
       Alert.alert(
-        '¡Vinculación Exitosa!',
-        'El dispositivo ha quedado vinculado al perfil del responsable.'
+        '¡Vinculación Exitosa! 🛡️',
+        'El dispositivo ha sido vinculado correctamente al perfil de protección.'
       );
       onPairingComplete(result.data.deviceId, result.data.deviceUuid);
     } catch (error: any) {
-      const msg = error.response?.data?.message || 'Código de pareamiento inválido o expirado';
+      const msg = error.response?.data?.message || 'Código de pareamiento inválido o expirado.';
       Alert.alert('Error de Vinculación', msg);
     } finally {
       setLoading(false);
@@ -86,7 +89,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       setIsScanningQR(false);
       Alert.alert(
         '📷 Código QR Escaneado',
-        `Se detectó el código ${simulatedCode}. Confirma para vincular.`,
+        `Se detectó el código ${simulatedCode}. Confirma para activar la protección.`,
         [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Vincular Ahora', onPress: () => handlePairing(simulatedCode) },
@@ -133,112 +136,143 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       <Header
         title="Vincular Dispositivo"
         subtitle="Ingresa el código numérico o escanea el QR generado por el tutor"
+        onBack={onBack}
       />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        style={styles.keyboardView}
       >
-        <View style={styles.formContainer}>
-          {/* Segmented Tabs para seleccionar método de vinculación */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tabButton, method === 'CODE' && styles.tabButtonActive]}
-              onPress={() => setMethod('CODE')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.tabButtonText, method === 'CODE' && styles.tabButtonTextActive]}>
-                🔢 Código 6 Dígitos
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.tabButton, method === 'QR' && styles.tabButtonActive]}
-              onPress={() => setMethod('QR')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.tabButtonText, method === 'QR' && styles.tabButtonTextActive]}>
-                📷 Escanear QR
-              </Text>
-            </TouchableOpacity>
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+          {/* Banner Explicativo de Pasos */}
+          <View style={styles.instructionCard}>
+            <Text style={styles.instructionTitle}>💡 Pasos para la vinculación:</Text>
+            <Text style={styles.instructionStep}>
+              1. En el celular del tutor, genera el código o QR en <Text style={styles.boldText}>"Vincular Nuevo Dispositivo"</Text>.
+            </Text>
+            <Text style={styles.instructionStep}>
+              2. Ingresa el código de 6 dígitos abajo o presiona <Text style={styles.boldText}>"Escanear QR"</Text>.
+            </Text>
           </View>
 
-          {/* VISTA 1: INGRESO POR CÓDIGO DE 6 DÍGITOS */}
-          {method === 'CODE' && (
-            <View>
-              <Text style={styles.label}>Código de Vinculación (6 dígitos)</Text>
-              <TextInput
-                style={styles.codeInput}
-                value={code}
-                onChangeText={(text) => setCode(text.replace(/[^0-9]/g, '').slice(0, 6))}
-                placeholder="000000"
-                keyboardType="number-pad"
-                maxLength={6}
-                textAlign="center"
-              />
-            </View>
-          )}
-
-          {/* VISTA 2: ESCANEO POR CÓDIGO QR */}
-          {method === 'QR' && (
-            <View style={styles.qrSectionContainer}>
-              <Text style={styles.label}>Escanear Código QR del Tutor</Text>
-              <View style={styles.qrViewport}>
-                <View style={styles.qrTargetBox}>
-                  <Text style={styles.qrIconLarge}>📷</Text>
-                  <Text style={styles.qrStatusText}>
-                    {isScanningQR
-                      ? 'Analizando código QR...'
-                      : code
-                      ? `Código QR detectado: ${code}`
-                      : 'Apunta la cámara al QR generado en el celular del tutor'}
-                  </Text>
-                </View>
-              </View>
+          <View style={styles.formContainer}>
+            {/* Segmented Tabs para método de vinculación */}
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[styles.tabButton, method === 'CODE' && styles.tabButtonActive]}
+                onPress={() => setMethod('CODE')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.tabButtonText, method === 'CODE' && styles.tabButtonTextActive]}>
+                  🔢 Código 6 Dígitos
+                </Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.scanQrBtn}
-                onPress={handleOpenCameraScanner}
-                activeOpacity={0.85}
+                style={[styles.tabButton, method === 'QR' && styles.tabButtonActive]}
+                onPress={() => setMethod('QR')}
+                activeOpacity={0.8}
               >
-                <Text style={styles.scanQrBtnText}>
-                  {isScanningQR ? '⌛ Escaneando...' : '📷 Abrir Cámara / Escanear QR'}
+                <Text style={[styles.tabButtonText, method === 'QR' && styles.tabButtonTextActive]}>
+                  📷 Escanear QR
                 </Text>
               </TouchableOpacity>
             </View>
-          )}
 
-          {/* Campos comunes de identificación del dispositivo */}
-          <Text style={styles.label}>Nombre para este dispositivo</Text>
-          <TextInput
-            style={styles.textInput}
-            value={deviceName}
-            onChangeText={setDeviceName}
-            placeholder="Ej: Tablet de Sofía"
-          />
+            {/* VISTA 1: INGRESO POR CÓDIGO DE 6 DÍGITOS */}
+            {method === 'CODE' && (
+              <View style={styles.codeSection}>
+                <Text style={styles.labelCenter}>Ingresa el código de 6 dígitos:</Text>
 
-          <Text style={styles.label}>Nombre del menor (opcional)</Text>
-          <TextInput
-            style={styles.textInput}
-            value={childName}
-            onChangeText={setChildName}
-            placeholder="Ej: Sofía"
-          />
+                {/* Casillas de Dígitos Visuales */}
+                <View style={styles.digitRow}>
+                  {[0, 1, 2, 3, 4, 5].map((idx) => {
+                    const digit = code[idx] || '';
+                    const isCurrent = code.length === idx;
+                    return (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.digitBox,
+                          digit ? styles.digitBoxFilled : null,
+                          isCurrent ? styles.digitBoxActive : null,
+                        ]}
+                      >
+                        <Text style={styles.digitText}>{digit}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
 
-          <View style={styles.buttonGroup}>
-            <ActionButton
-              title="Confirmar y Activar Protección"
-              onPress={() => handlePairing()}
-              loading={loading}
-            />
-            <ActionButton
-              title="Volver"
-              variant="secondary"
-              onPress={onBack}
-              disabled={loading}
-            />
+                {/* Input Transparente/Oculto para Teclado */}
+                <TextInput
+                  style={styles.hiddenInput}
+                  value={code}
+                  onChangeText={(text) => setCode(text.replace(/[^0-9]/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoFocus={true}
+                />
+              </View>
+            )}
+
+            {/* VISTA 2: ESCANEO POR CÓDIGO QR */}
+            {method === 'QR' && (
+              <View style={styles.qrSectionContainer}>
+                <Text style={styles.labelCenter}>Escanear Código QR del Tutor</Text>
+                <View style={styles.qrViewport}>
+                  <View style={styles.qrTargetBox}>
+                    <Text style={styles.qrIconLarge}>📷</Text>
+                    <Text style={styles.qrStatusText}>
+                      {isScanningQR
+                        ? 'Analizando código QR...'
+                        : code
+                        ? `Código detectado: ${code}`
+                        : 'Apunta la cámara al código QR en la pantalla del tutor'}
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.scanQrBtn}
+                  onPress={handleOpenCameraScanner}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.scanQrBtnText}>
+                    {isScanningQR ? '⌛ Escaneando...' : '📷 Abrir Cámara / Escanear QR'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Resumen / Tarjeta de Confirmación de Datos cuando el código está listo */}
+            {isCodeComplete && (
+              <View style={styles.verifiedCard}>
+                <Text style={styles.verifiedTitle}>✅ Código de Vinculación Listo</Text>
+                <Text style={styles.verifiedSubtitle}>
+                  Código: <Text style={styles.boldText}>{code}</Text> • Estado: Válido
+                </Text>
+              </View>
+            )}
+
+            {/* Botonera de Acción */}
+            <View style={styles.buttonGroup}>
+              <ActionButton
+                title="🛡️ Confirmar y Activar Protección"
+                onPress={() => handlePairing()}
+                loading={loading}
+                disabled={!isCodeComplete}
+              />
+              <ActionButton
+                title="Volver"
+                variant="secondary"
+                onPress={onBack}
+                disabled={loading}
+              />
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -251,18 +285,43 @@ const styles = StyleSheet.create({
   },
   logoWrapper: {
     alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  keyboardView: {
+    flex: 1,
   },
   container: {
-    flex: 1,
     padding: 16,
-    justifyContent: 'center',
+    paddingBottom: 28,
+  },
+  instructionCard: {
+    backgroundColor: '#E7F1FF',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#B6D4FE',
+    marginBottom: 14,
+  },
+  instructionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0056B3',
+    marginBottom: 6,
+  },
+  instructionStep: {
+    fontSize: 12,
+    color: '#0A58CA',
+    lineHeight: 17,
+    marginBottom: 4,
+  },
+  boldText: {
+    fontWeight: '700',
   },
   formContainer: {
     backgroundColor: colors.surface,
     borderRadius: 16,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
@@ -296,30 +355,60 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '800',
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 6,
-    marginTop: 10,
+  codeSection: {
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  codeInput: {
-    backgroundColor: colors.background,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 12,
-    height: 56,
-    fontSize: 26,
-    fontWeight: 'bold',
-    letterSpacing: 6,
+  labelCenter: {
+    fontSize: 13,
+    fontWeight: '700',
     color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  digitRow: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  digitBox: {
+    width: 44,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  digitBoxFilled: {
+    borderColor: colors.primary,
+    backgroundColor: '#F0F7FF',
+  },
+  digitBoxActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+  },
+  digitText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  hiddenInput: {
+    position: 'absolute',
+    width: '100%',
+    height: 52,
+    opacity: 0.01,
   },
   qrSectionContainer: {
     alignItems: 'center',
+    marginBottom: 12,
   },
   qrViewport: {
     width: '100%',
-    height: 140,
+    height: 130,
     backgroundColor: '#F8FAFC',
     borderRadius: 14,
     borderWidth: 2,
@@ -328,14 +417,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 12,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   qrTargetBox: {
     alignItems: 'center',
   },
   qrIconLarge: {
-    fontSize: 32,
-    marginBottom: 6,
+    fontSize: 30,
+    marginBottom: 4,
   },
   qrStatusText: {
     fontSize: 12,
@@ -349,24 +438,32 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 4,
   },
   scanQrBtnText: {
     color: colors.primaryDark,
     fontSize: 13,
     fontWeight: '700',
   },
-  textInput: {
-    backgroundColor: colors.background,
+  verifiedCard: {
+    backgroundColor: '#D1E7DD',
+    borderColor: '#BADBCC',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    height: 44,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: colors.textPrimary,
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  verifiedTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F5132',
+  },
+  verifiedSubtitle: {
+    fontSize: 12,
+    color: '#0F5132',
+    marginTop: 2,
   },
   buttonGroup: {
-    marginTop: 18,
+    marginTop: 12,
   },
 });

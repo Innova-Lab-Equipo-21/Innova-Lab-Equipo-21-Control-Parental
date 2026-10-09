@@ -18,6 +18,7 @@ import {
   StyleSheet,
   Alert,
   Modal,
+  Image,
 } from 'react-native';
 import { ActionButton } from '../ActionButton';
 import { Icon } from '../Icon';
@@ -732,21 +733,24 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           loading={loading}
         />
 
-        {/* Divisor "o registrate con" */}
+        {/* Divisor "o" */}
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>o registrate con</Text>
+          <Text style={styles.dividerText}>o</Text>
           <View style={styles.dividerLine} />
         </View>
 
-        {/* Botón Registrarse con Google */}
+        {/* Botón de Google Cuadrado/Centrado con logo_google.png */}
         <TouchableOpacity
-          style={styles.googleButton}
+          style={styles.googleIconButton}
           onPress={handleGoogleRegister}
           activeOpacity={0.85}
         >
-          <Text style={styles.googleIconText}>G</Text>
-          <Text style={styles.googleButtonText}>Registrarse con Google</Text>
+          <Image
+            source={require('../../assets/logo/logo_google.png')}
+            style={styles.googleIconImage}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1145,7 +1149,7 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 12,
+    marginVertical: 14,
   },
   dividerLine: {
     flex: 1,
@@ -1154,38 +1158,25 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     paddingHorizontal: 12,
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textMuted,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontWeight: '500',
   },
-  googleButton: {
-    flexDirection: 'row',
+  googleIconButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#DADCE0',
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 16,
-    marginVertical: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    alignSelf: 'center',
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  googleIconText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#4285F4',
-    marginRight: 10,
-  },
-  googleButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#3C4043',
+  googleIconImage: {
+    width: 28,
+    height: 28,
   },
   secondaryCardButton: {
     alignItems: 'center',

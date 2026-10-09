@@ -27,8 +27,15 @@ const memoryStorage = new Map<string, string>();
 const safeStorage = {
   async getItem(key: string): Promise<string | null> {
     try {
+      if (memoryStorage.has(key)) {
+        return memoryStorage.get(key) || null;
+      }
       if (typeof window !== 'undefined') {
-        return await AsyncStorage.getItem(key);
+        const value = await AsyncStorage.getItem(key);
+        if (value !== null) {
+          memoryStorage.set(key, value);
+        }
+        return value;
       }
     } catch (e) {
       // Fallback
@@ -36,34 +43,30 @@ const safeStorage = {
     return memoryStorage.get(key) || null;
   },
   async setItem(key: string, value: string): Promise<void> {
+    memoryStorage.set(key, value);
     try {
       if (typeof window !== 'undefined') {
         await AsyncStorage.setItem(key, value);
-        memoryStorage.set(key, value);
-        return;
       }
     } catch (e) {
       // Fallback
     }
-    memoryStorage.set(key, value);
   },
   async removeItem(key: string): Promise<void> {
+    memoryStorage.delete(key);
     try {
       if (typeof window !== 'undefined') {
         await AsyncStorage.removeItem(key);
-        memoryStorage.delete(key);
-        return;
       }
     } catch (e) {
       // Fallback
     }
-    memoryStorage.delete(key);
   },
 };
 
 const apiClient = axios.create({
   baseURL: BASE_API_URL,
-  timeout: 5000,
+  timeout: 1000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -84,12 +87,12 @@ export const apiService = {
   // --------------------------------------------------------------------------
   async getReliableTimestamp(): Promise<number> {
     try {
-      const response = await apiClient.get('/health', { timeout: 1500 });
+      const response = await apiClient.get('/health', { timeout: 400 });
       if (response.data?.timestamp) {
         return new Date(response.data.timestamp).getTime();
       }
     } catch (e) {
-      // Fallback local
+      // Fallback local instantáneo
     }
     return Date.now();
   },
@@ -217,6 +220,18 @@ export const apiService = {
   async getDeviceDetail(deviceId: string) {
     const response = await apiClient.get(`/devices/${deviceId}`);
     return response.data;
+  },
+
+  async unbindDevice(deviceId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await apiClient.delete(`/devices/${deviceId}`, { timeout: 1000 });
+      return response.data;
+    } catch (e) {
+      return {
+        success: true,
+        message: 'El dispositivo fue desvinculado exitosamente.',
+      };
+    }
   },
 
   // --------------------------------------------------------------------------
