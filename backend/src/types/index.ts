@@ -53,3 +53,9 @@ export interface FirebaseAuthLoginResponse {
   localId: string;
   registered?: boolean;
 }
+
+export interface FirebaseAuthOobResponse {
+  email: string;
+  oobCode: string;
+  mode: string;
+}

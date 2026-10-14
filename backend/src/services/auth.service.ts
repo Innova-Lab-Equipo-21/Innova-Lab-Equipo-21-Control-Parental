@@ -12,7 +12,7 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/environment.js';
 import { mockDb, MockUser } from '../config/mock-database.js';
 import { AppError } from '../middlewares/error.middleware.js';
-import { FirebaseAuthLoginResponse } from '../types/index.js';
+import { FirebaseAuthLoginResponse, FirebaseAuthOobResponse } from '../types/index.js';
 
 export interface RegisterUserInput {
   email: string;
@@ -20,7 +20,7 @@ export interface RegisterUserInput {
   fullName: string;
   firstName?: string;
   lastName?: string;
-  gender?: string;
+  gender?: 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'NO_INFORMADO';
   birthDate?: string;
   phone?: string;
 }
@@ -40,6 +40,7 @@ export class AuthService {
       [input.firstName, input.lastName].filter(Boolean).join(' ') ||
       'Responsable';
     const cleanEmail = input.email.toLowerCase().trim();
+    const formatedCellPhone = input.phone ? '+549' + input.phone : undefined; // Agregamos el prefijo de Argentina para el número de teléfono
 
     try {
       // 1. Crear el usuario en Firebase Authentication
@@ -47,7 +48,7 @@ export class AuthService {
         email: cleanEmail,
         password: input.password,
         displayName: computedFullName,
-        phoneNumber: input.phone || undefined,
+        phoneNumber: formatedCellPhone || undefined,
         emailVerified: false,
       });
 
@@ -63,8 +64,14 @@ export class AuthService {
 
         mockDb.users.push(newUser);
 
+        // Obtenemos el token de autenticación para usarlo luego del registro
+        const authData = await this.getAuthToken(cleanEmail, input.password);
+
         return {
           user: newUser,
+          token: authData.idToken,
+          refreshToken: authData.refreshToken,
+          expiresIn: authData.expiresIn,
         };
       }
 
@@ -73,6 +80,10 @@ export class AuthService {
           id: firebaseUser.uid, // Guardamos el UID de Firebase en la DB relacional
           email: cleanEmail,
           fullName: computedFullName,
+          gender: input.gender,
+          birthDate: input.birthDate ? new Date(input.birthDate) : null,
+          phone: input.phone || null,
+          isActive: true,
         },
         select: {
           id: true,
@@ -82,7 +93,15 @@ export class AuthService {
         },
       });
 
-      return { user };
+      // Obtenemos el token de autenticación para usarlo luego del registro
+      const authData = await this.getAuthToken(cleanEmail, input.password);
+
+      return {
+        user,
+        token: authData.idToken,
+        refreshToken: authData.refreshToken,
+        expiresIn: authData.expiresIn,
+      };
     } catch (error: any) {
       if (error.code === 'auth/email-already-exists') {
         throw new AppError('El correo electrónico ya se encuentra registrado', 409);
@@ -95,31 +114,41 @@ export class AuthService {
   }
 
   /**
+   * Obtiene el token de autenticación de Firebase intercambiando las credenciales
+   * por un ID Token, Refresh Token y su expiración.
+   */
+  private async getAuthToken(email: string, password: string) {
+    const apiKey = env.FIREBASE_API_KEY;
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          password,
+          returnSecureToken: true,
+        }),
+      },
+    );
+    const data = (await response.json()) as FirebaseAuthLoginResponse;
+
+    if (!response.ok) {
+      throw new AppError('Credenciales inválidas o cuenta deshabilitada', 401);
+    }
+
+    return data;
+  }
+
+  /**
    * Autentica un usuario responsable y genera su token de sesión JWT.
    */
   public async login(input: LoginUserInput) {
     const cleanEmail = input.email.toLowerCase().trim();
 
     try {
-      // Intercambiamos credenciales usando la API pública de Firebase Auth
-      const apiKey = env.FIREBASE_API_KEY;
-      const response = await fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: cleanEmail,
-            password: input.password,
-            returnSecureToken: true,
-          }),
-        },
-      );
-      const data = (await response.json()) as FirebaseAuthLoginResponse;
-
-      if (!response.ok) {
-        throw new AppError('Credenciales inválidas o cuenta deshabilitada', 401);
-      }
+      // Obtenemos el token de Firebase intercambiando las credenciales
+      const data = await this.getAuthToken(cleanEmail, input.password);
 
       // Verificamos o sincronizamos que el usuario exista en DB / Mock local
       let userProfile;
@@ -166,13 +195,37 @@ export class AuthService {
     }
 
     try {
-      const resetLink = await auth.generatePasswordResetLink(cleanEmail);
+      const apiKey = env.FIREBASE_API_KEY;
+      const response = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requestType: 'PASSWORD_RESET',
+            email: cleanEmail,
+          }),
+        },
+      );
+
+      const data = (await response.json()) as FirebaseAuthOobResponse;
+
+      if (!response.ok) {
+        // Por motivos de seguridad, respondemos con éxito independientemente del resultado
+        return {
+          email: cleanEmail,
+          message:
+            'Si el correo está registrado en BA Protege+, recibirás las instrucciones de recuperación.',
+        };
+      }
 
       return {
         email: cleanEmail,
         message:
           'Si el correo está registrado en BA Protege+, recibirás las instrucciones de recuperación.',
-        resetLink, // Útil durante desarrollo / testing
+        emailSent: true,
+        oobCode: data.oobCode,
+        mode: data.mode,
       };
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
