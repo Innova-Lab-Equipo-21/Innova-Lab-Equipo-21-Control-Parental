@@ -122,7 +122,7 @@ export function App(): React.JSX.Element {
         />
       )}
 
-      {/* PASO 3B: Modo Protegido (Menor / Adulto) -> Pantalla de Emparejamiento por Código */}
+      {/* MODO PROTEGIDO: Emparejamiento */}
       {!showOnboarding && (currentMode === 'CHILD' || currentMode === 'ADULT') && !isDevicePaired && (
         <PairingScreen
           onPairingComplete={handlePairingComplete}
@@ -176,14 +176,6 @@ export function App(): React.JSX.Element {
             onExitMode={handleExitMode}
           />
         )}
-
-      {/* MODO PROTEGIDO: Emparejamiento */}
-      {!showOnboarding && (currentMode === 'CHILD' || currentMode === 'ADULT') && !isDevicePaired && (
-        <PairingScreen
-          onPairingComplete={handlePairingComplete}
-          onBack={handleExitMode}
-        />
-      )}
 
       {/* MODO PROTEGIDO: Permisos */}
       {!showOnboarding &&

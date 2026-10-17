@@ -15,6 +15,7 @@ interface HeaderProps {
   subtitle?: string;
   onBack?: () => void;
   rightElement?: React.ReactNode;
+  showTopLogo?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,18 +23,21 @@ export const Header: React.FC<HeaderProps> = ({
   subtitle,
   onBack,
   rightElement,
+  showTopLogo = true,
 }) => {
   return (
     <View>
       {/* 1. Encabezado Superior Institucional con logo_baprotege_texto.png sobre fondo #EAF3FF */}
-      <View style={styles.topHeaderBar}>
-        <Image
-          source={require('../assets/logo/logo_baprotege_texto.png')}
-          style={styles.topHeaderLogo}
-          resizeMode="contain"
-          accessibilityLabel="BA Protege +"
-        />
-      </View>
+      {showTopLogo && (
+        <View style={styles.topHeaderBar}>
+          <Image
+            source={require('../assets/logo/logo_baprotege_texto.png')}
+            style={styles.topHeaderLogo}
+            resizeMode="contain"
+            accessibilityLabel="BA Protege +"
+          />
+        </View>
+      )}
 
       {/* 2. Subheader con botón volver, título y elemento derecho opcional */}
       <View style={styles.subHeaderRow}>

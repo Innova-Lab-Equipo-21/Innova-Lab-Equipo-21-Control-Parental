@@ -12,7 +12,6 @@ import {
   View,
   Text,
   TextInput,
-  StyleSheet,
   SafeAreaView,
   Alert,
   KeyboardAvoidingView,
@@ -20,12 +19,13 @@ import {
   TouchableOpacity,
   PermissionsAndroid,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { Logo } from '../components/Logo';
 import { ActionButton } from '../components/ActionButton';
-import { colors } from '../theme/colors';
 import { apiService } from '../services/api.service';
+import { styles } from './PairingScreen.styles';
 
 type PairingMethod = 'CODE' | 'QR';
 
@@ -137,6 +137,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         title="Vincular Dispositivo"
         subtitle="Ingresa el código numérico o escanea el QR generado por el tutor"
         onBack={onBack}
+        showTopLogo={false}
       />
 
       <KeyboardAvoidingView
@@ -144,14 +145,20 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         style={styles.keyboardView}
       >
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-          {/* Banner Explicativo de Pasos */}
+          {/* Banner Explicativo de Pasos con lampara.png */}
           <View style={styles.instructionCard}>
-            <Text style={styles.instructionTitle}>💡 Pasos para la vinculación:</Text>
+            <View style={styles.instructionHeader}>
+              <Image
+                source={require('../assets/icons/lampara.png')}
+                style={styles.instructionIcon}
+              />
+              <Text style={styles.instructionTitle}>Pasos para la vinculación</Text>
+            </View>
             <Text style={styles.instructionStep}>
-              1. En el celular del tutor, genera el código o QR en <Text style={styles.boldText}>"Vincular Nuevo Dispositivo"</Text>.
+              1- Genera un código de 6 digitos o un código QR en el dispositivo tutor en <Text style={styles.boldText}>"Vincular nuevo dispositivo"</Text>
             </Text>
             <Text style={styles.instructionStep}>
-              2. Ingresa el código de 6 dígitos abajo o presiona <Text style={styles.boldText}>"Escanear QR"</Text>.
+              2- Ingresa el código de 6 digitos o presiona <Text style={styles.boldText}>"Escanear código QR"</Text>
             </Text>
           </View>
 
@@ -277,193 +284,3 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  logoWrapper: {
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  container: {
-    padding: 16,
-    paddingBottom: 28,
-  },
-  instructionCard: {
-    backgroundColor: '#E7F1FF',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#B6D4FE',
-    marginBottom: 14,
-  },
-  instructionTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0056B3',
-    marginBottom: 6,
-  },
-  instructionStep: {
-    fontSize: 12,
-    color: '#0A58CA',
-    lineHeight: 17,
-    marginBottom: 4,
-  },
-  boldText: {
-    fontWeight: '700',
-  },
-  formContainer: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  tabButtonActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  tabButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  tabButtonTextActive: {
-    color: colors.primary,
-    fontWeight: '800',
-  },
-  codeSection: {
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  labelCenter: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  digitRow: {
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  digitBox: {
-    width: 44,
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  digitBoxFilled: {
-    borderColor: colors.primary,
-    backgroundColor: '#F0F7FF',
-  },
-  digitBoxActive: {
-    borderColor: colors.primary,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2.5,
-  },
-  digitText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  hiddenInput: {
-    position: 'absolute',
-    width: '100%',
-    height: 52,
-    opacity: 0.01,
-  },
-  qrSectionContainer: {
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  qrViewport: {
-    width: '100%',
-    height: 130,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#C7D2FE',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    marginBottom: 10,
-  },
-  qrTargetBox: {
-    alignItems: 'center',
-  },
-  qrIconLarge: {
-    fontSize: 30,
-    marginBottom: 4,
-  },
-  qrStatusText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  scanQrBtn: {
-    width: '100%',
-    backgroundColor: colors.primaryLight,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  scanQrBtnText: {
-    color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  verifiedCard: {
-    backgroundColor: '#D1E7DD',
-    borderColor: '#BADBCC',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  verifiedTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0F5132',
-  },
-  verifiedSubtitle: {
-    fontSize: 12,
-    color: '#0F5132',
-    marginTop: 2,
-  },
-  buttonGroup: {
-    marginTop: 12,
-  },
-});
