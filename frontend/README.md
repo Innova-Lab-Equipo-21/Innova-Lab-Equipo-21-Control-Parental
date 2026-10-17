@@ -269,6 +269,22 @@ El dispositivo protegido (`ProtectedDeviceScreen.tsx` y `ProtectedDeviceStep.tsx
 
 ---
 
+## ✨ Actualizaciones Recientes y Nuevos Módulos
+
+1. **Panel de Acción Inicial del Responsable (`ResponsibleActionScreen.tsx`)**:
+   - Mostrada tras completar los permisos de aplicación, permitiendo al tutor elegir entre *Supervisar otro dispositivo* o *Ejercer un autocontrol*.
+   - Incluye **Modal de Ayuda (`ResponsibleHelpModal.tsx`)** bajo el diseño institucional Bottom Sheet (estilo `TermsModal`).
+2. **Unificación de Cabecera Institucional (`Header.tsx`)**:
+   - Todas las pantallas con usuario logueado comparten la barra superior `#EAF3FF` con el logotipo oficial `logo_baprotege_texto.png` y subcabecera unificada.
+3. **Formulario de Vinculación Inteligente (`PairingSection.tsx`)**:
+   - Selección de **Fecha de Nacimiento** reubicada arriba de Tipo con calendario integrado dentro del textfield (estilo `RegisterForm`).
+   - Determinación automática del **Tipo (Menor / Adulto)** basada en la edad calculada a partir de la fecha de nacimiento.
+   - Códigos de vinculación **sin expiración (100 años)** que se actualizan automáticamente al regenerar, previniendo duplicados con validación de pedidos pendientes.
+4. **Refactorización Modular de Estilos (`.styles.ts`)**:
+   - Separación completa de objetos `StyleSheet.create` en archivos `.styles.ts` independientes para `WelcomeScreen`, `ResponsibleActionScreen`, `ParentDashboardScreen`, `PairingSection` y `GlobalRulesSection`.
+
+---
+
 ## 📁 Estructura del Proyecto
 
 ```text

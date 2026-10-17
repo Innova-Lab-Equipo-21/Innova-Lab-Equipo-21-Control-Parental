@@ -1,0 +1,173 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: ParentDashboardScreen Styles
+// Archivo: src/screens/ParentDashboardScreen.styles.ts
+// Descripción: Estilos visuales para el panel de control del responsable.
+// ==============================================================================
+
+import { StyleSheet } from 'react-native';
+import { colors } from '../theme/colors';
+
+export const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    padding: 16,
+    paddingBottom: 28,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  sectionMargin: {
+    marginTop: 12,
+  },
+  infoBanner: {
+    backgroundColor: '#E7F1FF',
+    borderColor: '#B6D4FE',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  infoBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0056B3',
+    marginBottom: 2,
+  },
+  infoBannerText: {
+    fontSize: 12,
+    color: '#0A58CA',
+    lineHeight: 16,
+  },
+  profileCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: 16,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  profileAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  profileEmail: {
+    fontSize: 12.5,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  verifiedBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#D1E7DD',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  verifiedBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0F5132',
+  },
+  footer: {
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 24,
+  },
+  modalEmoji: {
+    fontSize: 36,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalBody: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  warningBox: {
+    backgroundColor: '#FFF3CD',
+    borderColor: '#FFC107',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  warningBoxText: {
+    fontSize: 12,
+    color: '#856404',
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+});

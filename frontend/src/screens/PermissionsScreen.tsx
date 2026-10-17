@@ -246,7 +246,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <Text style={styles.screenTitle}>Permisos de Aplicación</Text>
+          <Text style={styles.screenTitle}>Permisos de aplicación</Text>
         </View>
       </View>
 

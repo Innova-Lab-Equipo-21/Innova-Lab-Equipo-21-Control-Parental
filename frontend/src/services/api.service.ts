@@ -137,7 +137,7 @@ export const apiService = {
   // --------------------------------------------------------------------------
   // Pareamiento y Dispositivos (Máximo 5 dispositivos por responsable)
   // --------------------------------------------------------------------------
-  async generatePairingCode() {
+  async generatePairingCode(data?: any) {
     try {
       const devicesRes = await this.listDevices();
       const currentCount = devicesRes.data?.length || 0;
@@ -150,7 +150,7 @@ export const apiService = {
       }
     }
 
-    const response = await apiClient.post('/devices/pair/generate');
+    const response = await apiClient.post('/devices/pair/generate', data || {});
     return response.data;
   },
 

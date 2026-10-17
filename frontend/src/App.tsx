@@ -19,6 +19,7 @@ import { PairingScreen } from './screens/PairingScreen';
 import { PermissionsScreen } from './screens/PermissionsScreen';
 import { ProtectedDeviceScreen } from './screens/ProtectedDeviceScreen';
 import { ParentDashboardScreen } from './screens/ParentDashboardScreen';
+import { ResponsibleActionScreen } from './screens/ResponsibleActionScreen';
 import { AppMode } from './types';
 import { AuthViewMode } from './components/auth/LoginForm';
 
@@ -35,12 +36,11 @@ export function App(): React.JSX.Element {
   const [parentUser, setParentUser] = useState<any>(null);
   const [parentToken, setParentToken] = useState<string | null>(null);
   const [loginInitialViewMode, setLoginInitialViewMode] = useState<AuthViewMode>('REGISTER');
+  const [hasGrantedPermissions, setHasGrantedPermissions] = useState<boolean>(false);
+  const [hasSelectedResponsibleAction, setHasSelectedResponsibleAction] = useState<boolean>(false);
 
   const [isDevicePaired, setIsDevicePaired] = useState<boolean>(false);
   const [deviceUuid, setDeviceUuid] = useState<string | null>(null);
-
-  // 4) Estado de Solicitud de Permisos
-  const [hasGrantedPermissions, setHasGrantedPermissions] = useState<boolean>(false);
 
   // Manejador de selección de modo
   const handleSelectMode = (mode: AppMode) => {
@@ -48,6 +48,7 @@ export function App(): React.JSX.Element {
     setIsParentLoggedIn(false);
     setIsDevicePaired(false);
     setHasGrantedPermissions(false);
+    setHasSelectedResponsibleAction(false);
   };
 
   // Manejador de Login del Responsable
@@ -55,20 +56,21 @@ export function App(): React.JSX.Element {
     setParentUser(user);
     setParentToken(token);
     setIsParentLoggedIn(true);
-    // Avanza a Paso 4: Pantalla de Permisos Post-Login
+    setHasGrantedPermissions(false);
+    setHasSelectedResponsibleAction(false);
+    // Inicia solicitando permisos primero
   };
 
   // Manejador de Emparejamiento del Dispositivo Protegido
   const handlePairingComplete = (_deviceId: string, uuid: string) => {
     setDeviceUuid(uuid);
     setIsDevicePaired(true);
-    // Avanza a Paso 4: Pantalla de Permisos Post-Emparejamiento
+    setHasGrantedPermissions(false);
   };
 
   // Manejador de confirmación de permisos
   const handlePermissionsComplete = () => {
     setHasGrantedPermissions(true);
-    // Avanza a Paso 5: Pantalla de Destino
   };
 
   // Reiniciar flujo y volver a selección de modo
@@ -77,6 +79,7 @@ export function App(): React.JSX.Element {
     setIsParentLoggedIn(false);
     setIsDevicePaired(false);
     setHasGrantedPermissions(false);
+    setHasSelectedResponsibleAction(false);
   };
 
   return (
@@ -127,37 +130,74 @@ export function App(): React.JSX.Element {
         />
       )}
 
-      {/* PASO 4: Pantalla de Permisos Post-Login o Post-Emparejamiento */}
+      {/* 1. MODO RESPONSABLE: Pantalla de Permisos Post-Login (Se muestra primero) */}
       {!showOnboarding &&
-        ((currentMode === 'PARENT' && isParentLoggedIn) ||
-          ((currentMode === 'CHILD' || currentMode === 'ADULT') && isDevicePaired)) &&
+        currentMode === 'PARENT' &&
+        isParentLoggedIn &&
         !hasGrantedPermissions && (
           <PermissionsScreen
-            flowSource={currentMode === 'PARENT' ? 'PARENT_LOGIN' : 'DEVICE_PAIRING'}
+            flowSource="PARENT_LOGIN"
             onPermissionsComplete={handlePermissionsComplete}
             onBack={() => {
-              if (currentMode === 'PARENT') {
-                setIsParentLoggedIn(false);
-                setParentUser(null);
-                setParentToken(null);
-                setLoginInitialViewMode('LOGIN');
-              } else {
-                setIsDevicePaired(false);
-              }
+              setIsParentLoggedIn(false);
+              setParentUser(null);
+              setParentToken(null);
+              setLoginInitialViewMode('LOGIN');
             }}
           />
         )}
 
-      {/* PASO 5A: Perfil del Responsable -> Dashboard del Responsable */}
-      {!showOnboarding && currentMode === 'PARENT' && isParentLoggedIn && hasGrantedPermissions && (
-        <ParentDashboardScreen
-          initialUser={parentUser}
-          initialToken={parentToken}
-          onExitMode={handleExitMode}
+      {/* 2. MODO RESPONSABLE: Pantalla de Acción Inicial (Se muestra después de habilitar permisos) */}
+      {!showOnboarding &&
+        currentMode === 'PARENT' &&
+        isParentLoggedIn &&
+        hasGrantedPermissions &&
+        !hasSelectedResponsibleAction && (
+          <ResponsibleActionScreen
+            userName={parentUser?.fullName || 'Tutor Responsable'}
+            onSelectAction={(actionType) => {
+              setHasSelectedResponsibleAction(true);
+            }}
+            onBack={() => {
+              setHasGrantedPermissions(false);
+            }}
+          />
+        )}
+
+      {/* 3. MODO RESPONSABLE: Dashboard del Responsable (Post-Acción) */}
+      {!showOnboarding &&
+        currentMode === 'PARENT' &&
+        isParentLoggedIn &&
+        hasGrantedPermissions &&
+        hasSelectedResponsibleAction && (
+          <ParentDashboardScreen
+            initialUser={parentUser}
+            initialToken={parentToken}
+            onExitMode={handleExitMode}
+          />
+        )}
+
+      {/* MODO PROTEGIDO: Emparejamiento */}
+      {!showOnboarding && (currentMode === 'CHILD' || currentMode === 'ADULT') && !isDevicePaired && (
+        <PairingScreen
+          onPairingComplete={handlePairingComplete}
+          onBack={handleExitMode}
         />
       )}
 
-      {/* PASO 5B: Perfil Dispositivo Protegido -> Pantalla del Dispositivo Protegido */}
+      {/* MODO PROTEGIDO: Permisos */}
+      {!showOnboarding &&
+        (currentMode === 'CHILD' || currentMode === 'ADULT') &&
+        isDevicePaired &&
+        !hasGrantedPermissions && (
+          <PermissionsScreen
+            flowSource="DEVICE_PAIRING"
+            onPermissionsComplete={handlePermissionsComplete}
+            onBack={() => setIsDevicePaired(false)}
+          />
+        )}
+
+      {/* MODO PROTEGIDO: Pantalla del Dispositivo Protegido */}
       {!showOnboarding &&
         (currentMode === 'CHILD' || currentMode === 'ADULT') &&
         isDevicePaired &&

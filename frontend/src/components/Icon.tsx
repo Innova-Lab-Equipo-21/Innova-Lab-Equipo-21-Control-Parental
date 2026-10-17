@@ -23,6 +23,7 @@ import usuarioPng from '../assets/icons/usuario.png';
 import volverPng from '../assets/icons/volver.png';
 import sitiosPng from '../assets/icons/navbar/sitios.png';
 import calendarioPng from '../assets/icons/calendario.png';
+import celularPng from '../assets/icons/celular.png';
 
 export type IconName =
   | 'ojo'
@@ -38,7 +39,8 @@ export type IconName =
   | 'escudo'
   | 'corazon'
   | 'sitios'
-  | 'calendario';
+  | 'calendario'
+  | 'celular';
 
 interface IconProps {
   name: IconName;
@@ -62,6 +64,7 @@ const ICON_MAP: Record<IconName, any> = {
   sitios: sitiosPng,
   usuario: usuarioPng,
   volver: volverPng,
+  celular: celularPng,
 };
 
 export const Icon: React.FC<IconProps> = ({

@@ -5,9 +5,9 @@
 // ==============================================================================
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { ControlCard } from '../../ControlCard';
-import { colors } from '../../../theme/colors';
+import { styles } from './GlobalRulesSection.styles';
 
 interface GlobalRulesSectionProps {
   ruleBetting: boolean;
@@ -33,7 +33,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
       </Text>
 
       <ControlCard
-        title="Bloqueo de Dominios LOTBA"
+        title="Bloqueo de sitios LOTBA"
         description="Bloquea el acceso a casas de apuestas online no autorizadas."
         active={ruleBetting}
         status={ruleBetting ? 'activo' : 'inactivo'}
@@ -41,7 +41,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
       />
 
       <ControlCard
-        title="Alertas en Tiempo Real"
+        title="Alertas en tiempo real"
         description="Notifica inmediatamente al celular del tutor ante cualquier intento."
         active={ruleAlerts}
         status={ruleAlerts ? 'activo' : 'alerta'}
@@ -49,7 +49,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
       />
 
       <ControlCard
-        title="Protección Antidesinstalación"
+        title="Protección antidesinstalación"
         description="Impide desinstalar la app protegida sin ingresar el PIN."
         active={ruleUninstallProtection}
         status={ruleUninstallProtection ? 'activo' : 'inactivo'}
@@ -58,14 +58,3 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 4,
-  },
-  descText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-});

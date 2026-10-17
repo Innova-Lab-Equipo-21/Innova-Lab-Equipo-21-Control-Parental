@@ -2,27 +2,26 @@
 // Proyecto: BA Protege+
 // Componente: PairingSection (Vinculación de Dispositivos y Código QR)
 // Archivo: src/components/dashboard/dispositivos/PairingSection.tsx
-// Descripción: Formulario previo a la generación de código con campos obligatorios
-//              (Nombre, Género, Tipo Menor/Adulto, Fecha de Nacimiento si Menor con
-//              icono de calendario y modal interactivo, Teléfono) y opcional (Modelo).
+// Descripción: Formulario de vinculación con Fecha de Nacimiento arriba de Tipo,
+//              tipo calculado automáticamente, y calendario integrado dentro del textfield (estilo RegisterForm).
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   Image,
-  StyleSheet,
   Share,
   Alert,
-  Modal,
+  Platform,
 } from 'react-native';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ActionButton } from '../../ActionButton';
+import { Icon } from '../../Icon';
+import { DatePickerModal } from '../../auth/DatePickerModal';
 import { colors } from '../../../theme/colors';
-import { typography } from '../../../theme/typography';
 import { MAX_PARENT_DEVICES } from '../../../types';
 import { calculateAge } from '../../../utils/age';
 import {
@@ -30,6 +29,7 @@ import {
   formatPhone,
   validateLettersOnly,
 } from '../../../utils/authValidation';
+import { styles } from './PairingSection.styles';
 
 export type GenderOption = 'Masculino' | 'Femenino' | 'Otro' | 'No informado';
 
@@ -57,44 +57,72 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
 }) => {
   const [protectedName, setProtectedName] = useState('Sofía');
   const [genero, setGenero] = useState<GenderOption>('Femenino');
-  const [protectedType, setProtectedType] = useState<'Menor' | 'Adulto'>('Menor');
   const [birthDate, setBirthDate] = useState('15/05/2012');
+  const [protectedType, setProtectedType] = useState<'Menor' | 'Adulto' | null>('Menor');
   const [protectedPhone, setProtectedPhone] = useState('11 2345-6789');
   const [deviceModel, setDeviceModel] = useState('');
 
-  // Estados para Modal de Calendario
+  // Estados de UI
+  const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<number>(15);
-  const [selectedMonth, setSelectedMonth] = useState<number>(5); // Mayo
-  const [selectedYear, setSelectedYear] = useState<number>(2012);
 
   const [errors, setErrors] = useState<{
     protectedName?: string;
     genero?: string;
     birthDate?: string;
     protectedPhone?: string;
+    protectedType?: string;
   }>({});
 
-  /** Devuelve el número real de días del mes y año seleccionados */
-  const getDaysInMonth = (month: number, year: number): number => {
-    return new Date(year, month, 0).getDate();
-  };
-
-  const daysInCurrentMonth = getDaysInMonth(selectedMonth, selectedYear);
-
-  const handleMonthChange = (month: number) => {
-    setSelectedMonth(month);
-    const maxDays = getDaysInMonth(month, selectedYear);
-    if (selectedDay > maxDays) {
-      setSelectedDay(maxDays);
+  // Calcular y actualizar el tipo automáticamente cuando cambia la fecha de nacimiento
+  useEffect(() => {
+    const trimmed = birthDate.trim();
+    if (!trimmed || trimmed.length !== 10) {
+      setProtectedType(null);
+      return;
     }
-  };
+    const age = calculateAge(trimmed);
+    if (age === null) {
+      setProtectedType(null);
+    } else if (age < 18) {
+      setProtectedType('Menor');
+    } else {
+      setProtectedType('Adulto');
+    }
+  }, [birthDate]);
 
-  const handleYearChange = (year: number) => {
-    setSelectedYear(year);
-    const maxDays = getDaysInMonth(selectedMonth, year);
-    if (selectedDay > maxDays) {
-      setSelectedDay(maxDays);
+  const handleOpenDatePicker = () => {
+    if (Platform.OS === 'android') {
+      let currentDate = new Date(2012, 4, 15);
+      if (birthDate && birthDate.length === 10) {
+        const [d, m, y] = birthDate.split('/').map(Number);
+        if (d && m && y && !isNaN(d) && !isNaN(m) && !isNaN(y)) {
+          currentDate = new Date(y, m - 1, d);
+        }
+      }
+      try {
+        DateTimePickerAndroid.open({
+          value: currentDate,
+          onChange: (event, selectedDate) => {
+            if (event.type === 'set' && selectedDate) {
+              const day = selectedDate.getDate().toString().padStart(2, '0');
+              const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+              const year = selectedDate.getFullYear();
+              const formattedStr = `${day}/${month}/${year}`;
+              setBirthDate(formattedStr);
+              if (errors.birthDate) {
+                setErrors((prev) => ({ ...prev, birthDate: undefined }));
+              }
+            }
+          },
+          mode: 'date',
+          maximumDate: new Date(),
+        });
+      } catch (err) {
+        setShowDatePickerModal(true);
+      }
+    } else {
+      setShowDatePickerModal(true);
     }
   };
 
@@ -104,6 +132,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
       genero?: string;
       birthDate?: string;
       protectedPhone?: string;
+      protectedType?: string;
     } = {};
 
     // 1. Validación de Nombre del Protegido
@@ -121,24 +150,25 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
       newErrors.genero = 'El género es obligatorio.';
     }
 
-    // 3. Validación de Fecha de Nacimiento (Obligatorio únicamente cuando el Tipo es 'Menor')
-    if (protectedType === 'Menor') {
-      const trimmedBirth = birthDate.trim();
-      if (!trimmedBirth) {
-        newErrors.birthDate = 'La fecha de nacimiento es obligatoria para un menor.';
-      } else if (trimmedBirth.length !== 10) {
-        newErrors.birthDate = 'Formato inválido. Debe ser DD/MM/AAAA.';
-      } else {
-        const age = calculateAge(trimmedBirth);
-        if (age === null) {
-          newErrors.birthDate = 'Fecha de nacimiento inválida.';
-        } else if (age >= 18) {
-          newErrors.birthDate = 'La fecha ingresada debe corresponder a un menor de 18 años.';
-        }
+    // 3. Validación de Fecha de Nacimiento
+    const trimmedBirth = birthDate.trim();
+    if (!trimmedBirth) {
+      newErrors.birthDate = 'La fecha de nacimiento es obligatoria.';
+    } else if (trimmedBirth.length !== 10) {
+      newErrors.birthDate = 'Formato inválido. Debe ser DD/MM/AAAA.';
+    } else {
+      const age = calculateAge(trimmedBirth);
+      if (age === null) {
+        newErrors.birthDate = 'Fecha de nacimiento inválida.';
       }
     }
 
-    // 4. Validación de Teléfono (Obligatorio, mínimo 10 dígitos)
+    // 4. Validación de Tipo automático
+    if (!protectedType) {
+      newErrors.protectedType = 'Debe ingresar una fecha de nacimiento válida para determinar el tipo.';
+    }
+
+    // 5. Validación de Teléfono (Obligatorio, mínimo 10 dígitos)
     const phoneDigits = protectedPhone.replace(/\D/g, '');
     if (!protectedPhone.trim()) {
       newErrors.protectedPhone = 'El teléfono es obligatorio.';
@@ -148,7 +178,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
 
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0) {
+    if (Object.keys(newErrors).length > 0 || !protectedType) {
       return;
     }
 
@@ -156,7 +186,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
       protectedName: trimmedName,
       genero,
       protectedType,
-      birthDate: protectedType === 'Menor' ? birthDate.trim() : undefined,
+      birthDate: trimmedBirth,
       protectedPhone: protectedPhone.trim(),
       deviceModel: deviceModel.trim() || undefined,
     });
@@ -165,7 +195,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
   const handleShareCode = async () => {
     if (!pairingCode) return;
 
-    const message = `BA Protege+ • Código de vinculación para ${protectedName || 'Dispositivo'} (${protectedType}): ${pairingCode}. Válido por 15 minutos.`;
+    const message = `BA Protege+ • Código de vinculación para ${protectedName || 'Dispositivo'} (${protectedType || 'Protegido'}): ${pairingCode}.`;
 
     try {
       const result = await Share.share({
@@ -192,7 +222,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
         {/* Campo 1: Nombre del protegido (*) */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>
-            Nombre del protegido <Text style={styles.requiredAsterisk}>*</Text>
+            Nombre del protegido<Text style={styles.requiredAsterisk}>*</Text>
           </Text>
           <TextInput
             style={[
@@ -214,37 +244,33 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
           )}
         </View>
 
-        {/* Campo 2: Género (*) en Carrusel Horizontal */}
+        {/* Campo 2: Género (*) Dropdown */}
         <View style={styles.fieldGroup}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>
-              Género <Text style={styles.requiredAsterisk}>*</Text>
-            </Text>
-            <Text style={styles.carouselHint}>Desliza para elegir ▸</Text>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.genderCarouselContainer}
+          <Text style={styles.label}>
+            Género<Text style={styles.requiredAsterisk}>*</Text>
+          </Text>
+          <TouchableOpacity
+            style={styles.dropdownContainer}
+            onPress={() => setIsGenderDropdownOpen((prev) => !prev)}
+            activeOpacity={0.8}
+            accessibilityLabel="Seleccionar género"
           >
-            {(
-              [
-                { id: 'Masculino', label: 'Masculino' },
-                { id: 'Femenino', label: 'Femenino' },
-                { id: 'Otro', label: 'Otro' },
-                { id: 'No informado', label: 'No informado' },
-              ] as { id: GenderOption; label: string }[]
-            ).map((item) => {
-              const isSelected = genero === item.id;
-              return (
+            <Text style={styles.dropdownSelectedText}>{genero}</Text>
+            <Text style={styles.dropdownArrow}>{isGenderDropdownOpen ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
+
+          {isGenderDropdownOpen && (
+            <View style={styles.dropdownMenu}>
+              {(['Masculino', 'Femenino', 'Otro', 'No informado'] as GenderOption[]).map((opt) => (
                 <TouchableOpacity
-                  key={item.id}
+                  key={opt}
                   style={[
-                    styles.genderCarouselCard,
-                    isSelected && styles.genderCarouselCardSelected,
+                    styles.dropdownMenuItem,
+                    genero === opt && styles.dropdownMenuItemSelected,
                   ]}
                   onPress={() => {
-                    setGenero(item.id);
+                    setGenero(opt);
+                    setIsGenderDropdownOpen(false);
                     if (errors.genero) {
                       setErrors((prev) => ({ ...prev, genero: undefined }));
                     }
@@ -253,43 +279,79 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
                 >
                   <Text
                     style={[
-                      styles.genderCarouselText,
-                      isSelected && styles.genderCarouselTextSelected,
+                      styles.dropdownMenuItemText,
+                      genero === opt && styles.dropdownMenuItemTextSelected,
                     ]}
                   >
-                    {item.label}
+                    {opt}
                   </Text>
+                  {genero === opt && (
+                    <Text style={styles.dropdownCheckmark}>✓</Text>
+                  )}
                 </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+              ))}
+            </View>
+          )}
           {errors.genero && (
             <Text style={styles.errorText}>⚠️ {errors.genero}</Text>
           )}
         </View>
 
-        {/* Campo 3: Tipo (*) */}
+        {/* Campo 3: Fecha de Nacimiento (*) con icono dentro del textfield (estilo RegisterForm) */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>
-            Tipo <Text style={styles.requiredAsterisk}>*</Text>
+            Fecha de nacimiento<Text style={styles.requiredAsterisk}>*</Text>
+          </Text>
+          <View
+            style={[
+              styles.inputContainer,
+              errors.birthDate ? styles.inputContainerError : null,
+            ]}
+          >
+            <TextInput
+              style={styles.inputNoBorder}
+              value={birthDate}
+              onChangeText={(text) => {
+                const formatted = formatBirthDate(text);
+                setBirthDate(formatted);
+                if (errors.birthDate) {
+                  setErrors((prev) => ({ ...prev, birthDate: undefined }));
+                }
+              }}
+              placeholder="DD/MM/AAAA"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              maxLength={10}
+            />
+            <TouchableOpacity
+              style={styles.inputIconAction}
+              onPress={handleOpenDatePicker}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="Abrir calendario"
+            >
+              <Icon name="calendario" size={22} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
+          {errors.birthDate && (
+            <Text style={styles.errorText}>⚠️ {errors.birthDate}</Text>
+          )}
+        </View>
+
+        {/* Campo 4: Tipo (*) - Seleccionado automáticamente por fecha de nacimiento */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>
+            Tipo<Text style={styles.requiredAsterisk}>*</Text>
           </Text>
           <View style={styles.typeSelectorRow}>
             {(['Menor', 'Adulto'] as const).map((type) => {
               const isSelected = protectedType === type;
               return (
-                <TouchableOpacity
+                <View
                   key={type}
                   style={[
                     styles.typeChip,
                     isSelected && styles.typeChipSelected,
                   ]}
-                  onPress={() => {
-                    setProtectedType(type);
-                    if (type === 'Adulto' && errors.birthDate) {
-                      setErrors((prev) => ({ ...prev, birthDate: undefined }));
-                    }
-                  }}
-                  activeOpacity={0.8}
                 >
                   <Text
                     style={[
@@ -297,58 +359,26 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
                       isSelected && styles.typeChipTextSelected,
                     ]}
                   >
-                    {type === 'Menor' ? '👦 Menor' : '👤 Adulto'}
+                    {type === 'Menor' ? 'Menor' : 'Adulto'}
                   </Text>
-                </TouchableOpacity>
+                </View>
               );
             })}
           </View>
-        </View>
-
-        {/* Campo 4: Fecha de Nacimiento (*) - Condicional únicamente cuando Tipo es 'Menor' */}
-        {protectedType === 'Menor' && (
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>
-              Fecha de Nacimiento <Text style={styles.requiredAsterisk}>*</Text>
+          {protectedType === null && (
+            <Text style={[styles.errorText, { color: colors.textMuted }]}>
+              ℹ️ Ingrese una fecha de nacimiento válida para determinar el tipo automáticamente.
             </Text>
-            <View style={styles.inputWithIconContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.inputFlex,
-                  errors.birthDate ? styles.inputErrorBorder : null,
-                ]}
-                value={birthDate}
-                onChangeText={(text) => {
-                  const formatted = formatBirthDate(text);
-                  setBirthDate(formatted);
-                  if (errors.birthDate) {
-                    setErrors((prev) => ({ ...prev, birthDate: undefined }));
-                  }
-                }}
-                placeholder="DD/MM/AAAA"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="numeric"
-                maxLength={10}
-              />
-              <TouchableOpacity
-                style={styles.calendarIconButton}
-                onPress={() => setShowDatePickerModal(true)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Text style={{ fontSize: 18 }}>📅</Text>
-              </TouchableOpacity>
-            </View>
-            {errors.birthDate && (
-              <Text style={styles.errorText}>⚠️ {errors.birthDate}</Text>
-            )}
-          </View>
-        )}
+          )}
+          {errors.protectedType && (
+            <Text style={styles.errorText}>⚠️ {errors.protectedType}</Text>
+          )}
+        </View>
 
         {/* Campo 5: Teléfono (*) */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>
-            Teléfono <Text style={styles.requiredAsterisk}>*</Text>
+            Teléfono<Text style={styles.requiredAsterisk}>*</Text>
           </Text>
           <TextInput
             style={[
@@ -393,14 +423,13 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
         <View style={styles.codeDisplayCard}>
           <View style={styles.codeDisplay}>
             <Text style={styles.protectedSummaryText}>
-              Vinculando a: {protectedName} ({protectedType})
+              Vinculando a: {protectedName} ({protectedType || 'Pendiente'})
             </Text>
             <Text style={styles.codeNumber}>{pairingCode}</Text>
-            <Text style={styles.codeExpiry}>Válido por 15 minutos</Text>
           </View>
 
           <View style={styles.qrCodeBox}>
-            <Text style={styles.qrTitle}>Código QR de Vinculación</Text>
+            <Text style={styles.qrTitle}>Código QR de vinculación</Text>
             <Text style={styles.qrSubtitle}>
               Apunta la cámara del celular de {protectedName || 'del protegido'} aquí para vincular
             </Text>
@@ -418,7 +447,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
             {/* BOTÓN PARA COMPARTIR EL CÓDIGO */}
             <View style={styles.shareContainer}>
               <ActionButton
-                title="📲 Compartir Código"
+                title="Compartir código"
                 variant="primary"
                 onPress={handleShareCode}
               />
@@ -428,421 +457,25 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
       ) : null}
 
       <ActionButton
-        title={pairingCode ? 'Generar Nuevo Código' : 'Generar Código y QR de Vinculación'}
-        variant="secondary"
+        title={pairingCode ? 'Generar nuevo código' : 'Generar código y QR de vinculación'}
+        variant="primary"
         onPress={handleValidationAndGenerate}
         loading={loading}
         disabled={deviceCount >= MAX_PARENT_DEVICES}
       />
 
       {/* Modal de Selección de Calendario */}
-      <Modal
+      <DatePickerModal
         visible={showDatePickerModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowDatePickerModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowDatePickerModal(false)}
-        >
-          <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
-            <Text style={styles.modalTitle}>📅 Seleccionar Fecha de Nacimiento</Text>
-            <Text style={styles.modalSubtitle}>
-              Elige la fecha de nacimiento del menor protegido
-            </Text>
-
-            {/* Selectores de Día, Mes y Año con límites reales de días */}
-            <View style={styles.pickerRow}>
-              {/* Día */}
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Día</Text>
-                <ScrollView style={styles.pickerScrollView} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1).map((d) => (
-                    <TouchableOpacity
-                      key={d}
-                      style={[styles.pickerItem, selectedDay === d && styles.pickerItemSelected]}
-                      onPress={() => setSelectedDay(d)}
-                    >
-                      <Text style={[styles.pickerItemText, selectedDay === d && styles.pickerItemTextSelected]}>
-                        {d.toString().padStart(2, '0')}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* Mes */}
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Mes</Text>
-                <ScrollView style={styles.pickerScrollView} showsVerticalScrollIndicator={false}>
-                  {[
-                    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
-                  ].map((m, idx) => (
-                    <TouchableOpacity
-                      key={m}
-                      style={[styles.pickerItem, selectedMonth === idx + 1 && styles.pickerItemSelected]}
-                      onPress={() => handleMonthChange(idx + 1)}
-                    >
-                      <Text style={[styles.pickerItemText, selectedMonth === idx + 1 && styles.pickerItemTextSelected]}>
-                        {m}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* Año */}
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Año</Text>
-                <ScrollView style={styles.pickerScrollView} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 30 }, (_, i) => 2026 - i).map((y) => (
-                    <TouchableOpacity
-                      key={y}
-                      style={[styles.pickerItem, selectedYear === y && styles.pickerItemSelected]}
-                      onPress={() => handleYearChange(y)}
-                    >
-                      <Text style={[styles.pickerItemText, selectedYear === y && styles.pickerItemTextSelected]}>
-                        {y}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            </View>
-
-            <View style={styles.modalButtonRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setShowDatePickerModal(false)}
-              >
-                <Text style={styles.modalCancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalConfirmBtn}
-                onPress={() => {
-                  const maxDays = getDaysInMonth(selectedMonth, selectedYear);
-                  const validDay = Math.min(selectedDay, maxDays);
-                  const dayStr = validDay.toString().padStart(2, '0');
-                  const monthStr = selectedMonth.toString().padStart(2, '0');
-                  const formattedStr = `${dayStr}/${monthStr}/${selectedYear}`;
-                  setBirthDate(formattedStr);
-                  setShowDatePickerModal(false);
-                  if (errors.birthDate) {
-                    setErrors((prev) => ({ ...prev, birthDate: undefined }));
-                  }
-                }}
-              >
-                <Text style={styles.modalConfirmBtnText}>Confirmar Fecha</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        initialDate={birthDate}
+        onClose={() => setShowDatePickerModal(false)}
+        onConfirm={(formattedDate) => {
+          setBirthDate(formattedDate);
+          if (errors.birthDate) {
+            setErrors((prev) => ({ ...prev, birthDate: undefined }));
+          }
+        }}
+      />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 4,
-  },
-  descText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 16,
-    marginBottom: 10,
-  },
-  formCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    marginBottom: 10,
-  },
-  fieldGroup: {
-    marginBottom: 10,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  requiredAsterisk: {
-    color: colors.statusDanger,
-    fontWeight: '800',
-  },
-  optionalText: {
-    fontSize: 11,
-    fontWeight: '400',
-    color: colors.textMuted,
-  },
-  carouselHint: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  genderCarouselContainer: {
-    gap: 8,
-    paddingVertical: 2,
-  },
-  genderCarouselCard: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  genderCarouselCardSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  genderCarouselText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  genderCarouselTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  inputWithIconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  inputFlex: {
-    flex: 1,
-  },
-  calendarIconButton: {
-    padding: 8,
-    marginLeft: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: colors.textPrimary,
-  },
-  inputErrorBorder: {
-    borderColor: colors.statusDanger,
-    borderWidth: 1.5,
-  },
-  errorText: {
-    fontSize: 11,
-    color: colors.statusDanger,
-    marginTop: 3,
-    fontWeight: '600',
-  },
-  typeSelectorRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  typeChip: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  typeChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  typeChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  typeChipTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  codeDisplayCard: {
-    marginVertical: 8,
-  },
-  codeDisplay: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  protectedSummaryText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primaryDark,
-    marginBottom: 4,
-  },
-  codeNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    letterSpacing: 6,
-    color: colors.primaryDark,
-  },
-  codeExpiry: {
-    ...typography.caption,
-    color: colors.primaryDark,
-    marginTop: 2,
-  },
-  qrCodeBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#C7D2FE',
-    borderStyle: 'dashed',
-    padding: 12,
-    alignItems: 'center',
-  },
-  qrTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  qrSubtitle: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 2,
-    marginBottom: 8,
-  },
-  qrImageContainer: {
-    padding: 6,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  qrImage: {
-    width: 130,
-    height: 130,
-  },
-  shareContainer: {
-    width: '100%',
-    marginTop: 10,
-  },
-
-  // Estilos de Modal de Calendario
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  modalCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  pickerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 20,
-  },
-  pickerColumn: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  pickerLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  pickerScrollView: {
-    height: 140,
-    width: '100%',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pickerItem: {
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pickerItemSelected: {
-    backgroundColor: colors.primaryLight,
-  },
-  pickerItemText: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  pickerItemTextSelected: {
-    color: colors.primaryDark,
-    fontWeight: '800',
-  },
-  modalButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  modalCancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  modalCancelBtnText: {
-    color: '#475569',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  modalConfirmBtn: {
-    flex: 1.5,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-  },
-  modalConfirmBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-});

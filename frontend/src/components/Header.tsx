@@ -1,121 +1,122 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: Header (Encabezado Institucional UI Kit)
+// Componente: Header (Encabezado Institucional Unificado)
 // Archivo: src/components/Header.tsx
-// Descripción: Encabezado institucional con soporte para ícono de retorno,
-//              títulos y logotipo oficial logo_ba.png en el Dashboard.
+// Descripción: Encabezado institucional unificado para todas las pantallas con usuario logeado,
+//              compuesto por la barra superior #EAF3FF con logo_baprotege_texto.png
+//              y la subcabecera con título, subtítulo, botón de retorno y elemento derecho opcional.
 // ==============================================================================
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Logo } from './Logo';
-import { colors } from '../theme/colors';
-import { typography } from '../theme/typography';
-import logoBaPng from '../assets/logo/logo_ba.png';
 
 interface HeaderProps {
   title?: string;
   subtitle?: string;
-  showLogo?: boolean;
-  useBaLogo?: boolean;
   onBack?: () => void;
+  rightElement?: React.ReactNode;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   title = 'BA Protege+',
   subtitle,
-  showLogo = true,
-  useBaLogo = false,
   onBack,
+  rightElement,
 }) => {
-  const isDefaultTitle = !title || title === 'BA Protege+';
-
   return (
-    <View style={styles.container}>
-      <View style={styles.headerTopRow}>
-        <View style={styles.titleRow}>
+    <View>
+      {/* 1. Encabezado Superior Institucional con logo_baprotege_texto.png sobre fondo #EAF3FF */}
+      <View style={styles.topHeaderBar}>
+        <Image
+          source={require('../assets/logo/logo_baprotege_texto.png')}
+          style={styles.topHeaderLogo}
+          resizeMode="contain"
+          accessibilityLabel="BA Protege +"
+        />
+      </View>
+
+      {/* 2. Subheader con botón volver, título y elemento derecho opcional */}
+      <View style={styles.subHeaderRow}>
+        <View style={styles.subHeaderLeft}>
           {onBack && (
             <TouchableOpacity
               style={styles.backButton}
               onPress={onBack}
               activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              accessibilityLabel="Volver a la pantalla anterior"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityLabel="Volver"
             >
               <Image
                 source={require('../assets/icons/volver.png')}
-                style={styles.backIconImage}
+                style={styles.backIcon}
                 resizeMode="contain"
               />
             </TouchableOpacity>
           )}
-
-          {showLogo && isDefaultTitle ? (
-            <View style={styles.logoContainer}>
-              <Logo variant="complete" size="sm" align="left" />
-            </View>
-          ) : (
-            <Text style={styles.title}>{title}</Text>
-          )}
+          <View style={styles.titleColumn}>
+            <Text style={styles.screenTitle}>{title}</Text>
+            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          </View>
         </View>
-
-        {useBaLogo && (
-          <Image
-            source={logoBaPng}
-            style={styles.headerLogoBa}
-            resizeMode="contain"
-          />
-        )}
+        {rightElement ? <View>{rightElement}</View> : null}
       </View>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 12,
+  topHeaderBar: {
+    backgroundColor: '#EAF3FF',
     paddingHorizontal: 16,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    paddingVertical: 10,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
-  headerTopRow: {
+  topHeaderLogo: {
+    width: 75,
+    height: 36,
+    resizeMode: 'contain',
+  },
+  subHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  titleRow: {
+  subHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    paddingRight: 8,
+    marginRight: 8,
   },
   backButton: {
+    padding: 4,
     marginRight: 10,
-    padding: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  backIconImage: {
+  backIcon: {
     width: 22,
     height: 22,
+    resizeMode: 'contain',
     tintColor: '#000000',
   },
-  logoContainer: {
-    marginBottom: 2,
+  titleColumn: {
+    flex: 1,
   },
-  title: {
-    ...typography.header,
-    color: colors.textPrimary,
+  screenTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#000000',
+    lineHeight: 28,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 13,
+    color: '#6B7280',
     marginTop: 2,
-  },
-  headerLogoBa: {
-    width: 36,
-    height: 36,
+    lineHeight: 18,
   },
 });

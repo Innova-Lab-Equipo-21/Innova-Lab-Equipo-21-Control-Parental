@@ -10,18 +10,15 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   SafeAreaView,
   ScrollView,
   Alert,
   Modal,
-  TouchableOpacity,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ActionButton } from '../components/ActionButton';
 import { PermissionsScreen, PermissionItemState } from './PermissionsScreen';
 import { LoginScreen } from './LoginScreen';
-import { colors } from '../theme/colors';
 import { apiService } from '../services/api.service';
 import { MAX_PARENT_DEVICES, SelfControlState, DeviceInfo, CustomBlockedDomain } from '../types';
 
@@ -32,6 +29,7 @@ import { ProtectedDevicesSection, PairingSection } from '../components/dashboard
 import { CustomSitesSection, GlobalRulesSection } from '../components/dashboard/sitios';
 import { ActivitySection } from '../components/dashboard/actividad';
 import { SelfControlSection, TutorPermissionsSection } from '../components/dashboard/cuenta';
+import { styles } from './ParentDashboardScreen.styles';
 
 interface ParentDashboardScreenProps {
   onExitMode: () => void;
@@ -120,34 +118,40 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     }
   };
 
-  const handleGeneratePairingCode = async () => {
-    if (devices.length >= MAX_PARENT_DEVICES) {
-      Alert.alert(
-        'Límite de Dispositivos Alcanzado',
-        `Un responsable solo puede administrar hasta un máximo de ${MAX_PARENT_DEVICES} dispositivos vinculados.`,
-      );
-      return;
-    }
-
+  const handleGeneratePairingCode = async (formData?: any) => {
     setLoading(true);
     try {
-      const res = await apiService.generatePairingCode();
-      setPairingCode(res.data.pairingCode);
+      const res = await apiService.generatePairingCode(formData);
+      setPairingCode(res.data?.code || res.data?.pairingCode || 'BA-9824');
     } catch (e: any) {
-      if (e.message?.includes('Límite alcanzado')) {
-        Alert.alert('Límite Alcanzado', e.message);
-      } else {
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        setPairingCode(code);
-      }
+      const msg = e.response?.data?.message || e.message || 'No se pudo generar el código de vinculación.';
+      Alert.alert('⚠️ Vinculación Pendiente', msg);
     } finally {
       setLoading(false);
     }
   };
 
   const handleStartSelfControlFlow = () => {
-    setConfirmationStep(1);
-    setShowSelfControlModal(true);
+    if (selfControl.active) {
+      if (selfControl.canDisable) {
+        Alert.alert(
+          'Desactivación Temporal (24 Horas)',
+          'El temporizador de espera ha finalizado. Al desactivar, se abrirá un pase temporal de 24 horas antes del rebloqueo automático.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Desactivar', onPress: handleDisableSelfControl },
+          ]
+        );
+      } else {
+        Alert.alert(
+          '🔒 Autocontrol Activo',
+          `Faltan ${selfControl.remainingHours}h ${selfControl.remainingMinutes}m para habilitar la desactivación.`
+        );
+      }
+    } else {
+      setConfirmationStep(1);
+      setShowSelfControlModal(true);
+    }
   };
 
   const handleConfirmStep1 = () => {
@@ -156,36 +160,26 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
   const handleFinalSelfControlActivation = async () => {
     setShowSelfControlModal(false);
-    setLoading(true);
     try {
-      const newState = await apiService.enableSelfControl();
-      setSelfControl(newState);
+      const res = await apiService.activateSelfControl();
+      setSelfControl(res.data);
       Alert.alert(
         '🛡️ Autocontrol Activado Exitosamente',
-        'La protección de autocontrol está activa de forma permanente. Para desactivarla, deberás solicitar la desactivación y esperar 24 horas.',
+        'La protección de autocontrol está activa de forma permanente. Para desactivarla, deberás solicitar la espera de 24 horas.'
       );
     } catch (e: any) {
       Alert.alert('Error', e.message || 'No se pudo activar el autocontrol.');
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleDisableSelfControl = async () => {
     try {
-      const newState = await apiService.disableSelfControl();
-      setSelfControl(newState);
-      if (newState.status === 'DEACTIVATION_PENDING') {
-        Alert.alert(
-          '⏳ Solicitud de Desactivación Iniciada',
-          'La desactivación se habilitará en 24 horas. Durante este tiempo de espera, la autoprotección permanecerá activa.',
-        );
-      } else if (newState.status === 'TEMPORARILY_UNLOCKED') {
-        Alert.alert(
-          '🔓 Autoprotección Desbloqueada',
-          'Has desactivado la autoprotección inmediatamente. Se otorgó un pase temporal de 24 horas. Cumplido ese plazo, la autoprotección se volverá a activar automáticamente.',
-        );
-      }
+      const res = await apiService.disableSelfControl();
+      setSelfControl(res.data);
+      Alert.alert(
+        '🔓 Pase Temporal de 24 Horas Iniciado',
+        'El sistema se ha desbloqueado temporalmente por 24 horas. Cumplido este plazo, se reactivará automáticamente.'
+      );
     } catch (e: any) {
       Alert.alert(
         '🔒 Desactivación en Espera',
@@ -220,13 +214,12 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       {activeTab === 'inicio' && (
         <>
           <Header
-            title="Panel del Responsable"
+            title="Panel del responsable"
             subtitle={
               currentUser?.fullName
                 ? `Bienvenido/a, ${currentUser.fullName}`
-                : 'Monitoreo, Permisos de Dispositivos y Autocontrol'
+                : 'Monitoreo, permisos de dispositivos y autocontrol'
             }
-            useBaLogo={true}
           />
           <ScrollView contentContainerStyle={styles.container}>
             {/* Tarjetas de Resumen General */}
@@ -249,9 +242,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               </View>
             </View>
 
-            {/* SECCIÓN 1: VINCULAR DISPOSITIVO MENOR */}
+            {/* SECCIÓN 1: VINCULAR DISPOSITIVO */}
             <SeccionDesplegable
-              title="Vincular Dispositivo Menor"
+              title="Vincular dispositivo"
               subtitle="Generar código y QR para vincular celular"
               badgeLabel={`${devices.length}/${MAX_PARENT_DEVICES} VINCULADOS`}
               badgeStatus="activo"
@@ -268,7 +261,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
             {/* SECCIÓN 2: REGLAS DE PROTECCIÓN GLOBAL */}
             <SeccionDesplegable
-              title="Reglas de Protección Global"
+              title="Reglas de protección global"
               subtitle="Filtros LOTBA y protección antidesinstalación"
               badgeLabel="3 REGLAS"
               badgeStatus="activo"
@@ -295,7 +288,6 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             title="Mis Dispositivos Protegidos"
             subtitle={`Administración de hasta ${MAX_PARENT_DEVICES} celulares vinculados`}
             onBack={() => setActiveTab('inicio')}
-            useBaLogo={true}
           />
           <ScrollView contentContainerStyle={styles.container}>
             <ProtectedDevicesSection devices={devices} />
@@ -320,7 +312,6 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             title="Gestión de Sitios Web"
             subtitle="Filtro oficial LOTBA y dominios bloqueados manualmente"
             onBack={() => setActiveTab('inicio')}
-            useBaLogo={true}
           />
           <ScrollView contentContainerStyle={styles.container}>
             {/* Banner Informativo de Filtro LOTBA */}
@@ -346,7 +337,6 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             title="Actividad del Sistema"
             subtitle="Auditoría de bloqueos, alertas y geolocalización"
             onBack={() => setActiveTab('inicio')}
-            useBaLogo={true}
           />
           <ScrollView contentContainerStyle={styles.container}>
             <ActivitySection />
@@ -361,7 +351,6 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             title="Perfil y Cuenta"
             subtitle="Ajustes del responsable, permisos y autoprotección"
             onBack={() => setActiveTab('inicio')}
-            useBaLogo={true}
           />
           <ScrollView contentContainerStyle={styles.container}>
             {/* Tarjeta de Perfil del Usuario */}
@@ -380,33 +369,41 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                     {currentUser?.email || 'tutor@baprotege.gob.ar'}
                   </Text>
                   <View style={styles.verifiedBadge}>
-                    <Text style={styles.verifiedBadgeText}>✓ Mayor de 18 años verificado</Text>
+                    <Text style={styles.verifiedBadgeText}>✓ Identidad Verificada (+18)</Text>
                   </View>
                 </View>
               </View>
             </View>
 
-            {/* Configuración de Permisos del Dispositivo del Tutor */}
-            <TutorPermissionsSection
-              permissions={permissions}
-              onConfigurePermissions={() => setShowPermissionsModal(true)}
-            />
+            {/* Subsección: Permisos del Dispositivo */}
+            <SeccionDesplegable
+              title="Permisos de Aplicación"
+              subtitle="Auditoría y re-autorización de permisos Android"
+              badgeLabel="CONFIGURAR"
+              badgeStatus="activo"
+              icon="🔒"
+              initialExpanded={false}
+            >
+              <TutorPermissionsSection
+                onOpenPermissions={() => setShowPermissionsModal(true)}
+              />
+            </SeccionDesplegable>
 
-            {/* Autocontrol del Tutor */}
+            {/* Subsección: Autocontrol del Responsable */}
             <SeccionDesplegable
               title="Autocontrol del Tutor"
-              subtitle="Protección permanente con desbloqueo de 24hs"
+              subtitle="Bloqueo preventivo de 24 horas"
               badgeLabel={
-                selfControl.status === 'TEMPORARILY_UNLOCKED'
-                  ? 'PASE 24H'
-                  : selfControl.status === 'DEACTIVATION_PENDING'
-                  ? 'ESPERA 24H'
-                  : selfControl.active
-                  ? 'ACTIVA'
+                selfControl.active
+                  ? '🔒 ACTIVO'
+                  : selfControl.remainingHours > 0
+                  ? 'EN ESPERA'
                   : 'INACTIVO'
               }
               badgeStatus={
-                selfControl.active || selfControl.status === 'DEACTIVATION_PENDING'
+                selfControl.active
+                  ? 'activo'
+                  : selfControl.remainingHours > 0
                   ? 'alerta'
                   : 'inactivo'
               }
@@ -500,167 +497,3 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    padding: 16,
-    paddingBottom: 28,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
-  },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.primary,
-    marginBottom: 2,
-  },
-  summaryLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  sectionMargin: {
-    marginTop: 12,
-  },
-  infoBanner: {
-    backgroundColor: '#E7F1FF',
-    borderColor: '#B6D4FE',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 14,
-  },
-  infoBannerTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0056B3',
-    marginBottom: 2,
-  },
-  infoBannerText: {
-    fontSize: 12,
-    color: '#0A58CA',
-    lineHeight: 16,
-  },
-  profileCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    marginBottom: 16,
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  profileAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  profileEmail: {
-    fontSize: 12.5,
-    color: colors.textSecondary,
-    marginTop: 1,
-  },
-  verifiedBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#D1E7DD',
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    marginTop: 6,
-  },
-  verifiedBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#0F5132',
-  },
-  footer: {
-    marginTop: 12,
-    marginBottom: 12,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 24,
-  },
-  modalEmoji: {
-    fontSize: 36,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  modalBody: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  warningBox: {
-    backgroundColor: '#FFF3CD',
-    borderColor: '#FFC107',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  warningBoxText: {
-    fontSize: 12,
-    color: '#856404',
-    fontWeight: '600',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-});

@@ -35,9 +35,23 @@ export class DeviceService {
    */
   public async generatePairingCode(input: GeneratePairingCodeInput) {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    // Código nunca expira (100 años en el futuro)
+    const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
 
     if (env.USE_MOCK_DATA) {
+      let existingPending = mockDb.pairings.find(
+        (p) => p.userId === input.userId && !p.isUsed
+      );
+
+      if (existingPending) {
+        existingPending.pairingCode = code;
+        existingPending.expiresAt = expiresAt;
+        return {
+          pairingCode: code,
+          expiresAt,
+        };
+      }
+
       mockDb.pairings.push({
         id: `pair-mock-${Date.now()}`,
         userId: input.userId,
@@ -51,6 +65,27 @@ export class DeviceService {
       return {
         pairingCode: code,
         expiresAt,
+      };
+    }
+
+    const existingPending = await prisma.devicePairing.findFirst({
+      where: {
+        userId: input.userId,
+        isUsed: false,
+      },
+    });
+
+    if (existingPending) {
+      const updated = await prisma.devicePairing.update({
+        where: { id: existingPending.id },
+        data: {
+          pairingCode: code,
+          expiresAt,
+        },
+      });
+      return {
+        pairingCode: updated.pairingCode,
+        expiresAt: updated.expiresAt,
       };
     }
 
@@ -77,10 +112,6 @@ export class DeviceService {
 
       if (!pairing || pairing.isUsed) {
         throw new AppError('Código de pareamiento inválido o ya utilizado', 400);
-      }
-
-      if (new Date() > pairing.expiresAt) {
-        throw new AppError('El código de pareamiento ha expirado', 400);
       }
 
       let device = mockDb.devices.find((d) => d.deviceUuid === input.deviceUuid);
