@@ -11,9 +11,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
-import { ActionButton } from '../ActionButton';
+import { styles } from './RecoveryForm.styles';
 import { colors } from '../../theme/colors';
 import { apiService } from '../../services/api.service';
 import { validateEmailFormat } from '../../utils/authValidation';
@@ -68,7 +68,7 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
   return (
     <View>
       <View style={styles.headerSection}>
-        <Text style={styles.title}>Recuperar Contraseña</Text>
+        <Text style={styles.title}>Recuperar contraseña</Text>
         <Text style={styles.subtitle}>
           Ingresa tu correo electrónico registrado y te enviaremos las instrucciones para restablecer tu acceso.
         </Text>
@@ -87,7 +87,7 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
         </View>
       ) : (
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Correo Electrónico Registrado</Text>
+          <Text style={styles.label}>Correo electrónico</Text>
           <View
             style={[
               styles.inputContainer,
@@ -119,120 +119,37 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
         </View>
       )}
 
-      <View style={styles.actionsSection}>
-        {!recoverySent && (
-          <ActionButton
-            title="Enviar Instrucciones de Recuperación"
-            variant="primary"
-            onPress={handleSubmit}
-            loading={loading}
-          />
-        )}
-
-        <ActionButton
-          title="Volver a Iniciar Sesión"
-          variant="secondary"
+      <View style={styles.dualButtonContainer}>
+        <TouchableOpacity
+          style={recoverySent ? styles.secondaryButtonFull : styles.secondaryButton}
           onPress={() => onSwitchMode('LOGIN')}
-        />
+          activeOpacity={0.85}
+        >
+          <Text style={styles.secondaryButtonText}>Volver</Text>
+        </TouchableOpacity>
+
+        {!recoverySent && (
+          <TouchableOpacity
+            style={styles.primaryButtonHalf}
+            onPress={handleSubmit}
+            activeOpacity={0.85}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text
+                style={styles.primaryButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                Recuperar contraseña
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  headerSection: {
-    marginBottom: 18,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 18,
-    paddingHorizontal: 8,
-  },
-  alertError: {
-    backgroundColor: colors.statusDangerBg,
-    borderColor: '#F5C2C7',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-  },
-  alertErrorText: {
-    color: colors.statusDanger,
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  alertSuccess: {
-    backgroundColor: colors.statusActiveBg,
-    borderColor: '#BADBCC',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 16,
-  },
-  alertSuccessTitle: {
-    color: colors.statusActive,
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  alertSuccessText: {
-    color: '#0F5132',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  inputGroup: {
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 6,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 12,
-  },
-  inputFocusedBorder: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-    backgroundColor: '#FFFFFF',
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textPrimary,
-    height: '100%',
-  },
-  inputIconAction: {
-    padding: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  clearIconText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: colors.textMuted,
-  },
-  actionsSection: {
-    marginTop: 10,
-  },
-});

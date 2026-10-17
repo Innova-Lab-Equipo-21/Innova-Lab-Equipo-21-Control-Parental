@@ -14,14 +14,17 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  StyleSheet,
   Alert,
-  Modal,
   Image,
+  Platform,
 } from 'react-native';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ActionButton } from '../ActionButton';
 import { Icon } from '../Icon';
+import { styles } from './RegisterForm.styles';
+import { DatePickerModal } from './DatePickerModal';
+import { TermsModal } from './TermsModal';
+import { PrivacyModal } from './PrivacyModal';
 import { colors } from '../../theme/colors';
 import { apiService } from '../../services/api.service';
 import { calculateAge } from '../../utils/age';
@@ -38,11 +41,13 @@ type GenderOption = 'Masculino' | 'Femenino' | 'Otro' | 'No informado';
 interface RegisterFormProps {
   onLoginSuccess: (user: any, token: string) => void;
   onSwitchMode: (mode: AuthViewMode) => void;
+  onBack?: () => void;
 }
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({
   onLoginSuccess,
   onSwitchMode,
+  onBack,
 }) => {
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
@@ -54,6 +59,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
 
   // Estado para Términos y Condiciones y Políticas de Privacidad
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -69,11 +75,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const passwordInputRef = useRef<TextInput>(null);
   const confirmPasswordInputRef = useRef<TextInput>(null);
 
-  // Estados para Modal de Calendario
+  // Estado para Modal de Calendario
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<number>(15);
-  const [selectedMonth, setSelectedMonth] = useState<number>(6); // Junio
-  const [selectedYear, setSelectedYear] = useState<number>(2000);
 
   // Estado del campo enfocado para destacar borde
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -81,29 +84,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  /** Devuelve el número real de días del mes y año seleccionados */
-  const getDaysInMonth = (month: number, year: number): number => {
-    return new Date(year, month, 0).getDate();
-  };
-
-  const daysInCurrentMonth = getDaysInMonth(selectedMonth, selectedYear);
-
-  const handleMonthChange = (month: number) => {
-    setSelectedMonth(month);
-    const maxDays = getDaysInMonth(month, selectedYear);
-    if (selectedDay > maxDays) {
-      setSelectedDay(maxDays);
-    }
-  };
-
-  const handleYearChange = (year: number) => {
-    setSelectedYear(year);
-    const maxDays = getDaysInMonth(selectedMonth, year);
-    if (selectedDay > maxDays) {
-      setSelectedDay(maxDays);
-    }
-  };
 
   const handleCheckAgeAndValidate = (dateStr: string) => {
     const age = calculateAge(dateStr);
@@ -130,6 +110,39 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
     setFieldErrors((prev) => ({ ...prev, fechaNacimiento: '' }));
     return true;
+  };
+
+  const handleOpenDatePicker = () => {
+    if (Platform.OS === 'android') {
+      let currentDate = new Date(2000, 5, 15);
+      if (fechaNacimiento && fechaNacimiento.length === 10) {
+        const [d, m, y] = fechaNacimiento.split('/').map(Number);
+        if (d && m && y && !isNaN(d) && !isNaN(m) && !isNaN(y)) {
+          currentDate = new Date(y, m - 1, d);
+        }
+      }
+      try {
+        DateTimePickerAndroid.open({
+          value: currentDate,
+          onChange: (event, selectedDate) => {
+            if (event.type === 'set' && selectedDate) {
+              const day = selectedDate.getDate().toString().padStart(2, '0');
+              const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+              const year = selectedDate.getFullYear();
+              const formattedStr = `${day}/${month}/${year}`;
+              setFechaNacimiento(formattedStr);
+              handleCheckAgeAndValidate(formattedStr);
+            }
+          },
+          mode: 'date',
+          maximumDate: new Date(),
+        });
+      } catch (err) {
+        setShowDatePickerModal(true);
+      }
+    } else {
+      setShowDatePickerModal(true);
+    }
   };
 
   const handleGoogleRegister = async () => {
@@ -232,9 +245,19 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   return (
     <View>
       <View style={styles.headerSection}>
-        <Text style={styles.title}>Crear Cuenta Responsable</Text>
+        <View style={styles.titleRow}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => (onBack ? onBack() : onSwitchMode('LOGIN'))}
+            activeOpacity={0.7}
+            accessibilityLabel="Volver"
+          >
+            <Icon name="volver" size={24} color="#000000" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Crear cuenta responsable</Text>
+        </View>
         <Text style={styles.subtitle}>
-          Registra tus datos personales para administrar la protección digital de tus hijos.
+          Registra tus datos para administrar la protección digital de tus protegidos
         </Text>
       </View>
 
@@ -246,7 +269,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
       {/* Campo 1: Nombre */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Nombre *</Text>
+        <Text style={styles.label}>
+          Nombre<Text style={styles.requiredAsterisk}>*</Text>
+        </Text>
         <View
           style={[
             styles.inputContainer,
@@ -296,7 +321,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
       {/* Campo 2: Apellido */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Apellido *</Text>
+        <Text style={styles.label}>
+          Apellido<Text style={styles.requiredAsterisk}>*</Text>
+        </Text>
         <View
           style={[
             styles.inputContainer,
@@ -346,7 +373,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
       {/* Campo 3: Fecha de Nacimiento (Ubicado antes de Género) */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Fecha de Nacimiento *</Text>
+        <Text style={styles.label}>
+          Fecha de Nacimiento<Text style={styles.requiredAsterisk}>*</Text>
+        </Text>
         <View
           style={[
             styles.inputContainer,
@@ -378,10 +407,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           />
           <TouchableOpacity
             style={styles.inputIconAction}
-            onPress={() => setShowDatePickerModal(true)}
+            onPress={handleOpenDatePicker}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Abrir calendario"
           >
-            <Text style={{ fontSize: 18 }}>📅</Text>
+            <Icon name="calendario" size={24} color="#007AFF" />
           </TouchableOpacity>
         </View>
         {fieldErrors.fechaNacimiento ? (
@@ -389,64 +419,65 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         ) : null}
       </View>
 
-      {/* Campo 4: Género en Carrusel Horizontal (Sin Emojis) */}
+      {/* Campo 4: Género (Dropdown) */}
       <View style={styles.inputGroup}>
-        <View style={styles.labelRow}>
-          <Text style={styles.label}>Género</Text>
-          <Text style={styles.carouselHint}>Desliza para elegir ▸</Text>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.genderCarouselContainer}
+        <Text style={styles.label}>Género</Text>
+        <TouchableOpacity
+          style={[
+            styles.inputContainer,
+            styles.dropdownContainer,
+            isGenderDropdownOpen && styles.inputFocusedBorder,
+          ]}
+          onPress={() => setIsGenderDropdownOpen((prev) => !prev)}
+          activeOpacity={0.8}
+          accessibilityLabel="Seleccionar género"
         >
-          {(
-            [
-              { id: 'Masculino', label: 'Masculino' },
-              { id: 'Femenino', label: 'Femenino' },
-              { id: 'Otro', label: 'Otro' },
-              { id: 'No informado', label: 'No informado' },
-            ] as { id: GenderOption; label: string }[]
-          ).map((item) => {
-            const isSelected = genero === item.id;
-            return (
+          <Text
+            style={[
+              styles.dropdownSelectedText,
+              genero === 'No informado' ? styles.dropdownPlaceholderText : null,
+            ]}
+          >
+            {genero}
+          </Text>
+          <Text style={styles.dropdownArrow}>{isGenderDropdownOpen ? '▲' : '▼'}</Text>
+        </TouchableOpacity>
+
+        {isGenderDropdownOpen && (
+          <View style={styles.dropdownMenu}>
+            {(['Masculino', 'Femenino', 'Otro', 'No informado'] as GenderOption[]).map((opt) => (
               <TouchableOpacity
-                key={item.id}
+                key={opt}
                 style={[
-                  styles.genderCarouselCard,
-                  isSelected && styles.genderCarouselCardSelected,
+                  styles.dropdownMenuItem,
+                  genero === opt && styles.dropdownMenuItemSelected,
                 ]}
-                onPress={() => setGenero(item.id)}
+                onPress={() => {
+                  setGenero(opt);
+                  setIsGenderDropdownOpen(false);
+                }}
                 activeOpacity={0.7}
               >
                 <Text
                   style={[
-                    styles.genderCarouselText,
-                    isSelected && styles.genderCarouselTextSelected,
+                    styles.dropdownMenuItemText,
+                    genero === opt && styles.dropdownMenuItemTextSelected,
                   ]}
                 >
-                  {item.label}
+                  {opt}
                 </Text>
+                {genero === opt && (
+                  <Text style={styles.dropdownCheckmark}>✓</Text>
+                )}
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-        <View style={styles.carouselDotsRow}>
-          {(['Masculino', 'Femenino', 'Otro', 'No informado'] as GenderOption[]).map((opt) => (
-            <View
-              key={opt}
-              style={[
-                styles.carouselDot,
-                genero === opt && styles.carouselDotActive,
-              ]}
-            />
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Campo 5: Teléfono */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Teléfono (mínimo 10 dígitos)</Text>
+        <Text style={styles.label}>Teléfono</Text>
         <View
           style={[
             styles.inputContainer,
@@ -500,7 +531,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
       {/* Campo 6: Correo Electrónico */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Correo Electrónico *</Text>
+        <Text style={styles.label}>
+          Correo electrónico<Text style={styles.requiredAsterisk}>*</Text>
+        </Text>
         <View
           style={[
             styles.inputContainer,
@@ -552,7 +585,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
       {/* Campo 7: Contraseña */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Contraseña (mínimo 6 caracteres) *</Text>
+        <Text style={styles.label}>
+          Contraseña<Text style={styles.requiredAsterisk}>*</Text>
+        </Text>
         <View
           style={[
             styles.inputContainer,
@@ -615,7 +650,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
       {/* Campo 8: Confirmar Contraseña */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Confirmar Contraseña *</Text>
+        <Text style={styles.label}>
+          Confirmar contraseña<Text style={styles.requiredAsterisk}>*</Text>
+        </Text>
         <View
           style={[
             styles.inputContainer,
@@ -727,7 +764,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       {/* Acciones */}
       <View style={styles.actionsSection}>
         <ActionButton
-          title="Crear Cuenta e Ingresar"
+          title="Crear cuenta"
           variant="primary"
           onPress={handleSubmit}
           loading={loading}
@@ -740,15 +777,17 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           <View style={styles.dividerLine} />
         </View>
 
-        {/* Botón de Google Cuadrado/Centrado con logo_google.png */}
+        {/* Botón de Google */}
         <TouchableOpacity
-          style={styles.googleIconButton}
+          style={styles.googleButtonContainer}
           onPress={handleGoogleRegister}
           activeOpacity={0.85}
+          accessibilityLabel="Registrarse con Google"
+          accessibilityRole="button"
         >
           <Image
             source={require('../../assets/logo/logo_google.png')}
-            style={styles.googleIconImage}
+            style={styles.googleButtonImage}
             resizeMode="contain"
           />
         </TouchableOpacity>
@@ -758,664 +797,34 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           onPress={() => onSwitchMode('LOGIN')}
         >
           <Text style={styles.secondaryCardButtonText}>
-            ¿Ya tienes una cuenta? <Text style={styles.highlightText}>Iniciar Sesión</Text>
+            ¿Ya tenés una cuenta? <Text style={styles.highlightText}>Iniciar Sesión</Text>
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Modal de Selección de Calendario */}
-      <Modal
+      <DatePickerModal
         visible={showDatePickerModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowDatePickerModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowDatePickerModal(false)}
-        >
-          <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
-            <Text style={styles.modalTitle}>📅 Seleccionar Fecha de Nacimiento</Text>
-            <Text style={styles.modalSubtitle}>
-              Elige tu fecha para verificar la mayoría de edad (+18)
-            </Text>
-
-            {/* Selectores de Día, Mes y Año con límites reales de días */}
-            <View style={styles.pickerRow}>
-              {/* Día */}
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Día</Text>
-                <ScrollView style={styles.pickerScrollView} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1).map((d) => (
-                    <TouchableOpacity
-                      key={d}
-                      style={[styles.pickerItem, selectedDay === d && styles.pickerItemSelected]}
-                      onPress={() => setSelectedDay(d)}
-                    >
-                      <Text style={[styles.pickerItemText, selectedDay === d && styles.pickerItemTextSelected]}>
-                        {d.toString().padStart(2, '0')}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* Mes */}
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Mes</Text>
-                <ScrollView style={styles.pickerScrollView} showsVerticalScrollIndicator={false}>
-                  {[
-                    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
-                  ].map((m, idx) => (
-                    <TouchableOpacity
-                      key={m}
-                      style={[styles.pickerItem, selectedMonth === idx + 1 && styles.pickerItemSelected]}
-                      onPress={() => handleMonthChange(idx + 1)}
-                    >
-                      <Text style={[styles.pickerItemText, selectedMonth === idx + 1 && styles.pickerItemTextSelected]}>
-                        {m}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* Año */}
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Año</Text>
-                <ScrollView style={styles.pickerScrollView} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 100 }, (_, i) => 2026 - i).map((y) => (
-                    <TouchableOpacity
-                      key={y}
-                      style={[styles.pickerItem, selectedYear === y && styles.pickerItemSelected]}
-                      onPress={() => handleYearChange(y)}
-                    >
-                      <Text style={[styles.pickerItemText, selectedYear === y && styles.pickerItemTextSelected]}>
-                        {y}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            </View>
-
-            <View style={styles.modalButtonRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setShowDatePickerModal(false)}
-              >
-                <Text style={styles.modalCancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalConfirmBtn}
-                onPress={() => {
-                  const maxDays = getDaysInMonth(selectedMonth, selectedYear);
-                  const validDay = Math.min(selectedDay, maxDays);
-                  const dayStr = validDay.toString().padStart(2, '0');
-                  const monthStr = selectedMonth.toString().padStart(2, '0');
-                  const formattedStr = `${dayStr}/${monthStr}/${selectedYear}`;
-                  setFechaNacimiento(formattedStr);
-                  setShowDatePickerModal(false);
-                  handleCheckAgeAndValidate(formattedStr);
-                }}
-              >
-                <Text style={styles.modalConfirmBtnText}>Confirmar Fecha</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        initialDate={fechaNacimiento}
+        onClose={() => setShowDatePickerModal(false)}
+        onConfirm={(formattedDate) => {
+          setFechaNacimiento(formattedDate);
+          handleCheckAgeAndValidate(formattedDate);
+        }}
+      />
 
       {/* Modal de Términos y Condiciones */}
-      <Modal
+      <TermsModal
         visible={showTermsModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowTermsModal(false)}
-      >
-        <View style={styles.legalModalOverlay}>
-          <View style={styles.legalModalCard}>
-            <View style={styles.legalModalHeader}>
-              <Text style={styles.legalModalTitle}>📜 Términos y Condiciones</Text>
-              <TouchableOpacity
-                onPress={() => setShowTermsModal(false)}
-                style={styles.legalModalCloseBtn}
-              >
-                <Text style={styles.legalModalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.legalModalSubtitle}>
-              BA Protege+ • Lotería de la Ciudad de Buenos Aires (LOTBA)
-            </Text>
-
-            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={true}>
-              <Text style={styles.legalSectionTitle}>1. Aceptación del Servicio</Text>
-              <Text style={styles.legalParagraph}>
-                Al crear una cuenta en BA Protege+, aceptas cumplir íntegramente con los presentes Términos y Condiciones. Esta plataforma es provista por el Gobierno de la Ciudad Autónoma de Buenos Aires a través de LOTBA S.E. para la prevención del juego ilegal y la protección de menores.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>2. Requisito de Mayoría de Edad</Text>
-              <Text style={styles.legalParagraph}>
-                El registro en el Modo Responsable está reservado exclusivamente a padres, madres, tutores legales o adultos responsables mayores de 18 años. Queda estrictamente prohibida la creación de cuentas por menores de edad.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>3. Uso del Servicio de Filtrado VPN</Text>
-              <Text style={styles.legalParagraph}>
-                La aplicación instala un túnel de filtrado local (VPN) en el dispositivo para bloquear automáticamente solicitudes hacia plataformas de apuestas no autorizadas o clandestinas enumeradas en la lista oficial de LOTBA.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>4. Protección Anti-Desinstalación</Text>
-              <Text style={styles.legalParagraph}>
-                Con el fin de asegurar la efectividad del control parental, el sistema utiliza permisos de Accesibilidad de Android para prevenir el cierre o desinstalación no autorizada de la aplicación sin la clave PIN del tutor.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>5. Modificaciones y Actualizaciones</Text>
-              <Text style={styles.legalParagraph}>
-                LOTBA se reserva el derecho de actualizar la lista de dominios bloqueados y las funcionalidades del sistema en cualquier momento para mantener la protección activa.
-              </Text>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={styles.legalModalConfirmBtn}
-              onPress={() => setShowTermsModal(false)}
-            >
-              <Text style={styles.legalModalConfirmBtnText}>Entendido</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowTermsModal(false)}
+      />
 
       {/* Modal de Políticas de Privacidad */}
-      <Modal
+      <PrivacyModal
         visible={showPrivacyModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowPrivacyModal(false)}
-      >
-        <View style={styles.legalModalOverlay}>
-          <View style={styles.legalModalCard}>
-            <View style={styles.legalModalHeader}>
-              <Text style={styles.legalModalTitle}>🛡️ Políticas de Privacidad</Text>
-              <TouchableOpacity
-                onPress={() => setShowPrivacyModal(false)}
-                style={styles.legalModalCloseBtn}
-              >
-                <Text style={styles.legalModalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.legalModalSubtitle}>
-              Protección de Datos Personales • Ley N° 25.326
-            </Text>
-
-            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={true}>
-              <Text style={styles.legalSectionTitle}>1. Compromiso de Privacidad</Text>
-              <Text style={styles.legalParagraph}>
-                BA Protege+ garantiza el tratamiento confidencial y seguro de todos los datos personales de acuerdo con la Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>2. Información Recolectada</Text>
-              <Text style={styles.legalParagraph}>
-                Recolectamos datos mínimos e indispensables: nombre, apellido, correo electrónico, teléfono, fecha de nacimiento, identificador de dispositivo y registros de intentos de acceso a sitios bloqueados.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>3. Uso de Datos y Geolocalización</Text>
-              <Text style={styles.legalParagraph}>
-                La información de geolocalización e IP se utiliza únicamente para auditar la seguridad del dispositivo y la vinculación de cuentas. Nunca comercializamos, vendemos ni compartimos datos con anunciantes ni terceros.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>4. Seguridad e Inmutabilidad</Text>
-              <Text style={styles.legalParagraph}>
-                Toda la comunicación entre el dispositivo y nuestros servidores viaja cifrada con protocolo TLS 1.3/HTTPS. Los registros de auditoría de seguridad se guardan de forma inmutable.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>5. Derechos del Usuario</Text>
-              <Text style={styles.legalParagraph}>
-                Como titular de los datos, tienes derecho a rectificar, actualizar o solicitar la supresión de tu información personal en cualquier momento escribiendo al soporte oficial de BA Protege+.
-              </Text>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={styles.legalModalConfirmBtn}
-              onPress={() => setShowPrivacyModal(false)}
-            >
-              <Text style={styles.legalModalConfirmBtnText}>Entendido</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  headerSection: {
-    marginBottom: 18,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 18,
-    paddingHorizontal: 8,
-  },
-  alertError: {
-    backgroundColor: colors.statusDangerBg,
-    borderColor: '#F5C2C7',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-  },
-  alertErrorText: {
-    color: colors.statusDanger,
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  inputGroup: {
-    marginBottom: 14,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 6,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 12,
-  },
-  inputFocusedBorder: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-    backgroundColor: '#FFFFFF',
-  },
-  inputErrorBorder: {
-    borderColor: colors.statusDanger,
-    backgroundColor: '#FFF8F8',
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textPrimary,
-    height: '100%',
-  },
-  iconActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  inputIconAction: {
-    padding: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  clearIconText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: colors.textMuted,
-  },
-  fieldErrorText: {
-    fontSize: 11,
-    color: colors.statusDanger,
-    fontWeight: '500',
-    marginTop: 4,
-    marginLeft: 2,
-  },
-  carouselHint: {
-    fontSize: 11,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  genderCarouselContainer: {
-    paddingVertical: 4,
-    gap: 8,
-  },
-  genderCarouselCard: {
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 110,
-  },
-  genderCarouselCardSelected: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  genderCarouselText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  genderCarouselTextSelected: {
-    color: colors.primaryDark,
-    fontWeight: '700',
-  },
-  carouselDotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-  },
-  carouselDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.border,
-  },
-  carouselDotActive: {
-    width: 16,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
-  },
-  actionsSection: {
-    marginTop: 10,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 14,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.borderLight,
-  },
-  dividerText: {
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  googleIconButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  googleIconImage: {
-    width: 28,
-    height: 28,
-  },
-  secondaryCardButton: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    marginTop: 4,
-  },
-  secondaryCardButtonText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  highlightText: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-
-  // Estilos de Modal de Calendario
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  modalCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  pickerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 20,
-  },
-  pickerColumn: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  pickerLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  pickerScrollView: {
-    height: 140,
-    width: '100%',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pickerItem: {
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pickerItemSelected: {
-    backgroundColor: colors.primaryLight,
-  },
-  pickerItemText: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  pickerItemTextSelected: {
-    color: colors.primaryDark,
-    fontWeight: '800',
-  },
-  modalButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  modalCancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  modalCancelBtnText: {
-    color: '#475569',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  modalConfirmBtn: {
-    flex: 1.5,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-  },
-  modalConfirmBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  // Estilos del Checkbox de Términos y Condiciones y Políticas de Privacidad
-  termsGroupContainer: {
-    marginVertical: 12,
-  },
-  termsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 2,
-  },
-  checkboxTouch: {
-    paddingRight: 10,
-    paddingVertical: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 5,
-    borderWidth: 1.8,
-    borderColor: '#007AFF',
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  checkboxCheckmark: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '900',
-    lineHeight: 15,
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 13.5,
-    color: colors.textPrimary,
-    lineHeight: 19,
-    fontWeight: '400',
-  },
-  termsLink: {
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-
-  // Estilos de Modales Legales
-  legalModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-  },
-  legalModalCard: {
-    width: '100%',
-    maxHeight: '85%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  legalModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  legalModalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  legalModalCloseBtn: {
-    padding: 6,
-  },
-  legalModalCloseText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textMuted,
-  },
-  legalModalSubtitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary,
-    marginTop: 2,
-    marginBottom: 10,
-  },
-  legalModalBody: {
-    marginVertical: 6,
-    paddingRight: 4,
-  },
-  legalSectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  legalParagraph: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  legalModalConfirmBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  legalModalConfirmBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-});

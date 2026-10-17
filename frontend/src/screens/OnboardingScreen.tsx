@@ -136,13 +136,17 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           {wizardStep === 1 && (
             <View style={styles.contentCard}>
               <Text style={styles.mainTitle}>¡Te damos la bienvenida a BA Protege +!</Text>
-              <Text style={styles.subtitleBold}>Con esta app vas a poder:</Text>
+              <Text style={styles.subtitleBold}>
+                Bloqueamos sitios de juego y apuestas ilegales para que ningún dispositivo con esta app pueda acceder a ellos.
+              </Text>
 
+              {/* Sección 1: Adulto responsable */}
+              <Text style={styles.sectionHeaderTitle}>Si sos un adulto responsable podrás:</Text>
               <View style={styles.bulletList}>
                 {/* Item 1 */}
                 <View style={styles.bulletItem}>
-                  <View style={styles.bulletIconCircle}>
-                    <Icon name="ojo" size={20} color="#007AFF" />
+                  <View style={styles.bulletIconWrapper}>
+                    <Icon name="ojo" size={24} color="#007AFF" />
                   </View>
                   <Text style={styles.bulletText}>
                     Proteger lo que ven los menores de 18 años.
@@ -151,8 +155,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
                 {/* Item 2 */}
                 <View style={styles.bulletItem}>
-                  <View style={styles.bulletIconCircle}>
-                    <Icon name="manos" size={20} color="#007AFF" />
+                  <View style={styles.bulletIconWrapper}>
+                    <Icon name="manos" size={24} color="#007AFF" />
                   </View>
                   <Text style={styles.bulletText}>
                     Acompañar y cuidar a adultos con ludopatía o uso problemático del celular.
@@ -161,11 +165,55 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
                 {/* Item 3 */}
                 <View style={styles.bulletItem}>
-                  <View style={styles.bulletIconCircle}>
-                    <Icon name="reloj" size={20} color="#007AFF" />
+                  <View style={styles.bulletIconWrapper}>
+                    <Icon name="reloj" size={24} color="#007AFF" />
                   </View>
                   <Text style={styles.bulletText}>
                     Autocontrolar tu propia navegación.
+                  </Text>
+                </View>
+
+                {/* Item 4 */}
+                <View style={styles.bulletItem}>
+                  <View style={styles.bulletIconWrapper}>
+                    <Icon name="sitios" size={24} color="#007AFF" />
+                  </View>
+                  <Text style={styles.bulletText}>
+                    Bloquear sitios y apps personalizados para mejorar la protección.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Sección 2: Alguien que necesita protección */}
+              <Text style={styles.sectionHeaderTitle}>Si sos alguien que necesita protección:</Text>
+              <View style={styles.bulletList}>
+                {/* Item 1 */}
+                <View style={styles.bulletItem}>
+                  <View style={styles.bulletIconWrapper}>
+                    <Icon name="usuario" size={24} color="#007AFF" />
+                  </View>
+                  <Text style={styles.bulletText}>
+                    Recibirás el acompañamiento de un adulto responsable para navegar en entornos digitales seguros.
+                  </Text>
+                </View>
+
+                {/* Item 2 */}
+                <View style={styles.bulletItem}>
+                  <View style={styles.bulletIconWrapper}>
+                    <Icon name="escudo" size={24} color="#007AFF" />
+                  </View>
+                  <Text style={styles.bulletText}>
+                    Podrás acceder a material interactivo que te ayudará a identificar sitios y apps no seguros.
+                  </Text>
+                </View>
+
+                {/* Item 3 */}
+                <View style={styles.bulletItem}>
+                  <View style={styles.bulletIconWrapper}>
+                    <Icon name="sitios" size={24} color="#007AFF" />
+                  </View>
+                  <Text style={styles.bulletText}>
+                    Si sos mayor de edad, podrás bloquear sitios y apps personalizados.
                   </Text>
                 </View>
               </View>
@@ -190,13 +238,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                   </View>
                   <View style={styles.modeCardBody}>
                     <View style={styles.checkItem}>
-                      <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                      <Icon name="check" size={24} color="#007AFF" style={styles.checkIconWrapper} />
                       <Text style={styles.checkText}>
                         Configurás las reglas desde tu dispositivo.
                       </Text>
                     </View>
                     <View style={styles.checkItem}>
-                      <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                      <Icon name="check" size={24} color="#007AFF" style={styles.checkIconWrapper} />
                       <Text style={styles.checkText}>
                         Controlás el bloqueo de sitios web y apps.
                       </Text>
@@ -211,15 +259,15 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                   </View>
                   <View style={styles.modeCardBody}>
                     <View style={styles.checkItem}>
-                      <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                      <Icon name="check" size={24} color="#007AFF" style={styles.checkIconWrapper} />
                       <Text style={styles.checkText}>
                         Tu dispositivo recibe la protección de un adulto responsable.
                       </Text>
                     </View>
                     <View style={styles.checkItem}>
-                      <Icon name="check" size={20} color="#007AFF" style={styles.checkIconWrapper} />
+                      <Icon name="check" size={24} color="#007AFF" style={styles.checkIconWrapper} />
                       <Text style={styles.checkText}>
-                        Recibís recomendaciones para un consumo digital más seguro.
+                        Accedés a material interactivo para aprender hábitos saludables en internet.
                       </Text>
                     </View>
                   </View>
@@ -232,23 +280,25 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           {/* PASO 3: EXPLICACIÓN EN VIDEO                             */}
           {/* ======================================================== */}
           {wizardStep === 3 && (
-            <View style={styles.contentCard}>
+            <View style={styles.contentCardStep3}>
               <Text style={styles.mainTitle}>¿Todavía tenés dudas?</Text>
               <Text style={styles.subtitleBold}>
                 Te explicamos el paso a paso en este video:
               </Text>
 
-              {/* Reproductor de Video con Fondo Negro */}
-              <View style={styles.videoContainer}>
-                <TouchableOpacity
-                  style={styles.videoPlayCircle}
-                  onPress={handleTogglePlay}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.videoPlayIcon}>
-                    {isPlaying ? '⏸' : '▶'}
-                  </Text>
-                </TouchableOpacity>
+              {/* Reproductor de Video Vertical maximizando espacio */}
+              <View style={styles.videoWrapperVertical}>
+                <View style={styles.videoContainerVertical}>
+                  <TouchableOpacity
+                    style={styles.videoPlayCircle}
+                    onPress={handleTogglePlay}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.videoPlayIcon}>
+                      {isPlaying ? '⏸' : '▶'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
@@ -261,7 +311,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           {wizardStep === 1 && (
             <View style={styles.singleButtonContainer}>
               <TouchableOpacity
-                style={styles.primaryButtonFull}
+                style={styles.primaryButtonRight}
                 onPress={() => setWizardStep(2)}
                 activeOpacity={0.85}
               >
@@ -401,70 +451,107 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 20,
+    lineHeight: 22,
+  },
+  sectionHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    marginBottom: 14,
   },
   bulletList: {
-    gap: 18,
-    marginBottom: 24,
+    gap: 14,
+    marginBottom: 20,
   },
   bulletItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  bulletIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#EBF5FF',
+  bulletIconWrapper: {
+    width: 28,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
   },
   bulletText: {
+    fontSize: 13.5,
+    color: '#1C1C1E',
+    fontWeight: '500',
+    flex: 1,
+    lineHeight: 19,
+  },
+  cardsContainer: {
+    gap: 22,
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  modeCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#007AFF',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modeCardHeader: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeCardHeaderTitle: {
+    color: '#FFFFFF',
+    fontSize: 16.5,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  modeCardBody: {
+    backgroundColor: '#F0F7FF',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 18,
+  },
+  checkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkIconWrapper: {
+    marginRight: 12,
+  },
+  checkText: {
     fontSize: 14,
     color: '#1C1C1E',
     fontWeight: '500',
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 19,
   },
-  cardsContainer: {
-    gap: 16,
-    marginBottom: 24,
-  },
-  modeCard: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: '#007AFF',
-  },
-  modeCardHeader: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  modeCardHeaderTitle: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  modeCardBody: {
-    backgroundColor: '#F0F7FF',
-    padding: 14,
-    gap: 12,
-  },
-  checkItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  checkIconWrapper: {
-    marginRight: 10,
-    marginTop: 1,
-  },
-  checkText: {
-    fontSize: 13,
-    color: '#1C1C1E',
-    fontWeight: '500',
+  contentCardStep3: {
+    marginTop: 4,
     flex: 1,
-    lineHeight: 18,
+  },
+  videoWrapperVertical: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12,
+    flex: 1,
+  },
+  videoContainerVertical: {
+    backgroundColor: '#000000',
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 290,
+    height: 460,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
   },
   videoContainer: {
     backgroundColor: '#000000',
@@ -475,17 +562,22 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   videoPlayCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
   },
   videoPlayIcon: {
     color: '#FFFFFF',
-    fontSize: 22,
-    marginLeft: 2,
+    fontSize: 24,
+    marginLeft: 3,
   },
   footerContainer: {
     marginTop: 'auto',
@@ -493,7 +585,21 @@ const styles = StyleSheet.create({
   },
   singleButtonContainer: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     width: '100%',
+  },
+  primaryButtonRight: {
+    width: 170,
+    backgroundColor: '#007AFF',
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   primaryButtonFull: {
     flex: 1,

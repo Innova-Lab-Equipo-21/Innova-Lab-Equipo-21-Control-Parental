@@ -21,6 +21,8 @@ import ojoPng from '../assets/icons/ojo.png';
 import relojPng from '../assets/icons/reloj.png';
 import usuarioPng from '../assets/icons/usuario.png';
 import volverPng from '../assets/icons/volver.png';
+import sitiosPng from '../assets/icons/navbar/sitios.png';
+import calendarioPng from '../assets/icons/calendario.png';
 
 export type IconName =
   | 'ojo'
@@ -34,7 +36,9 @@ export type IconName =
   | 'candado'
   | 'usuario'
   | 'escudo'
-  | 'corazon';
+  | 'corazon'
+  | 'sitios'
+  | 'calendario';
 
 interface IconProps {
   name: IconName;
@@ -46,6 +50,7 @@ interface IconProps {
 const ICON_MAP: Record<IconName, any> = {
   alerta: alertaPng,
   busqueda: busquedaPng,
+  calendario: calendarioPng,
   campana: campanaPng,
   candado: candadoPng,
   check: checkPng,
@@ -54,6 +59,7 @@ const ICON_MAP: Record<IconName, any> = {
   manos: manosPng,
   ojo: ojoPng,
   reloj: relojPng,
+  sitios: sitiosPng,
   usuario: usuarioPng,
   volver: volverPng,
 };
@@ -67,13 +73,15 @@ export const Icon: React.FC<IconProps> = ({
   const iconSource = ICON_MAP[name];
   if (!iconSource) return null;
 
+  const resolvedColor = name === 'volver' ? (color ?? '#000000') : color;
+
   return (
     <View style={[styles.container, style]}>
       <Image
         source={iconSource}
         style={[
           { width: size, height: size, resizeMode: 'contain' },
-          color ? { tintColor: color } : null,
+          resolvedColor ? { tintColor: resolvedColor } : null,
           style,
         ]}
       />

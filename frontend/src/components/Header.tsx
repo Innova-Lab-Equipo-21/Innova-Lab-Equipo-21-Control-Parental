@@ -100,6 +100,7 @@ const styles = StyleSheet.create({
   backIconImage: {
     width: 22,
     height: 22,
+    tintColor: '#000000',
   },
   logoContainer: {
     marginBottom: 2,

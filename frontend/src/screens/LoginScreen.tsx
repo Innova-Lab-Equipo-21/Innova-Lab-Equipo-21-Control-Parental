@@ -27,6 +27,7 @@ interface LoginScreenProps {
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({
   onLoginSuccess,
+  onBack,
   initialViewMode = 'REGISTER',
 }) => {
   const [viewMode, setViewMode] = useState<AuthViewMode>(initialViewMode);
@@ -61,6 +62,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <RegisterForm
               onLoginSuccess={onLoginSuccess}
               onSwitchMode={(mode) => setViewMode(mode)}
+              onBack={onBack || (() => setViewMode('LOGIN'))}
             />
           )}
         </View>
@@ -72,27 +74,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   scrollContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingTop: 20,
     paddingBottom: 28,
   },
   logoWrapper: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    backgroundColor: '#FFFFFF',
+    padding: 0,
+    borderWidth: 0,
   },
 });

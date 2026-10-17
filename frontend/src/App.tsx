@@ -20,6 +20,7 @@ import { PermissionsScreen } from './screens/PermissionsScreen';
 import { ProtectedDeviceScreen } from './screens/ProtectedDeviceScreen';
 import { ParentDashboardScreen } from './screens/ParentDashboardScreen';
 import { AppMode } from './types';
+import { AuthViewMode } from './components/auth/LoginForm';
 
 export function App(): React.JSX.Element {
   // 1) Onboarding inicial
@@ -33,6 +34,7 @@ export function App(): React.JSX.Element {
   const [isParentLoggedIn, setIsParentLoggedIn] = useState<boolean>(false);
   const [parentUser, setParentUser] = useState<any>(null);
   const [parentToken, setParentToken] = useState<string | null>(null);
+  const [loginInitialViewMode, setLoginInitialViewMode] = useState<AuthViewMode>('REGISTER');
 
   const [isDevicePaired, setIsDevicePaired] = useState<boolean>(false);
   const [deviceUuid, setDeviceUuid] = useState<string | null>(null);
@@ -111,7 +113,7 @@ export function App(): React.JSX.Element {
       {/* PASO 3A: Modo Responsable -> Pantalla de Crear Cuenta / Autenticación */}
       {!showOnboarding && currentMode === 'PARENT' && !isParentLoggedIn && (
         <LoginScreen
-          initialViewMode="REGISTER"
+          initialViewMode={loginInitialViewMode}
           onLoginSuccess={handleLoginSuccess}
           onBack={handleExitMode}
         />
@@ -134,8 +136,14 @@ export function App(): React.JSX.Element {
             flowSource={currentMode === 'PARENT' ? 'PARENT_LOGIN' : 'DEVICE_PAIRING'}
             onPermissionsComplete={handlePermissionsComplete}
             onBack={() => {
-              if (currentMode === 'PARENT') setIsParentLoggedIn(false);
-              else setIsDevicePaired(false);
+              if (currentMode === 'PARENT') {
+                setIsParentLoggedIn(false);
+                setParentUser(null);
+                setParentToken(null);
+                setLoginInitialViewMode('LOGIN');
+              } else {
+                setIsDevicePaired(false);
+              }
             }}
           />
         )}

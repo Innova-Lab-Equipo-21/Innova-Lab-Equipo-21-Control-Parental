@@ -6,13 +6,14 @@ Proyecto: BA Protege+
 Componente: Frontend Mobile & Web Simulator
 Archivo: frontend/README.md
 Descripción: Documentación técnica completa, guía de instalación, Kit UI/UX,
-             Flujo de 5 Pasos, Autenticación Modular, Navegación de 5 Pestañas,
-             Auditoría, Búsqueda, Ordenamiento y Desvinculación con Doble Confirmación,
-             Optimización de Rendimiento y Suite de 45 Tests Automatizados.
+             Flujo de 5 Pasos, Autenticación Modular, Modales Bottom Sheet Legales,
+             Rediseño de Permisos con Acordeón y Cabecera #EAF3FF,
+             Navegación de 5 Pestañas, Auditoría, Búsqueda, Ordenamiento,
+             Desvinculación con Doble Confirmación y Suite de 45 Tests.
 ==============================================================================
 -->
 
-Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **Kit UI/UX del Sistema de Diseño oficial**, **Flujo Ordenado de 5 Pasos**, pantalla de **Selección de Modo optimizada sin scroll**, arquitectura de **Autenticación Modular (`src/components/auth/`)**, **Ingreso con Google e ícono oficial (`logo_google.png`)**, **Aceptación y Modales de Términos Legales y Privacidad**, **Navegación de 5 Pestañas con Resalte `#E5F1FF` y Nombres (`DashboardNavbar.tsx`)**, **Estructura Modular por Carpetas (`src/components/dashboard/`)**, **Búsqueda, Ordenamiento y Desvinculación de Dispositivos con Doble Confirmación**, **Optimización de Rendimiento con Caché en RAM (0ms)**, **Íconos e Isotipos Unificados (`logo_ba.png` / `logo_baprotege.png`)**, **Dashboards Especializados para Menor Protegido y Adulto en Tratamiento**, **Autocontrol del Tutor con bloqueo de 24hs**, gestión de **hasta 5 dispositivos por responsable**, módulos nativos en **Kotlin 2.x** para filtrado local `VpnService` y un **Simulador Web Interactivo con Vite**.
+Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **Kit UI/UX del Sistema de Diseño oficial**, **Flujo Ordenado de 5 Pasos**, pantalla de **Selección de Modo optimizada sin scroll**, arquitectura de **Autenticación Modular (`src/components/auth/`)** con **Modales Bottom Sheet Legales (`TermsModal` / `PrivacyModal`)** y selector de fecha (`DatePickerModal`), **Ingreso con Google e ícono oficial (`logo_google.png`)**, **Rediseño Completo de Permisos de Aplicación (`PermissionsScreen.tsx`)** con cabecera `#EAF3FF`, banner estilo *Card 1*, acordeón de 5 permisos y retorno deslogueado a `LoginForm`, **Estandarización del ícono `volver.png` en color negro**, **Navegación de 5 Pestañas con Resalte `#E5F1FF` y Nombres (`DashboardNavbar.tsx`)**, **Estructura Modular por Carpetas (`src/components/dashboard/`)**, **Búsqueda, Ordenamiento y Desvinculación de Dispositivos con Doble Confirmación**, **Optimización de Rendimiento con Caché en RAM (0ms)**, **Íconos e Isotipos Unificados (`logo_ba.png` / `logo_baprotege.png`)**, **Dashboards Especializados para Menor Protegido y Adulto en Tratamiento**, **Autocontrol del Tutor con bloqueo de 24hs**, gestión de **hasta 5 dispositivos por responsable**, módulos nativos en **Kotlin 2.x** para filtrado local `VpnService` y un **Simulador Web Interactivo con Vite**.
 
 ---
 
@@ -22,8 +23,8 @@ Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **K
 2. [Flujo Ordenado de 5 Pasos](#-flujo-ordenado-de-5-pasos)
 3. [Sistema de Diseño y Kit UI/UX](#-sistema-de-diseño-y-kit-uiux)
 4. [Rediseño de Selección de Modo (Paso 2)](#-rediseño-de-selección-de-modo-paso-2)
-5. [Arquitectura de Autenticación, Google Auth y Términos Legales](#-arquitectura-de-autenticación-google-auth-y-términos-legales)
-6. [Configuración de Permisos y Geolocalización Híbrida (Paso 4)](#-configuración-de-permisos-y-geolocalización-híbrida-paso-4)
+5. [Arquitectura de Autenticación, Google Auth y Modales Bottom Sheet](#-arquitectura-de-autenticación-google-auth-y-modales-bottom-sheet)
+6. [Rediseño de Permisos de Aplicación y Geolocalización Híbrida (Paso 4)](#-rediseño-de-permisos-de-aplicación-y-geolocalización-híbrida-paso-4)
 7. [Vinculación Dual por Código de 6 Dígitos y Escaneo QR](#-vinculación-dual-por-código-de-6-dígitos-y-escaneo-qr)
 8. [Barra de Navegación de 5 Pestañas y Estructura Modular](#-barra-de-navegación-de-5-pestañas-y-estructura-modular)
 9. [Búsqueda, Ordenamiento y Desvinculación con Doble Confirmación](#-búsqueda-ordenamiento-y-desvinculación-con-doble-confirmación)
@@ -125,46 +126,72 @@ La pantalla de Selección de Modo (`WelcomeScreen.tsx` y `WelcomeStep.tsx`) fue 
 
 ---
 
-## 🔐 Arquitectura de Autenticación, Google Auth y Términos Legales
+## 🔐 Arquitectura de Autenticación, Google Auth y Modales Bottom Sheet
 
-El módulo de autenticación está estructurado en una **arquitectura limpia y modular (`src/components/auth/`)**:
+El módulo de autenticación está estructurado en una **arquitectura desacoplada, modular y reutilizable (`src/components/auth/`)**:
 
 ### 1. Componentes Modulares
-- **`LoginScreen.tsx`:** Orquestador liviano responsable del contenedor y conmutación de vistas.
-- **`RegisterForm.tsx`:** Formulario completo de creación de cuenta (+18, Google Auth y modales legales).
-- **`LoginForm.tsx`:** Formulario de inicio de sesión con botón Google Auth e ingreso rápido de demo.
-- **`RecoveryForm.tsx`:** Formulario de recuperación de contraseña con alertas de estado.
+- **`LoginScreen.tsx`:** Orquestador liviano responsable del contenedor, scroll y conmutación reactiva de vistas (`LOGIN`, `REGISTER`, `RECOVERY`).
+- **`RegisterForm.tsx`:** Formulario completo de creación de cuenta (+18, Google Auth, selector de fecha y modales legales).
+- **`LoginForm.tsx`:** Formulario de inicio de sesión con botón Google Auth, modales legales Bottom Sheet e ingreso rápido de demo.
+- **`RecoveryForm.tsx`:** Formulario de recuperación de contraseña con diseño dual de botones de Onboarding (*"Volver"* secundario con borde azul + *"Recuperar contraseña"* primario con indicador de carga).
+- **`TermsModal.tsx` & `PrivacyModal.tsx`:** Modales **Bottom Sheet** reutilizables con tirador de arrastre superior, esquinas redondeadas (`borderTopRadius: 24`), descarte al tocar el fondo (`backdrop`) y scroll independiente (`maxHeight: '82%'`). Compartidos entre el registro y el login.
+- **`DatePickerModal.tsx`:** Modal de calendario encapsulado con cómputo automático de días por mes y año, validación de bisiestos y selección ágil.
+- **`LegalModal.styles.ts` & `RegisterForm.styles.ts`:** Hojas de estilos modulares con cabecera estándar comentada (`// Proyecto: BA Protege+...`).
 
 ### 2. Funcionalidades y Validaciones de Seguridad
-- **Ingreso con Google Integrado:** Botón oficial con el ícono [`logo_google.png`](file:///C:/Projetos/baprotege+/frontend/src/assets/logo/logo_google.png) y divisor `"o"`.
+- **Ingreso con Google Optimizado:** Botón oficial con el logotipo de alta resolución [`logo_google.png`](file:///C:/Projetos/baprotege+/frontend/src/assets/logo/logo_google.png) redimensionado proporcionalmente (`width: 200, height: 44, resizeMode="contain"`) y divisor sutil `"o"`.
 - **Navegación Fluida con Tecla Enter (`returnKeyType="next"`):** Salto automático al siguiente campo al presionar Enter.
 - **Destacado de Borde al Enfocar (`inputFocusedBorder`):** Borde activo azul (`borderColor: '#007AFF'`) al seleccionar cualquier entrada de texto.
 - **Verificación Obligatoria de Mayoría de Edad (+18):** Al seleccionar o ingresar la fecha de nacimiento, el sistema calcula la edad exacta. Si es menor de 18 años, muestra inmediatamente una alerta nativa:
   > *"Solo personas adultas (+18) pueden registrarse en el Modo Responsable. Tu registro no podrá ser confirmado."*
 - **Aceptación Obligatoria de Términos y Políticas de Privacidad:** Checkbox interactivo antes del botón de creación de cuenta (`Acepto Términos y condiciones y Políticas de privacidad`).
-- **Modales Legales Desplegables:** Ventanas modales flotantes para lectura de los **Términos y Condiciones** (marco regulatorio LOTBA S.E.) y las **Políticas de Privacidad** (Ley N° 25.326).
-- **Selector de Calendario Interactivo con Ícono `📅`:** Modal deslizable con cómputo de días reales por mes y año.
+- **Estilo Dual de Botones en Recuperación:** Aplicado el mismo patrón visual de Onboarding en `RecoveryForm.tsx` (botón de retorno blanco con borde azul `#007AFF` a la izquierda y acción principal en azul sólido a la derecha).
 
 ---
 
-## 📍 Configuración de Permisos y Geolocalización Híbrida (Paso 4)
+## 📍 Rediseño de Permisos de Aplicación y Geolocalización Híbrida (Paso 4)
 
-La pantalla de solicitud y auditoría de permisos (`PermissionsScreen.tsx`) organiza **5 permisos esenciales de Android** en secciones desplegables:
+La pantalla de solicitud y auditoría de permisos (`PermissionsScreen.tsx`) fue completamente rediseñada bajo el nuevo modelo visual institucional con **desacoplamiento de estilos (`PermissionsScreen.styles.ts`)**:
+
+### 1. Elementos Visuales y de Navegación
+- **Cabecera Institucional Superior (`#EAF3FF`):** Barra superior con fondo celeste institucional `#EAF3FF` y el logotipo [`logo_baprotege_texto.png`](file:///C:/Projetos/baprotege+/frontend/src/assets/logo/logo_baprotege_texto.png).
+- **Subheader con Retorno y Deslogueo a Login:**
+  - Ícono [`volver.png`](file:///C:/Projetos/baprotege+/frontend/src/assets/icons/volver.png) en color negro (`#000000`) a la izquierda.
+  - Título *"Permisos de Aplicación"* estilizado idénticamente al título principal de registro (`fontSize: 22`, `fontWeight: '800'`, `color: '#000000'`, `lineHeight: 28`, `letterSpacing: -0.3`).
+  - **Flujo de Cierre de Sesión:** Al presionar el botón de retorno, el usuario es deslogueado de forma segura y redirigido directamente al formulario de inicio de sesión (`LoginForm.tsx`) mediante `loginInitialViewMode = 'LOGIN'` en `App.tsx`.
+- **Banner Informativo Estilo CARD 1 (Modo Responsable):**
+  - Marco azul con fondo `#F0F7FF`, borde de `2px` en `#007AFF`, radio de curvatura de `18px` y sombra azul suave.
+  - Ícono oficial de escudo (`Icon name="escudo"`), título en azul *"Configurá tu dispositivo"* (`fontSize: 18`, `fontWeight: '700'`) y texto descriptivo en color `#1C1C1E` para lectura nítida.
+- **Estandarización Global del Ícono `volver.png`:**
+  - Configurado en color negro (`#000000`) en toda la aplicación (`Icon.tsx`, `Header.tsx`, `WelcomeScreen.tsx`, `RegisterForm.tsx` y el simulador web).
+
+### 2. Estructura de Acordeón de 5 Permisos Esenciales
+Cada permiso cuenta con una tarjeta independiente con indicador tipo *pill* (`Inactivo` / `Activo`), ícono chevron azul (`∧` / `∨`), línea divisoria y botón de autorización:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
-│ 1. 🌐 Servicio de Filtrado VPN (VpnService)                            │
-│ 2. 🔒 Servicio de Accesibilidad (Antidesinstalación con PIN)           │
-│ 3. 🔔 Notificaciones del Sistema (Alertas en tiempo real)              │
-│ 4. 🔋 Sin Optimización de Batería (Ejecución continua en segundo plano)│
+│ 1. 🌐 Servicio de Filtrado VPN (Inactivo / Activo)                     │
+│    Intercepta y bloquea sitios clandestinos de la lista oficial LOTBA │
+├────────────────────────────────────────────────────────────────────────┤
+│ 2. 🔒 Servicio de Accesibilidad (Inactivo / Activo)                    │
+│    Protección antidesinstalación con requerimiento de PIN del tutor    │
+├────────────────────────────────────────────────────────────────────────┤
+│ 3. 🔔 Notificaciones del Sistema (Activo / Inactivo)                   │
+│    Mantiene el servicio persistente y avisos de intentos de bloqueo    │
+├────────────────────────────────────────────────────────────────────────┤
+│ 4. 🔋 Optimización de Batería (Desplegado por defecto)                 │
+│    Evita que el ahorro de energía de Android suspenda el filtrado      │
+├────────────────────────────────────────────────────────────────────────┤
 │ 5. 📍 Ubicación y Geolocalización (GPS / Red IP)                       │
+│    Guarda la posición geográfica del dispositivo para el responsable   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Estrategia Híbrida de Geolocalización
-1. **Captura por GPS Satelital (Alta Precisión):** Solicitud de coordenadas `(latitud, longitud)` y **Geocodificación Inversa** con OpenStreetMap (Nominatim).
-2. **Fallback Automático por Red IP (Silencioso):** Consulta automática por IP pública (`ipapi.co`) si el sensor GPS no está disponible.
-3. **Persistencia y Sincronización Backend:** Guardado local (`@ba_protege_user_location`) y envío mediante `POST /api/auth/location`.
+### 3. Estrategia Híbrida de Geolocalización
+1. **Captura por GPS Satelital (Alta Precisión):** Solicitud de coordenadas `(latitud, longitud)` y **Geocodificación Inversa** con OpenStreetMap (Nominatim), visualizando la dirección exacta en una caja de ubicación destacada.
+2. **Fallback Automático por Red IP (Silencioso):** Consulta automática por IP pública (`ipapi.co`) si el sensor GPS no está disponible o es denegado.
+3. **Persistencia y Sincronización Backend:** Guardado local (`@ba_protege_user_location`) y envío automático mediante `POST /api/auth/location`.
 
 ---
 
@@ -253,9 +280,16 @@ frontend/
 │   │   └── logo/                             # Isotipos oficiales (logo_ba.png, logo_baprotege.png, logo_google.png)
 │   ├── components/                           # Componentes del Kit UI/UX
 │   │   ├── auth/                             # Módulo de Autenticación Modular
+│   │   │   ├── DatePickerModal.tsx           # Modal interactivo de selección de fecha/calendario
+│   │   │   ├── LegalModal.styles.ts          # Estilos de Bottom Sheet para modales legales
 │   │   │   ├── LoginForm.tsx                 # Formulario de Inicio de Sesión (Google Auth)
-│   │   │   ├── RecoveryForm.tsx              # Formulario de Recuperación
-│   │   │   └── RegisterForm.tsx              # Formulario (+18, Google Auth, Términos y Calendario)
+│   │   │   ├── LoginForm.styles.ts           # Estilos desacoplados de LoginForm
+│   │   │   ├── PrivacyModal.tsx              # Modal Bottom Sheet de Políticas de Privacidad
+│   │   │   ├── RecoveryForm.tsx              # Formulario con diseño dual de botones de Onboarding
+│   │   │   ├── RecoveryForm.styles.ts        # Estilos desacoplados de RecoveryForm
+│   │   │   ├── RegisterForm.tsx              # Formulario (+18, Google Auth, Términos y Calendario)
+│   │   │   ├── RegisterForm.styles.ts        # Estilos desacoplados de RegisterForm
+│   │   │   └── TermsModal.tsx                # Modal Bottom Sheet de Términos y Condiciones
 │   │   ├── dashboard/                        # Módulo Modular del Dashboard
 │   │   │   ├── actividad/                    # Sección de Registro de Actividad
 │   │   │   ├── cuenta/                       # Autocontrol de 24h y Permisos del Tutor
@@ -266,14 +300,16 @@ frontend/
 │   │   │   └── index.ts                      # Barrel Export de Módulo
 │   │   ├── ActionButton.tsx                  # Botón con variantes
 │   │   ├── Badge.tsx                         # Etiquetas de estado
-│   │   ├── Header.tsx                        # Encabezado con ícono Volver y logo_ba.png
+│   │   ├── Header.tsx                        # Encabezado con ícono Volver negro y logo_ba.png
+│   │   ├── Icon.tsx                          # Componente unificado de íconos PNG
 │   │   └── Logo.tsx                          # Logotipo oficial (logo_baprotege.png)
 │   ├── screens/                              # Pantallas de la aplicación móvil
 │   │   ├── LoginScreen.tsx                   # Orquestador liviano de Autenticación
 │   │   ├── OnboardingScreen.tsx              # Onboarding con video tutorial oficial
 │   │   ├── PairingScreen.tsx                 # Pareamiento por 6 dígitos o QR
 │   │   ├── ParentDashboardScreen.tsx         # Panel del responsable modularizado
-│   │   ├── PermissionsScreen.tsx            # Solicitud de 5 permisos con GPS e IP
+│   │   ├── PermissionsScreen.tsx            # Pantalla de 5 permisos con acordeón y GPS
+│   │   ├── PermissionsScreen.styles.ts       # Estilos desacoplados de la pantalla de permisos
 │   │   └── ProtectedDeviceScreen.tsx         # Panel del protegido (Menor / Adulto)
 │   ├── services/                             # Lógica de comunicación y puentes
 │   │   ├── api.service.ts                    # API Client, RAM Cache (0ms), Server Time, Autocontrol y Unbind

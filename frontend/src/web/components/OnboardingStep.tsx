@@ -154,77 +154,91 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
         {/* ======================================================== */}
         {wizardStep === 1 && (
           <div style={{ flex: 1 }}>
-            <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', marginBottom: '10px', lineHeight: '1.25' }}>
+            <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', marginBottom: '12px', lineHeight: '1.25' }}>
               ¡Te damos la bienvenida a BA Protege +!
             </h1>
-            <p style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E', marginBottom: '20px' }}>
-              Con esta app vas a poder:
+            <p style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E', marginBottom: '20px', lineHeight: '1.35' }}>
+              Bloqueamos sitios de juego y apuestas ilegales para que ningún dispositivo con esta app pueda acceder a ellos.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '24px' }}>
+            {/* Sección 1: Adulto responsable */}
+            <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#1C1C1E', margin: '0 0 14px' }}>
+              Si sos un adulto responsable podrás:
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
               {/* Item 1 */}
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '18px',
-                    backgroundColor: '#EBF5FF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: '14px',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Icon name="ojo" size={20} color="#007AFF" />
+                <div style={{ width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '14px', flexShrink: 0 }}>
+                  <Icon name="ojo" size={24} color="#007AFF" />
                 </div>
-                <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                <span style={{ fontSize: '13.5px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
                   Proteger lo que ven los menores de 18 años.
                 </span>
               </div>
 
               {/* Item 2 */}
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '18px',
-                    backgroundColor: '#EBF5FF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: '14px',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Icon name="manos" size={20} color="#007AFF" />
+                <div style={{ width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '14px', flexShrink: 0 }}>
+                  <Icon name="manos" size={24} color="#007AFF" />
                 </div>
-                <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                <span style={{ fontSize: '13.5px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
                   Acompañar y cuidar a adultos con ludopatía o uso problemático del celular.
                 </span>
               </div>
 
               {/* Item 3 */}
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '18px',
-                    backgroundColor: '#EBF5FF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: '14px',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Icon name="reloj" size={20} color="#007AFF" />
+                <div style={{ width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '14px', flexShrink: 0 }}>
+                  <Icon name="reloj" size={24} color="#007AFF" />
                 </div>
-                <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                <span style={{ fontSize: '13.5px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
                   Autocontrolar tu propia navegación.
+                </span>
+              </div>
+
+              {/* Item 4 */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '14px', flexShrink: 0 }}>
+                  <Icon name="sitios" size={24} color="#007AFF" />
+                </div>
+                <span style={{ fontSize: '13.5px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                  Bloquear sitios y apps personalizados para mejorar la protección.
+                </span>
+              </div>
+            </div>
+
+            {/* Sección 2: Alguien que necesita protección */}
+            <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#1C1C1E', margin: '0 0 14px' }}>
+              Si sos alguien que necesita protección:
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
+              {/* Item 1 */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '14px', flexShrink: 0 }}>
+                  <Icon name="usuario" size={24} color="#007AFF" />
+                </div>
+                <span style={{ fontSize: '13.5px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                  Recibirás el acompañamiento de un adulto responsable para navegar en entornos digitales seguros.
+                </span>
+              </div>
+
+              {/* Item 2 */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '14px', flexShrink: 0 }}>
+                  <Icon name="escudo" size={24} color="#007AFF" />
+                </div>
+                <span style={{ fontSize: '13.5px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                  Podrás acceder a material interactivo que te ayudará a identificar sitios y apps no seguros.
+                </span>
+              </div>
+
+              {/* Item 3 */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '14px', flexShrink: 0 }}>
+                  <Icon name="sitios" size={24} color="#007AFF" />
+                </div>
+                <span style={{ fontSize: '13.5px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                  Si sos mayor de edad, podrás bloquear sitios y apps personalizados.
                 </span>
               </div>
             </div>
@@ -243,22 +257,24 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
               Podés usarla de dos formas distintas:
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', marginTop: '8px', marginBottom: '24px' }}>
               {/* Tarjeta 1: Modo responsable */}
               <div
                 style={{
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   overflow: 'hidden',
-                  border: '1.5px solid #007AFF',
+                  border: '2px solid #007AFF',
+                  boxShadow: '0 2px 8px rgba(0, 122, 255, 0.12)',
                 }}
               >
                 <div
                   style={{
                     backgroundColor: '#007AFF',
                     color: '#FFFFFF',
-                    padding: '10px 14px',
-                    fontSize: '15px',
-                    fontWeight: '800',
+                    padding: '14px 16px',
+                    fontSize: '16.5px',
+                    fontWeight: '700',
+                    textAlign: 'center',
                   }}
                 >
                   Modo responsable
@@ -266,22 +282,22 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 <div
                   style={{
                     backgroundColor: '#F0F7FF',
-                    padding: '14px',
+                    padding: '20px 16px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '12px',
+                    gap: '18px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                    <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
-                    <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <Icon name="check" size={24} color="#007AFF" style={{ marginRight: '12px', flexShrink: 0 }} />
+                    <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
                       Configurás las reglas desde tu dispositivo.
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                    <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
-                    <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <Icon name="check" size={24} color="#007AFF" style={{ marginRight: '12px', flexShrink: 0 }} />
+                    <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
                       Controlás el bloqueo de sitios web y apps.
                     </span>
                   </div>
@@ -291,18 +307,20 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
               {/* Tarjeta 2: Modo protegido */}
               <div
                 style={{
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   overflow: 'hidden',
-                  border: '1.5px solid #007AFF',
+                  border: '2px solid #007AFF',
+                  boxShadow: '0 2px 8px rgba(0, 122, 255, 0.12)',
                 }}
               >
                 <div
                   style={{
                     backgroundColor: '#007AFF',
                     color: '#FFFFFF',
-                    padding: '10px 14px',
-                    fontSize: '15px',
-                    fontWeight: '800',
+                    padding: '14px 16px',
+                    fontSize: '16.5px',
+                    fontWeight: '700',
+                    textAlign: 'center',
                   }}
                 >
                   Modo protegido
@@ -310,23 +328,23 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 <div
                   style={{
                     backgroundColor: '#F0F7FF',
-                    padding: '14px',
+                    padding: '20px 16px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '12px',
+                    gap: '18px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                    <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
-                    <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <Icon name="check" size={24} color="#007AFF" style={{ marginRight: '12px', flexShrink: 0 }} />
+                    <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
                       Tu dispositivo recibe la protección de un adulto responsable.
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                    <Icon name="check" size={20} color="#007AFF" style={{ marginRight: '10px', marginTop: '1px' }} />
-                    <span style={{ fontSize: '13px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
-                      Recibís recomendaciones para un consumo digital más seguro.
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <Icon name="check" size={24} color="#007AFF" style={{ marginRight: '12px', flexShrink: 0 }} />
+                    <span style={{ fontSize: '14px', color: '#1C1C1E', fontWeight: '500', lineHeight: '1.35' }}>
+                      Accedés a material interactivo para aprender hábitos saludables en internet.
                     </span>
                   </div>
                 </div>
@@ -339,45 +357,63 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
         {/* PASO 3: EXPLICACIÓN EN VIDEO                             */}
         {/* ======================================================== */}
         {wizardStep === 3 && (
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', marginBottom: '8px' }}>
               ¿Todavía tenés dudas?
             </h1>
-            <p style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E', marginBottom: '18px' }}>
+            <p style={{ fontSize: '15px', fontWeight: '700', color: '#1C1C1E', marginBottom: '16px' }}>
               Te explicamos el paso a paso en este video:
             </p>
 
-            {/* Reproductor de Video con Fondo Negro */}
+            {/* Reproductor de Video Vertical maximizando espacio */}
             <div
               style={{
-                backgroundColor: '#000000',
-                borderRadius: '16px',
-                height: '220px',
+                flex: 1,
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '24px',
+                alignItems: 'center',
+                margin: '10px 0 20px',
               }}
             >
-              <button
-                onClick={handleTogglePlay}
+              <div
                 style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '28px',
-                  backgroundColor: '#007AFF',
-                  color: '#FFFFFF',
-                  border: 'none',
+                  backgroundColor: '#000000',
+                  borderRadius: '24px',
+                  width: '100%',
+                  maxWidth: '290px',
+                  height: '460px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '22px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(0, 122, 255, 0.4)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+                  position: 'relative',
+                  overflow: 'hidden',
                 }}
               >
-                {videoPlaying ? '⏸' : '▶'}
-              </button>
+                <button
+                  onClick={handleTogglePlay}
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '32px',
+                    backgroundColor: '#007AFF',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 16px rgba(0, 122, 255, 0.45)',
+                    transition: 'transform 0.2s ease, background-color 0.2s ease',
+                  }}
+                  aria-label={videoPlaying ? 'Pausar video' : 'Reproducir video'}
+                >
+                  <span style={{ marginLeft: videoPlaying ? '0' : '3px' }}>
+                    {videoPlaying ? '⏸' : '▶'}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -386,13 +422,12 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
       {/* RODAPÉ DE LA TELA (FOOTER) - BOTONES DE ACCIÓN DEL APP */}
       <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
         {wizardStep === 1 && (
-          <div style={{ display: 'flex', width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
             <button
               onClick={() => setWizardStep(2)}
               style={{
-                flex: 1,
-                width: '100%',
-                height: '50px',
+                width: '170px',
+                height: '48px',
                 backgroundColor: '#007AFF',
                 color: '#FFFFFF',
                 border: 'none',

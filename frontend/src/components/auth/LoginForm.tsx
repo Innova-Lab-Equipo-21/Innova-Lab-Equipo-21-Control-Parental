@@ -13,14 +13,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   Image,
-  Modal,
-  ScrollView,
 } from 'react-native';
 import { ActionButton } from '../ActionButton';
 import { Icon } from '../Icon';
+import { styles } from './LoginForm.styles';
+import { TermsModal } from './TermsModal';
+import { PrivacyModal } from './PrivacyModal';
 import { colors } from '../../theme/colors';
 import { apiService } from '../../services/api.service';
 import { validateEmailFormat } from '../../utils/authValidation';
@@ -106,7 +106,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   return (
     <View>
       <View style={styles.headerSection}>
-        <Text style={styles.title}>Iniciar Sesión</Text>
+        <Text style={styles.title}>Iniciar sesión</Text>
         <Text style={styles.subtitle}>
           Acceso exclusivo para padres y tutores responsables
         </Text>
@@ -120,7 +120,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
       {/* Campo Correo Electrónico */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Correo Electrónico</Text>
+        <Text style={styles.label}>
+          Correo electrónico<Text style={styles.requiredAsterisk}>*</Text>
+        </Text>
         <View
           style={[
             styles.inputContainer,
@@ -156,12 +158,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
       {/* Campo Contraseña */}
       <View style={styles.inputGroup}>
-        <View style={styles.labelRow}>
-          <Text style={styles.label}>Contraseña</Text>
-          <TouchableOpacity onPress={() => onSwitchMode('RECOVERY')}>
-            <Text style={styles.linkTextSmall}>¿Olvidaste tu contraseña?</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.label}>
+          Contraseña<Text style={styles.requiredAsterisk}>*</Text>
+        </Text>
         <View
           style={[
             styles.inputContainer,
@@ -205,6 +204,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <View style={styles.forgotPasswordRow}>
+          <TouchableOpacity
+            onPress={() => onSwitchMode('RECOVERY')}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Text style={styles.linkTextSmall}>¿Olvidaste tu contraseña?</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Acciones */}
@@ -217,15 +224,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         />
 
         <TouchableOpacity
-          style={styles.demoFillButton}
-          onPress={() => {
-            setEmail('tutor@baprotege.gob.ar');
-            setPassword('password123');
-            setErrorMessage(null);
-          }}
+          style={styles.secondaryCardButton}
+          onPress={() => onSwitchMode('REGISTER')}
         >
-          <Text style={styles.demoFillText}>
-            ⚡ Rellenar credenciales de demostración
+          <Text style={styles.secondaryCardButtonText}>
+            ¿No tenés una cuenta? <Text style={styles.highlightText}>Crear cuenta</Text>
           </Text>
         </TouchableOpacity>
 
@@ -236,15 +239,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <View style={styles.dividerLine} />
         </View>
 
-        {/* Botón de Google Cuadrado/Centrado con logo_google.png */}
+        {/* Botón de Google */}
         <TouchableOpacity
-          style={styles.googleIconButton}
+          style={styles.googleButtonContainer}
           onPress={handleGoogleLogin}
           activeOpacity={0.85}
+          accessibilityLabel="Acceder con Google"
+          accessibilityRole="button"
         >
           <Image
             source={require('../../assets/logo/logo_google.png')}
-            style={styles.googleIconImage}
+            style={styles.googleButtonImage}
             resizeMode="contain"
           />
         </TouchableOpacity>
@@ -268,377 +273,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             </Text>
           </Text>
         </View>
-
-        <TouchableOpacity
-          style={styles.secondaryCardButton}
-          onPress={() => onSwitchMode('REGISTER')}
-        >
-          <Text style={styles.secondaryCardButtonText}>
-            ¿No tienes una cuenta? <Text style={styles.highlightText}>Crear cuenta</Text>
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Modal de Términos y Condiciones */}
-      <Modal
+      <TermsModal
         visible={showTermsModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowTermsModal(false)}
-      >
-        <View style={styles.legalModalOverlay}>
-          <View style={styles.legalModalCard}>
-            <View style={styles.legalModalHeader}>
-              <Text style={styles.legalModalTitle}>📜 Términos y Condiciones</Text>
-              <TouchableOpacity
-                onPress={() => setShowTermsModal(false)}
-                style={styles.legalModalCloseBtn}
-              >
-                <Text style={styles.legalModalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.legalModalSubtitle}>
-              BA Protege+ • Lotería de la Ciudad de Buenos Aires (LOTBA)
-            </Text>
-
-            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={true}>
-              <Text style={styles.legalSectionTitle}>1. Aceptación del Servicio</Text>
-              <Text style={styles.legalParagraph}>
-                Al crear una cuenta e iniciar sesión en BA Protege+, aceptas cumplir íntegramente con los presentes Términos y Condiciones. Esta plataforma es provista por el Gobierno de la Ciudad Autónoma de Buenos Aires a través de LOTBA S.E. para la prevención del juego ilegal y la protección de menores.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>2. Requisito de Mayoría de Edad</Text>
-              <Text style={styles.legalParagraph}>
-                El acceso al Modo Responsable está reservado exclusivamente a padres, madres, tutores legales o adultos responsables mayores de 18 años. Queda estrictamente prohibida la creación de cuentas por menores de edad.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>3. Uso del Servicio de Filtrado VPN</Text>
-              <Text style={styles.legalParagraph}>
-                La aplicación instala un túnel de filtrado local (VPN) en el dispositivo para bloquear automáticamente solicitudes hacia plataformas de apuestas no autorizadas o clandestinas enumeradas en la lista oficial de LOTBA.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>4. Protección Anti-Desinstalación</Text>
-              <Text style={styles.legalParagraph}>
-                Con el fin de asegurar la efectividad del control parental, el sistema utiliza permisos de Accesibilidad de Android para prevenir el cierre o desinstalación no autorizada de la aplicación sin la clave PIN del tutor.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>5. Modificaciones y Actualizaciones</Text>
-              <Text style={styles.legalParagraph}>
-                LOTBA se reserva el derecho de actualizar la lista de dominios bloqueados y las funcionalidades del sistema en cualquier momento para mantener la protección activa.
-              </Text>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={styles.legalModalConfirmBtn}
-              onPress={() => setShowTermsModal(false)}
-            >
-              <Text style={styles.legalModalConfirmBtnText}>Entendido</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowTermsModal(false)}
+      />
 
       {/* Modal de Políticas de Privacidad */}
-      <Modal
+      <PrivacyModal
         visible={showPrivacyModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowPrivacyModal(false)}
-      >
-        <View style={styles.legalModalOverlay}>
-          <View style={styles.legalModalCard}>
-            <View style={styles.legalModalHeader}>
-              <Text style={styles.legalModalTitle}>🛡️ Políticas de Privacidad</Text>
-              <TouchableOpacity
-                onPress={() => setShowPrivacyModal(false)}
-                style={styles.legalModalCloseBtn}
-              >
-                <Text style={styles.legalModalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.legalModalSubtitle}>
-              Protección de Datos Personales • Ley N° 25.326
-            </Text>
-
-            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={true}>
-              <Text style={styles.legalSectionTitle}>1. Compromiso de Privacidad</Text>
-              <Text style={styles.legalParagraph}>
-                BA Protege+ garantiza el tratamiento confidencial y seguro de todos los datos personales de acuerdo con la Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>2. Información Recolectada</Text>
-              <Text style={styles.legalParagraph}>
-                Recolectamos datos mínimos e indispensables: nombre, apellido, correo electrónico, teléfono, fecha de nacimiento, identificador de dispositivo y registros de intentos de acceso a sitios bloqueados.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>3. Uso de Datos y Geolocalización</Text>
-              <Text style={styles.legalParagraph}>
-                La información de geolocalización e IP se utiliza únicamente para auditar la seguridad del dispositivo y la vinculación de cuentas. Nunca comercializamos, vendemos ni compartimos datos con anunciantes ni terceros.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>4. Seguridad e Inmutabilidad</Text>
-              <Text style={styles.legalParagraph}>
-                Toda la comunicación entre el dispositivo y nuestros servidores viaja cifrada con protocolo TLS 1.3/HTTPS. Los registros de auditoría de seguridad se guardan de forma inmutable.
-              </Text>
-
-              <Text style={styles.legalSectionTitle}>5. Derechos del Usuario</Text>
-              <Text style={styles.legalParagraph}>
-                Como titular de los datos, tienes derecho a rectificar, actualizar o solicitar la supresión de tu información personal en cualquier momento escribiendo al soporte oficial de BA Protege+.
-              </Text>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={styles.legalModalConfirmBtn}
-              onPress={() => setShowPrivacyModal(false)}
-            >
-              <Text style={styles.legalModalConfirmBtnText}>Entendido</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  headerSection: {
-    marginBottom: 18,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 18,
-    paddingHorizontal: 8,
-  },
-  alertError: {
-    backgroundColor: colors.statusDangerBg,
-    borderColor: '#F5C2C7',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-  },
-  alertErrorText: {
-    color: colors.statusDanger,
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  inputGroup: {
-    marginBottom: 14,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 6,
-  },
-  linkTextSmall: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 12,
-    height: 48,
-    paddingHorizontal: 12,
-  },
-  inputFocusedBorder: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-    backgroundColor: '#FFFFFF',
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textPrimary,
-    height: '100%',
-  },
-  iconActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  inputIconAction: {
-    padding: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  clearIconText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: colors.textMuted,
-  },
-  actionsSection: {
-    marginTop: 10,
-  },
-  demoFillButton: {
-    alignItems: 'center',
-    paddingVertical: 8,
-    marginVertical: 4,
-  },
-  demoFillText: {
-    fontSize: 12,
-    color: colors.primaryDark,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 14,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.borderLight,
-  },
-  dividerText: {
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  googleIconButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  googleIconImage: {
-    width: 28,
-    height: 28,
-  },
-  legalNoticeContainer: {
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 12,
-    paddingHorizontal: 12,
-  },
-  legalNoticeText: {
-    fontSize: 13.5,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  legalLink: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  secondaryCardButton: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    marginTop: 4,
-  },
-  secondaryCardButtonText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  highlightText: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-
-  // Estilos de Modales Legales
-  legalModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-  },
-  legalModalCard: {
-    width: '100%',
-    maxHeight: '85%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  legalModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  legalModalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  legalModalCloseBtn: {
-    padding: 6,
-  },
-  legalModalCloseText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textMuted,
-  },
-  legalModalSubtitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary,
-    marginTop: 2,
-    marginBottom: 10,
-  },
-  legalModalBody: {
-    marginVertical: 6,
-    paddingRight: 4,
-  },
-  legalSectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  legalParagraph: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  legalModalConfirmBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  legalModalConfirmBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-});

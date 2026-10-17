@@ -27,11 +27,31 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({
         <Logo variant="complete" size="md" align="center" />
       </div>
 
-      {/* Títulos de la Pantalla (Misma escala y posición que Onboarding) */}
-      <div style={{ marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', lineHeight: 1.25 }}>
-          Elegí cómo vas a usar la app
-        </h1>
+      {/* Títulos de la Pantalla */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+          {onOpenTutorials && (
+            <button
+              onClick={() => onOpenTutorials(3)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                marginRight: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              aria-label="Volver al último paso de onboarding"
+            >
+              <Icon name="volver" size={24} color="#000000" />
+            </button>
+          )}
+          <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: 0, lineHeight: 1.25 }}>
+            Elegí cómo vas a usar la app
+          </h1>
+        </div>
         <p style={{ fontSize: '15px', color: '#1C1C1E', margin: 0, lineHeight: 1.35 }}>
           Seleccioná el modo que más se adecúa a tus necesidades.
         </p>
@@ -41,33 +61,34 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({
       <div
         style={{
           backgroundColor: '#F0F7FF',
-          borderRadius: '16px',
-          padding: '14px',
-          border: '1.5px solid #007AFF',
-          marginBottom: '14px',
+          borderRadius: '18px',
+          padding: '18px',
+          border: '2px solid #007AFF',
+          marginBottom: '20px',
           boxSizing: 'border-box',
+          boxShadow: '0 2px 8px rgba(0, 122, 255, 0.1)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-          <Icon name="escudo" size={22} color="#007AFF" style={{ marginRight: '8px' }} />
-          <h2 style={{ fontSize: '17px', fontWeight: '700', color: '#007AFF', margin: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+          <Icon name="escudo" size={24} color="#007AFF" style={{ marginRight: '10px' }} />
+          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#007AFF', margin: 0 }}>
             Modo responsable
           </h2>
         </div>
 
-        <p style={{ fontSize: '12.5px', color: '#1C1C1E', margin: '0 0 10px 0', lineHeight: '1.35' }}>
+        <p style={{ fontSize: '13.5px', color: '#1C1C1E', margin: '0 0 14px 0', lineHeight: '1.4' }}>
           Ideal para quienes gestionan reglas, restricciones y bloqueos de sitios web y apps en este u otros dispositivos.
         </p>
 
         <div
           style={{
             backgroundColor: '#D0E2FF',
-            borderRadius: '14px',
-            padding: '5px 10px',
+            borderRadius: '16px',
+            padding: '6px 12px',
             display: 'inline-block',
-            marginBottom: '10px',
-            fontSize: '12px',
-            fontWeight: '500',
+            marginBottom: '16px',
+            fontSize: '12.5px',
+            fontWeight: '600',
             color: '#1C1C1E',
           }}
         >
@@ -78,16 +99,17 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({
           <button
             onClick={onSelectParentFlow}
             style={{
-              padding: '8px 0',
-              width: '145px',
-              borderRadius: '10px',
+              height: '44px',
+              width: '160px',
+              borderRadius: '12px',
               backgroundColor: '#007AFF',
               color: '#FFFFFF',
               border: 'none',
               fontWeight: '700',
-              fontSize: '14px',
+              fontSize: '15px',
               cursor: 'pointer',
               boxShadow: '0 2px 6px rgba(0, 122, 255, 0.25)',
+              transition: 'background-color 0.2s ease',
             }}
           >
             Empezar
@@ -99,33 +121,34 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({
       <div
         style={{
           backgroundColor: '#F0F7FF',
-          borderRadius: '16px',
-          padding: '14px',
-          border: '1.5px solid #007AFF',
-          marginBottom: '10px',
+          borderRadius: '18px',
+          padding: '18px',
+          border: '2px solid #007AFF',
+          marginBottom: '20px',
           boxSizing: 'border-box',
+          boxShadow: '0 2px 8px rgba(0, 122, 255, 0.1)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-          <Icon name="corazon" size={22} color="#007AFF" style={{ marginRight: '8px' }} />
-          <h2 style={{ fontSize: '17px', fontWeight: '700', color: '#007AFF', margin: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+          <Icon name="corazon" size={24} color="#007AFF" style={{ marginRight: '10px' }} />
+          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#007AFF', margin: 0 }}>
             Modo protegido
           </h2>
         </div>
 
-        <p style={{ fontSize: '12.5px', color: '#1C1C1E', margin: '0 0 10px 0', lineHeight: '1.35' }}>
+        <p style={{ fontSize: '13.5px', color: '#1C1C1E', margin: '0 0 14px 0', lineHeight: '1.4' }}>
           Para dispositivos que reciben protección y navegación segura configurada por un adulto responsable.
         </p>
 
         <div
           style={{
             backgroundColor: '#D0E2FF',
-            borderRadius: '14px',
-            padding: '5px 10px',
+            borderRadius: '16px',
+            padding: '6px 12px',
             display: 'inline-block',
-            marginBottom: '10px',
-            fontSize: '12px',
-            fontWeight: '500',
+            marginBottom: '16px',
+            fontSize: '12.5px',
+            fontWeight: '600',
             color: '#1C1C1E',
           }}
         >
@@ -136,48 +159,23 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({
           <button
             onClick={onSelectChildFlow}
             style={{
-              padding: '8px 0',
-              width: '145px',
-              borderRadius: '10px',
+              height: '44px',
+              width: '160px',
+              borderRadius: '12px',
               backgroundColor: '#007AFF',
               color: '#FFFFFF',
               border: 'none',
               fontWeight: '700',
-              fontSize: '14px',
+              fontSize: '15px',
               cursor: 'pointer',
               boxShadow: '0 2px 6px rgba(0, 122, 255, 0.25)',
+              transition: 'background-color 0.2s ease',
             }}
           >
             Empezar
           </button>
         </div>
       </div>
-
-      {/* Botón de Ayuda (Alineado abajo a la derecha del cuadro Modo protegido) */}
-      {onOpenTutorials && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
-          <button
-            onClick={() => onOpenTutorials(3)}
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '19px',
-              backgroundColor: '#007AFF',
-              color: '#FFFFFF',
-              border: 'none',
-              fontWeight: '700',
-              fontSize: '18px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0, 122, 255, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ?
-          </button>
-        </div>
-      )}
     </div>
   );
 };

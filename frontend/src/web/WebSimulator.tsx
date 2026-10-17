@@ -680,6 +680,7 @@ export const WebSimulator: React.FC = () => {
                   authTab={authTab}
                   authError={authError}
                   authSuccess={authSuccess}
+                  onBack={() => setAppMode('WELCOME')}
                   loginEmail={loginEmail}
                   loginPassword={loginPassword}
                   recoveryEmail={recoveryEmail}
@@ -771,6 +772,7 @@ export const WebSimulator: React.FC = () => {
                     if (targetFlow === 'PARENT') setAppMode('PARENT');
                     else setAppMode('CHILD');
                   }}
+                  onBack={() => setAppMode('LOGIN')}
                 />
               )}
 

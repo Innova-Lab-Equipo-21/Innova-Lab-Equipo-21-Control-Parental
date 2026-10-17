@@ -42,7 +42,19 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
         {/* Sección de Títulos (Misma escala y posición que Onboarding) */}
         <View style={styles.titleSection}>
-          <Text style={styles.mainTitle}>Elegí cómo vas a usar la app</Text>
+          <View style={styles.titleRow}>
+            {onOpenOnboarding && (
+              <TouchableOpacity
+                style={styles.backBtn}
+                onPress={() => onOpenOnboarding(3)}
+                activeOpacity={0.7}
+                accessibilityLabel="Volver al último paso de onboarding"
+              >
+                <Icon name="volver" size={24} color="#000000" />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.mainTitle}>Elegí cómo vas a usar la app</Text>
+          </View>
           <Text style={styles.mainSubtitle}>
             Seleccioná el modo que más se adecúa a tus necesidades.
           </Text>
@@ -51,12 +63,12 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         {/* CARD 1: MODO RESPONSABLE */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Icon name="escudo" size={22} color={colors.primary} style={styles.cardIcon} />
+            <Icon name="escudo" size={24} color={colors.primary} style={styles.cardIcon} />
             <Text style={styles.cardTitle}>Modo responsable</Text>
           </View>
 
           <Text style={styles.cardDesc}>
-            Ideal para quienes gestionan reglas, restricciones y bloqueos de sitios web y apps en este u otros dispositivos.
+            Ideal para quienes gestionan reglas, restricciones y bloqueos de sitios web y apps en este u outros dispositivos.
           </Text>
 
           <View style={styles.pillContainer}>
@@ -75,7 +87,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         {/* CARD 2: MODO PROTEGIDO */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Icon name="corazon" size={22} color={colors.primary} style={styles.cardIcon} />
+            <Icon name="corazon" size={24} color={colors.primary} style={styles.cardIcon} />
             <Text style={styles.cardTitle}>Modo protegido</Text>
           </View>
 
@@ -95,17 +107,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <Text style={styles.actionBtnText}>Empezar</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Botón de Ayuda (Alineado a la derecha debajo del cuadro Modo protegido) */}
-        {onOpenOnboarding && (
-          <TouchableOpacity
-            style={styles.helpBtn}
-            onPress={() => onOpenOnboarding(3)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.helpIconText}>?</Text>
-          </TouchableOpacity>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -119,21 +120,31 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 18,
     paddingTop: 20,
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
   headerLogoContainer: {
     alignItems: 'center',
     marginBottom: 16,
   },
   titleSection: {
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  backBtn: {
+    marginRight: 10,
+    paddingVertical: 4,
+    paddingRight: 4,
   },
   mainTitle: {
     fontSize: 22,
     fontWeight: '800',
     color: '#000000',
-    marginBottom: 6,
     lineHeight: 28,
+    flex: 1,
   },
   mainSubtitle: {
     fontSize: 15,
@@ -142,82 +153,66 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#F0F7FF',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1.5,
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 2,
     borderColor: '#007AFF',
-    marginBottom: 14,
+    marginBottom: 20,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   cardIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     color: '#007AFF',
   },
   cardDesc: {
-    fontSize: 12.5,
+    fontSize: 13.5,
     color: '#1C1C1E',
-    lineHeight: 17,
-    marginBottom: 10,
+    lineHeight: 19,
+    marginBottom: 14,
   },
   pillContainer: {
     backgroundColor: '#D0E2FF',
-    borderRadius: 14,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     alignSelf: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 16,
   },
   pillText: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 12.5,
+    fontWeight: '600',
     color: '#1C1C1E',
   },
   actionBtn: {
     backgroundColor: '#007AFF',
-    height: 38,
-    width: 145,
-    borderRadius: 10,
+    height: 44,
+    width: 160,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
     shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 3,
-    elevation: 2,
+    elevation: 3,
   },
   actionBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
-  },
-  helpBtn: {
-    backgroundColor: '#007AFF',
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-end',
-    marginTop: 2,
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  helpIconText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
   },
 });
