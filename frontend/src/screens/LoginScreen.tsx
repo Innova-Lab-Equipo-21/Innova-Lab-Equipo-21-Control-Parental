@@ -9,7 +9,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  StyleSheet,
   SafeAreaView,
   ScrollView,
 } from 'react-native';
@@ -17,7 +16,7 @@ import { Logo } from '../components/Logo';
 import { LoginForm, AuthViewMode } from '../components/auth/LoginForm';
 import { RegisterForm } from '../components/auth/RegisterForm';
 import { RecoveryForm } from '../components/auth/RecoveryForm';
-import { colors } from '../theme/colors';
+import { styles } from './LoginScreen.styles';
 
 interface LoginScreenProps {
   onLoginSuccess: (user: any, token: string) => void;
@@ -70,24 +69,3 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContainer: {
-    paddingHorizontal: 18,
-    paddingTop: 20,
-    paddingBottom: 28,
-  },
-  logoWrapper: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    padding: 0,
-    borderWidth: 0,
-  },
-});
