@@ -5,11 +5,11 @@
 // ==============================================================================
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { Badge } from '../../Badge';
-import { colors } from '../../../theme/colors';
 import { SelfControlState } from '../../../types';
+import { styles } from './SelfControlSection.styles';
 
 interface SelfControlSectionProps {
   selfControl: SelfControlState;
@@ -99,26 +99,3 @@ export const SelfControlSection: React.FC<SelfControlSectionProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 4,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  subtitleText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  descText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 16,
-    marginBottom: 10,
-  },
-});

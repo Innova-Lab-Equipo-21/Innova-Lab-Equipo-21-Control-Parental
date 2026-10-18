@@ -42,12 +42,12 @@ export const PairingStep: React.FC<PairingStepProps> = ({
         <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#FEF3C7', color: '#92400E', padding: '3px 8px', borderRadius: '6px' }}>
           PASO 3B • EMPAREJAMIENTO
         </span>
-        <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1C1C1E', marginTop: '6px' }}>Vincular Dispositivo</h2>
+        <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1C1C1E', marginTop: '6px' }}>Vincular dispositivo</h2>
         <p style={{ fontSize: '12px', color: '#8E8E93' }}>Ingresa el código numérico o escanea el QR generado por el tutor</p>
       </div>
 
       <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF' }}>
-        {/* Pestañas de Selección de Método */}
+        {/* Pestañas de Selección de Método sin emojis */}
         <div style={{ display: 'flex', backgroundColor: '#F1F5F9', borderRadius: '10px', padding: '4px', marginBottom: '14px' }}>
           <button
             onClick={() => setMethod('CODE')}
@@ -64,7 +64,7 @@ export const PairingStep: React.FC<PairingStepProps> = ({
               boxShadow: method === 'CODE' ? '0 2px 4px rgba(0,0,0,0.08)' : 'none',
             }}
           >
-            🔢 Código 6 Dígitos
+            Código 6 dígitos
           </button>
           <button
             onClick={() => setMethod('QR')}
@@ -81,7 +81,7 @@ export const PairingStep: React.FC<PairingStepProps> = ({
               boxShadow: method === 'QR' ? '0 2px 4px rgba(0,0,0,0.08)' : 'none',
             }}
           >
-            📷 Escanear QR
+            Escanear QR
           </button>
         </div>
 
@@ -105,7 +105,6 @@ export const PairingStep: React.FC<PairingStepProps> = ({
         {method === 'QR' && (
           <div style={{ textAlign: 'center', marginBottom: '14px' }}>
             <div style={{ border: '2px dashed #C7D2FE', backgroundColor: '#F8FAFC', borderRadius: '12px', padding: '16px', marginBottom: '10px' }}>
-              <span style={{ fontSize: '32px' }}>📷</span>
               <p style={{ fontSize: '12px', color: '#475569', margin: '6px 0 0 0' }}>
                 {isScanning ? 'Analizando QR...' : pairingCodeInput ? `QR Detectado: ${pairingCodeInput}` : 'Apunta la cámara al QR en la app del tutor'}
               </p>
@@ -114,23 +113,23 @@ export const PairingStep: React.FC<PairingStepProps> = ({
               onClick={handleSimulateQR}
               style={{ width: '100%', padding: '10px', borderRadius: '8px', backgroundColor: '#E7F1FF', color: '#0056B3', border: 'none', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
             >
-              {isScanning ? '⌛ Procesando...' : '📷 Escanear QR (Simular 123456)'}
+              {isScanning ? 'Procesando...' : 'Abrir cámara / Escanear QR'}
             </button>
           </div>
         )}
 
         <button
-          style={{ width: '100%', height: '44px', borderRadius: '10px', backgroundColor: '#28A745', color: '#FFF', border: 'none', fontWeight: '700', cursor: 'pointer', marginBottom: '10px' }}
+          style={{ width: '100%', height: '44px', borderRadius: '10px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', fontWeight: '700', cursor: 'pointer', marginBottom: '10px' }}
           onClick={onPairingSubmit}
         >
-          Confirmar Código ➔ Paso 4: Permisos
+          Confirmar y activar protección
         </button>
 
         <button
           style={{ width: '100%', height: '36px', borderRadius: '8px', backgroundColor: '#EEF2FF', color: '#3730A3', border: 'none', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
           onClick={onSimulateCode}
         >
-          ⚡ Simular Código 123456 ➔ Paso 4
+          Simular código 123456 ➔ Paso 4
         </button>
       </div>
     </div>

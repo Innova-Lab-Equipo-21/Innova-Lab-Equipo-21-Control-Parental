@@ -2,7 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: PairingScreen Styles
 // Archivo: src/screens/PairingScreen.styles.ts
-// Descripción: Estilos visuales para la pantalla de pareamiento / vinculación de dispositivo.
+// Descripción: Estilos visuales para la pantalla de vinculación de dispositivo
+//              armonizados con la estética de WelcomeScreen.tsx y bloques compactos.
 // ==============================================================================
 
 import { StyleSheet, Platform } from 'react-native';
@@ -11,21 +12,46 @@ import { colors } from '../theme/colors';
 export const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  logoWrapper: {
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 6,
+    backgroundColor: '#FFFFFF',
   },
   keyboardView: {
     flex: 1,
   },
-  container: {
-    padding: 16,
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 20,
     paddingBottom: 28,
   },
-  instructionCard: {
+  headerLogoContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  titleSection: {
+    marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  backBtn: {
+    marginRight: 10,
+    paddingVertical: 4,
+    paddingRight: 4,
+  },
+  mainTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#000000',
+    lineHeight: 28,
+    flex: 1,
+  },
+  mainSubtitle: {
+    fontSize: 15,
+    color: '#1C1C1E',
+    lineHeight: 20,
+  },
+  card: {
     backgroundColor: '#F0F7FF',
     borderRadius: 18,
     padding: 18,
@@ -44,24 +70,20 @@ export const styles = StyleSheet.create({
       },
     }),
   },
-  instructionHeader: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
   },
-  instructionIcon: {
-    width: 24,
-    height: 24,
+  cardIcon: {
     marginRight: 10,
-    resizeMode: 'contain',
-    tintColor: '#007AFF',
   },
-  instructionTitle: {
+  cardTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#007AFF',
   },
-  instructionStep: {
+  stepText: {
     fontSize: 13.5,
     color: '#1C1C1E',
     lineHeight: 20,
@@ -158,43 +180,26 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  qrViewport: {
+  qrInputButton: {
     width: '100%',
-    height: 130,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
+    height: 52,
+    borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#C7D2FE',
-    borderStyle: 'dashed',
+    borderColor: colors.primary,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
-  qrTargetBox: {
-    alignItems: 'center',
+  qrInputButtonActive: {
+    backgroundColor: '#F0F7FF',
+    borderColor: colors.primaryDark,
   },
-  qrIconLarge: {
-    fontSize: 30,
-    marginBottom: 4,
-  },
-  qrStatusText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  scanQrBtn: {
-    width: '100%',
-    backgroundColor: colors.primaryLight,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  scanQrBtnText: {
-    color: colors.primaryDark,
-    fontSize: 13,
+  qrInputButtonText: {
+    fontSize: 14,
     fontWeight: '700',
+    color: colors.primary,
   },
   verifiedCard: {
     backgroundColor: '#D1E7DD',

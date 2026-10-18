@@ -3,8 +3,7 @@
 // Componente: Frontend Mobile (Pantalla de Pareamiento / Vinculación de Dispositivo)
 // Archivo: src/screens/PairingScreen.tsx
 // Descripción: Flujo guiado de vinculación mediante Código de 6 Dígitos o Escaneo de QR,
-//              con visualización de casillas de dígitos e integración con el botón Volver.
-//              (Los datos del dispositivo y protegido son configurados desde el perfil del tutor).
+//              con estilo compacto unificado para ambos métodos.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -19,10 +18,9 @@ import {
   TouchableOpacity,
   PermissionsAndroid,
   ScrollView,
-  Image,
 } from 'react-native';
-import { Header } from '../components/Header';
 import { Logo } from '../components/Logo';
+import { Icon } from '../components/Icon';
 import { ActionButton } from '../components/ActionButton';
 import { apiService } from '../services/api.service';
 import { styles } from './PairingScreen.styles';
@@ -49,7 +47,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
     const activeCode = (pairingCodeOverride || code).trim();
     if (activeCode.length !== 6) {
       Alert.alert(
-        'Código Incompleto',
+        'Código incompleto',
         'Por favor ingresa o escanea un código numérico de 6 dígitos provisto por el responsable.'
       );
       return;
@@ -69,13 +67,13 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       });
 
       Alert.alert(
-        '¡Vinculación Exitosa! 🛡️',
+        '¡Vinculación exitosa!',
         'El dispositivo ha sido vinculado correctamente al perfil de protección.'
       );
       onPairingComplete(result.data.deviceId, result.data.deviceUuid);
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Código de pareamiento inválido o expirado.';
-      Alert.alert('Error de Vinculación', msg);
+      Alert.alert('Error de vinculación', msg);
     } finally {
       setLoading(false);
     }
@@ -88,14 +86,14 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       setCode(simulatedCode);
       setIsScanningQR(false);
       Alert.alert(
-        '📷 Código QR Escaneado',
+        'Código QR escaneado',
         `Se detectó el código ${simulatedCode}. Confirma para activar la protección.`,
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Vincular Ahora', onPress: () => handlePairing(simulatedCode) },
+          { text: 'Vincular ahora', onPress: () => handlePairing(simulatedCode) },
         ]
       );
-    }, 1200);
+    }, 1000);
   };
 
   const handleOpenCameraScanner = async () => {
@@ -104,7 +102,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.CAMERA,
           {
-            title: 'Permiso de Cámara Requerido',
+            title: 'Permiso de cámara requerido',
             message: 'BA Protege+ necesita acceso a la cámara para escanear el código QR del tutor.',
             buttonNeutral: 'Luego',
             buttonNegative: 'Cancelar',
@@ -116,8 +114,8 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
           handleSimulateQRScan();
         } else {
           Alert.alert(
-            'Permiso Denegado',
-            'No se concedió acceso a la cámara. Puedes utilizar el ingreso por Código de 6 Dígitos.'
+            'Permiso denegado',
+            'No se concedió acceso a la cámara. Puedes utilizar el ingreso por Código de 6 dígitos.'
           );
         }
       } catch (err) {
@@ -130,38 +128,55 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.logoWrapper}>
-        <Logo variant="complete" size="md" align="center" />
-      </View>
-      <Header
-        title="Vincular Dispositivo"
-        subtitle="Ingresa el código numérico o escanea el QR generado por el tutor"
-        onBack={onBack}
-        showTopLogo={false}
-      />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-          {/* Banner Explicativo de Pasos con lampara.png */}
-          <View style={styles.instructionCard}>
-            <View style={styles.instructionHeader}>
-              <Image
-                source={require('../assets/icons/lampara.png')}
-                style={styles.instructionIcon}
-              />
-              <Text style={styles.instructionTitle}>Pasos para la vinculación</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {/* Encabezado con Logotipo Oficial Completo Centrado */}
+          <View style={styles.headerLogoContainer}>
+            <Logo variant="complete" size="md" align="center" />
+          </View>
+
+          {/* Sección de Títulos en Sentence Case */}
+          <View style={styles.titleSection}>
+            <View style={styles.titleRow}>
+              {onBack && (
+                <TouchableOpacity
+                  style={styles.backBtn}
+                  onPress={onBack}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Volver a la pantalla anterior"
+                >
+                  <Icon name="volver" size={24} color="#000000" />
+                </TouchableOpacity>
+              )}
+              <Text style={styles.mainTitle}>Vincular dispositivo</Text>
             </View>
-            <Text style={styles.instructionStep}>
-              1- Genera un código de 6 digitos o un código QR en el dispositivo tutor en <Text style={styles.boldText}>"Vincular nuevo dispositivo"</Text>
-            </Text>
-            <Text style={styles.instructionStep}>
-              2- Ingresa el código de 6 digitos o presiona <Text style={styles.boldText}>"Escanear código QR"</Text>
+            <Text style={styles.mainSubtitle}>
+              Ingresa el código numérico o escanea el QR generado por el tutor
             </Text>
           </View>
 
+          {/* Bloque de Pasos de Vinculación */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Icon name="pregunta" size={24} color="#007AFF" style={styles.cardIcon} />
+              <Text style={styles.cardTitle}>Pasos para la vinculación</Text>
+            </View>
+            <Text style={styles.stepText}>
+              1- Genera un código de 6 dígitos o un código QR en el dispositivo tutor en <Text style={styles.boldText}>"Vincular nuevo dispositivo"</Text>
+            </Text>
+            <Text style={styles.stepText}>
+              2- Ingresa el código de 6 dígitos o presiona <Text style={styles.boldText}>"Escanear código QR"</Text>
+            </Text>
+          </View>
+
+          {/* Formulario de Pareamiento */}
           <View style={styles.formContainer}>
             {/* Segmented Tabs para método de vinculación */}
             <View style={styles.tabContainer}>
@@ -171,7 +186,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
                 activeOpacity={0.8}
               >
                 <Text style={[styles.tabButtonText, method === 'CODE' && styles.tabButtonTextActive]}>
-                  🔢 Código 6 Dígitos
+                  Código 6 dígitos
                 </Text>
               </TouchableOpacity>
 
@@ -181,7 +196,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
                 activeOpacity={0.8}
               >
                 <Text style={[styles.tabButtonText, method === 'QR' && styles.tabButtonTextActive]}>
-                  📷 Escanear QR
+                  Escanear QR
                 </Text>
               </TouchableOpacity>
             </View>
@@ -224,30 +239,21 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
               </View>
             )}
 
-            {/* VISTA 2: ESCANEO POR CÓDIGO QR */}
+            {/* VISTA 2: ESCANEO POR CÓDIGO QR COMPACTO (MISMA ALTURA Y ESTILO QUE CÓDIGO DE 6 DÍGITOS) */}
             {method === 'QR' && (
               <View style={styles.qrSectionContainer}>
-                <Text style={styles.labelCenter}>Escanear Código QR del Tutor</Text>
-                <View style={styles.qrViewport}>
-                  <View style={styles.qrTargetBox}>
-                    <Text style={styles.qrIconLarge}>📷</Text>
-                    <Text style={styles.qrStatusText}>
-                      {isScanningQR
-                        ? 'Analizando código QR...'
-                        : code
-                        ? `Código detectado: ${code}`
-                        : 'Apunta la cámara al código QR en la pantalla del tutor'}
-                    </Text>
-                  </View>
-                </View>
+                <Text style={styles.labelCenter}>Escanear código QR del tutor:</Text>
 
                 <TouchableOpacity
-                  style={styles.scanQrBtn}
+                  style={[
+                    styles.qrInputButton,
+                    isScanningQR && styles.qrInputButtonActive,
+                  ]}
                   onPress={handleOpenCameraScanner}
-                  activeOpacity={0.85}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.scanQrBtnText}>
-                    {isScanningQR ? '⌛ Escaneando...' : '📷 Abrir Cámara / Escanear QR'}
+                  <Text style={styles.qrInputButtonText}>
+                    {isScanningQR ? 'Analizando código QR...' : 'Abrir cámara / Escanear QR'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -256,26 +262,20 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
             {/* Resumen / Tarjeta de Confirmación de Datos cuando el código está listo */}
             {isCodeComplete && (
               <View style={styles.verifiedCard}>
-                <Text style={styles.verifiedTitle}>✅ Código de Vinculación Listo</Text>
+                <Text style={styles.verifiedTitle}>✅ Código de vinculación listo</Text>
                 <Text style={styles.verifiedSubtitle}>
                   Código: <Text style={styles.boldText}>{code}</Text> • Estado: Válido
                 </Text>
               </View>
             )}
 
-            {/* Botonera de Acción */}
+            {/* Botonera de Acción Unificada */}
             <View style={styles.buttonGroup}>
               <ActionButton
-                title="🛡️ Confirmar y Activar Protección"
+                title="Confirmar y activar protección"
                 onPress={() => handlePairing()}
                 loading={loading}
                 disabled={!isCodeComplete}
-              />
-              <ActionButton
-                title="Volver"
-                variant="secondary"
-                onPress={onBack}
-                disabled={loading}
               />
             </View>
           </View>
