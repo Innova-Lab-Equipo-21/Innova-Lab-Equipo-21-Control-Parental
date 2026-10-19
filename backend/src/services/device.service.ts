@@ -31,26 +31,31 @@ export interface UpdateProtectionConfigInput {
 }
 
 export class DeviceService {
-  /**
-   * Genera un código de pareamiento temporal de 6 dígitos para que el responsable vincule un dispositivo.
+    /**
+   * Genera el código de vinculación de 6 dígitos (sin vencimiento).
+   * Cada tutor tiene como máximo un código pendiente: generar uno nuevo reemplaza al anterior.
    */
   public async generatePairingCode(input: GeneratePairingCodeInput) {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    // Código nunca expira (100 años en el futuro)
-    const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+    const MAX_DEVICES = 5;
+    // El código no vence. Fecha lejana porque la columna expires_at todavía es obligatoria.
+    const expiresAt = new Date('2999-12-31T23:59:59Z');
 
     if (env.USE_MOCK_DATA) {
-      let existingPending = mockDb.pairings.find(
-        (p) => p.userId === input.userId && !p.isUsed
-      );
+      const linked = mockDb.devices.filter((d) => d.userId === input.userId && d.isActive).length;
+      if (linked >= MAX_DEVICES) {
+        throw new AppError(`Alcanzaste el máximo de ${MAX_DEVICES} dispositivos vinculados`, 409);
+      }
 
+      let code = this.randomCode();
+      while (mockDb.pairings.some((p) => p.pairingCode === code)) {
+        code = this.randomCode();
+      }
+
+      const existingPending = mockDb.pairings.find((p) => p.userId === input.userId && !p.isUsed);
       if (existingPending) {
         existingPending.pairingCode = code;
         existingPending.expiresAt = expiresAt;
-        return {
-          pairingCode: code,
-          expiresAt,
-        };
+        return { pairingCode: code };
       }
 
       mockDb.pairings.push({
@@ -63,45 +68,42 @@ export class DeviceService {
         createdAt: new Date(),
       });
 
-      return {
-        pairingCode: code,
-        expiresAt,
-      };
+      return { pairingCode: code };
+    }
+
+    const linked = await prisma.device.count({
+      where: { userId: input.userId, isActive: true },
+    });
+    if (linked >= MAX_DEVICES) {
+      throw new AppError(`Alcanzaste el máximo de ${MAX_DEVICES} dispositivos vinculados`, 409);
+    }
+
+    let code = this.randomCode();
+    while (await prisma.devicePairing.findUnique({ where: { pairingCode: code } })) {
+      code = this.randomCode();
     }
 
     const existingPending = await prisma.devicePairing.findFirst({
-      where: {
-        userId: input.userId,
-        isUsed: false,
-      },
+      where: { userId: input.userId, isUsed: false },
     });
 
     if (existingPending) {
-      const updated = await prisma.devicePairing.update({
+      await prisma.devicePairing.update({
         where: { id: existingPending.id },
-        data: {
-          pairingCode: code,
-          expiresAt,
-        },
+        data: { pairingCode: code, expiresAt },
       });
-      return {
-        pairingCode: updated.pairingCode,
-        expiresAt: updated.expiresAt,
-      };
+      return { pairingCode: code };
     }
 
-    const pairing = await prisma.devicePairing.create({
-      data: {
-        userId: input.userId,
-        pairingCode: code,
-        expiresAt,
-      },
+    await prisma.devicePairing.create({
+      data: { userId: input.userId, pairingCode: code, expiresAt },
     });
 
-    return {
-      pairingCode: pairing.pairingCode,
-      expiresAt: pairing.expiresAt,
-    };
+    return { pairingCode: code };
+  }
+
+  private randomCode(): string {
+    return crypto.randomInt(100000, 1000000).toString();
   }
 
   /**
@@ -178,10 +180,6 @@ export class DeviceService {
 
     if (!pairing || pairing.isUsed) {
       throw new AppError('Código de pareamiento inválido o ya utilizado', 400);
-    }
-
-    if (new Date() > pairing.expiresAt) {
-      throw new AppError('El código de pareamiento ha expirado', 400);
     }
 
     // Buscar si el dispositivo ya existía previamente registrado con ese UUID
