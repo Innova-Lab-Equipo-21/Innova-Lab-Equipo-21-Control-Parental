@@ -25,6 +25,10 @@ export interface MockDevice {
   deviceUuid: string;
   deviceName: string;
   childName: string;
+    gender?: string;
+  personType?: string;
+  birthDate?: string;
+  phone?: string;
   model: string;
   osVersion: string;
   appVersion: string;
@@ -88,6 +92,13 @@ export interface MockPairing {
   userId: string;
   deviceId: string | null;
   pairingCode: string;
+    minor?: {
+    childName: string;
+    gender: string;
+    personType: string;
+    birthDate: string;
+    phone: string;
+  };
   isUsed: boolean;
   expiresAt: Date;
   createdAt: Date;

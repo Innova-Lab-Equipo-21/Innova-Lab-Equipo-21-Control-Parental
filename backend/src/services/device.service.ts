@@ -7,6 +7,11 @@ import { emailService } from './email.service.js';
 
 export interface GeneratePairingCodeInput {
   userId: string;
+  childName: string;
+  gender: string;
+  personType: string;
+  birthDate: string;
+  phone: string;
 }
 
 export interface ConfirmPairingInput {
@@ -64,6 +69,13 @@ export class DeviceService {
         deviceId: null,
         pairingCode: code,
         isUsed: false,
+                minor: {
+          childName: input.childName,
+          gender: input.gender,
+          personType: input.personType,
+          birthDate: input.birthDate,
+          phone: input.phone,
+        },
         expiresAt,
         createdAt: new Date(),
       });
@@ -122,7 +134,11 @@ export class DeviceService {
       if (device) {
         device.userId = pairing.userId;
         device.deviceName = input.deviceName;
-        device.childName = input.childName || device.childName;
+                device.childName = pairing.minor?.childName || input.childName || device.childName;
+        device.gender = pairing.minor?.gender ?? device.gender;
+        device.personType = pairing.minor?.personType ?? device.personType;
+        device.birthDate = pairing.minor?.birthDate ?? device.birthDate;
+        device.phone = pairing.minor?.phone ?? device.phone;
         device.model = input.model || device.model;
         device.osVersion = input.osVersion || device.osVersion;
         device.appVersion = input.appVersion || device.appVersion;
@@ -134,7 +150,11 @@ export class DeviceService {
           userId: pairing.userId,
           deviceUuid: input.deviceUuid,
           deviceName: input.deviceName,
-          childName: input.childName || 'Menor Protegido',
+                    childName: pairing.minor?.childName || input.childName || 'Menor Protegido',
+          gender: pairing.minor?.gender,
+          personType: pairing.minor?.personType,
+          birthDate: pairing.minor?.birthDate,
+          phone: pairing.minor?.phone,
           model: input.model || 'Android Device',
           osVersion: input.osVersion || 'Android 14',
           appVersion: input.appVersion || '1.0.0',

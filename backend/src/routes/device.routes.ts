@@ -6,12 +6,27 @@
 // ==============================================================================
 
 import { Router } from 'express';
-import { z } from 'zod';
+import  z from 'zod';
 import { deviceController } from '../controllers/device.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
 
 const router = Router();
+
+// Esquema para generar el codigo de pareamiento
+const generatePairingSchema = z.object({
+  body: z.object({
+    childName: z.string () .min(1, "El nombre del menor es requerido"),
+    gender: z.string() .min(1, "El genero es requerido"),
+    personType: z.string() .min(1, "El tipo de pesona es requerido"),
+    birthDate: z.string().min(1, "La fecha de nacimiento es requerida"),
+    phone: z.string () .min(1,"El telefono es requerido"),
+  }),
+});
+// Esquema para generar el código: datos del menor que completa el tutor
+router.post('/pair/generate', requireAuth, validateRequest(generatePairingSchema), (req, res, next) =>
+  deviceController.generatePairingCode(req, res, next)
+);
 
 // Esquema de confirmación de pareamiento desde el dispositivo del menor
 const confirmPairingSchema = z.object({

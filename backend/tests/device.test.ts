@@ -51,10 +51,20 @@ describe('Módulo de Dispositivos y Vinculación (Device API)', () => {
 
   test('POST /api/devices/pair/generate debe generar un código de 6 dígitos para el tutor', async () => {
     const res = await fetch(`${baseUrl}/api/devices/pair/generate`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${authToken}` },
+       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        childName: 'Sofia',
+        gender: 'Femenino',
+        personType: 'Menor',
+        birthDate: '2012-05-15',
+        phone: '11 2345-6789',
+      }),
     });
-
+  
     assert.equal(res.status, 200);
     const data = await res.json();
     assert.equal(data.success, true);
