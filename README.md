@@ -9,7 +9,7 @@ Descripción: Documentación general del proyecto de control parental para la
 ==============================================================================
 -->
 
-Sistema integral de control parental y protección digital desarrollado para salvaguardar a niños, niñas, adolescentes y adultos frente a plataformas de apuestas online y sitios de juegos no autorizados, integrando el **Kit UI/UX del Sistema de Diseño oficial**, la lista de la **LOTBA (Lotería de la Ciudad de Buenos Aires)**, **Onboarding con Wizard de 3 Pantallas y Video Optativo**, **Auditoría de Permisos de Dispositivos Protegidos**, **Autocontrol del Responsable con ciclo de 4 pasos de 24 horas**, **Gestión CRUD de Sitios Web Bloqueados Personalizados**, **Restricción de Mayoría de Edad (+18)** y gestión de **hasta 5 dispositivos por responsable**.
+Sistema integral de control parental y protección digital desarrollado para salvaguardar a niños, niñas, adolescentes y adultos frente a plataformas de apuestas online y sitios de juegos no autorizados, integrando el **Kit UI/UX del Sistema de Diseño oficial**, la lista de la **LOTBA (Lotería de la Ciudad de Buenos Aires)**, **Onboarding con Wizard de 3 Pantallas y Video Optativo**, **Auditoría de Permisos de Dispositivos Protegidos**, **Autocontrol del Responsable con ciclo de 24 horas**, **Gestión CRUD de Sitios Web y Aplicaciones Bloqueadas**, **Monitorización de Tiempo de Uso de Pantalla**, **Estandarización de Interfaz en Sentence Case**, **Restricción de Mayoría de Edad (+18)** y gestión de **hasta 5 dispositivos por responsable**.
 
 ---
 
@@ -17,7 +17,7 @@ Sistema integral de control parental y protección digital desarrollado para sal
 
 1. [Visión General y Propuesta de Valor](#-visión-general-y-propuesta-de-valor)
 2. [Sistema de Diseño y Kit UI/UX](#-sistema-de-diseño-y-kit-uiux)
-3. [Nuevas Funcionalidades en esta Rama (`tareas-app`)](#-nuevas-funcionalidades-en-esta-rama-tareas-app)
+3. [Funcionalidades del Sistema](#-funcionalidades-del-sistema)
 4. [Arquitectura del Sistema](#-arquitectura-del-sistema)
 5. [Stack Tecnológico Oficial](#-stack-tecnológico-oficial)
 6. [Estructura del Repositorio (Monorepo)](#-estructura-del-repositorio-monorepo)
@@ -100,85 +100,74 @@ El proyecto cuenta con un **Kit UI/UX estandarizado** basado en las especificaci
 
 ---
 
-## 🛡️ Nuevas Funcionalidades en esta Rama (`tareas-app`)
+## 🛠️ Funcionalidades del Sistema
 
-Esta rama incorpora mejoras clave orientadas a la usabilidad, seguridad y flexibilidad del control parental y autocontrol del responsable:
+El sistema **BA Protege+** integra un conjunto completo de funcionalidades diseñadas para garantizar la seguridad digital de la familia, el control parental riguroso y la autoprotección responsable de adultos frente a plataformas de apuestas clandestinas y contenidos restringidos.
 
-### 1. Restricción de Mayoría de Edad (+18) en Registro de Responsable
-- **Validación en tiempo real:** Se incorporó el helper [`frontend/src/utils/age.ts`](file:///c:/Users/mika/Innova-Lab-Equipo-21-Control-Parental/frontend/src/utils/age.ts) con la función `calculateAge()`, la cual procesa la fecha de nacimiento (`DD/MM/AAAA`) calculando la edad exacta teniendo en cuenta el año, mes y día actual.
-- **Bloqueo preventivo de menores:** Si la persona ingresa una fecha correspondiente a un menor de 18 años, el formulario muestra un mensaje de error específico en color rojo debajo del campo:
-  > *"Debes ser mayor de 18 años para registrarte como responsable."*
-- **Envío condicional y UX depurada:** El botón de registro permanece inhabilitado mientras la validación de edad no se cumpla, y se eliminaron los carteles de alerta genéricos superiores para mantener una interfaz limpia y libre de ruidos visuales.
+### 1. Selección de Modo Operativo y Perfiles de Usuario (Paso 2)
+- **Modo Responsable (Padre / Madre / Tutor):** Diseñado para adultos a cargo del grupo familiar. Otorga control completo para supervisar hasta 5 dispositivos protegidos, configurar reglas personalizadas de sitios y aplicaciones, monitorear el tiempo de uso de pantalla y activar el autocontrol propio.
+- **Modo Dispositivo Protegido (Menor / Adulto en Tratamiento):** Diseñado para instalarse en el dispositivo a proteger. Opera con un motor de filtrado local en segundo plano que bloquea de forma transparente más de 450 dominios clandestinos y aplicaciones restringidas, reforzado con protección antidesinstalación.
 
-### 2. Autocontrol del Responsable: Flujo de 4 Pasos (Enfriamiento y Pase Temporal)
-Para prevenir decisiones impulsivas y garantizar un compromiso real de autocontrol, se rediseñó el ciclo de vida de la autoprotección del adulto a través de una máquina de estados estricta:
+### 2. Autenticación y Registro con Restricción de Mayoría de Edad (+18) (Paso 3A)
+- **Validación Estricta de Edad:** Registro de responsables restringido a mayores de 18 años mediante cálculo dinámico exacto de fecha de nacimiento (`DD/MM/AAAA`). Bloqueo preventivo automático ante usuarios menores de edad.
+- **Iniciaciones de Sesión Flexibles:** Soporte para autenticación nativa mediante correo/contraseña y acceso directo simplificado con **Google Auth** e ícono oficial (`logo_google.png`).
+- **Modales Legales Bottom Sheet y Calendario:** Integración de modales emergentes con tirador de arrastre para Términos y Condiciones (`TermsModal`), Políticas de Privacidad (`PrivacyModal`) y selector encapsulado de fechas (`DatePickerModal`).
 
-```
-[ 1. ACTIVA (ACTIVE) ] 
-       │
-       ▼ (Usuario hace clic en "Desactivar autoprotección")
-[ 2. ENFRIAMIENTO (COOLING_DOWN) ] ── (Espera obligatoria de 24 horas con cronómetro en vivo)
-       │
-       ▼ (Cumplidas las 24 horas)
-[ 3. LISTO PARA DESBLOQUEAR (DEACTIVATION_READY) ]
-       │
-       ▼ (Usuario hace segundo clic consciente de confirmación)
-[ 4. PASE TEMPORAL (TEMPORARILY_UNLOCKED) ] ── (Desbloqueo temporal concedido por 24 horas)
-       │
-       ▼ (Expiradas las 24 horas del pase)
-[ 1. ACTIVA (Auto-Reactivación Automática) ]
-```
+### 3. Vinculación Dual y Límite de 5 Dispositivos Protegidos (Paso 3B)
+- **Mecanismos de Pareamiento:** Vinculación ágil en menos de 1 minuto a través de código numérico de 6 dígitos con validez temporal o mediante escaneo directo de **Código QR** con la cámara del celular.
+- **Límite Estricto de Dispositivos (`MAX_PROTECTED_DEVICES = 5`):** Capacidad de vinculación limitada a un máximo de 5 celulares supervisados por responsable. Al alcanzar el cupo, la interfaz de emparejamiento deshabilita automáticamente la generación de nuevos códigos.
 
-- **Paso 1 (Estado Inicial Activo):** Cuando la autoprotección está en funcionamiento, se visualiza el botón *"Desactivar autoprotección"*.
-- **Paso 2 (Temporizador de 24 Horas):** Al pulsar el botón, la protección **NO se desactiva de inmediato**. Se dispara un temporizador de enfriamiento (*cooldown*) de 24 horas y la interfaz notifica: *"La desactivación se habilitará en 24 horas"*, mostrando un reloj regresivo en tiempo real (`HH:MM:SS`). El botón queda bloqueado e inhabilitado durante este período.
-- **Paso 3 (Confirmación por Segundo Clic):** Al completarse las 24 horas de espera, el botón pasa a estado activo en color verde con el texto *"Confirmar Desbloqueo (2do Clic)"*, requiriendo una acción deliberada del usuario para confirmar la desactivación.
-- **Paso 4 (Pase Temporal de 24 Horas y Reactivación Automática):** Al presionar por segunda vez, el sistema otorga un pase de gracia de solo 24 horas (`TEMPORARILY_UNLOCKED`). Al expirar esas 24 horas, la protección se reactiva de forma automática y transparente sin requerir intervención del usuario.
-- **Herramienta para Desarrolladores (`⏩ Simular +24h`):** Para facilitar las pruebas manuales sin esperar un día completo, tanto la pantalla móvil como el simulador web disponen de un botón que adelanta el reloj 24 horas de forma instantánea.
+### 4. Configuración y Auditoría de Permisos del Sistema Android (Paso 4)
+- **Estructura en Acordeón Pedagógico:** Presentación guiada e individual de los 5 permisos críticos del sistema Android requeridos para garantizar la efectividad de la protección:
+  1. `Servicio VPN Local`: Intercepción y filtrado de tráfico web en la capa de red.
+  2. `Servicio de Accesibilidad`: Prevención de desinstalación no autorizada de la app.
+  3. `Notificaciones del Sistema`: Envío de alertas de seguridad y estado persistente.
+  4. `Exención de Optimización de Batería`: Garantía de ejecución continua en segundo plano.
+  5. `Ubicación y Geolocalización (GPS / IP Híbrida)`: Registro de posición geográfica del celular.
+- **Auditoría en Tiempo Real:** El responsable puede consultar desde el panel el estado exacto de permisos concedidos o revocados en cada uno de los celulares vinculados.
 
-### 3. CRUD de Sitios Web Bloqueados Personalizados (Custom Blocklist)
-Permite al responsable bloquear dominios o sitios web personalizados adicionales a la lista oficial LOTBA para todos los dispositivos que supervisa:
+### 5. Panel del Responsable y Módulos de Gestión (Paso 5A)
+El panel principal cuenta con barra de navegación inferior de 5 pestañas (`DashboardNavbar.tsx`) con resalte visual `#E5F1FF` y acceso unificado por secciones retráctiles (`SeccionDesplegable.tsx`):
 
-- **API REST Backend:**
-  - `GET /api/blocklist/custom`: Consulta los dominios personalizados del responsable autenticado.
-  - `POST /api/blocklist/custom/domains`: Crea un nuevo dominio bloqueado. Incluye sanitización automática de URLs (remueve prefijos `http://`, `https://`, subdominios superfluos como `www.` y rutas posteriores `/...`), valida la estructura con regex de FQDN y asigna categoría.
-  - `PUT /api/blocklist/custom/domains/:domainId`: Permite editar el dominio, notas, categoría o alternar el estado `isActive` (pausar o reactivar el bloqueo individual de un sitio con un solo toque).
-  - `DELETE /api/blocklist/custom/domains/:domainId`: Elimina permanentemente el dominio del listado.
-  - **Auditoría e Integridad:** Cada operación actualiza el número de versión de la blocklist e inserta un registro en la tabla `auditLog`.
-- **Experiencia de Usuario en Frontend (Mobile & Web Simulator):**
-  - **Buscador en Vivo:** Filtrado instantáneo por texto en la lista de dominios bloqueados.
-  - **Categorías Temáticas:** Selector visual para catalogar el sitio (`Apuestas`, `Redes Sociales`, `Juegos`, `Adultos`, `Compras`, `Streaming`, `Otro`).
-  - **Acciones Rápidas:** Switch para pausar/activar bloqueo, botón para editar (✏️) y botón para eliminar (🗑️) con modal de confirmación preventiva.
-  - **Sincronización con el Motor de Filtrado:** Los dominios personalizados activos son inmediatamente interceptados y bloqueados por el motor de navegación simulado.
+- **A. Vista Inicio (Panel):**
+  - **Tarjetas de Resumen General:** Indicadores de dispositivos vinculados (`X/5`), reglas activas (`3/3`) y estado del autocontrol (`Off` / `🔒 Activa`).
+  - **Accesos Rápidos:** Grid de 4 accesos directos (*"Mis dispositivos"*, *"Gestión de sitios"*, *"Actividad y alertas"*, *"Autocontrol tutor"*).
+  - **Secciones Desplegables Integradas:** Acceso directo desde la pantalla inicial a todos los módulos sin necesidad de cambiar de pestaña.
+- **B. Mis Dispositivos Protegidos:**
+  - Ficha detallada de cada celular supervisado con nivel de batería, estado del filtro, versión de lista y resumen de permisos.
+  - **Desvinculación Segura:** Opción para remover un dispositivo previa confirmación mediante modal de advertencia preventiva.
+- **C. Gestión de Sitios y Apps:**
+  - **🌐 Sitios web:** Filtro oficial LOTBA inmutable (más de 450 dominios de apuestas clandestinas bloqueados de forma obligatoria) + CRUD de dominios personalizados con sanitización de URLs, categorización y pausa/reanudación individual (`isActive`).
+  - **📱 Aplicaciones:** Bloqueo de aplicaciones móviles Android (Bet365, TikTok, Pokerstars, Instagram, juegos, etc.) con selección de asignación global o a dispositivos específicos (`deviceIds`).
+  - **📊 Tiempo de uso:** Medición e historial gráfico de minutos y horas de consumo diario de pantalla por aplicativo para cada dispositivo (incluyendo el celular del propio responsable).
+  - **Filtro por Dispositivo:** Conmutación rápida para listar reglas de `🌎 Todos`, `📱 Mi dispositivo` o celulares protegidos específicos.
+  - **Ordenamiento:** Alternancia entre `📅 Fecha de inclusión` (más recientes) y `🔤 A-Z` (alfabético).
+- **D. Actividad del Sistema:**
+  - Histórico de eventos de dominios bloqueados, intentos de navegación no autorizados y alertas de evasión o manipulación del sistema.
+- **E. Perfil y Cuenta:**
+  - Gestión de la cuenta del tutor, auditoría de permisos locales y acceso directo a la activación del autocontrol.
 
-### 4. Flujo de Onboarding con Wizard de 3 Pantallas y Video Resumen Optativo
-Se implementó un flujo introductorio guiado y pedagógico mediante un **Wizard de 3 Pantallas** estructuradas ([`frontend/src/screens/OnboardingScreen.tsx`](file:///c:/Users/mika/Innova-Lab-Equipo-21-Control-Parental/frontend/src/screens/OnboardingScreen.tsx)), diseñado para transmitir confianza, educar sobre los perfiles y no generar fricción:
+### 6. Autocontrol del Responsable (Autoprotección de Adulto) con Bloqueo de 24 Horas
+- **El Responsable como 6º Dispositivo:** Ocurre directamente en el celular del tutor, ocupando un perfil propio de autoprotección.
+- **Máquina de Estados de 4 Pasos:**
+  1. `ACTIVE`: Autoprotección activa de forma permanente bloqueando sitios de apuestas en su propio perfil.
+  2. `COOLING_DOWN` (Enfriamiento de 24 Horas): Al solicitar la desactivación, el sistema **NO desbloquea inmediatamente**. Se activa un temporizador irrestricto de 24 horas de espera con reloj regresivo en tiempo real para evitar impulsos.
+  3. `DEACTIVATION_READY`: Una vez cumplidas las 24 horas de enfriamiento, el botón se habilita para exigir un **segundo clic consciente** de confirmación.
+  4. `TEMPORARILY_UNLOCKED` (Pase Temporal): El sistema otorga un pase de gracia de 24 horas. Al expirar el plazo, el autocontrol se reactiva de forma automática y transparente.
 
-- **Stepper Circular Numerado y Líneas Conectoras (`<ProgressSteps />`):**
-  - Indicador visual superior con los pasos `(1) ── (2) ── (3)`.
-  - Construido con los tokens oficiales del Sistema de Diseño (`#007AFF` para el paso en curso, `#28A745` para pasos completados y `#F8F9FA` de fondo).
-  - Permite avanzar, retroceder o saltar la introducción en cualquier momento con el botón *"Saltar introducción ✕"*.
-- **Pantalla 1: Bienvenida Institucional y Garantía de Privacidad Total:**
-  - Respaldo institucional oficial de la **Lotería de la Ciudad de Buenos Aires (LOTBA)**.
-  - **Compromiso ético de privacidad:** Destaca explícitamente que la aplicación **NO lee mensajes de WhatsApp, NO accede a galerías de fotos, llamadas ni contraseñas**.
-  - Explicación de la tecnología de filtrado: opera como un escudo de red local (DNS) que coteja únicamente dominios contra el registro oficial de apuestas ilegales, manteniendo todos los datos encriptados.
-- **Pantalla 2: Explicación Detallada de los 3 Perfiles de Usuario:**
-  - 👨‍👩‍👧‍👦 **Modo Responsable (Tutor):** Para padres, madres o tutores legales. Vinculación rápida de hasta 5 dispositivos por código de 6 dígitos o QR en menos de 1 minuto, monitoreo en vivo de los 4 permisos de Android y recepción de alertas inmediatas.
-  - 📱 **Modo Dispositivo Menor:** Para niños, niñas y adolescentes. Escudo local de protección que bloquea más de 1.000 dominios clandestinos sin ralentizar la navegación, pantalla pedagógica preventiva y protección antidesinstalación.
-  - 💜 **Modo Dispositivo Adulto:** Autoprotección personal y voluntaria para adultos frente a plataformas de apuestas y casinos online, con temporizador estricto de enfriamiento y acceso directo a la línea de ayuda gratuita oficial (0800).
-- **Pantalla 3: Resumen Audiovisual en Pocos Segundos (Optativo) y FAQ:**
-  - **Video Resumen de 35 Segundos:** Reproductor simulado interactivo que recorre dinámicamente los 3 perfiles con subtítulos sincronizados, badges temáticos, cambio de color de pantalla, barra de progreso y botones de reproducir, pausar y reiniciar.
-  - **Naturaleza 100% Optativa:** El video no es obligatorio ni bloqueante; el usuario puede reproducirlo o pulsar directamente *"¡Comenzar! Seleccionar Modo ➔"* para continuar.
-  - **Sección de Preguntas Frecuentes (FAQ):** Preguntas y respuestas desplegables sobre privacidad, funcionamiento técnico del bloqueo y asistencia legal/psicológica.
+### 7. Motor Nativo de Filtrado e Intercepción en Dispositivo Protegido (Paso 5B)
+- **Filtrado en Capa de Red (`VpnService`):** Funciona a nivel de conectividad del sistema Android. Intercepta y bloquea solicitudes a sitios prohibidos en **Aba Anônima / Modo Incógnito** de cualquier navegador y dentro de cualquier app.
+- **Protección Antidesinstalación con Teclado PIN (`PinKeyboard`):** El servicio de accesibilidad exige ingresar el PIN de 4 dígitos del responsable para pausar el filtro o intentar desinstalar la app.
+- **Operación Offline e Inviolabilidad de Hora:** Mantiene caché local con la última lista válida de dominios y valida el tiempo mediante servidor NTP/red (`getReliableTimestamp()`) impidiendo el salto del bloqueo mediante el cambio de fecha/hora en el celular.
 
-### 5. Auditoría de Permisos por Dispositivo (4/4 Android)
-- Supervisión en tiempo real del estado de los 4 permisos críticos del dispositivo protegido:
-  - `Servicio VPN` (Filtrado local de tráfico).
-  - `Accesibilidad` (Mecanismo anti-desinstalación no autorizada).
-  - `Notificaciones` (Alertas de seguridad y estado).
-  - `Exención de Batería` (Ejecución persistente en segundo plano).
+### 8. Onboarding Guiado con Wizard de 3 Pantallas y Video Resumen Optativo
+- **Stepper Circular Numerado (`<ProgressSteps />`):** Indicador de progreso `(1) ── (2) ── (3)` accesible.
+- **Compromiso Ético de Privacidad:** Garantía explícita de que la app **NO lee mensajes privados, fotos, llamadas ni contraseñas**.
+- **Video Tutorial Resumen (35 Segundos):** Reproductor simulado interactivo con subtítulos y explicaciones sobre los 3 perfiles de uso, de carácter optativo y no bloqueante.
 
-### 6. Límite de 5 Dispositivos por Responsable (`MAX_PARENT_DEVICES = 5`)
-- Control estricto de cupos en el backend y frontend impidiendo emparejar más de 5 celulares por cuenta de responsable.
+### 9. Estándar de Diseño en Sentence Case y Modales Accesibles
+- **Estandarización Tipográfica:** Norma estricta de capitalización en formato **Sentence case** en todos los títulos, subtítulos, botones e ítemes de la interfaz (*"Gestión de sitios y apps"*, *"Mis dispositivos protegidos"*, *"Actividad del sistema"*).
+- **Modales Agrupados y Accesibles:** Pop-ups con botón de cierre de esquina **"✕"**, imagen oficial del bot (`beti.png`) y disposición horizontal de botones de acción (`gap: 12`).
 
 ---
 

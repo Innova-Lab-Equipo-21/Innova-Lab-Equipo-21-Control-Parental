@@ -22,7 +22,7 @@ import { ActionButton } from '../../ActionButton';
 import { Icon } from '../../Icon';
 import { DatePickerModal } from '../../auth/DatePickerModal';
 import { colors } from '../../../theme/colors';
-import { MAX_PARENT_DEVICES } from '../../../types';
+import { MAX_PROTECTED_DEVICES } from '../../../types';
 import { calculateAge } from '../../../utils/age';
 import {
   formatBirthDate,
@@ -214,7 +214,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.descText}>
-        Completa los datos requeridos para generar el código y QR de vinculación (Máximo {MAX_PARENT_DEVICES} dispositivos).
+        Completa los datos requeridos para generar el código y QR de vinculación (Máximo {MAX_PROTECTED_DEVICES} dispositivos).
       </Text>
 
       {/* FORMULARIO DE DATOS DEL PROTEGIDO */}
@@ -461,7 +461,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
         variant="primary"
         onPress={handleValidationAndGenerate}
         loading={loading}
-        disabled={deviceCount >= MAX_PARENT_DEVICES}
+        disabled={deviceCount >= MAX_PROTECTED_DEVICES}
       />
 
       {/* Modal de Selección de Calendario */}

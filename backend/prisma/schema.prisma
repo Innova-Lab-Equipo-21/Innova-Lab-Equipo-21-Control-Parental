@@ -55,19 +55,25 @@ enum SecurityEventType {
 // Modelo: Usuario Responsable (Padre / Madre / Tutor)
 // ------------------------------------------------------------------------------
 model User {
-  id            String          @id @default(uuid())
-  email         String          @unique
-  passwordHash  String          @map("password_hash")
-  fullName      String          @map("full_name")
-  isActive      Boolean         @default(true) @map("is_active")
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
+  id                      String          @id @default(uuid())
+  email                   String          @unique
+  passwordHash            String          @map("password_hash")
+  fullName                String          @map("full_name")
+  isActive                Boolean         @default(true) @map("is_active")
+
+  // Regla 2: Autocontrol (El Responsable se autocontrola y aguarda 24h para desbloqueo)
+  selfControlActive       Boolean         @default(false) @map("self_control_active")
+  selfControlEnabledAt    DateTime?       @map("self_control_enabled_at")
+  deactivationRequestedAt DateTime?       @map("deactivation_requested_at")
+
+  createdAt               DateTime        @default(now()) @map("created_at")
+  updatedAt               DateTime        @updatedAt @map("updated_at")
 
   // Relaciones
-  devices       Device[]
-  pairings      DevicePairing[]
-  customLists   Blocklist[]     @relation("UserCustomLists")
-  auditLogs     AuditLog[]
+  devices                 Device[]
+  pairings                DevicePairing[]
+  customLists             Blocklist[]     @relation("UserCustomLists")
+  auditLogs               AuditLog[]
 
   @@map("users")
 }
@@ -190,6 +196,11 @@ model BlocklistDomain {
   domain      String    // Ejemplo: "apuestas-online-ilegal.bet"
   category    String?   @default("GAMBLING")
   isActive    Boolean   @default(true) @map("is_active")
+
+  // Reglas 3 y 4: Control Global vs Granular por Dispositivo
+  applyToAll  Boolean   @default(true) @map("apply_to_all")
+  deviceIds   String[]  @map("device_ids") // IDs de los dispositivos específicos + 'self' si es el responsable
+
   createdAt   DateTime  @default(now()) @map("created_at")
 
   // Relaciones

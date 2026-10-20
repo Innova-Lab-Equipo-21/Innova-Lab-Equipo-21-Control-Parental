@@ -15,6 +15,7 @@ interface ControlCardProps {
   title: string;
   description: string;
   active: boolean;
+  disabled?: boolean;
   status?: BadgeStatus;
   onToggle: (newValue: boolean) => void;
 }
@@ -23,6 +24,7 @@ export const ControlCard: React.FC<ControlCardProps> = ({
   title,
   description,
   active,
+  disabled = false,
   status,
   onToggle,
 }) => {
@@ -35,7 +37,7 @@ export const ControlCard: React.FC<ControlCardProps> = ({
           <Text style={styles.title}>{title}</Text>
           <Badge status={currentBadgeStatus} />
         </View>
-        <ToggleSwitch value={active} onValueChange={onToggle} />
+        <ToggleSwitch value={active} onValueChange={onToggle} disabled={disabled} />
       </View>
       <Text style={styles.description}>{description}</Text>
     </View>

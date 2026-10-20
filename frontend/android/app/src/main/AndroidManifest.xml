@@ -29,8 +29,8 @@ Descripción: Manifiesto de Android con permisos de VpnService, arranque automá
     <application
         android:name=".MainApplication"
         android:label="BA Protege+"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@drawable/logo_ba"
+        android:roundIcon="@drawable/logo_ba"
         android:allowBackup="false"
         android:theme="@style/AppTheme"
         android:supportsRtl="true">

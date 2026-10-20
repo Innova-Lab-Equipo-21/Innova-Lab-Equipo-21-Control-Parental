@@ -89,6 +89,22 @@ La aplicación se navega a través de un flujo estructurado de 5 fases principal
 
 ---
 
+## 📜 Reglas de Negocio Implementadas
+
+Para garantizar un control seguro y estructurado de los dispositivos protegidos, se han implementado las siguientes reglas de negocio tanto a nivel UI como en servicios de API:
+
+1. **Límite de Dispositivos Protegidos:** Un Tutor / Responsable puede vincular y controlar un máximo de **5 dispositivos protegidos** (`MAX_PROTECTED_DEVICES = 5`). Al alcanzar este límite, la interfaz de vinculación de nuevos dispositivos se deshabilita automáticamente.
+2. **Autocontrol del Responsable:** El Tutor cuenta como un sexto (6º) dispositivo (su propio dispositivo). Puede habilitar la función de **Autocontrol**, la cual aplica filtros de bloqueo en su propia cuenta de manera permanente. Si desea desactivarla, el sistema impone un **bloqueo preventivo obligatorio de 24 horas** de espera para evitar desactivaciones impulsivas.
+3. **Listas de Bloqueo Granulares de Sitios y Aplicaciones:** El Tutor tiene la capacidad de crear y gestionar listas de sitios web y aplicaciones móviles bloqueadas de forma **personalizada por cada dispositivo**. Cada regla puede ser asignada específicamente a uno o varios dispositivos elegidos (incluyendo el suyo).
+4. **Monitorización de Tiempo de Uso de Pantalla:** Registro e historial visual del consumo diario de minutos de cada aplicación (Instagram, TikTok, Free Fire, Bet365, etc.) por dispositivo.
+5. **Reglas Globales Obligatorias y Opcionales:**
+   - Se incluye una regla inmutable y siempre activa para el **Bloqueo Oficial de sitios LOTBA** en todos los dispositivos de la red familiar (sin excepción).
+   - El responsable puede crear nuevas reglas personalizadas de sitios o apps y, mediante un switch de control en la UI, decidir que dicho bloqueo se aplique de manera **Global a todos los dispositivos** (incluyendo el suyo) de forma simultánea. Se activa automáticamente si selecciona manualmente todos los dispositivos de la lista.
+6. **Estandarización de Interfaz en Sentence Case:** Aplicación estricta de la norma de capitalización de frases en todos los títulos, subtítulos, botones e ítemes del panel (*"Gestión de sitios y apps"*, *"Mis dispositivos protegidos"*, *"Actividad del sistema"*, *"Autocontrol del tutor"*).
+7. **Modales Accesibles y Agrupados:** Modales con botón de cierre **"✕"**, imagen oficial de `beti.png` y botones de acción paralelos organizados horizontalmente en una misma fila (`flexDirection: 'row'`, `gap: 12`).
+
+---
+
 ## 🎨 Sistema de Diseño y Kit UI/UX
 
 El proyecto cuenta con un **Kit UI/UX estandarizado** basado en las especificaciones oficiales de la carpeta `frontend/ui/` (`uikit.txt` e íconos oficiales PNG en `src/assets/icons/`):
@@ -213,45 +229,68 @@ La pantalla de pareamiento (`PairingScreen.tsx` y `PairingStep.tsx`) ofrece un f
 El **Panel del Responsable (`ParentDashboardScreen.tsx`)** se organiza a través de una barra de navegación inferior (`DashboardNavbar.tsx`) con **5 pestañas principales**:
 
 ```text
-┌──────────────┬──────────────────┬──────────────┬──────────────┬──────────────┐
-│  📊 Panel    │  📱 Dispositivos │  🌐 Sitios   │ 🔔 Actividad │  👤 Cuenta   │
-└──────────────┴──────────────────┴──────────────┴──────────────┴──────────────┘
+┌──────────────┬──────────────────┬──────────────────┬──────────────┬──────────────┐
+│  📊 Panel    │  📱 Dispositivos │ 🌐 Sitios y apps │ 🔔 Actividad │  👤 Cuenta   │
+└──────────────┴──────────────────┴──────────────────┴──────────────┴──────────────┘
 ```
 
 - **Resalte Visual Activo:** Contenedor redondeado `#E5F1FF` con texto en azul `#0056B3` e íconos PNG en la parte superior.
 - **Ícono de Retorno (`volver.png`):** Integrado en el componente `Header.tsx` para todas las vistas secundarias.
 - **Estructura por Carpetas Modular:**
   - `src/components/dashboard/dispositivos/`: `ProtectedDevicesSection.tsx`, `PairingSection.tsx`
-  - `src/components/dashboard/sitios/`: `CustomSitesSection.tsx`, `GlobalRulesSection.tsx`
+  - `src/components/dashboard/sitios/`: `CustomSitesSection.tsx`, `GlobalRulesSection.tsx`, `SitesTab.tsx`, `AppsTab.tsx`, `AddSiteModal.tsx`, `EditSiteModal.tsx`, `AddAppModal.tsx`
   - `src/components/dashboard/actividad/`: `ActivitySection.tsx`
   - `src/components/dashboard/cuenta/`: `SelfControlSection.tsx`, `TutorPermissionsSection.tsx`
   - `src/components/dashboard/SeccionDesplegable.tsx`: Contenedor desplegable reutilizable.
 
 ---
 
-## 🔍 Búsqueda, Ordenamiento y Desvinculación con Doble Confirmación
+## ⚙️ Módulo Avanzado de Gestión de Sitios y Apps (`CustomSitesSection.tsx`)
 
-En la sección de **Dispositivos Protegidos (`ProtectedDevicesSection.tsx`)**:
+1. **Sub-pestañas Especializadas:**
+   - **`🌐 Sitios web`:** Administración de dominios web con filtro oficial LOTBA inmutable + listas personalizadas.
+   - **`📱 Aplicaciones`:** Restricción de aplicaciones móviles Android (Bet365, TikTok, Instagram, Free Fire, etc.) mediante el servicio de accesibilidad.
 
-1. **Buscador Dinámico:**
-   - Campo de entrada `🔍 Buscar por dispositivo o protegido...` con contador en tiempo real.
-2. **Selector de Ordenamiento:**
-   - Filtros de un solo clic para ordenar por **Nombre** (`🔤 Nombre`) o **Fecha de vinculación** (`📅 Fecha vinculación`).
-3. **Desvinculación con Doble Confirmación (`Dupla Confirmação`):**
-   - **Paso 1:** Advertencia sobre la desactivación del filtrado LOTBA en el dispositivo.
-   - **Paso 2:** Confirmación final con eliminación permanente (`apiService.unbindDevice`).
+2. **Menú de Opciones de 3 Puntos (⋮) y Limpieza Visual:**
+   - Menú emergente desplegable que reúne las 5 herramientas de gestión: `📱 Filtrar por dispositivo`, `🔍 Buscar`, `📅 Ordenar por fecha`, `🔤 Ordenar A-Z` y `☑️ Selección múltiple`.
+   - **Indicadores Dinámicos de Menú:** Las opciones activas muestran una marca de verificación (**`✓`**) e iluminación en azul para que el usuario conozca de un vistazo qué estado está seleccionado.
+   - **Cierre Automático de Búsqueda:** Al hacer clic o perder el foco fuera del campo de entrada de texto de búsqueda cuando está vacío (`onBlur`), el campo de entrada se oculta automáticamente.
+
+3. **Selección Múltiple y Acciones Masivas Contextuales:**
+   - Las casillas de verificación (`☐`) en las tarjetas permanecen **ocultas por defecto**, garantizando un diseño limpio. Solo aparecen al activar la opción *"☑️ Selección múltiple"*.
+   - **Barra de Acciones Masivas Inteligente:**
+     - Muestra **`▶️ Activar`** únicamente si hay elementos pausados seleccionados.
+     - Muestra **`⏸️ Pausar`** únicamente si hay elementos activos seleccionados.
+     - Muestra **`🗑️ Eliminar (X)`** con diálogo de confirmación en masa.
+
+4. **Botón Flotante de Acción (FAB `+`) Fijo:**
+   - Posicionado de forma **estática y fija en la esquina inferior derecha de la pantalla** (`bottom: 16`, `right: 16`, `zIndex: 9999`) sobre la barra de navegación inferior, permaneciendo inamovible durante el desplazamiento (*scroll*).
+
+5. **Catálogo con Autocompletado en Tiempo Real (`AddAppModal.tsx`):**
+   - Sugerencias inmediatas de apps populares al escribir (ej. *Bet365*, *1xBet*, *Pokerstars*, *TikTok*, *Instagram*, *Free Fire*, *Roblox*) que completan automáticamente el nombre y nombre de paquete Android (`com...`).
 
 ---
 
-## 🎨 Isotipos Institucionales y Optimización de Rendimiento
+## 📊 Módulo de Tiempo de Uso de Pantalla y Auditoría (`ActivitySection.tsx`)
 
-1. **Gestión Unificada de Logotipos:**
-   - **Ícono de Instalación del App (Launcher):** Utiliza [`logo_ba.png`](file:///C:/Projetos/baprotege+/frontend/src/assets/logo/logo_ba.png) en alta resolución configurado como ícono adaptativo API 26+ sobre fondo blanco `#FFFFFF` en todos los directorios `mipmap` de Android.
-   - **Header del Dashboard:** Muestra `logo_ba.png` en la esquina superior derecha (`useBaLogo={true}`).
-   - **Demás Pantallas:** Mantienen [`logo_baprotege.png`](file:///C:/Projetos/baprotege+/frontend/src/assets/logo/logo_baprotege.png) a través del componente `Logo.tsx`.
-2. **Arranque Instantáneo (< 100ms):**
-   - **Caché en RAM (`safeStorage`):** Lecturas de tokens e identificadores desde memoria `Map` (**0ms**).
-   - **Timeouts Optimizados:** Verificación de salud en **400ms** y peticiones HTTP en **1.000ms**, evitando congelamientos por fallas de red.
+Ubicado en la pestaña **Actividad**, integra dos subsecciones clave:
+
+1. **`📊 Tiempo de uso`:**
+   - **Filtro por Dispositivo:** Conmutación entre `🌎 Todos`, `📱 Mi dispositivo` e identificadores de celulares protegidos.
+   - **Resumen Diario:** Tarjeta destacada con el tiempo total de pantalla acumulado hoy (`⏱️ Tiempo total de pantalla hoy: Xh Ym`).
+   - **Barra de Consumo por Aplicación:** Gráficos de barra horizontales proporcionales al porcentaje de uso diario de cada aplicación.
+2. **`📋 Historial y auditoría`:**
+   - Registro de eventos de seguridad, intercepciones de dominios clandestinos y sincronizaciones del sistema.
+
+---
+
+## 🎨 Isotipos Institucionales, Splash Screen y Optimización
+
+1. **Pantalla de Bienvenida Animada (`SplashScreen.tsx`):**
+   - Animación de apertura al iniciar la app con la imagen [`logo_baprotege.png`](file:///C:/Projetos/baprotege+/frontend/src/assets/logo/logo_baprotege.png).
+   - Combina **Fade In de opacidad**, **Zoom In elástico de escala (0.85x ➜ 1.0x)**, subtítulo institucional y **Fade Out fluido** previa entrada al flujo principal.
+2. **Ícono de Instalación en el Celular (Launcher):**
+   - Configuración nativa en `AndroidManifest.xml` (`android:icon="@drawable/logo_ba"`) para exhibir [`logo_ba.png`](file:///C:/Projetos/baprotege+/frontend/src/assets/logo/logo_ba.png) como ícono de aplicación instalada en Android.
 
 ---
 
@@ -334,8 +373,9 @@ frontend/
 │   ├── web/                                  # Simulador Web Interactivo (Vite 8 + React 18)
 │   │   ├── components/                       # Componentes espejo para simulación Web
 │   │   └── WebSimulator.tsx                  # Orquestador del Simulador Web
-├── tests/                                    # Pruebas unitarias automatizadas (45 tests / 10 suites)
+├── tests/                                    # Pruebas unitarias automatizadas (51 tests / 11 suites)
 │   ├── ageValidation.test.ts                 # Tests de Mayoría de Edad (+18)
+│   ├── customApps.test.ts                    # Tests de CRUD de Aplicaciones y Tiempo de Uso
 │   ├── customBlocklist.test.ts               # Tests de CRUD de Sitios Personalizados
 │   ├── dashboardNavbarAndPairing.test.ts     # Tests de Navbar 5 Opciones y Pairing Validation
 │   ├── onboarding.test.ts                    # Tests de Onboarding
@@ -361,7 +401,7 @@ npm install
 npm run lint
 ```
 
-### 3. Ejecutar la Suite Completa de Tests Automatizados (45 tests / 10 suites)
+### 3. Ejecutar la Suite Completa de Tests Automatizados (51 tests / 11 suites)
 ```bash
 npm test
 ```

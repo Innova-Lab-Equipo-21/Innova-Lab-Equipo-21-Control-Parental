@@ -26,7 +26,7 @@ const navIcons: Record<DashboardTab, any> = {
 const tabLabels: Record<DashboardTab, string> = {
   inicio: 'Panel',
   dispositivos: 'Dispositivos',
-  sitios: 'Sitios',
+  sitios: 'Sitios y apps',
   actividad: 'Actividad',
   cuenta: 'Cuenta',
 };

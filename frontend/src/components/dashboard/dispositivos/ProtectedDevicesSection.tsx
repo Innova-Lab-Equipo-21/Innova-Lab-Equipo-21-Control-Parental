@@ -308,7 +308,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
                 </Text>
 
                 <ActionButton
-                  title="🔗 Confirmar y Desvincular Dispositivo"
+                  title="Desvincular dispositivo"
                   variant="danger"
                   loading={loadingUnbind}
                   onPress={handleFinalUnbind}

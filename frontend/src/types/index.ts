@@ -5,8 +5,8 @@
 // Descripción: Definición de tipos, interfaces de estado y modelos para la aplicación móvil.
 // ==============================================================================
 
-/** Límite máximo de dispositivos vinculados por responsable */
-export const MAX_PARENT_DEVICES = 5;
+/** Límite máximo de dispositivos protegidos vinculados por responsable (No incluye el propio) */
+export const MAX_PROTECTED_DEVICES = 5;
 
 /** Duración del bloqueo de desactivación del Autocontrol (en horas) */
 export const SELF_CONTROL_LOCK_HOURS = 24;
@@ -125,7 +125,35 @@ export interface CustomBlockedDomain {
   domain: string;
   category?: string;
   isActive: boolean;
+  applyToAll: boolean; // Regra 4: Bloqueio em todos os dispositivos
+  deviceIds: string[]; // Regra 3: Lista personalizada por dispositivo
   createdAt: string;
+}
+
+/**
+ * Aplicación bloqueada personalizada por el responsable.
+ */
+export interface CustomBlockedApp {
+  id: string;
+  appName: string;
+  packageName: string;
+  category?: string;
+  isActive: boolean;
+  applyToAll: boolean;
+  deviceIds: string[];
+  createdAt: string;
+}
+
+/**
+ * Registro de tiempo de uso de aplicación por dispositivo.
+ */
+export interface AppUsageItem {
+  id: string;
+  appName: string;
+  packageName: string;
+  category?: string;
+  timeInMinutes: number;
+  lastUsed?: string;
 }
 
 /**
@@ -137,5 +165,6 @@ export interface CustomBlocklist {
   type: string;
   version: number;
   domains: CustomBlockedDomain[];
+  apps?: CustomBlockedApp[];
 }
 

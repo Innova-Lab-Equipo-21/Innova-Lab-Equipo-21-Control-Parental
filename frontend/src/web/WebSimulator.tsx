@@ -105,6 +105,8 @@ export const WebSimulator: React.FC = () => {
       domain: 'casino-clandestino.net',
       category: 'Apuestas',
       isActive: true,
+      applyToAll: true,
+      deviceIds: [],
       createdAt: new Date().toISOString(),
     },
     {
@@ -112,6 +114,8 @@ export const WebSimulator: React.FC = () => {
       domain: 'red-social-peligrosa.org',
       category: 'Redes Sociales',
       isActive: true,
+      applyToAll: true,
+      deviceIds: [],
       createdAt: new Date().toISOString(),
     },
   ]);

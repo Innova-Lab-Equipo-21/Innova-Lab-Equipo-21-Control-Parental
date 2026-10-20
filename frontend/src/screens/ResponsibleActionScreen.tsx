@@ -115,9 +115,9 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
               style={styles.actionBtn}
               onPress={() => onSelectAction('SELF_CONTROL')}
               activeOpacity={0.85}
-              accessibilityLabel="Configurar este dispositivo"
+              accessibilityLabel="Activar autocontrol"
             >
-              <Text style={styles.actionBtnText}>Configurar este dispositivo</Text>
+              <Text style={styles.actionBtnText}>Activar autocontrol</Text>
             </TouchableOpacity>
           </View>
         </View>

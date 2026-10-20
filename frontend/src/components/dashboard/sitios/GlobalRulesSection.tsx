@@ -34,10 +34,11 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
 
       <ControlCard
         title="Bloqueo de sitios LOTBA"
-        description="Bloquea el acceso a casas de apuestas online no autorizadas."
-        active={ruleBetting}
-        status={ruleBetting ? 'activo' : 'inactivo'}
-        onToggle={onToggleBetting}
+        description="Bloquea permanentemente el acceso a casas de apuestas online no autorizadas. (Obligatorio en todos los dispositivos)"
+        active={true}
+        disabled={true}
+        status="activo"
+        onToggle={() => {}}
       />
 
       <ControlCard

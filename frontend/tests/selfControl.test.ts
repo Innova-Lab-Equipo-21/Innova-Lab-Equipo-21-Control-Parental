@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  MAX_PARENT_DEVICES,
+  MAX_PROTECTED_DEVICES,
   SELF_CONTROL_LOCK_HOURS,
   SELF_CONTROL_UNLOCK_WINDOW_HOURS,
 } from '../src/types/index.js';
@@ -9,7 +9,7 @@ import { apiService } from '../src/services/api.service.js';
 
 describe('Autocontrol del Tutor y Límite de 5 Dispositivos', () => {
   test('El límite máximo de dispositivos por responsable debe ser 5', () => {
-    assert.equal(MAX_PARENT_DEVICES, 5, 'El límite de dispositivos debe ser exactamente 5');
+    assert.equal(MAX_PROTECTED_DEVICES, 5, 'El límite de dispositivos debe ser exactamente 5');
   });
 
   test('La duración del temporizador de espera tras solicitar la desactivación debe ser de 24 horas', () => {

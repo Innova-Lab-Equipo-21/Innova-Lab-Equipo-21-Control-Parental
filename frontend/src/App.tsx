@@ -20,10 +20,14 @@ import { PermissionsScreen } from './screens/PermissionsScreen';
 import { ProtectedDeviceScreen } from './screens/ProtectedDeviceScreen';
 import { ParentDashboardScreen } from './screens/ParentDashboardScreen';
 import { ResponsibleActionScreen } from './screens/ResponsibleActionScreen';
+import { SplashScreen } from './components/SplashScreen';
 import { AppMode } from './types';
 import { AuthViewMode } from './components/auth/LoginForm';
 
 export function App(): React.JSX.Element {
+  // Splash Screen inicial animado
+  const [showSplash, setShowSplash] = useState<boolean>(true);
+
   // 1) Onboarding inicial
   const [showOnboarding, setShowOnboarding] = useState<boolean>(true);
   const [onboardingInitialStep, setOnboardingInitialStep] = useState<1 | 2 | 3>(1);
@@ -38,6 +42,7 @@ export function App(): React.JSX.Element {
   const [loginInitialViewMode, setLoginInitialViewMode] = useState<AuthViewMode>('REGISTER');
   const [hasGrantedPermissions, setHasGrantedPermissions] = useState<boolean>(false);
   const [hasSelectedResponsibleAction, setHasSelectedResponsibleAction] = useState<boolean>(false);
+  const [responsibleActionType, setResponsibleActionType] = useState<'SUPERVISE' | 'SELF_CONTROL'>('SUPERVISE');
 
   const [isDevicePaired, setIsDevicePaired] = useState<boolean>(false);
   const [deviceUuid, setDeviceUuid] = useState<string | null>(null);
@@ -81,6 +86,10 @@ export function App(): React.JSX.Element {
     setHasGrantedPermissions(false);
     setHasSelectedResponsibleAction(false);
   };
+
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
 
   return (
     <>
@@ -156,6 +165,7 @@ export function App(): React.JSX.Element {
           <ResponsibleActionScreen
             userName={parentUser?.fullName || 'Tutor Responsable'}
             onSelectAction={(actionType) => {
+              setResponsibleActionType(actionType);
               setHasSelectedResponsibleAction(true);
             }}
             onBack={() => {
@@ -173,6 +183,7 @@ export function App(): React.JSX.Element {
           <ParentDashboardScreen
             initialUser={parentUser}
             initialToken={parentToken}
+            initialAction={responsibleActionType}
             onExitMode={handleExitMode}
           />
         )}
