@@ -16,6 +16,7 @@ import { AppsTab } from './AppsTab';
 import { AddSiteModal } from './AddSiteModal';
 import { EditSiteModal } from './EditSiteModal';
 import { AddAppModal } from './AddAppModal';
+import { FabWithTooltip } from '../../FabWithTooltip';
 import { styles } from './CustomSitesSection.styles';
 
 interface CustomSitesSectionProps {
@@ -600,16 +601,12 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         />
       )}
 
-      {/* Botón Flotante de Acción (FAB) '+' quando não estiver oculto */}
+      {/* Botón Flotante de Acción (FAB) '+' con bocadillo explicativo dinámico */}
       {!hideInternalFab && (
-        <TouchableOpacity
-          style={styles.fabButton}
+        <FabWithTooltip
+          label={activeSubTab === 'sites' ? 'Bloquear sitio' : 'Bloquear app'}
           onPress={() => (activeSubTab === 'sites' ? setShowAddSiteModal(true) : setShowAddAppModal(true))}
-          activeOpacity={0.85}
-          accessibilityLabel={activeSubTab === 'sites' ? 'Bloquear nuevo sitio' : 'Bloquear nueva aplicación'}
-        >
-          <Text style={styles.fabIcon}>+</Text>
-        </TouchableOpacity>
+        />
       )}
 
       {/* Modales Encapsulados */}

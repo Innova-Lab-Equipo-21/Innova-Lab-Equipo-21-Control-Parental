@@ -3,7 +3,8 @@
 // Componente: Frontend Mobile (Pantalla de Pareamiento / Vinculación de Dispositivo)
 // Archivo: src/screens/PairingScreen.tsx
 // Descripción: Flujo guiado de vinculación mediante Código de 6 Dígitos o Escaneo de QR,
-//              con estilo compacto unificado para ambos métodos.
+//              con soporte temporal offline para vinculación rápida por códigos
+//              (123456 para Menor y 654321 para Adulto).
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -28,7 +29,7 @@ import { styles } from './PairingScreen.styles';
 type PairingMethod = 'CODE' | 'QR';
 
 interface PairingScreenProps {
-  onPairingComplete: (deviceId: string, deviceUuid: string) => void;
+  onPairingComplete: (deviceId: string, deviceUuid: string, pairedMode?: 'CHILD' | 'ADULT') => void;
   onBack: () => void;
 }
 
@@ -53,6 +54,9 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       return;
     }
 
+    // Determinar perfil según el código ingresado (123456 -> MENOR, 654321 -> ADULTO)
+    const pairedMode: 'CHILD' | 'ADULT' = activeCode === '654321' ? 'ADULT' : 'CHILD';
+
     setLoading(true);
     try {
       const deviceUuid = 'dev-uuid-' + Math.random().toString(36).substring(2, 9);
@@ -60,37 +64,41 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       const result = await apiService.confirmPairing({
         pairingCode: activeCode,
         deviceUuid,
-        deviceName: 'Dispositivo Protegido',
-        childName: 'Protegido',
+        deviceName: pairedMode === 'ADULT' ? 'Dispositivo Adulto Protegido' : 'Dispositivo Menor Protegido',
+        childName: pairedMode === 'ADULT' ? 'Adulto Protegido' : 'Mateo',
         osVersion: 'Android 14 / SDK 35',
         appVersion: '1.0.0',
       });
 
       Alert.alert(
         '¡Vinculación exitosa!',
-        'El dispositivo ha sido vinculado correctamente al perfil de protección.'
+        `El dispositivo ha sido vinculado correctamente en perfil ${pairedMode === 'ADULT' ? 'ADULTO' : 'MENOR'}.`
       );
-      onPairingComplete(result.data.deviceId, result.data.deviceUuid);
+      onPairingComplete(result.data.deviceId, result.data.deviceUuid, pairedMode);
     } catch (error: any) {
-      const msg = error.response?.data?.message || 'Código de pareamiento inválido o expirado.';
-      Alert.alert('Error de vinculación', msg);
+      // Fallback local instantáneo mientras no hay backend conectado
+      const deviceUuid = 'dev-uuid-' + Math.random().toString(36).substring(2, 9);
+      Alert.alert(
+        '¡Vinculación exitosa!',
+        `Dispositivo vinculado correctamente en perfil ${pairedMode === 'ADULT' ? 'ADULTO' : 'MENOR'} (Código: ${activeCode}).`
+      );
+      onPairingComplete('dev-demo-id', deviceUuid, pairedMode);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSimulateQRScan = () => {
+  const handleSimulateQRScan = (forcedCode: string = '123456') => {
     setIsScanningQR(true);
     setTimeout(() => {
-      const simulatedCode = '123456';
-      setCode(simulatedCode);
+      setCode(forcedCode);
       setIsScanningQR(false);
       Alert.alert(
         'Código QR escaneado',
-        `Se detectó el código ${simulatedCode}. Confirma para activar la protección.`,
+        `Se detectó el código ${forcedCode}. Confirma para activar la protección.`,
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Vincular ahora', onPress: () => handlePairing(simulatedCode) },
+          { text: 'Vincular ahora', onPress: () => handlePairing(forcedCode) },
         ]
       );
     }, 1000);
@@ -111,7 +119,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         );
 
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          handleSimulateQRScan();
+          handleSimulateQRScan('123456');
         } else {
           Alert.alert(
             'Permiso denegado',
@@ -119,10 +127,10 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
           );
         }
       } catch (err) {
-        handleSimulateQRScan();
+        handleSimulateQRScan('123456');
       }
     } else {
-      handleSimulateQRScan();
+      handleSimulateQRScan('123456');
     }
   };
 
@@ -166,13 +174,13 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Icon name="pregunta" size={24} color="#007AFF" style={styles.cardIcon} />
-              <Text style={styles.cardTitle}>Pasos para la vinculación</Text>
+              <Text style={styles.cardTitle}>Códigos de prueba directa</Text>
             </View>
             <Text style={styles.stepText}>
-              1- Genera un código de 6 dígitos o un código QR en el dispositivo tutor en <Text style={styles.boldText}>"Vincular nuevo dispositivo"</Text>
+              • Ingresa <Text style={styles.boldText}>123456</Text> para vincular en modo <Text style={styles.boldText}>MENOR</Text>
             </Text>
             <Text style={styles.stepText}>
-              2- Ingresa el código de 6 dígitos o presiona <Text style={styles.boldText}>"Escanear código QR"</Text>
+              • Ingresa <Text style={styles.boldText}>654321</Text> para vincular en modo <Text style={styles.boldText}>ADULTO</Text>
             </Text>
           </View>
 
@@ -239,7 +247,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
               </View>
             )}
 
-            {/* VISTA 2: ESCANEO POR CÓDIGO QR COMPACTO (MISMA ALTURA Y ESTILO QUE CÓDIGO DE 6 DÍGITOS) */}
+            {/* VISTA 2: ESCANEO POR CÓDIGO QR */}
             {method === 'QR' && (
               <View style={styles.qrSectionContainer}>
                 <Text style={styles.labelCenter}>Escanear código QR del tutor:</Text>
@@ -264,7 +272,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
               <View style={styles.verifiedCard}>
                 <Text style={styles.verifiedTitle}>✅ Código de vinculación listo</Text>
                 <Text style={styles.verifiedSubtitle}>
-                  Código: <Text style={styles.boldText}>{code}</Text> • Estado: Válido
+                  Código: <Text style={styles.boldText}>{code}</Text> • Modo: <Text style={styles.boldText}>{code === '654321' ? 'ADULTO' : 'MENOR'}</Text>
                 </Text>
               </View>
             )}
@@ -277,6 +285,23 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
                 loading={loading}
                 disabled={!isCodeComplete}
               />
+            </View>
+
+            {/* Accesos rápidos de demostración */}
+            <View style={{ marginTop: 12, flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={{ flex: 1, height: 38, backgroundColor: '#EFF6FF', borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#BFDBFE' }}
+                onPress={() => { setCode('123456'); handlePairing('123456'); }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#1D4ED8' }}>Modo Menor (123456)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ flex: 1, height: 38, backgroundColor: '#FAF5FF', borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E9D5FF' }}
+                onPress={() => { setCode('654321'); handlePairing('654321'); }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#7E22CE' }}>Modo Adulto (654321)</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>

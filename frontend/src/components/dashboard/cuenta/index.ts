@@ -4,3 +4,4 @@ export * from './ProfileSection';
 export * from './HelpSection';
 export * from './LegalSection';
 export * from './RatingSection';
+export * from './RatingModal';

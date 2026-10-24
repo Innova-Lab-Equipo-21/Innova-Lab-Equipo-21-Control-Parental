@@ -2,7 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: Web Simulator - PairingStep (Paso 3B)
 // Archivo: src/web/components/PairingStep.tsx
-// Descripción: Paso 3B del flujo para ingresar el código numérico de vinculación o escanear QR.
+// Descripción: Paso 3B del flujo para ingresar el código numérico de vinculación o escanear QR,
+//              soporte para 123456 (Menor) y 654321 (Adulto).
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -11,8 +12,8 @@ import { Logo } from '../../components/Logo';
 interface PairingStepProps {
   pairingCodeInput: string;
   onCodeChange: (val: string) => void;
-  onPairingSubmit: () => void;
-  onSimulateCode: () => void;
+  onPairingSubmit: (modeOverride?: 'CHILD' | 'ADULT') => void;
+  onSimulateCode: (code?: string) => void;
 }
 
 export const PairingStep: React.FC<PairingStepProps> = ({
@@ -47,7 +48,7 @@ export const PairingStep: React.FC<PairingStepProps> = ({
       </div>
 
       <div style={{ backgroundColor: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #E9ECEF' }}>
-        {/* Pestañas de Selección de Método sin emojis */}
+        {/* Pestañas de Selección de Método */}
         <div style={{ display: 'flex', backgroundColor: '#F1F5F9', borderRadius: '10px', padding: '4px', marginBottom: '14px' }}>
           <button
             onClick={() => setMethod('CODE')}
@@ -120,17 +121,26 @@ export const PairingStep: React.FC<PairingStepProps> = ({
 
         <button
           style={{ width: '100%', height: '44px', borderRadius: '10px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', fontWeight: '700', cursor: 'pointer', marginBottom: '10px' }}
-          onClick={onPairingSubmit}
+          onClick={() => onPairingSubmit()}
         >
           Confirmar y activar protección
         </button>
 
-        <button
-          style={{ width: '100%', height: '36px', borderRadius: '8px', backgroundColor: '#EEF2FF', color: '#3730A3', border: 'none', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
-          onClick={onSimulateCode}
-        >
-          Simular código 123456 ➔ Paso 4
-        </button>
+        {/* Botones de demostración rápida */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+          <button
+            style={{ flex: 1, height: '36px', borderRadius: '8px', backgroundColor: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
+            onClick={() => onSimulateCode('123456')}
+          >
+            Menor (123456)
+          </button>
+          <button
+            style={{ flex: 1, height: '36px', borderRadius: '8px', backgroundColor: '#FAF5FF', color: '#7E22CE', border: '1px solid #E9D5FF', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
+            onClick={() => onSimulateCode('654321')}
+          >
+            Adulto (654321)
+          </button>
+        </div>
       </div>
     </div>
   );

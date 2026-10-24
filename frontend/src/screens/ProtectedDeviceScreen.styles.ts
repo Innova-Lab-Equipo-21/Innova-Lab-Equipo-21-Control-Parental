@@ -2,153 +2,121 @@
 // Proyecto: BA Protege+
 // Componente: ProtectedDeviceScreen Styles
 // Archivo: src/screens/ProtectedDeviceScreen.styles.ts
-// Descripción: Estilos visuales para el panel del dispositivo protegido.
+// Descripción: Estilos visuales para el panel del dispositivo protegido con soporte
+//              para 3 módulos de navegación y Botón Flotante (FAB +).
 // ==============================================================================
 
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 
 export const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F8FAFC',
   },
-  container: {
-    padding: 16,
-  },
-  warningBannerCard: {
-    backgroundColor: '#FFF3CD',
-    borderColor: '#FFC107',
-    borderWidth: 1.5,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-  },
-  warningHeaderRow: {
+  // Top Header Bar Institucional (#EAF3FF)
+  topHeaderBar: {
+    backgroundColor: '#EAF3FF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#DBEAFE',
   },
-  warningTitle: {
-    ...typography.subtitle,
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#856404',
-  },
-  warningDesc: {
-    ...typography.body,
-    fontSize: 13,
-    color: '#856404',
-    marginBottom: 8,
-    lineHeight: 18,
-  },
-  missingItemText: {
-    ...typography.caption,
-    fontWeight: '700',
-    color: '#856404',
-    marginLeft: 4,
-    marginVertical: 2,
-  },
-  warningActionBox: {
-    marginTop: 10,
-  },
-  rulesContainer: {
-    marginVertical: 8,
-  },
-  sectionTitle: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  sectionSubtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginBottom: 10,
-  },
-  educationalSection: {
-    marginVertical: 10,
-  },
-  eduCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  adultSpecialCard: {
-    backgroundColor: '#FAF5FF',
-    borderColor: '#E9D5FF',
-    borderWidth: 1.5,
-  },
-  eduCardHeader: {
+  topHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
   },
-  eduCardEmoji: {
-    fontSize: 20,
-    marginRight: 8,
+  topHeaderLogo: {
+    width: 80,
+    height: 34,
+    resizeMode: 'contain',
   },
-  eduCardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
+  modeBadge: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  modeBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#007AFF',
+  },
+
+  // Main Scroll Body
+  scrollBody: {
     flex: 1,
   },
-  adultTitleText: {
-    color: '#7E22CE',
+
+  // FAB Floating Action Button (+) para Bloquear Sitio/App
+  fabContainer: {
+    position: 'absolute',
+    bottom: 80,
+    right: 18,
+    zIndex: 99,
   },
-  eduCardBody: {
+  fabButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 28,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#007AFF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  fabIconText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '900',
+    marginRight: 6,
+    lineHeight: 22,
+  },
+  fabLabelText: {
+    color: '#FFFFFF',
     fontSize: 12.5,
-    color: colors.textSecondary,
-    lineHeight: 17,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
-  boldText: {
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  actionsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  cardTitle: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  footer: {
-    marginTop: 20,
-  },
+
+  // Pin Modal Overlay
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
   },
   modalTitle: {
     ...typography.header,
-    color: colors.textPrimary,
+    color: '#0F172A',
     textAlign: 'center',
   },
   modalSubtitle: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: '#64748B',
     textAlign: 'center',
     marginVertical: 8,
+    fontSize: 13,
   },
   pinDotsRow: {
     flexDirection: 'row',
@@ -162,11 +130,11 @@ export const styles = StyleSheet.create({
     height: 16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
   },
   pinDotFilled: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
   },
 });

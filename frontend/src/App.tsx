@@ -67,10 +67,13 @@ export function App(): React.JSX.Element {
   };
 
   // Manejador de Emparejamiento del Dispositivo Protegido
-  const handlePairingComplete = (_deviceId: string, uuid: string) => {
+  const handlePairingComplete = (_deviceId: string, uuid: string, pairedMode?: 'CHILD' | 'ADULT') => {
     setDeviceUuid(uuid);
     setIsDevicePaired(true);
     setHasGrantedPermissions(false);
+    if (pairedMode) {
+      setCurrentMode(pairedMode);
+    }
   };
 
   // Manejador de confirmación de permisos

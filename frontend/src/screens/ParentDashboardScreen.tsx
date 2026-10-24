@@ -31,6 +31,7 @@ import { ProtectedDevicesSection, PairingSection } from '../components/dashboard
 import { CustomSitesSection, GlobalRulesSection } from '../components/dashboard/sitios';
 import { ActivitySection } from '../components/dashboard/actividad';
 import { SelfControlSection, TutorPermissionsSection, ProfileSection, HelpSection, LegalSection, RatingSection } from '../components/dashboard/cuenta';
+import { FabWithTooltip } from '../components/FabWithTooltip';
 import { colors } from '../theme/colors';
 import { styles } from './ParentDashboardScreen.styles';
 
@@ -382,7 +383,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
       {/* VISTA 2: DISPOSITIVOS */}
       {activeTab === 'dispositivos' && (
-        <>
+        <View style={{ flex: 1, position: 'relative' }}>
           <Header
             title="Mis dispositivos protegidos"
             subtitle={`Administración de hasta ${MAX_PROTECTED_DEVICES} celulares vinculados`}
@@ -390,18 +391,14 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
           />
           <ScrollView contentContainerStyle={styles.container}>
             <ProtectedDevicesSection devices={devices} />
-
-            {devices.length < MAX_PROTECTED_DEVICES && (
-              <View style={styles.sectionMargin}>
-                <ActionButton
-                  title="📱 Vincular nuevo dispositivo"
-                  variant="primary"
-                  onPress={() => setActiveTab('inicio')}
-                />
-              </View>
-            )}
           </ScrollView>
-        </>
+
+          {/* Botón Flotante (FAB +) con bocadillo explicativo para Nuevo Dispositivo */}
+          <FabWithTooltip
+            label="Nuevo dispositivo"
+            onPress={() => setActiveTab('inicio')}
+          />
+        </View>
       )}
 
       {/* VISTA 3: SITIOS Y APPS */}
@@ -432,19 +429,15 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             />
           </ScrollView>
 
-          {/* Botón Flotante de Acción (FAB) '+' Fijo en la Pantalla */}
-          <TouchableOpacity
-            style={styles.fixedFabButton}
+          {/* Botón Flotante (FAB +) con bocadillo explicativo para Bloquear sitio o app */}
+          <FabWithTooltip
+            label="Bloquear sitio o app"
             onPress={() => {
               if (siteAddHandlerRef.current) {
                 siteAddHandlerRef.current();
               }
             }}
-            activeOpacity={0.85}
-            accessibilityLabel="Agregar sitio o aplicación"
-          >
-            <Text style={styles.fixedFabIcon}>+</Text>
-          </TouchableOpacity>
+          />
         </View>
       )}
 
@@ -538,11 +531,8 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               />
             </SeccionDesplegable>
 
-            {/* 3 & 4. Términos y condiciones y Política de privacidad */}
+            {/* 3, 4 & 5. Información legal y valoración (Términos, Privacidad y Evaluar la app) */}
             <LegalSection />
-
-            {/* 5. Evaluar la app (5 estrellas con form para mail y CTA Play Store) */}
-            <RatingSection />
 
             {/* Zona de Peligro / Eliminar Cuenta Definitivamente */}
             <View style={{

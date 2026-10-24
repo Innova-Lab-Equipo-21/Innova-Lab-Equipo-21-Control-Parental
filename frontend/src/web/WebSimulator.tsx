@@ -416,14 +416,17 @@ export const WebSimulator: React.FC = () => {
   };
 
   // Manejo de Emparejamiento por Código -> Avanza a Permisos (Paso 4)
-  const handleWebPairing = () => {
-    if (pairingCodeInput.length !== 6) {
-      alert('Ingresa el código numérico de 6 dígitos enviado por el responsable.');
+  const handleWebPairing = (overrideCode?: string) => {
+    const codeToUse = (overrideCode || pairingCodeInput).trim();
+    if (codeToUse.length !== 6) {
+      alert('Ingresa el código numérico de 6 dígitos (123456 para Menor o 654321 para Adulto).');
       return;
     }
-    addLog('POST', `Emparejamiento exitoso con código ${pairingCodeInput} para ${pairedChildName}`);
-    setTargetFlow('CHILD');
+
+    const flowMode: 'CHILD' | 'ADULT' = codeToUse === '654321' ? 'ADULT' : 'CHILD';
+    setTargetFlow(flowMode);
     setAppMode('PERMISSIONS');
+    addLog('POST', `Emparejamiento exitoso con código ${codeToUse} en modo ${flowMode === 'ADULT' ? 'ADULTO' : 'MENOR'}`);
   };
 
   const handleGeneratePairing = async () => {
@@ -756,9 +759,9 @@ export const WebSimulator: React.FC = () => {
                   pairingCodeInput={pairingCodeInput}
                   onCodeChange={setPairingCodeInput}
                   onPairingSubmit={handleWebPairing}
-                  onSimulateCode={() => {
-                    setPairingCodeInput('123456');
-                    handleWebPairing();
+                  onSimulateCode={(code = '123456') => {
+                    setPairingCodeInput(code);
+                    handleWebPairing(code);
                   }}
                 />
               )}
@@ -850,6 +853,7 @@ export const WebSimulator: React.FC = () => {
               {/* PASO 5B: DISPOSITIVO PROTEGIDO */}
               {appMode === 'CHILD' && (
                 <ProtectedDeviceStep
+                  mode={targetFlow === 'ADULT' ? 'ADULT' : 'CHILD'}
                   webPermissions={webPermissions}
                   isVpnActive={isVpnActive}
                   testDomain={testDomain}
