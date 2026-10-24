@@ -658,7 +658,8 @@ export const apiService = {
     packageName: string,
     category: string = 'Personalizado',
     applyToAll: boolean = true,
-    deviceIds: string[] = []
+    deviceIds: string[] = [],
+    dailyLimitMinutes?: number
   ): Promise<{ success: boolean; data: CustomBlockedApp }> {
     const listRes = await this.getCustomBlocklist();
     const list = listRes.data;
@@ -672,6 +673,7 @@ export const apiService = {
       isActive: true,
       applyToAll,
       deviceIds,
+      dailyLimitMinutes,
       createdAt: new Date().toISOString(),
     };
 
@@ -683,7 +685,7 @@ export const apiService = {
 
   async updateCustomBlockedApp(
     appId: string,
-    data: { appName?: string; category?: string; isActive?: boolean; applyToAll?: boolean; deviceIds?: string[] }
+    data: { appName?: string; category?: string; isActive?: boolean; applyToAll?: boolean; deviceIds?: string[]; dailyLimitMinutes?: number }
   ): Promise<{ success: boolean; data: CustomBlockedApp }> {
     const listRes = await this.getCustomBlocklist();
     const list = listRes.data;
@@ -697,6 +699,7 @@ export const apiService = {
     if (data.isActive !== undefined) item.isActive = data.isActive;
     if (data.applyToAll !== undefined) item.applyToAll = data.applyToAll;
     if (data.deviceIds !== undefined) item.deviceIds = data.deviceIds;
+    if (data.dailyLimitMinutes !== undefined) item.dailyLimitMinutes = data.dailyLimitMinutes;
 
     list.version += 1;
     await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));

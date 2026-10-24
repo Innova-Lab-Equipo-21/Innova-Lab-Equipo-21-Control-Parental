@@ -143,6 +143,15 @@ export const AppsTab: React.FC<AppsTabProps> = ({
                 <View style={{ flex: 1, marginRight: 8 }}>
                   <Text style={styles.siteDomainText}>📱 {app.appName}</Text>
                   <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 2 }}>{app.packageName}</Text>
+                  {app.dailyLimitMinutes ? (
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '600' }}>
+                      ⏱️ Límite diario: {app.dailyLimitMinutes >= 60 ? `${app.dailyLimitMinutes / 60}h` : `${app.dailyLimitMinutes} min`}
+                    </Text>
+                  ) : (
+                    <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+                      ⏱️ Límite: Indeterminado (Sin límite diario)
+                    </Text>
+                  )}
                 </View>
                 <Badge
                   status={app.isActive ? 'activo' : 'inactivo'}

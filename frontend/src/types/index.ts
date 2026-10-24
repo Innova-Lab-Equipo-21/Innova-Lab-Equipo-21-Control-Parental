@@ -141,6 +141,7 @@ export interface CustomBlockedApp {
   isActive: boolean;
   applyToAll: boolean;
   deviceIds: string[];
+  dailyLimitMinutes?: number; // Límite de tiempo diario (indeterminado por defecto si es undefined)
   createdAt: string;
 }
 

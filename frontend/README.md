@@ -182,7 +182,7 @@ La pantalla de solicitud y auditoría de permisos (`PermissionsScreen.tsx`) fue 
 - **Estandarización Global del Ícono `volver.png`:**
   - Configurado en color negro (`#000000`) en toda la aplicación (`Icon.tsx`, `Header.tsx`, `WelcomeScreen.tsx`, `RegisterForm.tsx` y el simulador web).
 
-### 2. Estructura de Acordeón de 5 Permisos Esenciales
+### 2. Estructura de Acordeón de 6 Permisos Esenciales
 Cada permiso cuenta con una tarjeta independiente con indicador tipo *pill* (`Inactivo` / `Activo`), ícono chevron azul (`∧` / `∨`), línea divisoria y botón de autorización:
 
 ```text
@@ -201,6 +201,9 @@ Cada permiso cuenta con una tarjeta independiente con indicador tipo *pill* (`In
 ├────────────────────────────────────────────────────────────────────────┤
 │ 5. 📍 Ubicación y Geolocalización (GPS / Red IP)                       │
 │    Guarda la posición geográfica del dispositivo para el responsable   │
+├────────────────────────────────────────────────────────────────────────┤
+│ 6. ⏱️ Estadísticas de Uso de Aplicaciones (PACKAGE_USAGE_STATS)         │
+│    Permite medir el tiempo de pantalla y aplicar límites diarios de uso│
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -266,8 +269,9 @@ El **Panel del Responsable (`ParentDashboardScreen.tsx`)** se organiza a través
 4. **Botón Flotante de Acción (FAB `+`) Fijo:**
    - Posicionado de forma **estática y fija en la esquina inferior derecha de la pantalla** (`bottom: 16`, `right: 16`, `zIndex: 9999`) sobre la barra de navegación inferior, permaneciendo inamovible durante el desplazamiento (*scroll*).
 
-5. **Catálogo con Autocompletado en Tiempo Real (`AddAppModal.tsx`):**
+5. **Catálogo con Autocompletado en Tiempo Real y Límites Diarios (`AddAppModal.tsx`):**
    - Sugerencias inmediatas de apps populares al escribir (ej. *Bet365*, *1xBet*, *Pokerstars*, *TikTok*, *Instagram*, *Free Fire*, *Roblox*) que completan automáticamente el nombre y nombre de paquete Android (`com...`).
+   - **Límites de Tiempo Diario Opcionales:** Permite configurar un límite diario de uso por aplicación (por defecto en tiempo indeterminado / sin límite, o mediante selectores rápidos de 30 minutos, 1 hora y 2 horas). Las tarjetas muestran el límite configurado (`⏱️ Límite diario: X min / h`).
 
 ---
 

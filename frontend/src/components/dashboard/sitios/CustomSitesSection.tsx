@@ -74,6 +74,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   const [newAppCategory, setNewAppCategory] = useState('Apuestas');
   const [newAppApplyToAll, setNewAppApplyToAll] = useState(true);
   const [newAppDeviceIds, setNewAppDeviceIds] = useState<string[]>([]);
+  const [newAppDailyLimit, setNewAppDailyLimit] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     loadApps();
@@ -277,12 +278,14 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         pkg,
         newAppCategory,
         newAppApplyToAll,
-        newAppDeviceIds
+        newAppDeviceIds,
+        newAppDailyLimit
       );
       setNewAppName('');
       setNewAppPackage('');
       setNewAppApplyToAll(true);
       setNewAppDeviceIds([]);
+      setNewAppDailyLimit(undefined);
       setShowAddAppModal(false);
       await loadApps();
       Alert.alert('🛡️ Aplicación bloqueada', 'La aplicación fue agregada a la lista de restricción.');
@@ -666,6 +669,8 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
             setNewAppDeviceIds([...newAppDeviceIds, id]);
           }
         }}
+        dailyLimitMinutes={newAppDailyLimit}
+        onDailyLimitChange={setNewAppDailyLimit}
         loading={loadingSite}
         onSave={handleAddApp}
       />

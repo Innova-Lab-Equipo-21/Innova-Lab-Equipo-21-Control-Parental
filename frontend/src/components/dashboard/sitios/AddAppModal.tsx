@@ -1,6 +1,6 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: AddAppModal (Modal para Bloquear Nueva Aplicación con Catálogo Autocompletado)
+// Componente: AddAppModal (Modal para Bloquear Nueva Aplicación con Catálogo Autocompletado y Límite Diario)
 // Archivo: src/components/dashboard/sitios/AddAppModal.tsx
 // ==============================================================================
 
@@ -41,6 +41,8 @@ interface AddAppModalProps {
   deviceIds: string[];
   devices: DeviceInfo[];
   onToggleDevice: (deviceId: string) => void;
+  dailyLimitMinutes?: number;
+  onDailyLimitChange: (mins?: number) => void;
   loading: boolean;
   onSave: () => void;
 }
@@ -59,6 +61,8 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
   deviceIds,
   devices,
   onToggleDevice,
+  dailyLimitMinutes,
+  onDailyLimitChange,
   loading,
   onSave,
 }) => {
@@ -88,7 +92,7 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
           />
           <Text style={styles.modalTitle}>Bloquear aplicación</Text>
           <Text style={styles.modalBody}>
-            Selecciona o ingresa el nombre de la aplicación móvil que deseas restringir.
+            Selecciona o ingresa la aplicación a restringir y define opcionalmente su límite de tiempo diario.
           </Text>
 
           <Text style={styles.inputLabel}>Sugerencias rápidas:</Text>
@@ -134,6 +138,43 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
               </View>
             </View>
           )}
+
+          {/* Límite de tiempo diario */}
+          <Text style={styles.inputLabel}>Límite de tiempo diario (Opcional):</Text>
+          <View style={styles.quickAppChipContainer}>
+            <TouchableOpacity
+              style={[styles.quickAppChip, dailyLimitMinutes === undefined && { backgroundColor: '#E7F1FF', borderColor: colors.primary }]}
+              onPress={() => onDailyLimitChange(undefined)}
+            >
+              <Text style={[styles.quickAppChipText, dailyLimitMinutes === undefined && { color: colors.primary, fontWeight: 'bold' }]}>
+                ∞ Indeterminado (Por defecto)
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickAppChip, dailyLimitMinutes === 30 && { backgroundColor: '#E7F1FF', borderColor: colors.primary }]}
+              onPress={() => onDailyLimitChange(30)}
+            >
+              <Text style={[styles.quickAppChipText, dailyLimitMinutes === 30 && { color: colors.primary, fontWeight: 'bold' }]}>
+                ⏱️ 30 min
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickAppChip, dailyLimitMinutes === 60 && { backgroundColor: '#E7F1FF', borderColor: colors.primary }]}
+              onPress={() => onDailyLimitChange(60)}
+            >
+              <Text style={[styles.quickAppChipText, dailyLimitMinutes === 60 && { color: colors.primary, fontWeight: 'bold' }]}>
+                ⏱️ 1 hora
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickAppChip, dailyLimitMinutes === 120 && { backgroundColor: '#E7F1FF', borderColor: colors.primary }]}
+              onPress={() => onDailyLimitChange(120)}
+            >
+              <Text style={[styles.quickAppChipText, dailyLimitMinutes === 120 && { color: colors.primary, fontWeight: 'bold' }]}>
+                ⏱️ 2 horas
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.deviceSelectionContainer}>
             <View style={styles.applyToAllRow}>

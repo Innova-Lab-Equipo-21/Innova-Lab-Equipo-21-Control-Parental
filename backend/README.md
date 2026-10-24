@@ -65,7 +65,9 @@ backend/
 │   ├── auth.test.ts          # Pruebas de registro, validaciones Zod, login y recuperación
 │   ├── blocklist.test.ts     # Pruebas de listas oficiales LOTBA y dominios personalizados
 │   ├── device.test.ts        # Pruebas de códigos de pareamiento y vinculación
-│   └── telemetry.test.ts     # Pruebas de latidos (heartbeats), estados y eventos de seguridad
+│   ├── device.test.ts        # Pruebas de códigos de pareamiento y vinculación
+│   ├── telemetry.test.ts     # Pruebas de latidos (heartbeats), estados y eventos de seguridad
+│   └── app-limits.test.ts    # Pruebas unitarias de límites de tiempo de uso diario en aplicaciones
 ├── .env                      # Variables de entorno activas (ignorado por Git)
 ├── .env.example              # Plantilla de variables de entorno
 ├── package.json              # Dependencias y scripts npm
