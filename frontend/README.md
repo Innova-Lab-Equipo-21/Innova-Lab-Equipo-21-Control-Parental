@@ -271,7 +271,30 @@ El **Panel del Responsable (`ParentDashboardScreen.tsx`)** se organiza a través
 
 ---
 
-## 📊 Módulo de Tiempo de Uso de Pantalla y Auditoría (`ActivitySection.tsx`)
+## 👤 Pestaña de Cuenta y Perfil del Responsable (`ProfileSection.tsx`, `HelpSection.tsx`, etc.)
+
+Organizada en la quinta pestaña de la barra de navegación del panel del responsable (`ParentDashboardScreen.tsx`), implementa todas las funcionalidades solicitadas bajo un estricto cumplimiento de **Sentence Case** y diseño institucional de LOTBA S.E.:
+
+1. **Perfil del Responsable (`ProfileSection.tsx`, `ProfileSection.styles.ts`):**
+   - **Avatar e Identidad:** Imagen mock estandarizada con el asistente **Beti** (`beti.png`) y color institucional **Azul (`#007AFF`)** exclusivo para el rol `RESPONSABLE`.
+   - **Edición Completa con Validación Oficial:** Modal de edición con los mismos campos y validaciones que el formulario de registro (`RegisterForm`), incluyendo Nombre, Apellido, Fecha de nacimiento (con calendario nativo de Android `DateTimePickerAndroid.open()` y modal auxiliar `DatePickerModal`), Género (dropdown con marcas de verificación `✓`), Teléfono, Correo electrónico y Contraseña (con visibilidad toggleable mediante el ícono oficial `ojo.png`).
+2. **Permisos del Dispositivo Tutor (`TutorPermissionsSection.tsx`):**
+   - Auditoría y re-autorización de los permisos críticos del sistema Android (VPN, Accesibilidad anti-desinstalación, Notificaciones, Batería y Geolocalización GPS).
+3. **Autocontrol del Tutor (`SelfControlSection.tsx`):**
+   - Sistema de autoprotección con doble confirmación y temporizador de espera obligatorio de 24 horas para la desactivación, previniendo decisiones impulsivas.
+4. **Ayuda y Soporte (`HelpSection.tsx`, `HelpSection.styles.ts`):**
+   - **Preguntas Frecuentes (FAQ):** Acordeón interactivo con respuestas sobre la plataforma y filtrado LOTBA.
+   - **Tutorial y Guía Onboarding:** Botón de acceso directo que despliega el flujo de incorporación (`OnboardingScreen`) paso a paso, permitiendo al usuario cerrar el recorrido de vuelta a la cuenta mediante el botón **"Cerrar"**.
+   - **Formulario de Dudas y Sugerencias:** Envío directo al correo oficial **`baprotegemas@gmail.com`** con soporte para **hasta 3 anexos** (archivos adjuntos con control de límite y eliminación individual).
+5. **Información Legal (`LegalSection.tsx`):**
+   - Enlaces directos a los modales Bottom Sheet de **Términos y condiciones** (`TermsModal.tsx`) y **Política de privacidad** (`PrivacyModal.tsx` bajo la Ley N° 25.326).
+6. **Evaluar la Aplicación (`RatingSection.tsx`):**
+   - Calificación interactiva de 5 estrellas, formulario de comentarios para enviar a `baprotegemas@gmail.com` y CTA oficial para redirigir a **Google Play Store**.
+7. **Zona de Peligro y Versión:**
+   - Sección de alerta con el botón de **"Eliminar cuenta definitivamente"** (restringido al rol responsable).
+   - Pie de página institucional indicando la versión de la aplicación y el respaldo de Lotería de la Ciudad (LOTBA S.E.).
+
+---
 
 Ubicado en la pestaña **Actividad**, integra dos subsecciones clave:
 
@@ -347,7 +370,20 @@ frontend/
 │   │   │   └── TermsModal.tsx                # Modal Bottom Sheet de Términos y Condiciones
 │   │   ├── dashboard/                        # Módulo Modular del Dashboard
 │   │   │   ├── actividad/                    # Sección de Registro de Actividad
-│   │   │   ├── cuenta/                       # Autocontrol de 24h y Permisos del Tutor
+│   │   │   ├── cuenta/                       # Autocontrol, Permisos, Perfil, Ayuda, Legal y Valoración
+│   │   │   │   ├── HelpSection.tsx
+│   │   │   │   ├── HelpSection.styles.ts
+│   │   │   │   ├── LegalSection.tsx
+│   │   │   │   ├── LegalSection.styles.ts
+│   │   │   │   ├── ProfileSection.tsx
+│   │   │   │   ├── ProfileSection.styles.ts
+│   │   │   │   ├── RatingSection.tsx
+│   │   │   │   ├── RatingSection.styles.ts
+│   │   │   │   ├── SelfControlSection.tsx
+│   │   │   │   ├── SelfControlSection.styles.ts
+│   │   │   │   ├── TutorPermissionsSection.tsx
+│   │   │   │   ├── TutorPermissionsSection.styles.ts
+│   │   │   │   └── index.ts
 │   │   │   ├── dispositivos/                 # Auditoría, Buscador, Orden, Doble Confirmación y Pairing
 │   │   │   ├── sitios/                       # Reglas Globales y CRUD de Sitios Personalizados
 │   │   │   ├── DashboardNavbar.tsx           # Navbar 5 Pestañas con Resalte #E5F1FF

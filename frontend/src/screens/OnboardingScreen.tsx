@@ -26,11 +26,13 @@ interface OnboardingScreenProps {
   onComplete: () => void;
   onSelectMode?: (mode: AppMode) => void;
   initialStep?: 1 | 2 | 3;
+  completeButtonText?: string;
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   onComplete,
   initialStep = 1,
+  completeButtonText,
 }) => {
   // Estado del Wizard: Paso 1, 2 o 3
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(initialStep);
@@ -362,7 +364,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={styles.primaryButtonText}>Elegir modo</Text>
+                <Text style={styles.primaryButtonText}>{completeButtonText || 'Elegir modo'}</Text>
               </TouchableOpacity>
             </View>
           )}

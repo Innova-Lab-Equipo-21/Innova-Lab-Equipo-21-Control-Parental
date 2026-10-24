@@ -20,6 +20,7 @@ import { Header } from '../components/Header';
 import { ActionButton } from '../components/ActionButton';
 import { PermissionsScreen, PermissionItemState } from './PermissionsScreen';
 import { LoginScreen } from './LoginScreen';
+import { OnboardingScreen } from './OnboardingScreen';
 import { apiService } from '../services/api.service';
 import { MAX_PROTECTED_DEVICES, SelfControlState, DeviceInfo, CustomBlockedDomain } from '../types';
 
@@ -29,7 +30,8 @@ import { DashboardNavbar, DashboardTab } from '../components/dashboard/Dashboard
 import { ProtectedDevicesSection, PairingSection } from '../components/dashboard/dispositivos';
 import { CustomSitesSection, GlobalRulesSection } from '../components/dashboard/sitios';
 import { ActivitySection } from '../components/dashboard/actividad';
-import { SelfControlSection, TutorPermissionsSection } from '../components/dashboard/cuenta';
+import { SelfControlSection, TutorPermissionsSection, ProfileSection, HelpSection, LegalSection, RatingSection } from '../components/dashboard/cuenta';
+import { colors } from '../theme/colors';
 import { styles } from './ParentDashboardScreen.styles';
 
 interface ParentDashboardScreenProps {
@@ -61,6 +63,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
   // Modal de Permisos del Dispositivo local del Responsable
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+
+  // Flujo de Onboarding desde la sección de Cuenta
+  const [showOnboardingFlow, setShowOnboardingFlow] = useState(false);
 
   // Estados de Reglas de Control Parental
   const [ruleBetting, setRuleBetting] = useState(true);
@@ -220,6 +225,16 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
         flowSource="PARENT_LOGIN"
         onPermissionsComplete={() => setShowPermissionsModal(false)}
         onBack={() => setShowPermissionsModal(false)}
+      />
+    );
+  }
+
+  if (showOnboardingFlow) {
+    return (
+      <OnboardingScreen
+        initialStep={1}
+        completeButtonText="Cerrar"
+        onComplete={() => setShowOnboardingFlow(false)}
       />
     );
   }
@@ -456,27 +471,15 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             onBack={() => setActiveTab('inicio')}
           />
           <ScrollView contentContainerStyle={styles.container}>
-            {/* Tarjeta de Perfil del Usuario */}
-            <View style={styles.profileCard}>
-              <View style={styles.profileHeader}>
-                <View style={styles.profileAvatar}>
-                  <Text style={styles.profileAvatarText}>
-                    {currentUser?.fullName?.charAt(0) || 'T'}
-                  </Text>
-                </View>
-                <View style={styles.profileInfo}>
-                  <Text style={styles.profileName}>
-                    {currentUser?.fullName || 'Tutor Responsable'}
-                  </Text>
-                  <Text style={styles.profileEmail}>
-                    {currentUser?.email || 'tutor@baprotege.gob.ar'}
-                  </Text>
-                  <View style={styles.verifiedBadge}>
-                    <Text style={styles.verifiedBadgeText}>✓ Identidad Verificada (+18)</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
+            {/* 1. Perfil (Datos editables solo por RESPONSABLE y CTA Eliminar cuenta solo RESPONSABLE; Mock Beti y color azul) */}
+            <ProfileSection
+              currentUser={currentUser}
+              onUpdateUser={(updated) => setCurrentUser(updated)}
+              onDeleteAccount={() => {
+                setIsLoggedIn(false);
+                onExitMode();
+              }}
+            />
 
             {/* Subsección: Permisos del Dispositivo */}
             <SeccionDesplegable
@@ -512,7 +515,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                   : 'inactivo'
               }
               icon="🔒"
-              initialExpanded={true}
+              initialExpanded={false}
             >
               <SelfControlSection
                 selfControl={selfControl}
@@ -521,7 +524,66 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               />
             </SeccionDesplegable>
 
-            {/* Botón de Salida */}
+            {/* 2. Ayuda (FAQ + Ver onboarding + Form para dudas y sugerencias con hasta 3 anexos para baprotegemas@gmail.com) */}
+            <SeccionDesplegable
+              title="Ayuda y soporte"
+              subtitle="Preguntas frecuentes, onboarding y contacto con baprotegemas@gmail.com"
+              badgeLabel="SOPORTE"
+              badgeStatus="activo"
+              icon="❓"
+              initialExpanded={false}
+            >
+              <HelpSection
+                onOpenOnboarding={() => setShowOnboardingFlow(true)}
+              />
+            </SeccionDesplegable>
+
+            {/* 3 & 4. Términos y condiciones y Política de privacidad */}
+            <LegalSection />
+
+            {/* 5. Evaluar la app (5 estrellas con form para mail y CTA Play Store) */}
+            <RatingSection />
+
+            {/* Zona de Peligro / Eliminar Cuenta Definitivamente */}
+            <View style={{
+              backgroundColor: '#FFF5F5',
+              borderColor: '#FEB2B2',
+              borderWidth: 1,
+              borderRadius: 16,
+              padding: 16,
+              marginTop: 12,
+              marginBottom: 12,
+            }}>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: '#C53030', marginBottom: 4 }}>
+                ⚠️ Zona de Peligro
+              </Text>
+              <Text style={{ fontSize: 12, color: '#9B2C2C', marginBottom: 12, lineHeight: 16 }}>
+                Eliminar tu cuenta borrará permanentemente todos tus datos y dispositivos vinculados. Esta acción no se puede deshacer.
+              </Text>
+              <ActionButton
+                title="🗑️ Eliminar cuenta definitivamente"
+                variant="danger"
+                onPress={() => {
+                  Alert.alert(
+                    '⚠️ Eliminar Cuenta',
+                    '¿Estás seguro de que deseas eliminar tu cuenta permanentemente? Esta acción es irreversible.',
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      {
+                        text: 'Eliminar',
+                        style: 'destructive',
+                        onPress: () => {
+                          setIsLoggedIn(false);
+                          onExitMode();
+                        },
+                      },
+                    ]
+                  );
+                }}
+              />
+            </View>
+
+            {/* 6. Cerrar sesión */}
             <View style={styles.footer}>
               <ActionButton
                 title="Cerrar sesión"
@@ -531,6 +593,16 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                   onExitMode();
                 }}
               />
+            </View>
+
+            {/* 7. Versión de la app al final */}
+            <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 24 }}>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '700' }}>
+                BA Protege+ v1.0.0 (Build 2025.3)
+              </Text>
+              <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 2 }}>
+                Lotería de la Ciudad de Buenos Aires (LOTBA S.E.)
+              </Text>
             </View>
           </ScrollView>
         </>

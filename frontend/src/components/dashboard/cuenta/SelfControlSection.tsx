@@ -25,7 +25,7 @@ export const SelfControlSection: React.FC<SelfControlSectionProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.subtitleText}>Estado de Autoprotección:</Text>
+        <Text style={styles.subtitleText}>Estado de autoprotección:</Text>
         <Badge
           status={
             selfControl.status === 'TEMPORARILY_UNLOCKED'
@@ -66,13 +66,13 @@ export const SelfControlSection: React.FC<SelfControlSectionProps> = ({
 
       {selfControl.status === 'TEMPORARILY_UNLOCKED' ? (
         <ActionButton
-          title="🔒 Volver a Activar Ahora"
+          title="🔒 Volver a activar ahora"
           variant="primary"
           onPress={onStartSelfControlFlow}
         />
       ) : selfControl.status === 'DEACTIVATION_READY' ? (
         <ActionButton
-          title="🔓 Confirmar Desactivación (Desbloqueo Inmediato)"
+          title="🔓 Confirmar desactivación (Desbloqueo inmediato)"
           variant="danger"
           onPress={onDisableSelfControl}
         />
@@ -91,7 +91,7 @@ export const SelfControlSection: React.FC<SelfControlSectionProps> = ({
         />
       ) : (
         <ActionButton
-          title="Activar Autocontrol con Doble Confirmación"
+          title="Activar autocontrol con doble confirmación"
           variant="primary"
           onPress={onStartSelfControlFlow}
         />

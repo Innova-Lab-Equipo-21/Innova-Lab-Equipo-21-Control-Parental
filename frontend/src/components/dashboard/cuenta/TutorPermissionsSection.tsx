@@ -35,7 +35,7 @@ export const TutorPermissionsSection: React.FC<TutorPermissionsSectionProps> = (
       <View style={styles.warningBannerCard}>
         <View style={styles.warningHeaderRow}>
           <Text style={styles.warningTitle}>
-            ⚠️ Permisos Pendientes del Tutor ({localGrantedCount}/5 Concedidos)
+            ⚠️ Permisos pendientes del tutor ({localGrantedCount}/5 concedidos)
           </Text>
           <Badge status="alerta" label="INCOMPLETO" />
         </View>
@@ -49,7 +49,7 @@ export const TutorPermissionsSection: React.FC<TutorPermissionsSectionProps> = (
         ))}
         <View style={styles.warningActionBox}>
           <ActionButton
-            title="Configurar Permisos Faltantes ⚙️"
+            title="Configurar permisos faltantes ⚙️"
             variant="primary"
             onPress={onConfigurePermissions}
           />
@@ -61,8 +61,8 @@ export const TutorPermissionsSection: React.FC<TutorPermissionsSectionProps> = (
   return (
     <View style={styles.permissionsBar}>
       <View style={styles.permissionsTextCol}>
-        <Text style={styles.permissionsTitle}>Permisos del Dispositivo Tutor</Text>
-        <Text style={styles.permissionsDesc}>Todos los permisos configurados (5/5 Concedidos).</Text>
+        <Text style={styles.permissionsTitle}>Permisos del dispositivo tutor</Text>
+        <Text style={styles.permissionsDesc}>Todos los permisos configurados (5/5 concedidos).</Text>
       </View>
       <ActionButton
         title="Auditar ⚙️"
