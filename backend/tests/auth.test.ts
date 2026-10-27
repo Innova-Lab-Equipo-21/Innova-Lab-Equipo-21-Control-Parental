@@ -51,6 +51,28 @@ describe('Módulo de Autenticación (Auth API)', () => {
     assert.ok(Array.isArray(data.errors));
   });
 
+  test('POST /api/auth/register debe rechazar a menores de 18 años con código 422', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: `menor_${Date.now()}@test.com`,
+        password: 'Password123!',
+        fullName: 'Menor de Edad',
+        birthDate: '15/05/2015', // 11 años aproximadamente
+      }),
+    });
+
+    assert.equal(res.status, 422);
+    const data = await res.json();
+    assert.equal(data.success, false);
+    assert.ok(
+      data.errors.some((err: any) =>
+        err.message.includes('Solo personas adultas (+18)')
+      )
+    );
+  });
+
   test('POST /api/auth/register debe registrar un responsable y retornar token JWT', async () => {
     const res = await fetch(`${baseUrl}/api/auth/register`, {
       method: 'POST',

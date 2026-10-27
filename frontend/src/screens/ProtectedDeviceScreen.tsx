@@ -1,208 +1,251 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: Frontend Mobile (Pantalla de Dispositivo Protegido)
+// Componente: Frontend Mobile (Pantalla del Dispositivo Protegido)
 // Archivo: src/screens/ProtectedDeviceScreen.tsx
-// Descripción: Panel de control local del dispositivo protegido con estado de VPN en vivo,
-//              sincronización de listas LOTBA y envío de latidos de telemetría.
+// Descripción: Panel del usuario protegido (Menor / Adulto) estructurado en 4 módulos
+//              (Actividad, Inicio, Sitios y apps, Cuenta) con Quiz diario interactivo,
+//              FAB (+) de bloqueo ubicado exclusivamente en "Sitios y apps" y validación
+//              por PIN de tutor.
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   SafeAreaView,
-  ScrollView,
+  Image,
   Alert,
+  Modal,
 } from 'react-native';
-import { Header } from '../components/Header';
-import { StatusCard } from '../components/StatusCard';
+import { ProtectedNavbar, ProtectedTab } from '../components/dashboard/protected/ProtectedNavbar';
+import { ProtectedInicioSection } from '../components/dashboard/protected/ProtectedInicioSection';
+import { ProtectedActividadSection } from '../components/dashboard/protected/ProtectedActividadSection';
+import { ProtectedSitiosSection } from '../components/dashboard/protected/ProtectedSitiosSection';
+import { ProtectedCuentaSection } from '../components/dashboard/protected/ProtectedCuentaSection';
+import { BlockModal } from '../components/dashboard/protected/BlockModal';
+import { PinKeyboard } from '../components/PinKeyboard';
 import { ActionButton } from '../components/ActionButton';
-import { colors } from '../theme/colors';
+import { FabWithTooltip } from '../components/FabWithTooltip';
+import { PermissionItemState } from './PermissionsScreen';
 import { vpnServiceBridge } from '../services/vpn.service';
 import { apiService } from '../services/api.service';
-import { ProtectionStatus } from '../types';
+import { styles } from './ProtectedDeviceScreen.styles';
 
 interface ProtectedDeviceScreenProps {
   deviceUuid: string;
   onExitMode: () => void;
+  mode?: 'CHILD' | 'ADULT';
+  permissions?: PermissionItemState;
+  onOpenPermissions?: () => void;
 }
 
 export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
   deviceUuid,
   onExitMode,
+  mode = 'CHILD',
+  permissions,
 }) => {
-  const [status, setStatus] = useState<ProtectionStatus>('ACTIVE');
-  const [domainCount, setDomainCount] = useState<number>(4);
-  const [blocklistVersion, setBlocklistVersion] = useState<number>(1);
-  const [lastSyncText, setLastSyncText] = useState<string>('Ahora');
-  const [loading, setLoading] = useState<boolean>(false);
+  // Pestaña activa en la navbar (Por defecto: 'inicio')
+  const [activeTab, setActiveTab] = useState<ProtectedTab>('inicio');
+
+  // Modal FAB (+): Bloqueo rápido de sitio o app
+  const [showBlockModal, setShowBlockModal] = useState<boolean>(false);
+  const [customBlockedItems, setCustomBlockedItems] = useState<string[]>([
+    'casino-clandestino.net',
+    'red-social-peligrosa.org',
+  ]);
+
+  // Modal Teclado PIN para tutor
+  const [showPinModal, setShowPinModal] = useState<boolean>(false);
+  const [enteredPin, setEnteredPin] = useState<string>('');
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   useEffect(() => {
     checkVpnStatus();
-    syncBlocklist();
-
-    // Configurar temporizador periódico para envío de telemetría (Heartbeat)
-    const timer = setInterval(() => {
-      sendHeartbeat();
-    }, 30000);
-
-    return () => clearInterval(timer);
+    loadCustomBlockedList();
   }, []);
 
   const checkVpnStatus = async () => {
     try {
-      const active = await vpnServiceBridge.isProtectionActive();
-      setStatus(active ? 'ACTIVE' : 'INACTIVE');
-      const info = await vpnServiceBridge.getBlocklistInfo();
-      setDomainCount(info.totalDomains);
-      setBlocklistVersion(info.version);
+      await vpnServiceBridge.isProtectionActive();
     } catch (e) {
-      console.error('Error al consultar estado de VPN:', e);
+      console.warn('Servicio VPN en modo emulador');
     }
   };
 
-  const toggleProtection = async () => {
-    setLoading(true);
+  const loadCustomBlockedList = async () => {
     try {
-      if (status === 'ACTIVE') {
-        await vpnServiceBridge.stopProtection();
-        setStatus('INACTIVE');
-        // Reportar evento de seguridad al backend
-        await apiService.reportSecurityEvent({
-          deviceUuid,
-          eventType: 'VPN_DISABLED',
-          description: 'El motor de protección fue pausado desde la interfaz local',
-        });
-      } else {
-        await vpnServiceBridge.prepareVpn();
-        await vpnServiceBridge.startProtection();
-        setStatus('ACTIVE');
-      }
-      sendHeartbeat();
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'No se pudo cambiar el estado de la protección');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const syncBlocklist = async () => {
-    try {
-      const res = await apiService.getDeviceBlocklist(deviceUuid);
-      if (res.data?.domains) {
-        await vpnServiceBridge.updateBlocklist(res.data.version, res.data.domains);
-        setDomainCount(res.data.totalCount);
-        setBlocklistVersion(res.data.version);
-        setLastSyncText('Reciente');
+      const res = await apiService.getCustomBlocklist();
+      if (res.data?.domains && res.data.domains.length > 0) {
+        setCustomBlockedItems(res.data.domains.map((d) => d.domain));
       }
     } catch (e) {
-      console.warn('Operando con lista offline en caché:', e);
+      // Usar elementos locales por defecto
     }
   };
 
-  const sendHeartbeat = async () => {
-    try {
-      const isVpnActive = status === 'ACTIVE';
-      await apiService.sendHeartbeat({
-        deviceUuid,
-        vpnActive: isVpnActive,
-        permissionsOk: true,
-        blocklistVersion,
-        appVersion: '1.0.0',
-      });
-      setLastSyncText('Hace 1m');
-    } catch (e) {
-      console.warn('Falla temporal en el envío de telemetría:', e);
+  const handleBlockSuccess = (item: { domainOrApp: string; type: 'SITE' | 'APP' }) => {
+    setCustomBlockedItems((prev) => [item.domainOrApp, ...prev.filter((d) => d !== item.domainOrApp)]);
+    // Forzar actualización de filtrado VPN
+    vpnServiceBridge.updateBlocklist(5, [item.domainOrApp]);
+  };
+
+  const handlePinKeyPress = (key: string) => {
+    if (enteredPin.length < 4) {
+      const newPin = enteredPin + key;
+      setEnteredPin(newPin);
+      if (newPin.length === 4) {
+        if (newPin === '1234') {
+          setShowPinModal(false);
+          setEnteredPin('');
+          if (pendingAction) {
+            pendingAction();
+            setPendingAction(null);
+          } else {
+            Alert.alert('PIN correcto', 'Acción de tutor autorizada exitosamente.');
+          }
+        } else {
+          Alert.alert('PIN incorrecto', 'El código de tutor es inválido (Demo: 1234). Intenta nuevamente.');
+          setEnteredPin('');
+        }
+      }
     }
   };
 
-  const simulateBlockedAttempt = async () => {
-    const domain = 'apuestas-online-ilegal.bet';
-    try {
-      await apiService.reportBlockedEvent({
-        deviceUuid,
-        attemptedDomain: domain,
-        sourceListType: 'LOTBA',
-      });
-      Alert.alert('🛡️ Dominio Bloqueado', `Se bloqueó el acceso simulado a: ${domain}\nRegistrado en la lista oficial LOTBA.`);
-    } catch (e) {
-      Alert.alert('Simulación Local', `Acceso denegado localmente a ${domain}`);
-    }
+  const handlePinDelete = () => {
+    setEnteredPin((prev) => prev.slice(0, -1));
+  };
+
+  const triggerTutorPinAction = (action: () => void) => {
+    setPendingAction(() => action);
+    setEnteredPin('');
+    setShowPinModal(true);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header
-        title="Dispositivo Protegido"
-        subtitle={`UUID: ${deviceUuid.substring(0, 14)}...`}
-      />
-      <ScrollView contentContainerStyle={styles.container}>
-        <StatusCard
-          status={status}
-          domainCount={domainCount}
-          blocklistVersion={blocklistVersion}
-          lastSyncText={lastSyncText}
+      {/* 1. TOP HEADER INSTITUCIONAL (#EAF3FF) CON LOGO Y BADGE DE MODO */}
+      <View style={styles.topHeaderBar}>
+        <View style={styles.topHeaderLeft}>
+          <Image
+            source={require('../assets/logo/logo_baprotege_texto.png')}
+            style={styles.topHeaderLogo}
+            resizeMode="contain"
+            accessibilityLabel="BA Protege +"
+          />
+        </View>
+        <View style={styles.modeBadge}>
+          <Text style={styles.modeBadgeText}>
+            {mode === 'CHILD' ? '👦 PERFIL MENOR' : '👤 PERFIL ADULTO'}
+          </Text>
+        </View>
+      </View>
+
+      {/* 2. CONTENIDO PRINCIPAL SEGÚN PESTAÑA ACTIVA (Actividad, Inicio, Sitios y apps, Cuenta) */}
+      <View style={styles.scrollBody}>
+        {activeTab === 'inicio' && (
+          <ProtectedInicioSection
+            mode={mode}
+            tutorName="Ana"
+            onNavigateToActivity={() => setActiveTab('actividad')}
+          />
+        )}
+
+        {activeTab === 'actividad' && (
+          <ProtectedActividadSection
+            customBlockedItems={customBlockedItems}
+            onOpenPinModal={() => triggerTutorPinAction(() => {
+              Alert.alert('Modificación autorizada', 'Has ingresado el PIN del tutor.');
+            })}
+          />
+        )}
+
+        {activeTab === 'sitios' && (
+          <ProtectedSitiosSection
+            customBlockedItems={customBlockedItems}
+            onOpenPinModal={() => triggerTutorPinAction(() => {
+              Alert.alert('Modificación autorizada', 'Has ingresado el PIN del tutor.');
+            })}
+          />
+        )}
+
+        {activeTab === 'cuenta' && (
+          <ProtectedCuentaSection
+            deviceUuid={deviceUuid}
+            mode={mode}
+            tutorName="Ana"
+            onExitMode={onExitMode}
+            onOpenPinModal={() => triggerTutorPinAction(() => {
+              Alert.alert('Tutor autorizado', 'Modificación de estado habilitada.');
+            })}
+          />
+        )}
+      </View>
+
+      {/* 3. BOTÓN FLOTANTE FAB (+) UBICADO EXCLUSIVAMENTE EN EL MÓDULO "SITIOS Y APPS" */}
+      {activeTab === 'sitios' && (
+        <FabWithTooltip
+          label="Bloquear sitio o app"
+          onPress={() => setShowBlockModal(true)}
         />
+      )}
 
-        <View style={styles.actionsCard}>
-          <Text style={styles.cardTitle}>Controles del Motor de Filtrado</Text>
-          
-          <ActionButton
-            title={status === 'ACTIVE' ? 'Pausar Protección' : 'Reanudar Protección'}
-            variant={status === 'ACTIVE' ? 'danger' : 'primary'}
-            onPress={toggleProtection}
-            loading={loading}
-          />
+      {/* 4. NAVBAR INFERIOR DE 4 MÓDULOS (Actividad, Inicio, Sitios y apps, Cuenta) */}
+      <ProtectedNavbar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+      />
 
-          <ActionButton
-            title="Sincronizar Lista Oficial LOTBA"
-            variant="secondary"
-            onPress={syncBlocklist}
-          />
+      {/* MODAL DE BLOQUEO RÁPIDO (FAB +) */}
+      <BlockModal
+        visible={showBlockModal}
+        onClose={() => setShowBlockModal(false)}
+        onBlockSuccess={handleBlockSuccess}
+      />
 
-          <ActionButton
-            title="Probar Bloqueo Simulado"
-            variant="secondary"
-            onPress={simulateBlockedAttempt}
-          />
+      {/* MODAL TECLADO PIN PARA VALIDACIÓN DE TUTOR */}
+      <Modal
+        visible={showPinModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowPinModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>PIN del tutor requerido</Text>
+            <Text style={styles.modalSubtitle}>
+              Ingresa el PIN de 4 dígitos para autorizar esta acción (Demo: 1234).
+            </Text>
+
+            <View style={styles.pinDotsRow}>
+              {[0, 1, 2, 3].map((index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.pinDot,
+                    enteredPin.length > index && styles.pinDotFilled,
+                  ]}
+                />
+              ))}
+            </View>
+
+            <PinKeyboard
+              onKeyPress={handlePinKeyPress}
+              onDelete={handlePinDelete}
+              onClear={() => setEnteredPin('')}
+            />
+
+            <ActionButton
+              title="Cancelar"
+              variant="secondary"
+              onPress={() => {
+                setShowPinModal(false);
+                setPendingAction(null);
+              }}
+            />
+          </View>
         </View>
-
-        <View style={styles.footer}>
-          <ActionButton
-            title="Cambiar Modo de Operación"
-            variant="secondary"
-            onPress={onExitMode}
-          />
-        </View>
-      </ScrollView>
+      </Modal>
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    padding: 16,
-  },
-  actionsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 12,
-  },
-  footer: {
-    marginTop: 20,
-  },
-});

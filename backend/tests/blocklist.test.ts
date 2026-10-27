@@ -92,11 +92,50 @@ describe('Módulo de Listas de Bloqueo (Blocklist API)', () => {
     const listData = await listRes.json();
     assert.ok(listData.data.domains.some((d: any) => d.domain === newDomain.toLowerCase()));
 
-    // Eliminar el dominio personalizado
+    // Actualizar el dominio (Update del CRUD)
+    const updateRes = await fetch(`${baseUrl}/api/blocklist/custom/domains/${data.data.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        category: 'JUEGOS_ACTUALIZADO',
+        isActive: false,
+      }),
+    });
+    assert.equal(updateRes.status, 200);
+    const updateData = await updateRes.json();
+    assert.equal(updateData.success, true);
+    assert.equal(updateData.data.category, 'JUEGOS_ACTUALIZADO');
+    assert.equal(updateData.data.isActive, false);
+
+    // Eliminar el dominio personalizado (Delete del CRUD)
     const delRes = await fetch(`${baseUrl}/api/blocklist/custom/domains/${data.data.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${authToken}` },
     });
     assert.equal(delRes.status, 200);
+
+    // Verificar que fue eliminado
+    const listAfterRes = await fetch(`${baseUrl}/api/blocklist/custom`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const listAfterData = await listAfterRes.json();
+    assert.ok(!listAfterData.data.domains.some((d: any) => d.id === data.data.id));
+  });
+
+  test('POST /api/blocklist/custom/domains con dominio inválido debe retornar 400', async () => {
+    const res = await fetch(`${baseUrl}/api/blocklist/custom/domains`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        domain: 'invalido',
+      }),
+    });
+    assert.equal(res.status, 400);
   });
 });

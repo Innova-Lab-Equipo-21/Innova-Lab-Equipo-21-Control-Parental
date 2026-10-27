@@ -13,6 +13,11 @@ Descripción: Manifiesto de Android con permisos de VpnService, arranque automá
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Permiso de Cámara para Escaneo de Código QR -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
     <!-- Permiso para persistencia tras reinicio del dispositivo (BootReceiver) -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -21,11 +26,14 @@ Descripción: Manifiesto de Android con permisos de VpnService, arranque automá
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- 6to Permiso: Acceso a Estadísticas de Uso para límites de tiempo en aplicaciones -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
+
     <application
         android:name=".MainApplication"
         android:label="BA Protege+"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@drawable/logo_ba"
+        android:roundIcon="@drawable/logo_ba"
         android:allowBackup="false"
         android:theme="@style/AppTheme"
         android:supportsRtl="true">

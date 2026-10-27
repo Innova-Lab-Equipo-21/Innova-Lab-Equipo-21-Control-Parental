@@ -14,6 +14,14 @@ export interface RemoveCustomDomainInput {
   domainId: string;
 }
 
+export interface UpdateCustomDomainInput {
+  userId: string;
+  domainId: string;
+  domain?: string;
+  category?: string;
+  isActive?: boolean;
+}
+
 export class BlocklistService {
   /**
    * Obtiene o inicializa la lista oficial de LOTBA (Lotería de la Ciudad de Buenos Aires).
@@ -258,6 +266,87 @@ export class BlocklistService {
     });
 
     return newDomain;
+  }
+
+  /**
+   * Actualiza un dominio de la lista personalizada del responsable (dominio, categoría o estado activo).
+   */
+  public async updateCustomDomain(input: UpdateCustomDomainInput) {
+    const list = await this.getUserCustomList(input.userId);
+
+    let cleanDomain: string | undefined;
+    if (input.domain !== undefined) {
+      cleanDomain = input.domain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+      if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
+        throw new AppError('Formato de dominio no válido (ejemplo: sitio.com)', 400);
+      }
+    }
+
+    if (env.USE_MOCK_DATA) {
+      const dom = (list.domains as any[]).find((d) => d.id === input.domainId);
+      if (!dom) {
+        throw new AppError('Dominio no encontrado en su lista', 404);
+      }
+
+      if (cleanDomain && cleanDomain !== dom.domain) {
+        const exists = (list.domains as any[]).some((d) => d.id !== input.domainId && d.domain === cleanDomain);
+        if (exists) {
+          throw new AppError('El dominio ya se encuentra en la lista personalizada', 409);
+        }
+        dom.domain = cleanDomain;
+      }
+      if (input.category !== undefined) dom.category = input.category;
+      if (input.isActive !== undefined) dom.isActive = input.isActive;
+      list.version += 1;
+      return dom;
+    }
+
+    const domainRecord = await prisma.blocklistDomain.findFirst({
+      where: { id: input.domainId, blocklistId: list.id },
+    });
+
+    if (!domainRecord) {
+      throw new AppError('Dominio no encontrado en su lista', 404);
+    }
+
+    if (cleanDomain && cleanDomain !== domainRecord.domain) {
+      const duplicate = await prisma.blocklistDomain.findUnique({
+        where: {
+          blocklistId_domain: {
+            blocklistId: list.id,
+            domain: cleanDomain,
+          },
+        },
+      });
+      if (duplicate && duplicate.id !== domainRecord.id) {
+        throw new AppError('El dominio ya se encuentra en la lista personalizada', 409);
+      }
+    }
+
+    const updated = await prisma.blocklistDomain.update({
+      where: { id: domainRecord.id },
+      data: {
+        ...(cleanDomain ? { domain: cleanDomain } : {}),
+        ...(input.category !== undefined ? { category: input.category } : {}),
+        ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+      },
+    });
+
+    await prisma.blocklist.update({
+      where: { id: list.id },
+      data: { version: { increment: 1 } },
+    });
+
+    // Registrar en auditoría
+    await prisma.auditLog.create({
+      data: {
+        userId: input.userId,
+        action: 'UPDATE_CUSTOM_DOMAIN',
+        details: { domainId: domainRecord.id, changes: { domain: cleanDomain, category: input.category, isActive: input.isActive } },
+      },
+    });
+
+    return updated;
   }
 
   /**

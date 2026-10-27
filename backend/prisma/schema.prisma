@@ -78,10 +78,10 @@ model User {
   updatedAt     DateTime        @updatedAt @map("updated_at")
 
   // Relaciones
-  devices       Device[]
-  pairings      DevicePairing[]
-  customLists   Blocklist[]     @relation("UserCustomLists")
-  auditLogs     AuditLog[]
+  devices                 Device[]
+  pairings                DevicePairing[]
+  customLists             Blocklist[]     @relation("UserCustomLists")
+  auditLogs               AuditLog[]
 
   @@map("users")
 }
@@ -204,6 +204,11 @@ model BlocklistDomain {
   domain      String    // Ejemplo: "apuestas-online-ilegal.bet"
   category    String?   @default("GAMBLING")
   isActive    Boolean   @default(true) @map("is_active")
+
+  // Reglas 3 y 4: Control Global vs Granular por Dispositivo
+  applyToAll  Boolean   @default(true) @map("apply_to_all")
+  deviceIds   String[]  @map("device_ids") // IDs de los dispositivos específicos + 'self' si es el responsable
+
   createdAt   DateTime  @default(now()) @map("created_at")
 
   // Relaciones
