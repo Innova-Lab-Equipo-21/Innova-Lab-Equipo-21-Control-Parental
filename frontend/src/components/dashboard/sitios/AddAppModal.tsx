@@ -10,6 +10,7 @@ import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
 import { DeviceInfo } from '../../../types';
+import { getDeviceHighlight } from '../../../utils/deviceColors';
 import { styles } from './CustomSitesSection.styles';
 
 export const popularAppCatalog = [
@@ -182,38 +183,101 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
               <ToggleSwitch value={applyToAll} onValueChange={onApplyToAllChange} />
             </View>
 
-            {!applyToAll && (
-              <View style={styles.deviceListContainer}>
-                <Text style={styles.deviceListTitle}>Selecciona los dispositivos:</Text>
+            {/* Listado siempre visible de dispositivos registrados */}
+            <View style={styles.deviceListContainer}>
+              <Text style={styles.deviceListTitle}>Selecciona los dispositivos:</Text>
 
-                {/* Mi dispositivo (Responsable) */}
-                <TouchableOpacity
-                  style={styles.deviceRow}
-                  onPress={() => onToggleDevice('self')}
-                >
-                  <ToggleSwitch
-                    value={deviceIds.includes('self')}
-                    onValueChange={() => onToggleDevice('self')}
-                  />
-                  <Text style={styles.deviceName}>📱 Mi dispositivo (Responsable)</Text>
-                </TouchableOpacity>
+              {/* Mi dispositivo (Responsable) */}
+              {(() => {
+                const selfHighlight = getDeviceHighlight('self');
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.deviceRow,
+                      {
+                        borderLeftWidth: 4,
+                        borderLeftColor: selfHighlight.color,
+                        backgroundColor: deviceIds.includes('self') ? selfHighlight.bgColor : '#FFFFFF',
+                      },
+                    ]}
+                    onPress={() => onToggleDevice('self')}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.deviceLeftCol}>
+                      <View style={[styles.deviceIconBox, { backgroundColor: selfHighlight.bgColor }]}>
+                        <Text style={styles.deviceIconText}>{selfHighlight.icon}</Text>
+                      </View>
+                      <View style={styles.deviceTextCol}>
+                        <View style={styles.deviceNameRow}>
+                          <Text style={styles.deviceName}>Mi dispositivo</Text>
+                          <View
+                            style={[
+                              styles.deviceRoleBadge,
+                              { backgroundColor: selfHighlight.bgColor, borderColor: selfHighlight.borderColor },
+                            ]}
+                          >
+                            <Text style={[styles.deviceRoleBadgeText, { color: selfHighlight.color }]}>
+                              {selfHighlight.badgeLabel}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                    <ToggleSwitch
+                      value={deviceIds.includes('self')}
+                      onValueChange={() => onToggleDevice('self')}
+                    />
+                  </TouchableOpacity>
+                );
+              })()}
 
-                {/* Dispositivos Protegidos */}
-                {devices.map((device) => (
+              {/* Dispositivos Protegidos */}
+              {devices.map((device, idx) => {
+                const highlight = getDeviceHighlight(device.deviceId, device.childName, device.deviceName, idx);
+                const isSelected = deviceIds.includes(device.deviceId);
+
+                return (
                   <TouchableOpacity
                     key={device.deviceId}
-                    style={styles.deviceRow}
+                    style={[
+                      styles.deviceRow,
+                      {
+                        borderLeftWidth: 4,
+                        borderLeftColor: highlight.color,
+                        backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
+                      },
+                    ]}
                     onPress={() => onToggleDevice(device.deviceId)}
+                    activeOpacity={0.7}
                   >
+                    <View style={styles.deviceLeftCol}>
+                      <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
+                        <Text style={styles.deviceIconText}>{highlight.icon}</Text>
+                      </View>
+                      <View style={styles.deviceTextCol}>
+                        <View style={styles.deviceNameRow}>
+                          <Text style={styles.deviceName}>{device.deviceName}</Text>
+                          <View
+                            style={[
+                              styles.deviceRoleBadge,
+                              { backgroundColor: highlight.bgColor, borderColor: highlight.borderColor },
+                            ]}
+                          >
+                            <Text style={[styles.deviceRoleBadgeText, { color: highlight.color }]}>
+                              {highlight.badgeLabel}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
                     <ToggleSwitch
-                      value={deviceIds.includes(device.deviceId)}
+                      value={isSelected}
                       onValueChange={() => onToggleDevice(device.deviceId)}
                     />
-                    <Text style={styles.deviceName}>📱 {device.deviceName} {device.childName ? `(${device.childName})` : ''}</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-            )}
+                );
+              })}
+            </View>
           </View>
 
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>

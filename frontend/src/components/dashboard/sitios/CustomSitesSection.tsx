@@ -17,6 +17,7 @@ import { AddSiteModal } from './AddSiteModal';
 import { EditSiteModal } from './EditSiteModal';
 import { AddAppModal } from './AddAppModal';
 import { FabWithTooltip } from '../../FabWithTooltip';
+import { isValidDomainOrUrl } from '../../../utils/deviceColors';
 import { styles } from './CustomSitesSection.styles';
 
 interface CustomSitesSectionProps {
@@ -57,13 +58,13 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   const [showAddSiteModal, setShowAddSiteModal] = useState(false);
   const [newSiteDomain, setNewSiteDomain] = useState('');
   const [newSiteCategory, setNewSiteCategory] = useState('Apuestas');
-  const [newSiteApplyToAll, setNewSiteApplyToAll] = useState(true);
+  const [newSiteApplyToAll, setNewSiteApplyToAll] = useState(false);
   const [newSiteDeviceIds, setNewSiteDeviceIds] = useState<string[]>([]);
 
   const [editingSite, setEditingSite] = useState<CustomBlockedDomain | null>(null);
   const [editSiteDomain, setEditSiteDomain] = useState('');
   const [editSiteCategory, setEditSiteCategory] = useState('Apuestas');
-  const [editSiteApplyToAll, setEditSiteApplyToAll] = useState(true);
+  const [editSiteApplyToAll, setEditSiteApplyToAll] = useState(false);
   const [editSiteDeviceIds, setEditSiteDeviceIds] = useState<string[]>([]);
 
   // Estados de Apps Bloqueadas
@@ -73,9 +74,84 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   const [newAppName, setNewAppName] = useState('');
   const [newAppPackage, setNewAppPackage] = useState('');
   const [newAppCategory, setNewAppCategory] = useState('Apuestas');
-  const [newAppApplyToAll, setNewAppApplyToAll] = useState(true);
+  const [newAppApplyToAll, setNewAppApplyToAll] = useState(false);
   const [newAppDeviceIds, setNewAppDeviceIds] = useState<string[]>([]);
   const [newAppDailyLimit, setNewAppDailyLimit] = useState<number | undefined>(undefined);
+
+  // Helper para obtener todos los IDs de dispositivos registrados (incluyendo 'self')
+  const getAllDeviceIds = () => ['self', ...devices.map((d) => d.deviceId)];
+
+  // Handlers para abrir modales con todos los toggles deshabilitados por defecto
+  const handleOpenAddSite = () => {
+    setNewSiteDomain('');
+    setNewSiteCategory('Apuestas');
+    setNewSiteApplyToAll(false);
+    setNewSiteDeviceIds([]);
+    setShowAddSiteModal(true);
+  };
+
+  const handleOpenAddApp = () => {
+    setNewAppName('');
+    setNewAppPackage('');
+    setNewAppCategory('Apuestas');
+    setNewAppApplyToAll(false);
+    setNewAppDeviceIds([]);
+    setNewAppDailyLimit(undefined);
+    setShowAddAppModal(true);
+  };
+
+  // Handlers para Regla Global (al activar marca todos, al desactivar desmarca todos)
+  const handleNewSiteApplyToAllChange = (val: boolean) => {
+    setNewSiteApplyToAll(val);
+    setNewSiteDeviceIds(val ? getAllDeviceIds() : []);
+  };
+
+  const handleNewAppApplyToAllChange = (val: boolean) => {
+    setNewAppApplyToAll(val);
+    setNewAppDeviceIds(val ? getAllDeviceIds() : []);
+  };
+
+  const handleEditSiteApplyToAllChange = (val: boolean) => {
+    setEditSiteApplyToAll(val);
+    setEditSiteDeviceIds(val ? getAllDeviceIds() : []);
+  };
+
+  // Handlers para toggle individual de dispositivos (sincroniza con Regla Global)
+  const handleToggleNewSiteDevice = (deviceId: string) => {
+    const allIds = getAllDeviceIds();
+    let updatedIds: string[];
+    if (newSiteDeviceIds.includes(deviceId)) {
+      updatedIds = newSiteDeviceIds.filter((id) => id !== deviceId);
+    } else {
+      updatedIds = [...newSiteDeviceIds, deviceId];
+    }
+    setNewSiteDeviceIds(updatedIds);
+    setNewSiteApplyToAll(allIds.length > 0 && allIds.every((id) => updatedIds.includes(id)));
+  };
+
+  const handleToggleNewAppDevice = (deviceId: string) => {
+    const allIds = getAllDeviceIds();
+    let updatedIds: string[];
+    if (newAppDeviceIds.includes(deviceId)) {
+      updatedIds = newAppDeviceIds.filter((id) => id !== deviceId);
+    } else {
+      updatedIds = [...newAppDeviceIds, deviceId];
+    }
+    setNewAppDeviceIds(updatedIds);
+    setNewAppApplyToAll(allIds.length > 0 && allIds.every((id) => updatedIds.includes(id)));
+  };
+
+  const handleToggleEditSiteDevice = (deviceId: string) => {
+    const allIds = getAllDeviceIds();
+    let updatedIds: string[];
+    if (editSiteDeviceIds.includes(deviceId)) {
+      updatedIds = editSiteDeviceIds.filter((id) => id !== deviceId);
+    } else {
+      updatedIds = [...editSiteDeviceIds, deviceId];
+    }
+    setEditSiteDeviceIds(updatedIds);
+    setEditSiteApplyToAll(allIds.length > 0 && allIds.every((id) => updatedIds.includes(id)));
+  };
 
   useEffect(() => {
     loadApps();
@@ -85,9 +161,9 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
     if (onSetAddHandler) {
       onSetAddHandler(() => {
         if (activeSubTab === 'sites') {
-          setShowAddSiteModal(true);
+          handleOpenAddSite();
         } else {
-          setShowAddAppModal(true);
+          handleOpenAddApp();
         }
       });
     }
@@ -102,30 +178,13 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
     }
   };
 
-  const toggleDeviceSelection = (deviceId: string, isEditing: boolean = false) => {
-    const setIds = isEditing ? setEditSiteDeviceIds : setNewSiteDeviceIds;
-    const currentIds = isEditing ? editSiteDeviceIds : newSiteDeviceIds;
-    const setApplyToAll = isEditing ? setEditSiteApplyToAll : setNewSiteApplyToAll;
-
-    let updatedIds: string[];
-    if (currentIds.includes(deviceId)) {
-      updatedIds = currentIds.filter((id) => id !== deviceId);
-    } else {
-      updatedIds = [...currentIds, deviceId];
-    }
-
-    setIds(updatedIds);
-
-    const totalDevices = devices.length + 1;
-    if (updatedIds.length === totalDevices) {
-      setApplyToAll(true);
-      setIds([]);
-    }
-  };
-
   const handleAddSite = async () => {
-    if (!newSiteDomain.trim()) {
-      Alert.alert('Campo Requerido', 'Ingresa un dominio válido (ej. casino-ilegal.bet).');
+    if (!newSiteDomain.trim() || !isValidDomainOrUrl(newSiteDomain)) {
+      Alert.alert('Dominio Inválido', 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet o https://...).');
+      return;
+    }
+    if (!newSiteApplyToAll && newSiteDeviceIds.length === 0) {
+      Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
       return;
     }
     setLoadingSite(true);
@@ -137,7 +196,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         newSiteDeviceIds
       );
       setNewSiteDomain('');
-      setNewSiteApplyToAll(true);
+      setNewSiteApplyToAll(false);
       setNewSiteDeviceIds([]);
       setShowAddSiteModal(false);
       onRefreshList();
@@ -153,14 +212,23 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
     setEditingSite(site);
     setEditSiteDomain(site.domain);
     setEditSiteCategory(site.category || 'Apuestas');
-    setEditSiteApplyToAll(site.applyToAll !== false);
-    setEditSiteDeviceIds(site.deviceIds || []);
+    const isGlobal = site.applyToAll !== false;
+    setEditSiteApplyToAll(isGlobal);
+    if (isGlobal) {
+      setEditSiteDeviceIds(getAllDeviceIds());
+    } else {
+      setEditSiteDeviceIds(site.deviceIds || []);
+    }
   };
 
   const handleSaveEditSite = async () => {
     if (!editingSite) return;
-    if (!editSiteDomain.trim()) {
-      Alert.alert('Campo Requerido', 'El dominio no puede quedar vacío.');
+    if (!editSiteDomain.trim() || !isValidDomainOrUrl(editSiteDomain)) {
+      Alert.alert('Dominio Inválido', 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet).');
+      return;
+    }
+    if (!editSiteApplyToAll && editSiteDeviceIds.length === 0) {
+      Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
       return;
     }
     setLoadingSite(true);
@@ -271,6 +339,10 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
       Alert.alert('Campo Requerido', 'Ingresa el nombre de la aplicación.');
       return;
     }
+    if (!newAppApplyToAll && newAppDeviceIds.length === 0) {
+      Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
+      return;
+    }
     setLoadingSite(true);
     try {
       const pkg = newAppPackage.trim() || `com.${newAppName.toLowerCase().replace(/\s+/g, '')}.app`;
@@ -284,7 +356,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
       );
       setNewAppName('');
       setNewAppPackage('');
-      setNewAppApplyToAll(true);
+      setNewAppApplyToAll(false);
       setNewAppDeviceIds([]);
       setNewAppDailyLimit(undefined);
       setShowAddAppModal(false);
@@ -605,7 +677,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
       {!hideInternalFab && (
         <FabWithTooltip
           label={activeSubTab === 'sites' ? 'Bloquear sitio' : 'Bloquear app'}
-          onPress={() => (activeSubTab === 'sites' ? setShowAddSiteModal(true) : setShowAddAppModal(true))}
+          onPress={() => (activeSubTab === 'sites' ? handleOpenAddSite() : handleOpenAddApp())}
         />
       )}
 
@@ -618,10 +690,10 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         category={newSiteCategory}
         onCategoryChange={setNewSiteCategory}
         applyToAll={newSiteApplyToAll}
-        onApplyToAllChange={setNewSiteApplyToAll}
+        onApplyToAllChange={handleNewSiteApplyToAllChange}
         deviceIds={newSiteDeviceIds}
         devices={devices}
-        onToggleDevice={(id) => toggleDeviceSelection(id, false)}
+        onToggleDevice={handleToggleNewSiteDevice}
         loading={loadingSite}
         onSave={handleAddSite}
       />
@@ -634,10 +706,10 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         category={editSiteCategory}
         onCategoryChange={setEditSiteCategory}
         applyToAll={editSiteApplyToAll}
-        onApplyToAllChange={setEditSiteApplyToAll}
+        onApplyToAllChange={handleEditSiteApplyToAllChange}
         deviceIds={editSiteDeviceIds}
         devices={devices}
-        onToggleDevice={(id) => toggleDeviceSelection(id, true)}
+        onToggleDevice={handleToggleEditSiteDevice}
         loading={loadingSite}
         onSave={handleSaveEditSite}
       />
@@ -656,16 +728,10 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         category={newAppCategory}
         onCategoryChange={setNewAppCategory}
         applyToAll={newAppApplyToAll}
-        onApplyToAllChange={setNewAppApplyToAll}
+        onApplyToAllChange={handleNewAppApplyToAllChange}
         deviceIds={newAppDeviceIds}
         devices={devices}
-        onToggleDevice={(id) => {
-          if (newAppDeviceIds.includes(id)) {
-            setNewAppDeviceIds(newAppDeviceIds.filter((d) => d !== id));
-          } else {
-            setNewAppDeviceIds([...newAppDeviceIds, id]);
-          }
-        }}
+        onToggleDevice={handleToggleNewAppDevice}
         dailyLimitMinutes={newAppDailyLimit}
         onDailyLimitChange={setNewAppDailyLimit}
         loading={loadingSite}

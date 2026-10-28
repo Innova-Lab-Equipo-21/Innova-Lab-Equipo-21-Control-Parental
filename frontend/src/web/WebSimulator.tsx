@@ -30,19 +30,20 @@ type GenderOption = 'Masculino' | 'Femenino' | 'Otro' | 'No informado';
 export const WebSimulator: React.FC = () => {
   // 1) Paso 1 por defecto: ONBOARDING
   const [appMode, setAppMode] = useState<SimulatorAppMode>('ONBOARDING');
-  const [targetFlow, setTargetFlow] = useState<'PARENT' | 'CHILD'>('PARENT');
+  const [targetFlow, setTargetFlow] = useState<'PARENT' | 'CHILD' | 'ADULT'>('PARENT');
   const [onboardingStep, setOnboardingStep] = useState<1 | 2 | 3>(1);
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [apiConnected, setApiConnected] = useState(false);
 
-  // Estados de Permisos del Dispositivo
+  // Estados de Permisos del Dispositivo (Todos inician desactivados)
   const [webPermissions, setWebPermissions] = useState<WebPermissionsState>({
     vpn: false,
     accessibility: false,
-    notifications: true,
+    notifications: false,
     batteryOptimization: false,
     location: false,
+    usageStats: false,
   });
 
   // Estados de Onboarding y Videos Explicativos
@@ -145,6 +146,7 @@ export const WebSimulator: React.FC = () => {
     webPermissions.notifications,
     webPermissions.batteryOptimization,
     webPermissions.location,
+    webPermissions.usageStats,
   ].filter(Boolean).length;
 
   // Registrar entrada en consola de telemetría

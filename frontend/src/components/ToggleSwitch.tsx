@@ -5,8 +5,7 @@
 // ==============================================================================
 
 import React from 'react';
-import { Switch, StyleSheet, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { TouchableOpacity, View, StyleSheet } from 'react-native';
 
 interface ToggleSwitchProps {
   value: boolean;
@@ -20,24 +19,60 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   disabled = false,
 }) => {
   return (
-    <View style={styles.container}>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        disabled={disabled}
-        trackColor={{
-          false: colors.border,
-          true: colors.primary,
-        }}
-        thumbColor={colors.surface}
+    <TouchableOpacity
+      activeOpacity={0.8}
+      disabled={disabled}
+      onPress={() => onValueChange(!value)}
+      style={[
+        styles.track,
+        value ? styles.trackActive : styles.trackInactive,
+        disabled && styles.disabled,
+      ]}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value, disabled }}
+    >
+      <View
+        style={[
+          styles.thumb,
+          value ? styles.thumbActive : styles.thumbInactive,
+        ]}
       />
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  track: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    padding: 2,
     justifyContent: 'center',
-    alignItems: 'center',
+  },
+  trackActive: {
+    backgroundColor: '#007AFF',
+  },
+  trackInactive: {
+    backgroundColor: '#D1D5DB',
+  },
+  thumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1.5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 2.5,
+  },
+  thumbActive: {
+    alignSelf: 'flex-end',
+  },
+  thumbInactive: {
+    alignSelf: 'flex-start',
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });

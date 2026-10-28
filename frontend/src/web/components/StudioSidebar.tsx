@@ -21,13 +21,13 @@ interface StudioSidebarProps {
   apiConnected: boolean;
   apiBase: string;
   appMode: SimulatorAppMode;
-  targetFlow: 'PARENT' | 'CHILD';
+  targetFlow: 'PARENT' | 'CHILD' | 'ADULT';
   grantedPermsCount: number;
   devicesCount: number;
   maxDevices: number;
   selfControlActive: boolean;
   logs: LogEntry[];
-  onSelectMode: (mode: SimulatorAppMode, flow?: 'PARENT' | 'CHILD') => void;
+  onSelectMode: (mode: SimulatorAppMode, flow?: 'PARENT' | 'CHILD' | 'ADULT') => void;
   onClearLogs: () => void;
 }
 

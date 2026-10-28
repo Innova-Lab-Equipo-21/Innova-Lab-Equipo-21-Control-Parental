@@ -22,6 +22,7 @@ import { calculateAge } from '../../../utils/age';
 interface ProfileSectionProps {
   currentUser: any;
   onUpdateUser?: (updated: any) => void;
+  onDeleteAccount?: () => void;
 }
 
 export const ProfileSection: React.FC<ProfileSectionProps> = ({

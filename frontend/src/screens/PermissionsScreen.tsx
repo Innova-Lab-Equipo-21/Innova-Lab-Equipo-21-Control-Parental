@@ -2,9 +2,9 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla de Solicitud de Permisos del Dispositivo)
 // Archivo: src/screens/PermissionsScreen.tsx
-// Descripción: Pantalla de solicitud y explicación pedagógica de los 5 permisos
-//              esenciales con modelo visual de acordeón, cabecera institucional
-//              #EAF3FF y retorno a LoginForm.
+// Descripción: Pantalla de solicitud y explicación pedagógica de los 6 permisos
+//              esenciales con selector toggle interactivo, paso a paso detallado,
+//              común para Responsable y Protegido, y CTA Volver.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { styles } from './PermissionsScreen.styles';
 import { Icon } from '../components/Icon';
+import { ToggleSwitch } from '../components/ToggleSwitch';
 import { colors } from '../theme/colors';
 import { vpnServiceBridge } from '../services/vpn.service';
 import { apiService } from '../services/api.service';
@@ -39,43 +40,41 @@ export interface PermissionItemState {
   usageStats: boolean;
 }
 
+interface PermissionConfig {
+  key: keyof PermissionItemState;
+  title: string;
+  subtitle: string;
+  detailedText: string;
+  steps: string[];
+  actionLabel: string;
+  onAction: () => void;
+  loadingKey: string;
+}
+
 export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   onPermissionsComplete,
   onBack,
   flowSource = 'DEVICE_PAIRING',
 }) => {
+  // Todas las autorizaciones inician desactivadas (false)
   const [permissions, setPermissions] = useState<PermissionItemState>({
     vpn: false,
     accessibility: false,
-    notifications: true,
+    notifications: false,
     batteryOptimization: false,
     location: false,
     usageStats: false,
   });
 
-  // Control de acordeón desplegable individual (el 4to permiso inicia expandido como en el modelo)
-  const [expandedItems, setExpandedItems] = useState<{ [key: string]: boolean }>({
-    batteryOptimization: true,
-  });
+  // Solo un card puede estar abierto a la vez (los demás se cierran automáticamente)
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const [locationAddress, setLocationAddress] = useState<string | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   const toggleExpand = (key: string) => {
-    setExpandedItems((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setExpandedKey((prev) => (prev === key ? null : key));
   };
-
-  const grantedCount = [
-    permissions.vpn,
-    permissions.accessibility,
-    permissions.notifications,
-    permissions.batteryOptimization,
-    permissions.location,
-    permissions.usageStats,
-  ].filter(Boolean).length;
 
   const handleBackToLogin = () => {
     if (onBack) {
@@ -104,14 +103,14 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       setLoadingKey(null);
       Alert.alert(
         'Servicio de accesibilidad activado',
-        'Se activó la protección antidesinstalación. Se requerirá PIN para cerrar la app.',
+        'Se activó la protección antidesinstalación. Se requerirá PIN para cerrar o desinstalar la app.',
       );
     }, 600);
   };
 
   const handleRequestNotifications = () => {
     setPermissions((prev) => ({ ...prev, notifications: true }));
-    Alert.alert('Notificaciones habilitadas', 'Recibirás alertas en tiempo real y avisos de estado.');
+    Alert.alert('Notificaciones habilitadas', 'Recibirás alertas en tiempo real y avisos de estado de supervisión.');
   };
 
   const handleRequestBattery = () => {
@@ -119,7 +118,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     setTimeout(() => {
       setPermissions((prev) => ({ ...prev, batteryOptimization: true }));
       setLoadingKey(null);
-      Alert.alert('Exención de batería concedida', 'El motor continuará protegiendo en segundo plano.');
+      Alert.alert('Exención de batería concedida', 'El motor continuará protegiendo ininterrumpidamente en segundo plano.');
     }, 600);
   };
 
@@ -216,20 +215,130 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     }
   };
 
-  const handleGrantAll = async () => {
-    const demoAddress = 'Av. Corrientes 1234, CABA, Argentina (Demo GPS)';
-    setLocationAddress(demoAddress);
-    setPermissions({
-      vpn: true,
-      accessibility: true,
-      notifications: true,
-      batteryOptimization: true,
-      location: true,
-      usageStats: true,
-    });
-    await apiService.saveUserLocation({ address: demoAddress, source: 'GPS' });
-    Alert.alert('Permisos otorgados', 'Se han configurado todos los 6 permisos del sistema.');
+  const handleTogglePermission = (key: keyof PermissionItemState) => {
+    if (permissions[key]) {
+      // Desactivar permiso
+      setPermissions((prev) => ({ ...prev, [key]: false }));
+      if (key === 'location') {
+        setLocationAddress(null);
+      }
+    } else {
+      // Activar permiso mediante su flujo específico
+      switch (key) {
+        case 'vpn':
+          handleRequestVpn();
+          break;
+        case 'accessibility':
+          handleRequestAccessibility();
+          break;
+        case 'notifications':
+          handleRequestNotifications();
+          break;
+        case 'batteryOptimization':
+          handleRequestBattery();
+          break;
+        case 'location':
+          handleRequestLocation();
+          break;
+        case 'usageStats':
+          handleRequestUsageStats();
+          break;
+      }
+    }
   };
+
+  const permissionConfigs: PermissionConfig[] = [
+    {
+      key: 'vpn',
+      title: 'Servicio de filtrado VPN',
+      subtitle: 'Bloqueo de sitios de apuestas y contenido no seguro',
+      detailedText:
+        'Crea un túnel local en el dispositivo para interceptar y bloquear solicitudes a casas de apuestas clandestinas de la lista oficial LOTBA, sin enviar tu tráfico a servidores externos.',
+      steps: [
+        'Activá el interruptor del permiso.',
+        "En el diálogo del sistema 'Solicitud de conexión', confirmá tocando Aceptar.",
+        'Verificá que aparezca el ícono de llave o escudo en la barra de notificaciones superior.',
+      ],
+      actionLabel: 'Autorizar filtrado VPN',
+      onAction: handleRequestVpn,
+      loadingKey: 'vpn',
+    },
+    {
+      key: 'accessibility',
+      title: 'Servicio de accesibilidad',
+      subtitle: 'Protección antidesinstalación y cierre forzado',
+      detailedText:
+        'Protección antidesinstalación: impide que el menor o un tercero cierre forzadamente la app, la suspenda o la elimine sin autorizar previamente el PIN del tutor responsable.',
+      steps: [
+        'Activá el interruptor para abrir Ajustes de Accesibilidad.',
+        "Buscá y seleccioná 'BA Protege+' en la lista de aplicaciones instaladas.",
+        "Activá el servicio y confirmá tocando 'Permitir' en la ventana de advertencia.",
+      ],
+      actionLabel: 'Activar servicio de accesibilidad',
+      onAction: handleRequestAccessibility,
+      loadingKey: 'accessibility',
+    },
+    {
+      key: 'notifications',
+      title: 'Notificaciones del sistema',
+      subtitle: 'Alertas inmediatas y estado de supervisión',
+      detailedText:
+        'Mantiene la notificación de servicio persistente de seguridad en la barra de estado y envía alertas instantáneas de intentos de bloqueo o límites alcanzados.',
+      steps: [
+        'Activá el interruptor para habilitar las notificaciones.',
+        "En la ventana emergente de permisos de Android, seleccioná 'Permitir'.",
+        'Comprobá que las alertas del sistema no queden silenciadas.',
+      ],
+      actionLabel: 'Permitir notificaciones',
+      onAction: handleRequestNotifications,
+      loadingKey: 'notifications',
+    },
+    {
+      key: 'batteryOptimization',
+      title: 'Optimización de batería',
+      subtitle: 'Protección continua con pantalla apagada',
+      detailedText:
+        'Evita que el ahorro de energía de Android suspenda o detenga el motor de filtrado cuando el celular esté con pantalla apagada o en reposo prolongado.',
+      steps: [
+        'Activá el interruptor de exención de batería.',
+        "En el aviso del sistema '¿Ignorar optimizaciones de batería?', elegí 'Permitir' (o Sin restricciones).",
+        'La app quedará autorizada para operar ininterrumpidamente en segundo plano.',
+      ],
+      actionLabel: 'Conceder exención de batería',
+      onAction: handleRequestBattery,
+      loadingKey: 'battery',
+    },
+    {
+      key: 'location',
+      title: 'Ubicación y geolocalización',
+      subtitle: 'Registro de localización y seguridad familiar',
+      detailedText:
+        'Utiliza el sensor GPS del dispositivo para registrar la dirección exacta para el responsable. Si el permiso no es otorgado o no hay señal GPS satelital, el sistema obtiene la ubicación aproximada basada en la red IP.',
+      steps: [
+        'Activá el interruptor del permiso de ubicación.',
+        "En el diálogo del sistema, seleccioná 'Mientras la app está en uso' o 'Siempre'.",
+        'Asegurate de mantener activada la ubicación precisa del dispositivo.',
+      ],
+      actionLabel: 'Autorizar permiso de ubicación (GPS)',
+      onAction: handleRequestLocation,
+      loadingKey: 'location',
+    },
+    {
+      key: 'usageStats',
+      title: 'Estadísticas de uso de aplicaciones',
+      subtitle: 'Supervisión de tiempo en pantalla y límites',
+      detailedText:
+        'Necesario para supervisar el tiempo en primer plano de las aplicaciones y hacer cumplir los horarios y límites de tiempo diario configurados por el responsable.',
+      steps: [
+        "Activá el interruptor para abrir la sección 'Acceso de uso' en Ajustes.",
+        "Localizá y seleccioná 'BA Protege+' en la lista de aplicaciones.",
+        "Habilitá la opción 'Permitir seguimiento de uso' (o acceso a datos de uso).",
+      ],
+      actionLabel: 'Autorizar estadísticas de uso',
+      onAction: handleRequestUsageStats,
+      loadingKey: 'usageStats',
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -243,7 +352,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         />
       </View>
 
-      {/* 2. Subheader con botón volver, ícono volver.png y título 'Permisos del Dispositivo' */}
+      {/* 2. Subheader con botón volver, ícono volver.png y título 'Permisos de aplicación' */}
       <View style={styles.subHeaderRow}>
         <View style={styles.subHeaderLeft}>
           <TouchableOpacity
@@ -251,7 +360,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
             onPress={handleBackToLogin}
             activeOpacity={0.7}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityLabel="Volver al inicio de sesión"
+            accessibilityLabel="Volver a la pantalla anterior"
           >
             <Image
               source={require('../assets/icons/volver.png')}
@@ -264,446 +373,119 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Banner / Tarjeta de información azul (Estilo CARD 1 de WelcomeScreen) */}
+        {/* Banner / Tarjeta de información azul institucional */}
         <View style={styles.infoBox}>
           <View style={styles.infoHeader}>
-            <Icon name="escudo" size={24} color={colors.primary} style={styles.infoIcon} />
+            <Icon name="escudo" size={18} color={colors.primary} style={styles.infoIcon} />
             <Text style={styles.infoTitle}>Configurá tu dispositivo</Text>
           </View>
           <Text style={styles.infoDescription}>
-            Toca cada permiso para desplegar su explicación y autorizarlo. Se requieren los 6 permisos para garantizar protección continua, límites de tiempo de uso y ubicación segura.
+            Activá los 6 permisos para garantizar la protección continua y supervisión del dispositivo.
           </Text>
         </View>
 
-        {/* Permiso 1: Servicio de filtrado VPN */}
-        <View style={styles.permCard}>
-          <TouchableOpacity
-            style={styles.permCardHeader}
-            onPress={() => toggleExpand('vpn')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.permTextColumn}>
-              <Text style={styles.permTitle}>Servicio de filtrado VPN</Text>
-              <Text style={styles.permSubtitle}>
-                Para continuar ingresa el código numérico que aparece en el dispositivo a vincular
-              </Text>
-            </View>
-            <View style={styles.permRightColumn}>
-              <View
-                style={[
-                  styles.statusBadge,
-                  permissions.vpn ? styles.statusBadgeActive : styles.statusBadgeInactive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusBadgeText,
-                    permissions.vpn ? styles.statusBadgeTextActive : styles.statusBadgeTextInactive,
-                  ]}
-                >
-                  {permissions.vpn ? 'Activo' : 'Inactivo'}
-                </Text>
-              </View>
-              <Text style={styles.chevronIcon}>{expandedItems.vpn ? '∧' : '∨'}</Text>
-            </View>
-          </TouchableOpacity>
+        {/* Contenedor distribuido de tarjetas de permisos */}
+        <View style={styles.cardsContainer}>
+          {permissionConfigs.map((item) => {
+            const isGranted = permissions[item.key];
+            const isExpanded = expandedKey === item.key;
+            const isLoading = loadingKey === item.loadingKey;
 
-          {expandedItems.vpn && (
-            <View style={styles.expandedSection}>
-              <View style={styles.cardDivider} />
-              <Text style={styles.expandedPromptText}>
-                Para continuar ingresa el código numérico que aparece en el dispositivo a vincular
-              </Text>
-              <Text style={styles.expandedDetailedText}>
-                Crea un túnel local en el dispositivo para interceptar y bloquear solicitudes a casas de apuestas clandestinas de la lista oficial LOTBA.
-              </Text>
-              <View style={styles.actionButtonRow}>
-                {permissions.vpn ? (
-                  <View style={styles.activeNotice}>
-                    <Text style={styles.activeNoticeText}>✓ Permiso concedido y en funcionamiento</Text>
+            return (
+              <View key={item.key} style={styles.permCard}>
+                <TouchableOpacity
+                  style={styles.permCardHeader}
+                  onPress={() => toggleExpand(item.key)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.permTextColumn}>
+                    <Text style={styles.permTitle}>{item.title}</Text>
+                    <Text style={styles.permSubtitle}>{item.subtitle}</Text>
                   </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.continueButton}
-                    onPress={handleRequestVpn}
-                    disabled={loadingKey === 'vpn'}
-                    activeOpacity={0.8}
-                  >
-                    {loadingKey === 'vpn' ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.continueButtonText}>Autorizar filtrado VPN</Text>
+                  <View style={styles.permRightColumn}>
+                    <View style={styles.toggleWrapper}>
+                      <ToggleSwitch
+                        value={isGranted}
+                        onValueChange={() => handleTogglePermission(item.key)}
+                        disabled={isLoading}
+                      />
+                    </View>
+                    <Text style={styles.chevronIcon}>{isExpanded ? '∧' : '∨'}</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {isExpanded && (
+                  <View style={styles.expandedSection}>
+                    <View style={styles.cardDivider} />
+                    <Text style={styles.expandedDetailedText}>{item.detailedText}</Text>
+
+                    {/* Bloque paso a paso pedagógico */}
+                    <View style={styles.stepsContainer}>
+                      <Text style={styles.stepsTitle}>Pasos para activar:</Text>
+                      {item.steps.map((step, idx) => (
+                        <View key={idx} style={styles.stepItem}>
+                          <View style={styles.stepNumberBadge}>
+                            <Text style={styles.stepNumberText}>{idx + 1}</Text>
+                          </View>
+                          <Text style={styles.stepText}>{step}</Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {item.key === 'location' && locationAddress && (
+                      <View style={styles.locationBox}>
+                        <Text style={styles.locationBoxLabel}>📍 Dirección / ubicación registrada:</Text>
+                        <Text style={styles.locationBoxValue}>{locationAddress}</Text>
+                      </View>
                     )}
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          )}
-        </View>
 
-        {/* Permiso 2: Servicio de accesibilidad */}
-        <View style={styles.permCard}>
-          <TouchableOpacity
-            style={styles.permCardHeader}
-            onPress={() => toggleExpand('accessibility')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.permTextColumn}>
-              <Text style={styles.permTitle}>Servicio de accesibilidad</Text>
-              <Text style={styles.permSubtitle}>
-                Para continuar ingresa el código numérico que aparece en el dispositivo a vincular
-              </Text>
-            </View>
-            <View style={styles.permRightColumn}>
-              <View
-                style={[
-                  styles.statusBadge,
-                  permissions.accessibility ? styles.statusBadgeActive : styles.statusBadgeInactive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusBadgeText,
-                    permissions.accessibility
-                      ? styles.statusBadgeTextActive
-                      : styles.statusBadgeTextInactive,
-                  ]}
-                >
-                  {permissions.accessibility ? 'Activo' : 'Inactivo'}
-                </Text>
-              </View>
-              <Text style={styles.chevronIcon}>{expandedItems.accessibility ? '∧' : '∨'}</Text>
-            </View>
-          </TouchableOpacity>
-
-          {expandedItems.accessibility && (
-            <View style={styles.expandedSection}>
-              <View style={styles.cardDivider} />
-              <Text style={styles.expandedPromptText}>
-                Para continuar ingresa el código numérico que aparece en el dispositivo a vincular
-              </Text>
-              <Text style={styles.expandedDetailedText}>
-                Protección antidesinstalación: impide que el menor o un tercero cierre forzadamente la app o la elimine sin autorizar el PIN del tutor.
-              </Text>
-              <View style={styles.actionButtonRow}>
-                {permissions.accessibility ? (
-                  <View style={styles.activeNotice}>
-                    <Text style={styles.activeNoticeText}>✓ Permiso concedido y en funcionamiento</Text>
+                    <View style={styles.actionButtonRow}>
+                      {isGranted ? (
+                        <View style={styles.activeNotice}>
+                          <Text style={styles.activeNoticeText}>✓ Permiso concedido y en funcionamiento</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.continueButton}
+                          onPress={item.onAction}
+                          disabled={isLoading}
+                          activeOpacity={0.8}
+                        >
+                          {isLoading ? (
+                            <ActivityIndicator color="#FFFFFF" size="small" />
+                          ) : (
+                            <Text style={styles.continueButtonText}>{item.actionLabel}</Text>
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.continueButton}
-                    onPress={handleRequestAccessibility}
-                    disabled={loadingKey === 'accessibility'}
-                    activeOpacity={0.8}
-                  >
-                    {loadingKey === 'accessibility' ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.continueButtonText}>Activar servicio de accesibilidad</Text>
-                    )}
-                  </TouchableOpacity>
                 )}
               </View>
-            </View>
-          )}
+            );
+          })}
         </View>
 
-        {/* Permiso 3: Notificaciones del sistema */}
-        <View style={styles.permCard}>
-          <TouchableOpacity
-            style={styles.permCardHeader}
-            onPress={() => toggleExpand('notifications')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.permTextColumn}>
-              <Text style={styles.permTitle}>Notificaciones del sistema</Text>
-              <Text style={styles.permSubtitle}>
-                Para continuar ingresa el código numérico que aparece en el dispositivo a vincular
-              </Text>
-            </View>
-            <View style={styles.permRightColumn}>
-              <View
-                style={[
-                  styles.statusBadge,
-                  permissions.notifications ? styles.statusBadgeActive : styles.statusBadgeInactive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusBadgeText,
-                    permissions.notifications
-                      ? styles.statusBadgeTextActive
-                      : styles.statusBadgeTextInactive,
-                  ]}
-                >
-                  {permissions.notifications ? 'Activo' : 'Inactivo'}
-                </Text>
-              </View>
-              <Text style={styles.chevronIcon}>{expandedItems.notifications ? '∧' : '∨'}</Text>
-            </View>
-          </TouchableOpacity>
-
-          {expandedItems.notifications && (
-            <View style={styles.expandedSection}>
-              <View style={styles.cardDivider} />
-              <Text style={styles.expandedPromptText}>
-                Para continuar ingresa el código numérico que aparece en el dispositivo a vincular
-              </Text>
-              <Text style={styles.expandedDetailedText}>
-                Mantiene la notificación de servicio persistente de seguridad en la barra de estado y envía alertas de intento de bloqueo.
-              </Text>
-              <View style={styles.actionButtonRow}>
-                {permissions.notifications ? (
-                  <View style={styles.activeNotice}>
-                    <Text style={styles.activeNoticeText}>✓ Permiso concedido y en funcionamiento</Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.continueButton}
-                    onPress={handleRequestNotifications}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.continueButtonText}>Permitir notificaciones</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Permiso 4: Optimización de batería */}
-        <View style={styles.permCard}>
-          <TouchableOpacity
-            style={styles.permCardHeader}
-            onPress={() => toggleExpand('batteryOptimization')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.permTextColumn}>
-              <Text style={styles.permTitle}>Optimización de batería</Text>
-              <Text style={styles.permSubtitle}>
-                Para continuar ingresa el código numérico que aparece en el dispositivo a vincular
-              </Text>
-            </View>
-            <View style={styles.permRightColumn}>
-              <View
-                style={[
-                  styles.statusBadge,
-                  permissions.batteryOptimization
-                    ? styles.statusBadgeActive
-                    : styles.statusBadgeInactive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusBadgeText,
-                    permissions.batteryOptimization
-                      ? styles.statusBadgeTextActive
-                      : styles.statusBadgeTextInactive,
-                  ]}
-                >
-                  {permissions.batteryOptimization ? 'Activo' : 'Inactivo'}
-                </Text>
-              </View>
-              <Text style={styles.chevronIcon}>{expandedItems.batteryOptimization ? '∧' : '∨'}</Text>
-            </View>
-          </TouchableOpacity>
-
-          {expandedItems.batteryOptimization && (
-            <View style={styles.expandedSection}>
-              <View style={styles.cardDivider} />
-              <Text style={styles.expandedPromptText}>
-                Para continuar ingresa el código numérico que aparece en el dispositivo a vincular
-              </Text>
-              <Text style={styles.expandedDetailedText}>
-                Evita que el ahorro de energía de Android suspenda o detenga el motor de filtrado cuando el celular esté con pantalla apagada.
-              </Text>
-              <View style={styles.actionButtonRow}>
-                {permissions.batteryOptimization ? (
-                  <View style={styles.activeNotice}>
-                    <Text style={styles.activeNoticeText}>✓ Permiso concedido y en funcionamiento</Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.continueButton}
-                    onPress={handleRequestBattery}
-                    disabled={loadingKey === 'battery'}
-                    activeOpacity={0.8}
-                  >
-                    {loadingKey === 'battery' ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.continueButtonText}>Conceder exención de batería</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Permiso 5: Ubicación y geolocalización */}
-        <View style={styles.permCard}>
-          <TouchableOpacity
-            style={styles.permCardHeader}
-            onPress={() => toggleExpand('location')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.permTextColumn}>
-              <Text style={styles.permTitle}>Ubicación y geolocalización</Text>
-              <Text style={styles.permSubtitle}>
-                Para continuar ingresa el código numérico que aparece en el dispositivo a vincular
-              </Text>
-            </View>
-            <View style={styles.permRightColumn}>
-              <View
-                style={[
-                  styles.statusBadge,
-                  permissions.location ? styles.statusBadgeActive : styles.statusBadgeInactive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusBadgeText,
-                    permissions.location
-                      ? styles.statusBadgeTextActive
-                      : styles.statusBadgeTextInactive,
-                  ]}
-                >
-                  {permissions.location ? 'Activo' : 'Inactivo'}
-                </Text>
-              </View>
-              <Text style={styles.chevronIcon}>{expandedItems.location ? '∧' : '∨'}</Text>
-            </View>
-          </TouchableOpacity>
-
-          {expandedItems.location && (
-            <View style={styles.expandedSection}>
-              <View style={styles.cardDivider} />
-              <Text style={styles.expandedPromptText}>
-                Para continuar ingresa el código numérico que aparece en el dispositivo a vincular
-              </Text>
-              <Text style={styles.expandedDetailedText}>
-                Utiliza el sensor GPS del dispositivo para registrar la dirección exacta para el responsable. Si el permiso no es otorgado o no hay señal GPS, el sistema obtiene la ubicación aproximada basada en la red IP.
-              </Text>
-
-              {locationAddress && (
-                <View style={styles.locationBox}>
-                  <Text style={styles.locationBoxLabel}>📍 Dirección / ubicación registrada:</Text>
-                  <Text style={styles.locationBoxValue}>{locationAddress}</Text>
-                </View>
-              )}
-
-              <View style={styles.actionButtonRow}>
-                {permissions.location ? (
-                  <View style={styles.activeNotice}>
-                    <Text style={styles.activeNoticeText}>✓ Permiso concedido y en funcionamiento</Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.continueButton}
-                    onPress={handleRequestLocation}
-                    disabled={loadingKey === 'location'}
-                    activeOpacity={0.8}
-                  >
-                    {loadingKey === 'location' ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.continueButtonText}>Autorizar permiso de ubicación (GPS)</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Permiso 6: Estadísticas de uso de aplicaciones (Límites de tiempo) */}
-        <View style={styles.permCard}>
-          <TouchableOpacity
-            style={styles.permCardHeader}
-            onPress={() => toggleExpand('usageStats')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.permTextColumn}>
-              <Text style={styles.permTitle}>Estadísticas de uso de aplicaciones</Text>
-              <Text style={styles.permSubtitle}>
-                Permite medir el tiempo de pantalla y aplicar límites diarios de uso por aplicación
-              </Text>
-            </View>
-            <View style={styles.permRightColumn}>
-              <View
-                style={[
-                  styles.statusBadge,
-                  permissions.usageStats ? styles.statusBadgeActive : styles.statusBadgeInactive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusBadgeText,
-                    permissions.usageStats
-                      ? styles.statusBadgeTextActive
-                      : styles.statusBadgeTextInactive,
-                  ]}
-                >
-                  {permissions.usageStats ? 'Activo' : 'Inactivo'}
-                </Text>
-              </View>
-              <Text style={styles.chevronIcon}>{expandedItems.usageStats ? '∧' : '∨'}</Text>
-            </View>
-          </TouchableOpacity>
-
-          {expandedItems.usageStats && (
-            <View style={styles.expandedSection}>
-              <View style={styles.cardDivider} />
-              <Text style={styles.expandedPromptText}>
-                Acceso a estadísticas de uso (PACKAGE_USAGE_STATS)
-              </Text>
-              <Text style={styles.expandedDetailedText}>
-                Necesario para supervisar el tiempo en primer plano de las aplicaciones y hacer cumplir los límites de tiempo diario configurados por el responsable.
-              </Text>
-              <View style={styles.actionButtonRow}>
-                {permissions.usageStats ? (
-                  <View style={styles.activeNotice}>
-                    <Text style={styles.activeNoticeText}>✓ Permiso concedido y en funcionamiento</Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.continueButton}
-                    onPress={handleRequestUsageStats}
-                    disabled={loadingKey === 'usageStats'}
-                    activeOpacity={0.8}
-                  >
-                    {loadingKey === 'usageStats' ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.continueButtonText}>Autorizar estadísticas de uso</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Botones de Acción Final */}
+        {/* Botones de Acción Final: Volver y Continuar en la misma línea */}
         <View style={styles.footerSection}>
-          {grantedCount < 6 && (
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={handleGrantAll}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.demoButtonText}>Conceder todos los permisos (demo)</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.backButtonSecondary}
+            onPress={handleBackToLogin}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.backButtonSecondaryText} numberOfLines={1}>
+              Volver
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.continueButton}
             onPress={onPermissionsComplete}
             activeOpacity={0.8}
           >
-            <Text style={styles.continueButtonText}>Continuar a la aplicación ➔</Text>
+            <Text style={styles.continueButtonText} numberOfLines={1}>
+              Continuar
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
