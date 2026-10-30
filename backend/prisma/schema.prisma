@@ -30,58 +30,58 @@ enum Gender {
 // Enum de Estados Efectivos de Protección (Reportados por Telemetría / Heartbeat)
 // ------------------------------------------------------------------------------
 enum ProtectionStatus {
-  ACTIVE               // Protección VPN activa y filtrando tráfico correctamente
-  INACTIVE             // Protección apagada intencionalmente o pausada
-  STARTING             // Servicio VPN en proceso de arranque
-  ERROR                // Falla en el servicio o motor de protección
-  PERMISSION_REQUIRED  // Permiso de VPN o accesibilidad revocado
-  SYNC_PENDING         // Pendiente de sincronizar última versión de la lista LOTBA
-  OUTDATED             // Versión de lista desactualizada
-  BYPASS_DETECTED      // Intento de evasión o desconfiguración detectado
-  UNKNOWN              // Sin comunicación reciente (heartbeat vencido)
+  ACTIVE // Protección VPN activa y filtrando tráfico correctamente
+  INACTIVE // Protección apagada intencionalmente o pausada
+  STARTING // Servicio VPN en proceso de arranque
+  ERROR // Falla en el servicio o motor de protección
+  PERMISSION_REQUIRED // Permiso de VPN o accesibilidad revocado
+  SYNC_PENDING // Pendiente de sincronizar última versión de la lista LOTBA
+  OUTDATED // Versión de lista desactualizada
+  BYPASS_DETECTED // Intento de evasión o desconfiguración detectado
+  UNKNOWN // Sin comunicación reciente (heartbeat vencido)
 }
 
 // ------------------------------------------------------------------------------
 // Enum de Tipo de Lista de Bloqueo
 // ------------------------------------------------------------------------------
 enum BlocklistType {
-  OFFICIAL_LOTBA       // Lista oficial inmutable de Lotería de la Ciudad de Buenos Aires
-  CUSTOM               // Lista complementaria personalizada creada por el responsable
+  OFFICIAL_LOTBA // Lista oficial inmutable de Lotería de la Ciudad de Buenos Aires
+  CUSTOM // Lista complementaria personalizada creada por el responsable
 }
 
 // ------------------------------------------------------------------------------
 // Enum de Tipos de Eventos de Seguridad (Anti-bypass)
 // ------------------------------------------------------------------------------
 enum SecurityEventType {
-  VPN_DISABLED         // El usuario o sistema desactivó la VPN
-  PERMISSION_REVOKED   // Permisos del sistema revocados
-  APP_FORCE_STOP       // Cierre forzado de la aplicación
-  DEVICE_REBOOT        // Reinicio del dispositivo móvil
-  NETWORK_CHANGE       // Cambio de interfaz de red (Wi-Fi / Datos móviles)
-  DNS_TAMPERING        // Intento de manipulación de DNS privado
-  UNINSTALL_ATTEMPT    // Intento detectado de desinstalación de la app
+  VPN_DISABLED // El usuario o sistema desactivó la VPN
+  PERMISSION_REVOKED // Permisos del sistema revocados
+  APP_FORCE_STOP // Cierre forzado de la aplicación
+  DEVICE_REBOOT // Reinicio del dispositivo móvil
+  NETWORK_CHANGE // Cambio de interfaz de red (Wi-Fi / Datos móviles)
+  DNS_TAMPERING // Intento de manipulación de DNS privado
+  UNINSTALL_ATTEMPT // Intento detectado de desinstalación de la app
 }
 
 // ------------------------------------------------------------------------------
 // Modelo: Usuario Responsable (Padre / Madre / Tutor)
 // ------------------------------------------------------------------------------
 model User {
-  id            String          @id @default(uuid())
-  email         String          @unique
-  fullName      String          @map("full_name")
-  gender        Gender?         
-  birthDate     DateTime?       @map("birth_date") @db.Date
-   phone         String?
-   fcmToken      String?       @map("fcm_token")
-   isActive      Boolean         @default(true) @map("is_active")
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
+  id        String    @id @default(uuid())
+  email     String    @unique
+  fullName  String    @map("full_name")
+  gender    Gender?
+  birthDate DateTime? @map("birth_date") @db.Date
+  phone     String?
+  fcmToken  String?   @map("fcm_token")
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
-  devices                 Device[]
-  pairings                DevicePairing[]
-  customLists             Blocklist[]     @relation("UserCustomLists")
-  auditLogs               AuditLog[]
+  devices     Device[]
+  pairings    DevicePairing[]
+  customLists Blocklist[]     @relation("UserCustomLists")
+  auditLogs   AuditLog[]
 
   @@map("users")
 }
@@ -90,26 +90,26 @@ model User {
 // Modelo: Dispositivo Protegido (Hijo / Menor)
 // ------------------------------------------------------------------------------
 model Device {
-  id              String            @id @default(uuid())
-  userId          String            @map("user_id")
-  deviceName      String            @map("device_name")
-  deviceUuid      String            @unique @map("device_uuid")
-  childName       String?           @map("child_name")
-  model           String?
-  osVersion       String?           @map("os_version")
-  appVersion      String?           @map("app_version")
-  isActive        Boolean           @default(true) @map("is_active")
-  lastSeenAt      DateTime?         @map("last_seen_at")
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  deviceName String    @map("device_name")
+  deviceUuid String    @unique @map("device_uuid")
+  childName  String?   @map("child_name")
+  model      String?
+  osVersion  String?   @map("os_version")
+  appVersion String?   @map("app_version")
+  isActive   Boolean   @default(true) @map("is_active")
+  lastSeenAt DateTime? @map("last_seen_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status          DeviceStatus?
-  config          ProtectionConfig?
-  pairings        DevicePairing[]
-  blockedEvents   BlockedEvent[]
-  securityEvents  SecurityEvent[]
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         DeviceStatus?
+  config         ProtectionConfig?
+  pairings       DevicePairing[]
+  blockedEvents  BlockedEvent[]
+  securityEvents SecurityEvent[]
 
   @@map("devices")
 }
@@ -118,17 +118,17 @@ model Device {
 // Modelo: Códigos de Pareamiento Seguro (Pairing)
 // ------------------------------------------------------------------------------
 model DevicePairing {
-  id          String    @id @default(uuid())
-  userId      String    @map("user_id")
-  deviceId    String?   @map("device_id")
-  pairingCode String    @unique @map("pairing_code") // Código numérico de 6 dígitos o token QR
-  isUsed      Boolean   @default(false) @map("is_used")
-  expiresAt   DateTime  @map("expires_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  deviceId    String?  @map("device_id")
+  pairingCode String   @unique @map("pairing_code") // Código numérico de 6 dígitos o token QR
+  isUsed      Boolean  @default(false) @map("is_used")
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   // Relaciones
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  device      Device?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
 
   @@map("device_pairings")
 }
@@ -137,18 +137,18 @@ model DevicePairing {
 // Modelo: Configuración de Protección del Dispositivo
 // ------------------------------------------------------------------------------
 model ProtectionConfig {
-  id                  String   @id @default(uuid())
-  deviceId            String   @unique @map("device_id")
-  protectionEnabled   Boolean  @default(true) @map("protection_enabled")
-  blockGambling       Boolean  @default(true) @map("block_gambling")
-  blockCustomList     Boolean  @default(true) @map("block_custom_list")
-  notifyOnBlock       Boolean  @default(true) @map("notify_on_block")
-  notifyOnSecurity    Boolean  @default(true) @map("notify_on_security")
-  heartbeatIntervalSec Int     @default(60) @map("heartbeat_interval_sec")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                   String   @id @default(uuid())
+  deviceId             String   @unique @map("device_id")
+  protectionEnabled    Boolean  @default(true) @map("protection_enabled")
+  blockGambling        Boolean  @default(true) @map("block_gambling")
+  blockCustomList      Boolean  @default(true) @map("block_custom_list")
+  notifyOnBlock        Boolean  @default(true) @map("notify_on_block")
+  notifyOnSecurity     Boolean  @default(true) @map("notify_on_security")
+  heartbeatIntervalSec Int      @default(60) @map("heartbeat_interval_sec")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  device              Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@map("protection_configs")
 }
@@ -157,19 +157,19 @@ model ProtectionConfig {
 // Modelo: Estado Efectivo del Dispositivo (Actualizado vía Telemetría / Heartbeat)
 // ------------------------------------------------------------------------------
 model DeviceStatus {
-  id                String           @id @default(uuid())
-  deviceId          String           @unique @map("device_id")
-  effectiveStatus   ProtectionStatus @default(UNKNOWN) @map("effective_status")
-  vpnActive         Boolean          @default(false) @map("vpn_active")
-  permissionsOk     Boolean          @default(true) @map("permissions_ok")
-  batteryLevel      Int?             @map("battery_level")
-  isCharging        Boolean?         @map("is_charging")
-  blocklistVersion  Int              @default(1) @map("blocklist_version")
-  appVersion        String?          @map("app_version")
-  lastHeartbeatAt   DateTime         @default(now()) @map("last_heartbeat_at")
+  id               String           @id @default(uuid())
+  deviceId         String           @unique @map("device_id")
+  effectiveStatus  ProtectionStatus @default(UNKNOWN) @map("effective_status")
+  vpnActive        Boolean          @default(false) @map("vpn_active")
+  permissionsOk    Boolean          @default(true) @map("permissions_ok")
+  batteryLevel     Int?             @map("battery_level")
+  isCharging       Boolean?         @map("is_charging")
+  blocklistVersion Int              @default(1) @map("blocklist_version")
+  appVersion       String?          @map("app_version")
+  lastHeartbeatAt  DateTime         @default(now()) @map("last_heartbeat_at")
 
   // Relaciones
-  device            Device           @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@map("device_status")
 }
@@ -178,41 +178,56 @@ model DeviceStatus {
 // Modelo: Listas de Bloqueo (Oficial LOTBA o Personalizada de Usuario)
 // ------------------------------------------------------------------------------
 model Blocklist {
-  id          String            @id @default(uuid())
-  userId      String?           @map("user_id") // Null para la lista oficial LOTBA
+  id          String        @id @default(uuid())
+  userId      String?       @map("user_id") // Null para la lista oficial LOTBA
   name        String
   description String?
-  type        BlocklistType     @default(OFFICIAL_LOTBA)
-  version     Int               @default(1)
-  isActive    Boolean           @default(true) @map("is_active")
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  type        BlocklistType @default(OFFICIAL_LOTBA)
+  version     Int           @default(1)
+  isActive    Boolean       @default(true) @map("is_active")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
 
   // Relaciones
-  user        User?             @relation("UserCustomLists", fields: [userId], references: [id], onDelete: Cascade)
-  domains     BlocklistDomain[]
+  user    User?             @relation("UserCustomLists", fields: [userId], references: [id], onDelete: Cascade)
+  domains BlocklistDomain[]
 
   @@map("blocklists")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: Sitios Permitidos (Lista Oficial LOTBA)
+// ------------------------------------------------------------------------------
+model AllowedSite {
+  id        String   @id @default(uuid())
+  domain    String   @unique @map("domain")
+  name      String?  @map("name")
+  category  String?  @map("category")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("allowed_sites")
 }
 
 // ------------------------------------------------------------------------------
 // Modelo: Dominios Registrados en Listas de Bloqueo
 // ------------------------------------------------------------------------------
 model BlocklistDomain {
-  id          String    @id @default(uuid())
-  blocklistId String    @map("blocklist_id")
-  domain      String    // Ejemplo: "apuestas-online-ilegal.bet"
-  category    String?   @default("GAMBLING")
-  isActive    Boolean   @default(true) @map("is_active")
+  id          String  @id @default(uuid())
+  blocklistId String  @map("blocklist_id")
+  domain      String // Ejemplo: "apuestas-online-ilegal.bet"
+  category    String? @default("GAMBLING")
+  isActive    Boolean @default(true) @map("is_active")
 
   // Reglas 3 y 4: Control Global vs Granular por Dispositivo
-  applyToAll  Boolean   @default(true) @map("apply_to_all")
-  deviceIds   String[]  @map("device_ids") // IDs de los dispositivos específicos + 'self' si es el responsable
+  applyToAll Boolean  @default(true) @map("apply_to_all")
+  deviceIds  String[] @map("device_ids") // IDs de los dispositivos específicos + 'self' si es el responsable
 
-  createdAt   DateTime  @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relaciones
-  blocklist   Blocklist @relation(fields: [blocklistId], references: [id], onDelete: Cascade)
+  blocklist Blocklist @relation(fields: [blocklistId], references: [id], onDelete: Cascade)
 
   @@unique([blocklistId, domain])
   @@map("blocklist_domains")
@@ -229,7 +244,7 @@ model BlockedEvent {
   blockedAt       DateTime @default(now()) @map("blocked_at")
 
   // Relaciones
-  device          Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@index([deviceId, blockedAt])
   @@map("blocked_events")
@@ -247,7 +262,7 @@ model SecurityEvent {
   occurredAt  DateTime          @default(now()) @map("occurred_at")
 
   // Relaciones
-  device      Device            @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@index([deviceId, occurredAt])
   @@map("security_events")
@@ -257,15 +272,15 @@ model SecurityEvent {
 // Modelo: Auditoría de Acciones del Responsable
 // ------------------------------------------------------------------------------
 model AuditLog {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  action      String   // Ejemplo: "UPDATE_PROTECTION_CONFIG", "ADD_CUSTOM_DOMAIN"
-  details     Json?
-  ipAddress   String?  @map("ip_address")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  action    String // Ejemplo: "UPDATE_PROTECTION_CONFIG", "ADD_CUSTOM_DOMAIN"
+  details   Json?
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relaciones
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("audit_logs")
 }
