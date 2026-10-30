@@ -6,11 +6,11 @@ Proyecto: BA Protege+
 Componente: Backend API
 Archivo: backend/README.md
 Descripción: Documentación técnica, guía de instalación, configuración de base de
-             datos y referencia de endpoints de la API REST.
+             datos (Supabase PostgreSQL), Firebase Admin y referencia de endpoints API REST.
 ==============================================================================
 -->
 
-Servidor backend desarrollado en **Node.js 24 (LTS) + Express + TypeScript**, con soporte de base de datos relacional **PostgreSQL 18** a través de **Prisma ORM** y **Modo de Datos Simulados (Mock Data)** en memoria para desarrollo ágil.
+Servidor backend desarrollado en **Node.js 24 (LTS) + Express + TypeScript**, con soporte de base de datos relacional **PostgreSQL 18 en la nube con Supabase** a través de **Prisma ORM**, integración con **Firebase Admin SDK** para servicios Cloud/Push, y **Modo de Datos Simulados (Mock Data)** en memoria para desarrollo ágil.
 
 ---
 
@@ -19,10 +19,11 @@ Servidor backend desarrollado en **Node.js 24 (LTS) + Express + TypeScript**, co
 1. [Tecnologías y Arquitectura](#-tecnologías-y-arquitectura)
 2. [Estructura del Proyecto](#-estructura-del-proyecto)
 3. [Instalación y Configuración](#-instalación-y-configuración)
-4. [Modos de Ejecución (Mock vs. PostgreSQL)](#-modos-de-ejecución-mock-vs-postgresql)
-5. [Scripts Disponibles](#-scripts-disponibles)
-6. [Referencia de Endpoints y Pruebas con cURL](#-referencia-de-endpoints-y-pruebas-con-curl)
-7. [Datos de Prueba Precargados (Modo Mock)](#-datos-de-prueba-precargados-modo-mock)
+4. [Integración con Supabase y Firebase](#-integración-con-supabase-y-firebase)
+5. [Modos de Ejecución (Mock vs. Supabase PostgreSQL)](#-modos-de-ejecución-mock-vs-supabase-postgresql)
+6. [Scripts Disponibles](#-scripts-disponibles)
+7. [Referencia de Endpoints y Pruebas con cURL](#-referencia-de-endpoints-y-pruebas-con-curl)
+8. [Datos de Prueba Precargados (Modo Mock)](#-datos-de-prueba-precargados-modo-mock)
 
 ---
 
@@ -32,7 +33,8 @@ Servidor backend desarrollado en **Node.js 24 (LTS) + Express + TypeScript**, co
 - **Lenguaje:** TypeScript 5.7+
 - **Framework Web:** Express 4.x / 5.x
 - **ORM:** Prisma ORM 5.22+
-- **Base de Datos:** PostgreSQL 18.6
+- **Base de Datos Cloud:** PostgreSQL 18.6 alojado en **Supabase** (con soporte de Pooler PgBouncer)
+- **Servicios Cloud / Push:** **Firebase Admin SDK** (`firebase-admin`)
 - **Autenticación & Seguridad:** JWT (`jsonwebtoken`) + Hashing (`bcryptjs`) + `cors`
 - **Validación de Esquemas:** Zod
 
@@ -49,6 +51,7 @@ backend/
 │   ├── config/
 │   │   ├── database.ts       # Singleton del cliente Prisma y verificador de conexión
 │   │   ├── environment.ts    # Validación de variables de entorno con Zod
+│   │   ├── firebase.ts       # Módulo de inicialización del SDK de Firebase Admin
 │   │   └── mock-database.ts  # Repositorio en memoria con datos de prueba realistas
 │   ├── controllers/          # Manejadores HTTP para Auth, Dispositivos, Listas y Telemetría
 │   ├── middlewares/          # Autenticación JWT, validación Zod y manejo centralizado de errores
@@ -62,8 +65,10 @@ backend/
 │   ├── auth.test.ts          # Pruebas de registro, validaciones Zod, login y recuperación
 │   ├── blocklist.test.ts     # Pruebas de listas oficiales LOTBA y dominios personalizados
 │   ├── device.test.ts        # Pruebas de códigos de pareamiento y vinculación
-│   └── telemetry.test.ts     # Pruebas de latidos (heartbeats), estados y eventos de seguridad
-├── .env                      # Variables de entorno activas
+│   ├── device.test.ts        # Pruebas de códigos de pareamiento y vinculación
+│   ├── telemetry.test.ts     # Pruebas de latidos (heartbeats), estados y eventos de seguridad
+│   └── app-limits.test.ts    # Pruebas unitarias de límites de tiempo de uso diario en aplicaciones
+├── .env                      # Variables de entorno activas (ignorado por Git)
 ├── .env.example              # Plantilla de variables de entorno
 ├── package.json              # Dependencias y scripts npm
 └── tsconfig.json             # Configuración del compilador TypeScript
@@ -86,29 +91,54 @@ Copiar el archivo de plantilla `.env.example` a `.env`:
 cp .env.example .env
 ```
 
-Contenido del archivo `.env`:
+Contenido del archivo `.env.example`:
 ```env
 PORT=3000
 NODE_ENV=development
-USE_MOCK_DATA=true
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/baprotege_db?schema=public"
+USE_MOCK_DATA=false
+
+# Conexión a Supabase mediante Transaction Pooler (PgBouncer en puerto 6543)
+DATABASE_URL="postgresql://postgres.[REF_PROYECTO]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Conexión directa a Supabase (puerto 5432) usada por Prisma para migraciones DDL
+DIRECT_URL="postgresql://postgres.[REF_PROYECTO]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres"
+
+# Clave de API de Firebase y credenciales Admin SDK
+FIREBASE_API_KEY="AIzaSy..."
+FIREBASE_PROJECT_ID="ba-protege-d304e"
+FIREBASE_CLIENT_EMAIL="firebase-adminsdk-fbsvc@ba-protege-d304e.iam.gserviceaccount.com"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+# Seguridad y Autenticación JWT
 JWT_SECRET="clave_secreta_super_segura_para_desarrollo_ba_protege"
 JWT_EXPIRES_IN="7d"
+
+# Sincronización y telemetría (en minutos)
 HEARTBEAT_TIMEOUT_MINUTES=5
 ```
 
 ---
 
-## 🔄 Modos de Ejecución (Mock vs. PostgreSQL)
+## 🔥 Integración con Supabase y Firebase
 
-### A. Modo de Datos Simulados (`USE_MOCK_DATA=true`)
-- **No requiere instalar ni levantar PostgreSQL.**
-- Todos los endpoints de registro, login, dispositivos, pareamiento, listas y latidos funcionan en memoria con datos precargados.
-- Ideal para desarrollo frontend, pruebas de interfaz y validación rápida.
+### Base de Datos Supabase (PostgreSQL)
+- **Pooler PgBouncer:** Configurado a través de `DATABASE_URL` para gestionar conexiones eficientes y concurrentes desde la API REST.
+- **Migraciones DDL:** Prisma se conecta directamente a Supabase a través de `DIRECT_URL` para aplicar cambios estructurales en el esquema.
+- **Modelos desplegados:** `users`, `devices`, `device_pairings`, `protection_configs`, `device_status`, `blocklists`, `blocklist_domains`, `blocked_events`, `security_events`, `audit_logs`.
 
-### B. Modo Base de Datos Real (`USE_MOCK_DATA=false`)
-- Conecta a una instancia activa de PostgreSQL 18.
-- Ejecutar migraciones iniciales para crear las tablas:
+### Firebase Admin SDK
+- **Módulo de Configuración:** Ubicado en [`src/config/firebase.ts`](file:///home/juan/Documentos/Innova-Lab-Equipo-21-Control-Parental/backend/src/config/firebase.ts).
+- **Credenciales:** Soporta carga dinámica mediante variables de entorno en `.env` o archivo de clave local no versionado.
+- **Propósito:** Gestión de notificaciones push para eventos de seguridad y alertas de bloqueo en dispositivos móviles.
+
+---
+
+## 🔄 Modos de Ejecución (Mock vs. Supabase PostgreSQL)
+
+### A. Modo Base de Datos Real en la Nube (`USE_MOCK_DATA=false`) [Configuración Activa]
+- Conecta directamente a la instancia alojada en **Supabase**.
+- Al iniciar el servidor (`npm run dev`), Prisma establece el pool de conexiones PgBouncer automáticamente.
+- Aplicar migraciones o cambios de esquema:
   ```bash
   npx prisma migrate dev
   ```
@@ -116,6 +146,11 @@ HEARTBEAT_TIMEOUT_MINUTES=5
   ```bash
   npx prisma generate
   ```
+
+### B. Modo de Datos Simulados (`USE_MOCK_DATA=true`)
+- No requiere conexión a internet ni base de datos externa.
+- Todos los endpoints de registro, login, dispositivos, pareamiento, listas y latidos funcionan en memoria con datos precargados.
+- Ideal para pruebas offline o desarrollo rápido de componentes aislados.
 
 ---
 
@@ -146,8 +181,8 @@ npm test
 | `npm run start` | Inicia el servidor compilado de producción (`node dist/server.js`). |
 | `npm run lint` | Valida la coherencia de tipos con `tsc --noEmit`. |
 | `npm run prisma:generate` | Regenera el cliente de Prisma basado en `schema.prisma`. |
-| `npm run prisma:migrate` | Aplica migraciones pendientes a la base de datos PostgreSQL. |
-| `npm run prisma:studio` | Abre la interfaz visual de Prisma Studio para inspeccionar datos. |
+| `npm run prisma:migrate` | Aplica migraciones pendientes a la base de datos PostgreSQL en Supabase. |
+| `npm run prisma:studio` | Abre la interfaz visual de Prisma Studio para inspeccionar datos de Supabase. |
 
 ---
 

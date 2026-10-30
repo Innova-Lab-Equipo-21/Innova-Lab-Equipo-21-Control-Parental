@@ -1,0 +1,108 @@
+﻿Tipografía
+
+Título / Header - Roboto Bold 24px
+
+Subtítulo - Roboto Medium 18px.
+
+Cuerpo de texto - Roboto Regular 14px
+
+Caption / Microcopy - Roboto Regular 12px.
+
+
+
+
+
+Colores
+Primary 
+#007AFF
+Uso de este color en la app:
+Botones principales, headers, elementos activos.
+Secondary
+#28A745
+Uso de este color en la app:
+Estado de protección activa, confirmaciones, éxitos.
+Text / Primary
+#1C1C1E
+Uso de este color en la app:
+Títulos y texto principal sobre fondo claro.
+Text / Secondary
+#8E8E93
+Uso de este color en la app:
+Subtítulos, íconos deshabilitados, bordes suaves.
+Background
+#F8F9FA
+Uso de este color en la app:
+Fondo general de las pantallas y tarjetas (cards).
+Feedback / Error
+#DC3545
+Uso de este color en la app:
+Sitios bloqueados, alertas críticas, desinstalación.
+Feedback / Warning
+#FFC107
+Uso de este color en la app:
+Advertencias de vinculación, avisos pendientes.
+
+
+Iconografía
+Icono / Candado:
+
+Se usa para seguridad y autenticación.
+Identifica la pantalla de acceso o configuración de seguridad donde el tutor debe ingresar el PIN de verificación para realizar cambios o deshabilitar restricciones.
+
+Icono / Campana:
+
+Se usa para notificaciones y alertas del sistema.
+Va a estar ubicado en la barra superior del panel principal para acceder al historial de avisos (ej: cuando se detecta un intento de ingreso fallido, cambios en las reglas de control parental o alertas de la app).
+
+
+Icono / Usuario:
+
+Se usa para el perfil y la gestión de cuenta.
+Representa la sección del perfil del tutor o la selección de perfiles infantiles configurados en el dispositivo para administrar sus permisos individuales.
+
+
+Icono / Busqueda:
+
+Se usa para navegación y filtrado.
+Va a estar dentro del panel de administración o historial de actividad para buscar rápidamente registros específicos, contactos bloqueados o reglas aplicadas.
+
+Icono / Volver:
+
+Se usa para navegar hacia atrás.
+Va a estar ubicado en la esquina superior izquierda de los encabezados para regresar a la pantalla anterior sin guardar cambios accidentales o para cancelar un flujo.
+
+
+Icono / Alerta:
+
+Se usa para advertencias, errores o estados críticos.
+Se acompaña de textos informativos en mensajes de confirmación (ej: “¿Estás seguro de que querés desactivar la protección?”) o en avisos de error cuando un PIN es incorrecto.
+
+
+
+Componentes específicos del MVP
+Estado:
+Inactivo / OFF
+
+Estado:
+Activo / ON
+
+Switch
+
+Este componente es para activar y desactivar reglas de control parental (ej: “Bloqueo de contenido”, “Alertas en tiempo real”).
+Activo
+Inactivo
+Alerta
+Badges 
+
+Son etiquetas de estado para indicar el nivel de seguridad o estado de una regla (“Activo”, “Inactivo”, “Alerta”).
+Sitios web y aplicaciones
+Activo
+Tarjeta de control
+
+Tarjeta interactiva para gestionar permisos de control parental, diseñada para visualizar el estado actual y cambiar cada regla de forma rápida.
+
+
+Teclado PIN 
+
+Es un teclado numérico interactivo diseñado para la validación de código de seguridad del tutor.
+

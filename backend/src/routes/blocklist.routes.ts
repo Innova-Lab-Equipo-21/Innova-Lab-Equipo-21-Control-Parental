@@ -21,6 +21,15 @@ const addDomainSchema = z.object({
   }),
 });
 
+// Esquema para actualizar dominio en lista personalizada
+const updateDomainSchema = z.object({
+  body: z.object({
+    domain: z.string().min(3, 'El dominio debe tener al menos 3 caracteres').optional(),
+    category: z.string().optional(),
+    isActive: z.boolean().optional(),
+  }),
+});
+
 // Ruta pública / dispositivo: Lista oficial LOTBA
 router.get('/official', (req, res, next) => blocklistController.getOfficialList(req, res, next));
 
@@ -29,13 +38,20 @@ router.get('/device/:deviceUuid', (req, res, next) =>
   blocklistController.getDeviceBlocklist(req, res, next),
 );
 
-// Rutas de lista personalizada para el responsable autenticado
+// Rutas de lista personalizada para el responsable autenticado (CRUD completo)
 router.get('/custom', requireAuth, (req, res, next) =>
   blocklistController.getCustomList(req, res, next),
 );
 
 router.post('/custom/domains', requireAuth, validateRequest(addDomainSchema), (req, res, next) =>
   blocklistController.addCustomDomain(req, res, next),
+);
+
+router.put(
+  '/custom/domains/:domainId',
+  requireAuth,
+  validateRequest(updateDomainSchema),
+  (req, res, next) => blocklistController.updateCustomDomain(req, res, next),
 );
 
 router.delete('/custom/domains/:domainId', requireAuth, (req, res, next) =>

@@ -1,13 +1,15 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: Frontend Mobile (UI Component)
+// Componente: StatusCard (Tarjeta de Estado Visual del Kit UI/UX)
 // Archivo: src/components/StatusCard.tsx
-// Descripción: Tarjeta visual de estado efectivo de protección con indicadores en tiempo real.
+// Descripción: Tarjeta visual de estado efectivo de protección con Badge e indicadores.
 // ==============================================================================
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../theme/colors';
+import { typography } from '../theme/typography';
+import { Badge } from './Badge';
 import { ProtectionStatus } from '../types';
 
 interface StatusCardProps {
@@ -25,15 +27,13 @@ export const StatusCard: React.FC<StatusCardProps> = ({
 }) => {
   const isProtected = status === 'ACTIVE';
 
-  const badgeColor = isProtected ? colors.statusActive : colors.statusDanger;
-  const badgeBg = isProtected ? colors.statusActiveBg : colors.statusDangerBg;
-  const statusLabel = isProtected ? 'PROTECCIÓN ACTIVA' : 'PROTECCIÓN INACTIVA';
-
   return (
     <View style={styles.card}>
-      <View style={[styles.statusBadge, { backgroundColor: badgeBg }]}>
-        <View style={[styles.statusDot, { backgroundColor: badgeColor }]} />
-        <Text style={[styles.statusText, { color: badgeColor }]}>{statusLabel}</Text>
+      <View style={styles.badgeRow}>
+        <Badge
+          status={isProtected ? 'activo' : 'inactivo'}
+          label={isProtected ? 'PROTECCIÓN ACTIVA' : 'PROTECCIÓN INACTIVA'}
+        />
       </View>
 
       <Text style={styles.mainTitle}>
@@ -68,7 +68,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceCard,
     borderRadius: 16,
     padding: 20,
     marginVertical: 12,
@@ -80,31 +80,13 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+  badgeRow: {
     marginBottom: 12,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
   mainTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.subtitle,
     color: colors.textPrimary,
-    lineHeight: 22,
+    fontWeight: '600',
     marginBottom: 16,
   },
   metricsContainer: {
@@ -119,12 +101,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   metricValue: {
-    fontSize: 16,
+    ...typography.subtitle,
     fontWeight: 'bold',
     color: colors.textPrimary,
   },
   metricLabel: {
-    fontSize: 11,
+    ...typography.caption,
     color: colors.textSecondary,
     marginTop: 2,
   },

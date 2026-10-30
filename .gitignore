@@ -10,12 +10,17 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Variables de entorno y secretos
+# Variables de entorno y secretos (.env ignorado en la raíz y en subcarpetas)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+*.env
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
 
 # Firebase Service Accounts (claves privadas)
 backend/ba-protege-firebase-adminsdk-*.json
@@ -59,5 +64,6 @@ local.properties
 backend/prisma/*.db
 backend/prisma/*.db-journal
 
-# Documentación interna de trabajo (no enviar a remoto)
+# Documentación interna de trabajo y credenciales locales (no enviar a remoto)
 docs/
+backend/docs/

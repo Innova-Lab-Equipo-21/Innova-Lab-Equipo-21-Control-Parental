@@ -16,6 +16,7 @@ export interface MockUser {
   fullName: string;
   isActive: boolean;
   createdAt: Date;
+  fcmToken?: string;
 }
 
 export interface MockDevice {

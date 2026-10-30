@@ -1,0 +1,252 @@
+# Registro de Eventos y Métricas de Análisis de Datos
+
+**Estado:** Borrador — Sujeto a modificaciones
+**Área:** Análisis de Datos
+**Proyecto:** Monitoreo, protección y gestión de dispositivos
+
+## 1. Descripción general
+
+Este documento establece una propuesta de estandarización de los eventos y las métricas de la aplicación, con el objetivo de centralizar la información generada durante su funcionamiento.
+
+El sistema contempla el registro de eventos relacionados con la instalación, la configuración, la protección, los mecanismos Anti-Bypass, la gestión de dispositivos y el envío de alertas.
+
+Desde el área de Análisis de Datos, estos registros permitirán evaluar el comportamiento de la aplicación, medir el rendimiento de sus servicios, identificar patrones de uso y elaborar indicadores para el seguimiento operativo.
+
+El presente documento constituye un borrador inicial. Los eventos, las métricas y sus criterios de cálculo podrán modificarse durante el desarrollo del proyecto.
+
+---
+
+## 2. Registro estándar de eventos
+
+### 2.1. Onboarding y configuración
+
+**Objetivo:** registrar el proceso de instalación, inicialización y vinculación de los dispositivos.
+
+* **Evento: Instalación**
+
+  * Registro del inicio de la aplicación.
+  * Registro de la primera apertura.
+  * Identificación de la plataforma: Android o iOS.
+  * Seguimiento del proceso de instalación e inicialización.
+
+* **Evento: Modelo del dispositivo**
+
+  * Registro del modelo del dispositivo.
+  * Identificación de las características técnicas necesarias para el análisis de compatibilidad.
+
+* **Evento: Configuración inicial**
+
+  * Registro del inicio y la finalización del proceso de configuración.
+  * Seguimiento del estado de activación de las funciones principales.
+
+* **Evento: Vinculación de dispositivos**
+
+  * Registro del proceso de vinculación entre el dispositivo protegido y el dispositivo del adulto responsable.
+  * Identificación del resultado de la vinculación.
+  * Registro de las conexiones exitosas y fallidas.
+
+### 2.2. Protección y bloqueos
+
+**Objetivo:** recopilar información sobre el funcionamiento de los mecanismos de protección y el acceso a sitios restringidos.
+
+* **Evento: Intento de acceso**
+
+  * Registro de los intentos de acceso a sitios incluidos en la lista de bloqueo.
+  * Identificación del sitio y la fecha del evento, según las políticas de privacidad del proyecto.
+  * Clasificación del resultado del intento.
+
+* **Evento: Bloqueo**
+
+  * Registro de los accesos bloqueados correctamente.
+  * Identificación de los bloqueos realizados por la aplicación.
+  * Recopilación de datos para medir la actividad del servicio de filtrado.
+
+* **Evento: Cambio de estado de protección**
+
+  * Registro de los cambios en el estado operativo de los mecanismos de protección.
+  * Identificación de los períodos de actividad e inactividad.
+  * Seguimiento de la reactivación de las funciones de protección.
+
+### 2.3. Anti-Bypass: análisis de vulneraciones
+
+**Objetivo:** recopilar y analizar los eventos relacionados con los intentos de vulnerar los mecanismos de seguridad de la aplicación.
+
+* **Evento: Detección de vulneración**
+
+  * Registro sincronizado de los intentos de vulneración de la seguridad de la aplicación.
+  * Clasificación de los eventos según el tipo de vulneración detectada.
+  * Seguimiento de la frecuencia de los intentos registrados.
+
+* **Evento: Modificación de lista**
+
+  * Registro de los intentos de modificación no autorizada de la lista de sitios bloqueados.
+  * Identificación del tipo de modificación detectada.
+  * Seguimiento de la frecuencia de los intentos de alteración.
+
+### 2.4. Gestión: monitoreo de dispositivos
+
+**Objetivo:** centralizar los registros relacionados con el estado operativo de la aplicación y los dispositivos protegidos.
+
+* **Evento: Desinstalación detectada**
+
+  * Registro de los eventos de desinstalación detectados en los dispositivos protegidos.
+  * Identificación de la frecuencia de las desinstalaciones registradas.
+  * Seguimiento de los cambios en el estado de protección del dispositivo.
+
+* **Evento: Estado operativo**
+
+  * Registro de los cambios en el funcionamiento de la aplicación.
+  * Seguimiento de los períodos de actividad e inactividad.
+  * Recopilación de información para analizar la continuidad del servicio.
+
+### 2.5. Alertas: seguimiento y notificaciones
+
+**Objetivo:** registrar y analizar el ciclo de vida de las alertas generadas por la aplicación.
+
+* **Evento: Alerta creada**
+
+  * Registro de la generación de alertas a partir de eventos de seguridad o cambios en el estado de protección.
+  * Identificación del tipo de evento que originó la alerta.
+  * Clasificación de las notificaciones según su categoría.
+
+* **Evento: Alerta enviada**
+
+  * Registro del envío de las notificaciones al dispositivo del adulto responsable.
+  * Seguimiento del estado de entrega de cada alerta.
+  * Medición del tiempo transcurrido entre la detección del evento y el envío de la notificación.
+
+* **Evento: Alerta recibida**
+
+  * Registro de la recepción de las notificaciones en el dispositivo del adulto responsable.
+  * Seguimiento de las alertas recibidas y pendientes.
+  * Recopilación de información para analizar la entrega de las notificaciones.
+
+* **Evento: Alerta leída**
+
+  * Registro de la apertura de las notificaciones por parte del adulto responsable.
+  * Medición de la frecuencia de lectura.
+  * Análisis del tiempo transcurrido entre la recepción y la lectura de las alertas.
+
+---
+
+## 3. Medición técnica de la aplicación
+
+**Objetivo:** establecer indicadores que permitan evaluar el rendimiento, la disponibilidad y el comportamiento de los servicios de protección.
+
+| Indicador                                            | Descripción                                                                                                                         |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Porcentaje de actividad de los servicios de filtrado | Proporción del tiempo durante el cual los servicios de filtrado permanecen activos y operativos.                                    |
+| Tasa de reactivación de la aplicación                | Porcentaje de eventos en los que la aplicación recupera su funcionamiento con las funciones de protección activas.                  |
+| Tasa de detección de intentos de desactivación       | Porcentaje de intentos de desactivar los mecanismos de bloqueo que son detectados por la aplicación.                                |
+| Tiempo de actualización de las URL                   | Tiempo transcurrido entre la publicación de una actualización de la lista de sitios bloqueados y su aplicación en los dispositivos. |
+| Disponibilidad del servicio                          | Porcentaje del tiempo durante el cual los servicios principales se encuentran operativos.                                           |
+| Tiempo de recuperación                               | Tiempo transcurrido entre una interrupción del servicio y la recuperación de su funcionamiento.                                     |
+
+---
+
+## 4. Monitoreo constante e indicadores de seguimiento
+
+Los indicadores se organizan en dos categorías principales: institucional y familiar. Su finalidad es facilitar el seguimiento de la aplicación desde diferentes perspectivas.
+
+### 4.1. Indicadores institucionales
+
+| Indicador                                         | Descripción                                                                                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Volumen total de intentos de acceso bloqueados    | Cantidad total de intentos de acceso a sitios restringidos registrados durante un período determinado.                          |
+| Tasa de cobertura de dispositivos institucionales | Porcentaje de dispositivos institucionales que cuentan con la aplicación instalada y operativa.                                 |
+| Índice de actualización de listas de bloqueo      | Porcentaje de dispositivos que tienen actualizadas sus listas de sitios bloqueados.                                             |
+| Frecuencia de eventos de protección               | Cantidad de eventos relacionados con los mecanismos de protección registrados durante un período.                               |
+| Tasa de detección de vulneraciones                | Porcentaje de intentos de vulneración registrados respecto del total de intentos identificados por los mecanismos de monitoreo. |
+
+### 4.2. Indicadores de padres y adultos responsables
+
+| Indicador                                    | Descripción                                                                                              |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Tasa de activación del onboarding            | Porcentaje de usuarios que completan correctamente el proceso de configuración inicial.                  |
+| Ratio de dispositivos por adulto responsable | Cantidad promedio de dispositivos protegidos vinculados a cada adulto responsable.                       |
+| Tasa de lectura de alertas                   | Porcentaje de alertas recibidas que son abiertas por el adulto responsable.                              |
+| Tasa de recepción de alertas                 | Porcentaje de alertas enviadas que son recibidas correctamente en el dispositivo del adulto responsable. |
+| Retention Rate (tasa de retención)           | Porcentaje de usuarios que continúan utilizando la aplicación después de un período determinado.         |
+| Frecuencia de interacción                    | Cantidad de interacciones realizadas por los adultos responsables durante un período determinado.        |
+
+---
+
+## 5. Clasificación de los datos
+
+Para facilitar el análisis y la elaboración de informes, se propone organizar los registros según las siguientes categorías:
+
+* **Identificación del evento:** nombre, categoría y tipo de evento.
+* **Información temporal:** fecha y hora de generación, envío y recepción.
+* **Información del dispositivo:** plataforma, modelo y estado operativo.
+* **Información de protección:** estado de los bloqueos, actividad de los servicios y cambios detectados.
+* **Información de alertas:** tipo de notificación, estado de entrega y lectura.
+* **Información de vinculación:** estado de conexión entre el dispositivo protegido y el dispositivo del adulto responsable.
+
+Los datos deberán recopilarse de acuerdo con las políticas de privacidad y los requisitos de seguridad del proyecto. Se recomienda utilizar identificadores seudonimizados y evitar almacenar información personal que no sea necesaria para el análisis.
+
+---
+
+## 6. Análisis y visualización de datos
+
+Los registros recopilados podrán utilizarse para desarrollar informes y paneles de seguimiento que permitan:
+
+* Analizar la frecuencia de los eventos registrados.
+* Identificar variaciones en la actividad de los servicios de protección.
+* Evaluar la evolución de los intentos de acceso bloqueados.
+* Analizar los patrones de vulneración detectados.
+* Medir el comportamiento de los procesos de instalación y configuración.
+* Evaluar la entrega y lectura de las alertas.
+* Identificar períodos de inactividad y problemas de continuidad operativa.
+* Comparar los indicadores entre períodos y grupos de dispositivos.
+
+Las visualizaciones podrán incluir gráficos de tendencias, indicadores porcentuales, tablas comparativas y paneles de control (dashboards).
+
+---
+
+## 7. Consideraciones para la implementación
+
+Antes de implementar el sistema de medición, será necesario definir:
+
+* La estructura estándar de los registros de eventos.
+* Los criterios de clasificación de cada evento.
+* La frecuencia de recopilación y actualización de los datos.
+* Las reglas para calcular cada indicador.
+* Los períodos de referencia para las métricas.
+* Los mecanismos de almacenamiento y sincronización.
+* Los criterios de privacidad y conservación de los datos.
+
+También será necesario diferenciar los eventos detectados de los eventos efectivamente confirmados, para evitar interpretaciones incorrectas en los informes.
+
+---
+
+## 8. Diferenciación entre QA y Análisis de Datos
+
+El proyecto contempla dos funciones complementarias:
+
+**QA (Quality Assurance):**
+
+* Verificar que los eventos se generen correctamente.
+* Comprobar que los mecanismos de detección funcionen según lo esperado.
+* Validar el registro, la sincronización y la entrega de los eventos.
+* Identificar errores y comportamientos inesperados.
+
+**Análisis de Datos:**
+
+* Centralizar y organizar los registros generados.
+* Construir indicadores y métricas de seguimiento.
+* Analizar tendencias y patrones de comportamiento.
+* Evaluar el rendimiento de los servicios mediante datos.
+* Elaborar informes y visualizaciones para facilitar la toma de decisiones.
+
+De esta manera, QA se encarga de validar la calidad técnica de los eventos, mientras que Análisis de Datos se ocupa de transformar los registros obtenidos en información útil para el seguimiento y la evaluación de la aplicación.
+
+---
+
+## 9. Estado y alcance del documento
+
+Este documento representa una propuesta inicial para la organización de eventos y métricas del proyecto. Su contenido podrá ampliarse, modificarse o reorganizarse a medida que avance el desarrollo de la aplicación.
+
+La definición final de los eventos y los indicadores dependerá de la disponibilidad de los datos, las capacidades técnicas del sistema y los requisitos funcionales del proyecto.
+
+**Estado actual:** Borrador en revisión.
+**Próxima etapa:** Validación de los eventos, definición de las estructuras de datos y especificación de las fórmulas de cálculo de los indicadores.

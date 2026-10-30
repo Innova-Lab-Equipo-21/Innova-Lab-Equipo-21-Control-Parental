@@ -4,6 +4,7 @@ import { env } from '../config/environment.js';
 import { mockDb, MockBlockedEvent, MockSecurityEvent } from '../config/mock-database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { HeartbeatPayload } from '../types/index.js';
+import { notificationService } from './notification.service.js';
 
 export interface RecordBlockedEventInput {
   deviceUuid: string;
@@ -208,12 +209,17 @@ export class TelemetryService {
       };
       mockDb.securityEvents.push(newEvent);
 
-      if (device && (input.eventType === 'VPN_DISABLED' || input.eventType === 'PERMISSION_REVOKED')) {
-        device.status.effectiveStatus = input.eventType === 'VPN_DISABLED' ? 'INACTIVE' : 'PERMISSION_REQUIRED';
-        device.status.vpnActive = false;
-      }
+       if (device && (input.eventType === 'VPN_DISABLED' || input.eventType === 'PERMISSION_REVOKED')) {
+         device.status.effectiveStatus = input.eventType === 'VPN_DISABLED' ? 'INACTIVE' : 'PERMISSION_REQUIRED';
+         device.status.vpnActive = false;
+       }
 
-      return newEvent;
+       if (device && device.config.notifyOnSecurity) {
+         const description = input.description || 'Alerta de seguridad';
+         notificationService.sendSecurityAlert(device.userId, device.deviceName, input.eventType, description).catch(() => {});
+       }
+
+       return newEvent;
     }
 
     const device = await prisma.device.findUnique({
@@ -233,18 +239,29 @@ export class TelemetryService {
       },
     });
 
-    // Si el evento indica pérdida de protección, actualizar estado a BYPASS_DETECTED o INACTIVE
-    if (input.eventType === 'VPN_DISABLED' || input.eventType === 'PERMISSION_REVOKED') {
-      await prisma.deviceStatus.updateMany({
-        where: { deviceId: device.id },
-        data: {
-          effectiveStatus: input.eventType === 'VPN_DISABLED' ? ProtectionStatus.INACTIVE : ProtectionStatus.PERMISSION_REQUIRED,
-          vpnActive: false,
-        },
-      });
-    }
+     // Si el evento indica pérdida de protección, actualizar estado a BYPASS_DETECTED o INACTIVE
+     if (input.eventType === 'VPN_DISABLED' || input.eventType === 'PERMISSION_REVOKED') {
+       await prisma.deviceStatus.updateMany({
+         where: { deviceId: device.id },
+         data: {
+           effectiveStatus: input.eventType === 'VPN_DISABLED' ? ProtectionStatus.INACTIVE : ProtectionStatus.PERMISSION_REQUIRED,
+           vpnActive: false,
+         },
+       });
+     }
 
-    return event;
+     // Enviar notificación al responsable si notifyOnSecurity está habilitado
+     const deviceWithConfig = await prisma.device.findUnique({
+       where: { id: device.id },
+       include: { config: true, user: true },
+     });
+
+     if (deviceWithConfig?.config?.notifyOnSecurity) {
+       const description = input.description || 'Alerta de seguridad';
+       notificationService.sendSecurityAlert(device.userId, device.deviceName, input.eventType, description).catch(() => {});
+     }
+
+     return event;
   }
 }
 
