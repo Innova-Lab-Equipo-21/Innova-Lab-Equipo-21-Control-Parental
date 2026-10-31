@@ -7,9 +7,28 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service.js';
+import { notificationService } from '../services/notification.service.js';
 import { ApiResponse } from '../types/index.js';
 
 export class AuthController {
+  /**
+   * Registra el token FCM del dispositivo para notificaciones push.
+   * POST /api/auth/fcm-token
+   */
+  public async registerFcmToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = (req as any).user?.userId;
+      const { fcmToken } = req.body;
+      if (!userId || !fcmToken) {
+        res.status(400).json({ success: false, message: 'userId y fcmToken son requeridos' });
+        return;
+      }
+      await notificationService.registerToken(userId, fcmToken);
+      res.status(200).json({ success: true, message: 'Token FCM registrado' });
+    } catch (error) {
+      next(error);
+    }
+  }
   /**
    * Registro de un nuevo usuario responsable.
    * POST /api/auth/register

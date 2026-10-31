@@ -8,6 +8,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authController } from '../controllers/auth.controller.js';
+import { requireAuth } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
 
 const router = Router();
@@ -104,6 +105,10 @@ router.post('/recover-password', validateRequest(recoverPasswordSchema), (req, r
 
 router.post('/location', validateRequest(locationSchema), (req, res, next) =>
   authController.updateLocation(req, res, next),
+);
+
+router.post('/fcm-token', requireAuth, (req, res, next) =>
+  authController.registerFcmToken(req, res, next),
 );
 
 export const authRoutes = router;
