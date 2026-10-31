@@ -58,6 +58,25 @@ export class AuthController {
   }
 
   /**
+   * Renovación de tokens usando un Refresh Token.
+   * POST /api/auth/refresh-token
+   */
+  public async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { refreshToken } = req.body;
+      const result = await authService.refreshToken(refreshToken);
+
+      res.status(200).json({
+        success: true,
+        message: 'Tokens renovados exitosamente',
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Recuperación de contraseña para usuario responsable.
    * POST /api/auth/recover-password
    */

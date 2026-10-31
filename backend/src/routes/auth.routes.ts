@@ -60,6 +60,13 @@ const loginSchema = z.object({
   }),
 });
 
+// Esquema de validación para refresh token
+const refreshTokenSchema = z.object({
+  body: z.object({
+    refreshToken: z.string().min(1, 'El refresh token es requerido'),
+  }),
+});
+
 // Esquema de validación para recuperar contraseña
 const recoverPasswordSchema = z.object({
   body: z.object({
@@ -85,6 +92,10 @@ router.post('/register', validateRequest(registerSchema), (req, res, next) =>
 
 router.post('/login', validateRequest(loginSchema), (req, res, next) =>
   authController.login(req, res, next),
+);
+
+router.post('/refresh-token', validateRequest(refreshTokenSchema), (req, res, next) =>
+  authController.refreshToken(req, res, next),
 );
 
 router.post('/recover-password', validateRequest(recoverPasswordSchema), (req, res, next) =>

@@ -177,6 +177,36 @@ export class AuthService {
     }
   }
   /**
+   * Renueva el ID Token usando un Refresh Token de Firebase.
+   * El Refresh Token tiene una larga duración y permite obtener nuevos tokens sin pedir la contraseña.
+   */
+  public async refreshToken(refreshToken: string) {
+    const apiKey = env.FIREBASE_API_KEY;
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/token?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken,
+        }),
+      }
+    );
+    const data = (await response.json()) as any;
+
+    if (!response.ok) {
+      throw new AppError('Refresh token inválido o expirado', 401);
+    }
+
+    return {
+      token: data.id_token,
+      refreshToken: data.refresh_token,
+      expiresIn: data.expires_in,
+    };
+  }
+
+  /**
    * Procesa la solicitud de recuperación de contraseña enviando instrucciones al correo.
    */
   public async recoverPassword(email: string) {
