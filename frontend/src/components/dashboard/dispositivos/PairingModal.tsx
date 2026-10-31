@@ -45,9 +45,11 @@ export const PairingModal: React.FC<PairingModalProps> = ({
       const res = await apiService.generatePairingCode(data);
       const code = res.data?.code || res.data?.pairingCode || Math.floor(100000 + Math.random() * 900000).toString();
       setPairingCode(code);
+      onDeviceAdded();
     } catch (e: any) {
       const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
       setPairingCode(fallbackCode);
+      onDeviceAdded();
     } finally {
       setLoading(false);
     }

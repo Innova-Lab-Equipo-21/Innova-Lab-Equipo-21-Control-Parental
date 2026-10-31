@@ -9,6 +9,7 @@
 
 export * from './SeccionDesplegable';
 export * from './DashboardNavbar';
+export * from './inicio';
 export * from './dispositivos';
 export * from './sitios';
 export * from './actividad';

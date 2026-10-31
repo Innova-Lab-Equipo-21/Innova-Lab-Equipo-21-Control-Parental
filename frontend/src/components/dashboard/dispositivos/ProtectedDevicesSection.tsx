@@ -285,7 +285,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
 
         {/* SECCIÓN 2: DISPOSITIVOS PROTEGIDOS */}
         <View style={styles.protectedSectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Dispositivos Protegidos</Text>
+          <Text style={styles.sectionTitle}>Dispositivos protegidos</Text>
           <Text style={styles.countText}>
             {searchTerm.trim().length > 0
               ? `${filteredDevices.length} de ${devices.length} ${devices.length === 1 ? 'vinculado' : 'vinculados'}`

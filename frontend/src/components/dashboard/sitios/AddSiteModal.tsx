@@ -111,10 +111,26 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
               </View>
             )}
 
-            <View style={styles.deviceSelectionContainer}>
+            <View
+              style={[
+                styles.deviceSelectionContainer,
+                !hasInput && styles.deviceSelectionContainerDisabled,
+              ]}
+              pointerEvents={hasInput ? 'auto' : 'none'}
+            >
+              {!hasInput && (
+                <Text style={styles.deviceSelectionDisabledHint}>
+                  Ingresá primero el dominio o URL del sitio para seleccionar los dispositivos.
+                </Text>
+              )}
+
               <View style={styles.applyToAllRow}>
                 <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (regla global)</Text>
-                <ToggleSwitch value={applyToAll} onValueChange={onApplyToAllChange} />
+                <ToggleSwitch
+                  value={applyToAll}
+                  onValueChange={hasInput ? onApplyToAllChange : () => {}}
+                  disabled={!hasInput}
+                />
               </View>
 
               {/* Listado siempre visible de dispositivos registrados */}
@@ -131,8 +147,9 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
                       backgroundColor: deviceIds.includes('self') ? selfHighlight.bgColor : '#FFFFFF',
                     },
                   ]}
-                  onPress={() => onToggleDevice('self')}
+                  onPress={hasInput ? () => onToggleDevice('self') : undefined}
                   activeOpacity={0.7}
+                  disabled={!hasInput}
                 >
                   <View style={styles.deviceLeftCol}>
                     <View style={[styles.deviceIconBox, { backgroundColor: selfHighlight.bgColor }]}>
@@ -144,7 +161,8 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
                   </View>
                   <ToggleSwitch
                     value={deviceIds.includes('self')}
-                    onValueChange={() => onToggleDevice('self')}
+                    onValueChange={hasInput ? () => onToggleDevice('self') : () => {}}
+                    disabled={!hasInput}
                   />
                 </TouchableOpacity>
 
@@ -164,8 +182,9 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
                           backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
                         },
                       ]}
-                      onPress={() => onToggleDevice(device.deviceId)}
+                      onPress={hasInput ? () => onToggleDevice(device.deviceId) : undefined}
                       activeOpacity={0.7}
+                      disabled={!hasInput}
                     >
                       <View style={styles.deviceLeftCol}>
                         <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
@@ -177,7 +196,8 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
                       </View>
                       <ToggleSwitch
                         value={isSelected}
-                        onValueChange={() => onToggleDevice(device.deviceId)}
+                        onValueChange={hasInput ? () => onToggleDevice(device.deviceId) : () => {}}
+                        disabled={!hasInput}
                       />
                     </TouchableOpacity>
                   );

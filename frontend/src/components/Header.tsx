@@ -16,6 +16,7 @@ interface HeaderProps {
   onBack?: () => void;
   rightElement?: React.ReactNode;
   showTopLogo?: boolean;
+  showSubHeader?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,6 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
   onBack,
   rightElement,
   showTopLogo = true,
+  showSubHeader = true,
 }) => {
   return (
     <View>
@@ -40,7 +42,8 @@ export const Header: React.FC<HeaderProps> = ({
       )}
 
       {/* 2. Subheader con botón volver, título y elemento derecho opcional */}
-      <View style={styles.subHeaderRow}>
+      {showSubHeader && (
+        <View style={styles.subHeaderRow}>
         <View style={styles.subHeaderLeft}>
           {onBack && (
             <TouchableOpacity
@@ -64,6 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
         </View>
         {rightElement ? <View>{rightElement}</View> : null}
       </View>
+      )}
     </View>
   );
 };

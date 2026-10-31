@@ -30,6 +30,7 @@ interface CustomSitesSectionProps {
   selfControl?: SelfControlState;
   hideInternalFab?: boolean;
   onSetAddHandler?: (handler: () => void) => void;
+  initialSubTab?: 'sites' | 'apps';
 }
 
 export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
@@ -39,9 +40,16 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   selfControl,
   hideInternalFab = false,
   onSetAddHandler,
+  initialSubTab = 'sites',
 }) => {
   // Navegación de Sub-pestañas
-  const [activeSubTab, setActiveSubTab] = useState<'sites' | 'apps'>('sites');
+  const [activeSubTab, setActiveSubTab] = useState<'sites' | 'apps'>(initialSubTab);
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
 
   // Menú de Opciones de 3 Puntos (⋮) e Visibilidad de Herramientas
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -134,13 +142,34 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
     return item.applyToAll === true || (Array.isArray(item.deviceIds) && item.deviceIds.includes('self'));
   };
 
+  // Handlers con reseteo de selección si el input queda vacío
+  const handleNewSiteDomainChange = (text: string) => {
+    setNewSiteDomain(text);
+    if (text.trim().length === 0) {
+      setNewSiteApplyToAll(false);
+      setNewSiteDeviceIds([]);
+    }
+  };
+
+  const handleNewAppNameChange = (text: string) => {
+    setNewAppName(text);
+    if (text.trim().length === 0) {
+      setNewAppApplyToAll(false);
+      setNewAppDeviceIds([]);
+      setNewAppDailyLimit(undefined);
+      setNewAppDeviceLimits({});
+    }
+  };
+
   // Handlers para Regla Global (al activar marca todos, al desactivar desmarca todos)
   const handleNewSiteApplyToAllChange = (val: boolean) => {
+    if (newSiteDomain.trim().length === 0) return;
     setNewSiteApplyToAll(val);
     setNewSiteDeviceIds(val ? getAllDeviceIds() : []);
   };
 
   const handleNewAppApplyToAllChange = (val: boolean) => {
+    if (newAppName.trim().length === 0) return;
     setNewAppApplyToAll(val);
     setNewAppDeviceIds(val ? getAllDeviceIds() : []);
   };
@@ -157,6 +186,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
 
   // Handlers para toggle individual de dispositivos (sincroniza con Regla Global)
   const handleToggleNewSiteDevice = (deviceId: string) => {
+    if (newSiteDomain.trim().length === 0) return;
     const allIds = getAllDeviceIds();
     let updatedIds: string[];
     if (newSiteDeviceIds.includes(deviceId)) {
@@ -169,6 +199,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleToggleNewAppDevice = (deviceId: string) => {
+    if (newAppName.trim().length === 0) return;
     const allIds = getAllDeviceIds();
     let updatedIds: string[];
     if (newAppDeviceIds.includes(deviceId)) {
@@ -491,6 +522,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
       setNewAppDeviceLimits({});
       setShowAddAppModal(false);
       await loadApps();
+      onRefreshList();
       Alert.alert('🛡️ Aplicación bloqueada', 'La aplicación fue agregada a la lista de restricción.');
     } catch (e: any) {
       Alert.alert('Error', e.message || 'No se pudo bloquear la aplicación.');
@@ -512,6 +544,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         isActive: !app.isActive,
       });
       await loadApps();
+      onRefreshList();
     } catch (e: any) {
       Alert.alert('Error', e.message || 'No se pudo cambiar el estado del bloqueo.');
     }
@@ -537,6 +570,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
             try {
               await apiService.deleteCustomBlockedApp(app.id);
               await loadApps();
+              onRefreshList();
               Alert.alert('Aplicación eliminada', `La aplicación ${app.appName} fue eliminada.`);
             } catch (e: any) {
               Alert.alert('Error al eliminar', e.message || 'No se pudo eliminar la aplicación.');
@@ -862,7 +896,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         visible={showAddSiteModal}
         onClose={() => setShowAddSiteModal(false)}
         domain={newSiteDomain}
-        onDomainChange={setNewSiteDomain}
+        onDomainChange={handleNewSiteDomainChange}
         category={newSiteCategory}
         onCategoryChange={setNewSiteCategory}
         applyToAll={newSiteApplyToAll}
@@ -894,7 +928,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         visible={showAddAppModal}
         onClose={() => setShowAddAppModal(false)}
         appName={newAppName}
-        onAppNameChange={setNewAppName}
+        onAppNameChange={handleNewAppNameChange}
         onSelectSuggestion={(sug) => {
           setNewAppName(sug.name);
           setNewAppPackage(sug.pkg);

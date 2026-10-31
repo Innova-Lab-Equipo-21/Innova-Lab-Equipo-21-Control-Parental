@@ -55,8 +55,6 @@ const safeStorage = {
 };
 
 const PERMISSIONS_STORAGE_KEY = '@ba_protege_self_permissions';
-// Limpieza de clave global heredada para garantizar que cuentas nuevas comiencen deshabilitadas
-safeStorage.removeItem(PERMISSIONS_STORAGE_KEY).catch(() => {});
 
 /**
  * Consulta y audita el estado real de los 6 permisos en el dispositivo actual.
@@ -73,9 +71,12 @@ export async function checkRealDevicePermissions(userId?: string): Promise<Devic
 
   const storageKey = userId ? `@ba_protege_permissions_${userId}` : PERMISSIONS_STORAGE_KEY;
 
-  // 1. Cargar estado persistido para este usuario específico
+  // 1. Cargar estado persistido para este usuario específico (con fallback)
   try {
-    const raw = await safeStorage.getItem(storageKey);
+    let raw = await safeStorage.getItem(storageKey);
+    if (!raw && storageKey !== PERMISSIONS_STORAGE_KEY) {
+      raw = await safeStorage.getItem(PERMISSIONS_STORAGE_KEY);
+    }
     if (raw) {
       const parsed = JSON.parse(raw);
       vpn = !!parsed.vpn;
@@ -97,7 +98,9 @@ export async function checkRealDevicePermissions(userId?: string): Promise<Devic
         const notifGranted = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
         );
-        notifications = notifGranted;
+        if (notifGranted) {
+          notifications = true;
+        }
       }
 
       // Ubicación GPS / Geolocalización
@@ -108,7 +111,9 @@ export async function checkRealDevicePermissions(userId?: string): Promise<Devic
         const coarseLocationGranted = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION
         );
-        location = fineLocationGranted || coarseLocationGranted;
+        if (fineLocationGranted || coarseLocationGranted) {
+          location = true;
+        }
       }
 
       // Servicio VPN: verificar si el túnel de protección está activo
@@ -163,6 +168,9 @@ export async function saveDevicePermissions(
 
   const storageKey = userId ? `@ba_protege_permissions_${userId}` : PERMISSIONS_STORAGE_KEY;
   await safeStorage.setItem(storageKey, JSON.stringify(updated));
+  if (storageKey !== PERMISSIONS_STORAGE_KEY) {
+    await safeStorage.setItem(PERMISSIONS_STORAGE_KEY, JSON.stringify(updated));
+  }
   return updated;
 }
 

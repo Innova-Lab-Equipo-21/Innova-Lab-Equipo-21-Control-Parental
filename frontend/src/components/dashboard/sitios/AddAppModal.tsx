@@ -127,6 +127,8 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
     }
   };
 
+  const hasInput = appName.trim().length > 0;
+
   const renderDeviceCard = (
     deviceId: string,
     name: string,
@@ -152,8 +154,9 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
       >
         <TouchableOpacity
           style={styles.deviceRowHeader}
-          onPress={() => onToggleDevice(deviceId)}
+          onPress={hasInput ? () => onToggleDevice(deviceId) : undefined}
           activeOpacity={0.7}
+          disabled={!hasInput}
         >
           <View style={styles.deviceLeftCol}>
             <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
@@ -165,7 +168,8 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
           </View>
           <ToggleSwitch
             value={isSelected}
-            onValueChange={() => onToggleDevice(deviceId)}
+            onValueChange={hasInput ? () => onToggleDevice(deviceId) : () => {}}
+            disabled={!hasInput}
           />
         </TouchableOpacity>
 
@@ -460,10 +464,26 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
               onChangeText={onAppNameChange}
             />
 
-            <View style={styles.deviceSelectionContainer}>
+            <View
+              style={[
+                styles.deviceSelectionContainer,
+                !hasInput && styles.deviceSelectionContainerDisabled,
+              ]}
+              pointerEvents={hasInput ? 'auto' : 'none'}
+            >
+              {!hasInput && (
+                <Text style={styles.deviceSelectionDisabledHint}>
+                  Ingresá o seleccioná primero la aplicación para seleccionar los dispositivos.
+                </Text>
+              )}
+
               <View style={styles.applyToAllRow}>
                 <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (regla global)</Text>
-                <ToggleSwitch value={applyToAll} onValueChange={onApplyToAllChange} />
+                <ToggleSwitch
+                  value={applyToAll}
+                  onValueChange={hasInput ? onApplyToAllChange : () => {}}
+                  disabled={!hasInput}
+                />
               </View>
 
               {/* Listado de dispositivos con configuración de tiempo por dispositivo */}

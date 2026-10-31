@@ -284,84 +284,109 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
               </View>
             )}
 
-          <View style={styles.deviceSelectionContainer}>
-            <View style={styles.applyToAllRow}>
-              <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (Regla global)</Text>
-              <ToggleSwitch value={applyToAll} onValueChange={onApplyToAllChange} />
-            </View>
+          {(() => {
+            const hasInput = appName.trim().length > 0;
+            return (
+              <View
+                style={[
+                  styles.deviceSelectionContainer,
+                  !hasInput && styles.deviceSelectionContainerDisabled,
+                ]}
+                pointerEvents={hasInput ? 'auto' : 'none'}
+              >
+                {!hasInput && (
+                  <Text style={styles.deviceSelectionDisabledHint}>
+                    Ingresá primero el nombre de la aplicación para seleccionar los dispositivos.
+                  </Text>
+                )}
 
-            {/* Listado siempre visible de dispositivos registrados */}
-            <View style={styles.deviceListContainer}>
-              <Text style={styles.deviceListTitle}>Selecciona los dispositivos:</Text>
+                <View style={styles.applyToAllRow}>
+                  <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (Regla global)</Text>
+                  <ToggleSwitch
+                    value={applyToAll}
+                    onValueChange={hasInput ? onApplyToAllChange : () => {}}
+                    disabled={!hasInput}
+                  />
+                </View>
 
-              {/* Mi dispositivo (Responsable) */}
-              {(() => {
-                const selfHighlight = getDeviceHighlight('self');
-                return (
-                  <TouchableOpacity
-                    style={[
-                      styles.deviceRow,
-                      {
-                        borderLeftWidth: 4,
-                        borderLeftColor: selfHighlight.color,
-                        backgroundColor: deviceIds.includes('self') ? selfHighlight.bgColor : '#FFFFFF',
-                      },
-                    ]}
-                    onPress={() => onToggleDevice('self')}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.deviceLeftCol}>
-                      <View style={[styles.deviceIconBox, { backgroundColor: selfHighlight.bgColor }]}>
-                        <Text style={styles.deviceIconText}>{selfHighlight.icon}</Text>
-                      </View>
-                      <View style={styles.deviceTextCol}>
-                        <Text style={styles.deviceName}>Mi dispositivo</Text>
-                      </View>
-                    </View>
-                    <ToggleSwitch
-                      value={deviceIds.includes('self')}
-                      onValueChange={() => onToggleDevice('self')}
-                    />
-                  </TouchableOpacity>
-                );
-              })()}
+                {/* Listado siempre visible de dispositivos registrados */}
+                <View style={styles.deviceListContainer}>
+                  <Text style={styles.deviceListTitle}>Selecciona los dispositivos:</Text>
 
-              {/* Dispositivos Protegidos */}
-              {devices.map((device, idx) => {
-                const highlight = getDeviceHighlight(device.deviceId, device.childName, device.deviceName, device.colorIndex ?? idx);
-                const isSelected = deviceIds.includes(device.deviceId);
+                  {/* Mi dispositivo (Responsable) */}
+                  {(() => {
+                    const selfHighlight = getDeviceHighlight('self');
+                    return (
+                      <TouchableOpacity
+                        style={[
+                          styles.deviceRow,
+                          {
+                            borderLeftWidth: 4,
+                            borderLeftColor: selfHighlight.color,
+                            backgroundColor: deviceIds.includes('self') ? selfHighlight.bgColor : '#FFFFFF',
+                          },
+                        ]}
+                        onPress={hasInput ? () => onToggleDevice('self') : undefined}
+                        activeOpacity={0.7}
+                        disabled={!hasInput}
+                      >
+                        <View style={styles.deviceLeftCol}>
+                          <View style={[styles.deviceIconBox, { backgroundColor: selfHighlight.bgColor }]}>
+                            <Text style={styles.deviceIconText}>{selfHighlight.icon}</Text>
+                          </View>
+                          <View style={styles.deviceTextCol}>
+                            <Text style={styles.deviceName}>Mi dispositivo</Text>
+                          </View>
+                        </View>
+                        <ToggleSwitch
+                          value={deviceIds.includes('self')}
+                          onValueChange={hasInput ? () => onToggleDevice('self') : () => {}}
+                          disabled={!hasInput}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })()}
 
-                return (
-                  <TouchableOpacity
-                    key={device.deviceId}
-                    style={[
-                      styles.deviceRow,
-                      {
-                        borderLeftWidth: 4,
-                        borderLeftColor: highlight.color,
-                        backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
-                      },
-                    ]}
-                    onPress={() => onToggleDevice(device.deviceId)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.deviceLeftCol}>
-                      <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
-                        <Text style={styles.deviceIconText}>{highlight.icon}</Text>
-                      </View>
-                      <View style={styles.deviceTextCol}>
-                        <Text style={styles.deviceName}>{device.deviceName}</Text>
-                      </View>
-                    </View>
-                    <ToggleSwitch
-                      value={isSelected}
-                      onValueChange={() => onToggleDevice(device.deviceId)}
-                    />
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+                  {/* Dispositivos Protegidos */}
+                  {devices.map((device, idx) => {
+                    const highlight = getDeviceHighlight(device.deviceId, device.childName, device.deviceName, device.colorIndex ?? idx);
+                    const isSelected = deviceIds.includes(device.deviceId);
+
+                    return (
+                      <TouchableOpacity
+                        key={device.deviceId}
+                        style={[
+                          styles.deviceRow,
+                          {
+                            borderLeftWidth: 4,
+                            borderLeftColor: highlight.color,
+                            backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
+                          },
+                        ]}
+                        onPress={hasInput ? () => onToggleDevice(device.deviceId) : undefined}
+                        activeOpacity={0.7}
+                        disabled={!hasInput}
+                      >
+                        <View style={styles.deviceLeftCol}>
+                          <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
+                            <Text style={styles.deviceIconText}>{highlight.icon}</Text>
+                          </View>
+                          <View style={styles.deviceTextCol}>
+                            <Text style={styles.deviceName}>{device.deviceName}</Text>
+                          </View>
+                        </View>
+                        <ToggleSwitch
+                          value={isSelected}
+                          onValueChange={hasInput ? () => onToggleDevice(device.deviceId) : () => {}}
+                          disabled={!hasInput}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            );
+          })()}
           </ScrollView>
 
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>

@@ -860,6 +860,15 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  deviceSelectionContainerDisabled: {
+    opacity: 0.5,
+  },
+  deviceSelectionDisabledHint: {
+    fontSize: 11.5,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: 10,
+  },
   applyToAllRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

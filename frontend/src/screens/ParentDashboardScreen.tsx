@@ -27,6 +27,7 @@ import { MAX_PROTECTED_DEVICES, SelfControlState, DeviceInfo, CustomBlockedDomai
 // Subcomponentes modulares organizados por carpetas de la Navbar
 import { SeccionDesplegable } from '../components/dashboard/SeccionDesplegable';
 import { DashboardNavbar, DashboardTab } from '../components/dashboard/DashboardNavbar';
+import { ParentInicioSection } from '../components/dashboard/inicio';
 import { ProtectedDevicesSection, PairingSection, PairingModal, SelfControlSection } from '../components/dashboard/dispositivos';
 import { CustomSitesSection } from '../components/dashboard/sitios';
 import { ActivitySection } from '../components/dashboard/actividad';
@@ -37,6 +38,7 @@ import {
   LegalSection,
   RatingSection,
 } from '../components/dashboard/cuenta';
+import { FaqModal } from '../components/dashboard/cuenta/FaqModal';
 import { FabWithTooltip } from '../components/FabWithTooltip';
 import { colors } from '../theme/colors';
 import { checkRealDevicePermissions } from '../utils/permissionChecker';
@@ -109,6 +111,10 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
   // Estados de Sitios Bloqueados Personalizados (CRUD)
   const [customSites, setCustomSites] = useState<CustomBlockedDomain[]>([]);
+  const [customAppsCount, setCustomAppsCount] = useState<number>(0);
+  const [grantedPermsCount, setGrantedPermsCount] = useState<number>(6);
+  const [showHomeFaqModal, setShowHomeFaqModal] = useState<boolean>(false);
+  const [sitesInitialSubTab, setSitesInitialSubTab] = useState<'sites' | 'apps'>('sites');
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -148,6 +154,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const refreshPermissions = async () => {
     try {
       const real = await checkRealDevicePermissions(currentUser?.id);
+      setGrantedPermsCount(real.grantedCount ?? 6);
       const allGranted = !!(
         real.vpn &&
         real.accessibility &&
@@ -157,7 +164,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       );
       setRulePermissions(allGranted);
     } catch (e) {
-      // fallback
+      setGrantedPermsCount(6);
     }
   };
 
@@ -189,6 +196,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     try {
       const res = await apiService.getCustomBlocklist();
       setCustomSites(res.data?.domains || []);
+      if (res.data?.apps) {
+        setCustomAppsCount(res.data.apps.length);
+      }
     } catch (e) {
       console.warn('Error al cargar sitios personalizados:', e);
     }
@@ -199,10 +209,12 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     try {
       const res = await apiService.generatePairingCode(formData);
       setPairingCode(res.data?.code || res.data?.pairingCode || '483921');
+      await loadDevices();
     } catch (e: any) {
       // Fallback robusto en modo standalone / sin base de datos conectada
       const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
       setPairingCode(fallbackCode);
+      await loadDevices();
       Alert.alert(
         '📱 Código Generado (Modo Standalone)',
         `Se generó el código de vinculación: ${fallbackCode}. Los datos del protegido se mantendrán guardados hasta el emparejamiento.`
@@ -320,135 +332,38 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* VISTA 1: INICIO (HOME) */}
+      {/* VISTA 1: INICIO (HOME SIN SCROLL) */}
       {activeTab === 'inicio' && (
-        <>
-          <Header
-            title="Panel del responsable"
-            subtitle={
-              currentUser?.fullName
-                ? `Bienvenido/a, ${currentUser.fullName}`
-                : 'Monitoreo, permisos de dispositivos y autocontrol'
-            }
+        <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingBottom: 65 }}>
+          <Header showSubHeader={false} />
+          <ParentInicioSection
+            currentUser={currentUser}
+            devices={devices}
+            selfControl={selfControl}
+            customSitesCount={customSites.length}
+            blockedAppsCount={customAppsCount}
+            grantedCount={grantedPermsCount}
+            onNavigateToPermissions={() => setShowPermissionsModal(true)}
+            onNavigateToDevices={() => setActiveTab('dispositivos')}
+            onToggleSelfControl={() => {
+              if (selfControl.active) {
+                handleDisableSelfControl();
+              } else {
+                handleStartSelfControlFlow();
+              }
+            }}
+            onNavigateToSites={() => {
+              setSitesInitialSubTab('sites');
+              setActiveTab('sitios');
+            }}
+            onNavigateToApps={() => {
+              setSitesInitialSubTab('apps');
+              setActiveTab('sitios');
+            }}
+            onNavigateToActivity={() => setActiveTab('actividad')}
+            onOpenFaq={() => setShowHomeFaqModal(true)}
           />
-          <ScrollView contentContainerStyle={styles.container}>
-            {/* Tarjetas de Resumen General */}
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryValue}>{devices.length}/{MAX_PROTECTED_DEVICES}</Text>
-                <Text style={styles.summaryLabel}>Dispositivos</Text>
-              </View>
-
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryValue}>3/3</Text>
-                <Text style={styles.summaryLabel}>Reglas Activas</Text>
-              </View>
-
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryValue}>
-                  {selfControl.active ? '🔒 Activa' : 'Off'}
-                </Text>
-                <Text style={styles.summaryLabel}>Autocontrol</Text>
-              </View>
-            </View>
-
-            {/* SECCIÓN 1: VINCULAR DISPOSITIVO */}
-            <SeccionDesplegable
-              title="Vincular dispositivo"
-              subtitle="Generar código y QR para vincular celular"
-              badgeLabel={`${devices.length}/${MAX_PROTECTED_DEVICES} VINCULADOS`}
-              badgeStatus="activo"
-              icon="📱"
-              initialExpanded={true}
-            >
-              <PairingSection
-                pairingCode={pairingCode}
-                deviceCount={devices.length}
-                loading={loading}
-                onGenerateCode={handleGeneratePairingCode}
-              />
-            </SeccionDesplegable>
-
-            {/* SECCIÓN 2: DISPOSITIVOS PROTEGIDOS */}
-            <SeccionDesplegable
-              title="Dispositivos protegidos"
-              subtitle="Estado y monitoreo de celulares vinculados"
-              badgeLabel={`${devices.length}/${MAX_PROTECTED_DEVICES} PROTEGIDOS`}
-              badgeStatus="activo"
-              icon="📱"
-              initialExpanded={false}
-            >
-              <ProtectedDevicesSection
-                devices={devices}
-                selfControl={selfControl}
-                currentUser={currentUser}
-                onUpdateUser={(updated) => setCurrentUser(updated)}
-                onStartSelfControlFlow={handleStartSelfControlFlow}
-                onDisableSelfControl={handleDisableSelfControl}
-                onRefreshList={loadDevices}
-                onUnbindDevice={() => loadDevices()}
-                onOpenPermissions={() => setShowPermissionsModal(true)}
-              />
-            </SeccionDesplegable>
-
-            {/* SECCIÓN 4: GESTIÓN DE SITIOS Y APPS */}
-            <SeccionDesplegable
-              title="Gestión de sitios y apps"
-              subtitle="Filtro oficial LOTBA, dominios y aplicaciones de la red familiar"
-              badgeLabel="REGLAS"
-              badgeStatus="activo"
-              icon="🌐"
-              initialExpanded={false}
-            >
-              <CustomSitesSection
-                customSites={customSites}
-                devices={devices}
-                onRefreshList={loadCustomSites}
-                selfControl={selfControl}
-              />
-            </SeccionDesplegable>
-
-            {/* SECCIÓN 5: ACTIVIDAD DEL SISTEMA */}
-            <SeccionDesplegable
-              title="Actividad del sistema"
-              subtitle="Registro de bloqueos y alertas de seguridad"
-              badgeLabel="AUDITORÍA"
-              badgeStatus="activo"
-              icon="📊"
-              initialExpanded={false}
-            >
-              <ActivitySection devices={devices} />
-            </SeccionDesplegable>
-
-            {/* SECCIÓN 6: AUTOCONTROL DEL TUTOR */}
-            <SeccionDesplegable
-              title="Autocontrol del tutor"
-              subtitle="Bloqueo preventivo de 24 horas para este dispositivo"
-              badgeLabel={
-                selfControl.active
-                  ? '🔒 ACTIVO'
-                  : selfControl.remainingHours > 0
-                  ? 'EN ESPERA'
-                  : 'INACTIVO'
-              }
-              badgeStatus={
-                selfControl.active
-                  ? 'activo'
-                  : selfControl.remainingHours > 0
-                  ? 'alerta'
-                  : 'inactivo'
-              }
-              icon="🔒"
-              initialExpanded={false}
-            >
-              <SelfControlSection
-                selfControl={selfControl}
-                onStartSelfControlFlow={handleStartSelfControlFlow}
-                onDisableSelfControl={handleDisableSelfControl}
-              />
-            </SeccionDesplegable>
-          </ScrollView>
-        </>
+        </View>
       )}
 
       {/* VISTA 2: DISPOSITIVOS */}
@@ -517,6 +432,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               onRefreshList={loadCustomSites}
               selfControl={selfControl}
               hideInternalFab={true}
+              initialSubTab={sitesInitialSubTab}
               onSetAddHandler={(handler) => {
                 siteAddHandlerRef.current = handler;
               }}
@@ -740,6 +656,12 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* Modal de Preguntas Frecuentes desde la Home */}
+      <FaqModal
+        visible={showHomeFaqModal}
+        onClose={() => setShowHomeFaqModal(false)}
+      />
     </SafeAreaView>
   );
 };

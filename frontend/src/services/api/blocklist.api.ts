@@ -33,10 +33,23 @@ export const blocklistApi = {
     try {
       const response = await apiClient.get('/blocklist/custom', { timeout: 300 });
       if (response.data?.data) {
+        // Preservar aplicaciones bloqueadas locales para evitar que la respuesta del backend las sobreescriba
+        const cached = await safeStorage.getItem('@ba_protege_custom_blocklist');
+        const cachedList: CustomBlocklist | null = cached ? JSON.parse(cached) : null;
+        const localApps = cachedList?.apps || [];
+        const serverApps = response.data.data.apps || [];
+        const mergedApps = serverApps.length > 0 ? serverApps : localApps;
+
+        const mergedData: CustomBlocklist = {
+          ...response.data.data,
+          apps: mergedApps,
+        };
+
         await safeStorage.setItem(
           '@ba_protege_custom_blocklist',
-          JSON.stringify(response.data.data)
+          JSON.stringify(mergedData)
         );
+        return { success: true, data: mergedData };
       }
       return response.data;
     } catch (e) {
