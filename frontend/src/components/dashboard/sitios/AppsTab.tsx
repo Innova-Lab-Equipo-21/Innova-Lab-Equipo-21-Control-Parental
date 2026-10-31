@@ -7,6 +7,8 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Badge } from '../../Badge';
+import { ToggleSwitch } from '../../ToggleSwitch';
+import { Icon } from '../../Icon';
 import { colors } from '../../../theme/colors';
 import { CustomBlockedApp } from '../../../types';
 import { styles } from './CustomSitesSection.styles';
@@ -26,6 +28,8 @@ interface AppsTabProps {
   onBulkDelete: () => void;
   onToggleActive: (app: CustomBlockedApp) => void;
   onDeleteApp: (app: CustomBlockedApp) => void;
+  onStartEdit?: (app: CustomBlockedApp) => void;
+  onEditTimeLimit?: (app: CustomBlockedApp) => void;
 }
 
 export const AppsTab: React.FC<AppsTabProps> = ({
@@ -43,6 +47,8 @@ export const AppsTab: React.FC<AppsTabProps> = ({
   onBulkDelete,
   onToggleActive,
   onDeleteApp,
+  onStartEdit,
+  onEditTimeLimit,
 }) => {
   const allSelected = appsList.length > 0 && selectedIds.length === appsList.length;
   const selectedApps = appsList.filter((a) => selectedIds.includes(a.id));
@@ -124,7 +130,10 @@ export const AppsTab: React.FC<AppsTabProps> = ({
           return (
             <TouchableOpacity
               key={app.id}
-              style={[styles.siteCard, isSelectionMode && isSelected && { borderColor: colors.primary, borderWidth: 1.5 }]}
+              style={[
+                styles.siteCard,
+                isSelectionMode && isSelected && { borderColor: colors.primary, borderWidth: 1.5 },
+              ]}
               onPress={() => {
                 if (isSelectionMode) onToggleSelect(app.id);
               }}
@@ -140,50 +149,61 @@ export const AppsTab: React.FC<AppsTabProps> = ({
                   </TouchableOpacity>
                 )}
 
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={styles.siteDomainText}>📱 {app.appName}</Text>
-                  <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 2 }}>{app.packageName}</Text>
-                  {app.dailyLimitMinutes ? (
-                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '600' }}>
-                      ⏱️ Límite diario: {app.dailyLimitMinutes >= 60 ? `${app.dailyLimitMinutes / 60}h` : `${app.dailyLimitMinutes} min`}
-                    </Text>
-                  ) : (
-                    <Text style={{ fontSize: 11, color: colors.textSecondary }}>
-                      ⏱️ Límite: Indeterminado (Sin límite diario)
-                    </Text>
-                  )}
+                <View style={styles.cardTitleCol}>
+                  <Text style={styles.siteDomainText} numberOfLines={1}>
+                    {app.appName}
+                  </Text>
                 </View>
-                <Badge
-                  status={app.isActive ? 'activo' : 'inactivo'}
-                  label={app.isActive ? 'BLOQUEADO' : 'PAUSADO'}
-                />
+
+                <View style={styles.headerControlsRow}>
+                  <Badge
+                    status={app.isActive ? 'activo' : 'danger'}
+                    label={app.isActive ? 'Bloqueada' : 'Desbloqueada'}
+                  />
+                  <ToggleSwitch
+                    value={app.isActive}
+                    onValueChange={() => onToggleActive(app)}
+                  />
+                </View>
               </View>
 
-              {/* Fila inferior compacta: Dispositivos aplicados a la izquierda y Acciones a la derecha */}
+              {/* Fila inferior: Dispositivos y tiempo de uso a la izquierda, Acciones (editar, eliminar) a la derecha */}
               <View style={styles.cardFooterRow}>
-                <Text style={styles.deviceIndicatorText} numberOfLines={1}>
-                  {app.applyToAll
-                    ? '📱 Todos los dispositivos'
-                    : `📱 Aplicado en ${app.deviceIds?.length || 0} dispositivo(s)`}
-                </Text>
+                <View style={styles.cardFooterInfoCol}>
+                  <Text style={styles.deviceIndicatorText} numberOfLines={1}>
+                    {app.applyToAll
+                      ? 'Todos los dispositivos'
+                      : `${app.deviceIds?.length || 0} ${app.deviceIds?.length === 1 ? 'dispositivo' : 'dispositivos'}`}
+                  </Text>
+                  <Text style={styles.usageLimitText} numberOfLines={1}>
+                    {app.dailyLimitMinutes
+                      ? `Límite diario: ${app.dailyLimitMinutes >= 60 ? `${app.dailyLimitMinutes / 60}h` : `${app.dailyLimitMinutes} min`}`
+                      : 'Bloqueo total'}
+                  </Text>
+                </View>
 
                 <View style={styles.compactActionsRow}>
                   <TouchableOpacity
-                    style={styles.iconActionButton}
-                    onPress={() => onToggleActive(app)}
+                    style={[styles.iconButton, !app.isActive && styles.iconButtonDisabled]}
+                    onPress={() => onStartEdit?.(app)}
+                    disabled={!app.isActive}
                     activeOpacity={0.7}
-                    accessibilityLabel={app.isActive ? 'Pausar' : 'Reanudar'}
+                    accessibilityLabel="Editar aplicación"
                   >
-                    <Text style={styles.iconActionText}>{app.isActive ? '⏸️' : '▶️'}</Text>
+                    <Icon
+                      name="editar"
+                      size={22}
+                      color={!app.isActive ? colors.textMuted : undefined}
+                    />
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.iconActionButton, styles.deleteIconActionButton]}
+                    style={styles.iconButton}
                     onPress={() => onDeleteApp(app)}
                     activeOpacity={0.7}
-                    accessibilityLabel="Eliminar"
+                    accessibilityLabel="Eliminar aplicación"
                   >
-                    <Text style={styles.iconActionText}>🗑️</Text>
+                    <Icon name="eliminar" size={22} />
                   </TouchableOpacity>
                 </View>
               </View>

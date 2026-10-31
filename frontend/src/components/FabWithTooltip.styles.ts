@@ -11,7 +11,7 @@ import { StyleSheet, Platform } from 'react-native';
 export const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 16,
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',

@@ -34,13 +34,15 @@ export type ProtectionStatus =
   | 'UNKNOWN';
 
 /**
- * Estado detallado de permisos del sistema reportado por cada dispositivo.
+ * Estado detallado de los 6 permisos del sistema reportado por cada dispositivo.
  */
 export interface DevicePermissionsStatus {
   vpn: boolean;
   accessibility: boolean;
   notifications: boolean;
   batteryOptimization: boolean;
+  location: boolean;
+  usageStats: boolean;
   grantedCount: number;
 }
 
@@ -58,6 +60,14 @@ export interface DeviceInfo {
   blockedCount: number;
   blocklistVersion: number;
   permissions?: DevicePermissionsStatus;
+  phone?: string;
+  birthDate?: string;
+  gender?: string;
+  profileType?: 'Menor' | 'Adulto' | 'Responsable';
+  deviceModel?: string;
+  createdAt?: string;
+  pairedAt?: string;
+  colorIndex?: number;
 }
 
 /**
@@ -91,12 +101,15 @@ export interface SelfControlState {
   autoRelockAt?: string | null;
   remainingHours: number;
   remainingMinutes: number;
+  remainingSeconds?: number;
   remainingWaitHours?: number;
   remainingWaitMinutes?: number;
+  remainingWaitSeconds?: number;
   remainingLockHours?: number;
   remainingLockMinutes?: number;
   remainingUnlockHours?: number;
   remainingUnlockMinutes?: number;
+  remainingUnlockSeconds?: number;
 }
 
 /**
@@ -141,7 +154,8 @@ export interface CustomBlockedApp {
   isActive: boolean;
   applyToAll: boolean;
   deviceIds: string[];
-  dailyLimitMinutes?: number; // Límite de tiempo diario (indeterminado por defecto si es undefined)
+  dailyLimitMinutes?: number; // Límite de tiempo diario general (indeterminado por defecto si es undefined)
+  deviceLimits?: Record<string, number | undefined>; // Límite de tiempo diario específico configurado por dispositivo
   createdAt: string;
 }
 

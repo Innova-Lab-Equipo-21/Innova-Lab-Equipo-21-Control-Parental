@@ -20,11 +20,8 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   formCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: 'transparent',
+    padding: 0,
     marginBottom: 10,
   },
   fieldGroup: {

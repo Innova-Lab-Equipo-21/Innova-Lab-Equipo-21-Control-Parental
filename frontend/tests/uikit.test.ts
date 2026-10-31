@@ -25,4 +25,11 @@ describe('Kit UI/UX y Jerarquía de Tokens (uikit.txt)', () => {
     assert.equal(typography.body.fontSize, 14);
     assert.equal(typography.caption.fontSize, 12);
   });
+
+  test('Los estados de badge para protección deben incluir activo y danger (desbloqueado)', () => {
+    assert.equal(colors.statusActive, '#28A745');
+    assert.equal(colors.statusActiveBg, '#D1E7DD');
+    assert.equal(colors.statusDanger, '#DC3545');
+    assert.equal(colors.statusDangerBg, '#F8D7DA');
+  });
 });

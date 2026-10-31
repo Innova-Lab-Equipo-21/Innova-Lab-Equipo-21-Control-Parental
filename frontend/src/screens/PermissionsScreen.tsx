@@ -7,7 +7,7 @@
 //              común para Responsable y Protegido, y CTA Volver.
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { ToggleSwitch } from '../components/ToggleSwitch';
 import { colors } from '../theme/colors';
 import { vpnServiceBridge } from '../services/vpn.service';
 import { apiService } from '../services/api.service';
+import { checkRealDevicePermissions, saveDevicePermissions } from '../utils/permissionChecker';
 
 interface PermissionsScreenProps {
   onPermissionsComplete: () => void;
@@ -56,7 +57,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   onBack,
   flowSource = 'DEVICE_PAIRING',
 }) => {
-  // Todas las autorizaciones inician desactivadas (false)
+  // Inicialización de permisos (se sincroniza con el estado real del sistema)
   const [permissions, setPermissions] = useState<PermissionItemState>({
     vpn: false,
     accessibility: false,
@@ -65,6 +66,29 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     location: false,
     usageStats: false,
   });
+
+  // Consultar permisos reales nativos al montar
+  useEffect(() => {
+    checkRealDevicePermissions().then((real) => {
+      setPermissions({
+        vpn: real.vpn,
+        accessibility: real.accessibility,
+        notifications: real.notifications,
+        batteryOptimization: real.batteryOptimization,
+        location: real.location,
+        usageStats: real.usageStats,
+      });
+    });
+  }, []);
+
+  // Helper para actualizar y persistir el estado real de permisos
+  const updatePermission = (key: keyof PermissionItemState, value: boolean) => {
+    setPermissions((prev) => {
+      const next = { ...prev, [key]: value };
+      saveDevicePermissions(next);
+      return next;
+    });
+  };
 
   // Solo un card puede estar abierto a la vez (los demás se cierran automáticamente)
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -86,10 +110,10 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     setLoadingKey('vpn');
     try {
       await vpnServiceBridge.prepareVpn();
-      setPermissions((prev) => ({ ...prev, vpn: true }));
+      updatePermission('vpn', true);
       Alert.alert('Permiso VPN concedido', 'El servicio de filtrado local VPN ha sido autorizado.');
     } catch (e: any) {
-      setPermissions((prev) => ({ ...prev, vpn: true }));
+      updatePermission('vpn', true);
       Alert.alert('Permiso VPN autorizado', 'Túnel local de protección de red preparado.');
     } finally {
       setLoadingKey(null);
@@ -99,7 +123,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   const handleRequestAccessibility = () => {
     setLoadingKey('accessibility');
     setTimeout(() => {
-      setPermissions((prev) => ({ ...prev, accessibility: true }));
+      updatePermission('accessibility', true);
       setLoadingKey(null);
       Alert.alert(
         'Servicio de accesibilidad activado',
@@ -109,14 +133,14 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   };
 
   const handleRequestNotifications = () => {
-    setPermissions((prev) => ({ ...prev, notifications: true }));
+    updatePermission('notifications', true);
     Alert.alert('Notificaciones habilitadas', 'Recibirás alertas en tiempo real y avisos de estado de supervisión.');
   };
 
   const handleRequestBattery = () => {
     setLoadingKey('battery');
     setTimeout(() => {
-      setPermissions((prev) => ({ ...prev, batteryOptimization: true }));
+      updatePermission('batteryOptimization', true);
       setLoadingKey(null);
       Alert.alert('Exención de batería concedida', 'El motor continuará protegiendo ininterrumpidamente en segundo plano.');
     }, 600);
@@ -125,7 +149,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   const handleRequestUsageStats = () => {
     setLoadingKey('usageStats');
     setTimeout(() => {
-      setPermissions((prev) => ({ ...prev, usageStats: true }));
+      updatePermission('usageStats', true);
       setLoadingKey(null);
       Alert.alert('Estadísticas de uso autorizadas', 'Permiso concedido para supervisar tiempo de pantalla y límites diarios.');
     }, 600);
@@ -155,7 +179,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
           }
 
           setLocationAddress(addressText);
-          setPermissions((prev) => ({ ...prev, location: true }));
+          updatePermission('location', true);
           setLoadingKey(null);
 
           await apiService.saveUserLocation({
@@ -189,7 +213,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       const ipAddress = `${data.city || 'Buenos Aires'}, ${data.region || 'CABA'}, ${data.country_name || 'Argentina'} (Aproximada por IP)`;
 
       setLocationAddress(ipAddress);
-      setPermissions((prev) => ({ ...prev, location: true }));
+      updatePermission('location', true);
 
       await apiService.saveUserLocation({
         address: ipAddress,
@@ -205,7 +229,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     } catch (e) {
       const defaultLoc = 'Buenos Aires, Argentina (Ubicación por defecto)';
       setLocationAddress(defaultLoc);
-      setPermissions((prev) => ({ ...prev, location: true }));
+      updatePermission('location', true);
 
       await apiService.saveUserLocation({ address: defaultLoc, source: 'IP' });
 
@@ -218,7 +242,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   const handleTogglePermission = (key: keyof PermissionItemState) => {
     if (permissions[key]) {
       // Desactivar permiso
-      setPermissions((prev) => ({ ...prev, [key]: false }));
+      updatePermission(key, false);
       if (key === 'location') {
         setLocationAddress(null);
       }

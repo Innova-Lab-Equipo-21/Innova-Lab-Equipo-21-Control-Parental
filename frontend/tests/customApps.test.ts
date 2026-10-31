@@ -54,6 +54,33 @@ describe('Gestión y Bloqueo de Aplicaciones (Modo Responsable)', () => {
     assert.deepEqual(res.data.deviceIds, targetDevices);
   });
 
+  test('DEVICE LIMITS: Debe permitir configurar límites de tiempo diarios específicos por dispositivo con fallback a Bloqueo total', async () => {
+    const appName = 'Instagram Limit Test';
+    const packageName = `com.instagram.test.${Date.now()}`;
+    const deviceIds = ['self', 'dev-mateo-123', 'dev-sofia-456'];
+    const deviceLimits = {
+      self: undefined, // Bloqueo total
+      'dev-mateo-123': 60, // 1 hora
+      'dev-sofia-456': 300, // 5 horas
+    };
+
+    const res = await apiService.addCustomBlockedApp(
+      appName,
+      packageName,
+      'Redes sociales',
+      false,
+      deviceIds,
+      undefined,
+      deviceLimits
+    );
+
+    assert.equal(res.success, true);
+    assert.deepEqual(res.data.deviceLimits, deviceLimits);
+    assert.equal(res.data.deviceLimits?.['self'], undefined);
+    assert.equal(res.data.deviceLimits?.['dev-mateo-123'], 60);
+    assert.equal(res.data.deviceLimits?.['dev-sofia-456'], 300);
+  });
+
   test('UPDATE: Debe permitir pausar y reanudar el bloqueo de una aplicación (isActive)', async () => {
     const appName = `App Toggle ${Date.now()}`;
     const created = await apiService.addCustomBlockedApp(

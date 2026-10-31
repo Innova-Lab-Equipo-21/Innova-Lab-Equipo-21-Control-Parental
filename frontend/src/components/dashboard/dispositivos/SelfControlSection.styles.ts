@@ -1,7 +1,7 @@
 // ==============================================================================
 // Proyecto: BA Protege+
 // Componente: SelfControlSection Styles
-// Archivo: src/components/dashboard/cuenta/SelfControlSection.styles.ts
+// Archivo: src/components/dashboard/dispositivos/SelfControlSection.styles.ts
 // Descripción: Estilos visuales para la sección de Autocontrol del Responsable.
 // ==============================================================================
 

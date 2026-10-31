@@ -230,6 +230,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
               errors.protectedName ? styles.inputErrorBorder : null,
             ]}
             value={protectedName}
+            selectTextOnFocus={true}
             onChangeText={(text) => {
               setProtectedName(text);
               if (errors.protectedName) {
@@ -311,6 +312,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
             <TextInput
               style={styles.inputNoBorder}
               value={birthDate}
+              selectTextOnFocus={true}
               onChangeText={(text) => {
                 const formatted = formatBirthDate(text);
                 setBirthDate(formatted);
@@ -386,6 +388,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
               errors.protectedPhone ? styles.inputErrorBorder : null,
             ]}
             value={protectedPhone}
+            selectTextOnFocus={true}
             onChangeText={(text) => {
               const formatted = formatPhone(text);
               setProtectedPhone(formatted);
@@ -411,6 +414,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
           <TextInput
             style={styles.input}
             value={deviceModel}
+            selectTextOnFocus={true}
             onChangeText={setDeviceModel}
             placeholder="Ej: Samsung Galaxy A54"
             placeholderTextColor={colors.textMuted}

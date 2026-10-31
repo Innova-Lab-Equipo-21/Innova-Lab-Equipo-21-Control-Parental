@@ -1,11 +1,11 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: EditSiteModal (Modal para Editar Sitio Web Bloqueado)
+// Componente: EditSiteModal (Modal Bottom Sheet para Editar Sitio Web Bloqueado)
 // Archivo: src/components/dashboard/sitios/EditSiteModal.tsx
 // ==============================================================================
 
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
@@ -57,143 +57,134 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <TouchableOpacity style={styles.modalCloseButton} onPress={onClose}>
-            <Text style={styles.modalCloseText}>✕</Text>
-          </TouchableOpacity>
+      <View style={styles.bottomSheetOverlay}>
+        <View style={styles.bottomSheetModalContent}>
+          {/* Manija táctil del Bottom Sheet */}
+          <View style={styles.bottomSheetHandle} />
 
-          <Image
-            source={require('../../../assets/icons/bot/beti.png')}
-            style={styles.modalHeaderImage}
-          />
-          <Text style={styles.modalTitle}>Editar sitio bloqueado</Text>
-          <Text style={styles.modalBody}>
-            Modifica el dominio o la regla de asignación del sitio restringido.
+          {/* Encabezado */}
+          <View style={styles.sheetHeaderRow}>
+            <Text style={styles.sheetTitle}>Editar sitio bloqueado</Text>
+            <TouchableOpacity
+              style={styles.sheetCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Cerrar modal"
+            >
+              <Text style={styles.sheetCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.sheetSubtitle}>
+            Modificá el dominio o la regla de asignación del sitio restringido.
           </Text>
 
-          <Text style={styles.inputLabel}>Dominio o URL:</Text>
-          <TextInput
-            style={[
-              styles.formInput,
-              hasInput && (isDomainValid ? styles.inputValid : styles.inputInvalid),
-            ]}
-            value={domain}
-            onChangeText={onDomainChange}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="ejemplo: casino-ilegal.bet"
-            placeholderTextColor={colors.textSecondary}
-          />
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 16 }}
+          >
+            <Text style={styles.inputLabel}>Dominio o URL del sitio:</Text>
+            <TextInput
+              style={[
+                styles.formInput,
+                hasInput && (isDomainValid ? styles.inputValid : styles.inputInvalid),
+              ]}
+              value={domain}
+              selectTextOnFocus={true}
+              onChangeText={onDomainChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="ejemplo: casino-ilegal.bet"
+              placeholderTextColor={colors.textSecondary}
+            />
 
-          {/* Verificación de Sitio Válido en Tiempo Real */}
-          {hasInput && (
-            <View style={isDomainValid ? styles.domainFeedbackValid : styles.domainFeedbackInvalid}>
-              <Text style={isDomainValid ? styles.domainFeedbackTextValid : styles.domainFeedbackTextInvalid}>
-                {isDomainValid
-                  ? `✓ Sitio válido (se filtrará: ${normalizedDomain})`
-                  : '⚠️ Ingresa una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
-              </Text>
-            </View>
-          )}
+            {/* Verificación de Sitio Válido en Tiempo Real */}
+            {hasInput && (
+              <View style={isDomainValid ? styles.domainFeedbackValid : styles.domainFeedbackInvalid}>
+                <Text style={isDomainValid ? styles.domainFeedbackTextValid : styles.domainFeedbackTextInvalid}>
+                  {isDomainValid
+                    ? `✓ Sitio válido (se filtrará: ${normalizedDomain})`
+                    : '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
+                </Text>
+              </View>
+            )}
 
-          <View style={styles.deviceSelectionContainer}>
-            <View style={styles.applyToAllRow}>
-              <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (Regla global)</Text>
-              <ToggleSwitch value={applyToAll} onValueChange={onApplyToAllChange} />
-            </View>
+            <View style={styles.deviceSelectionContainer}>
+              <View style={styles.applyToAllRow}>
+                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (regla global)</Text>
+                <ToggleSwitch value={applyToAll} onValueChange={onApplyToAllChange} />
+              </View>
 
-            {/* Listado siempre visible de dispositivos registrados */}
-            <View style={styles.deviceListContainer}>
-              <Text style={styles.deviceListTitle}>Selecciona los dispositivos:</Text>
+              {/* Listado siempre visible de dispositivos registrados */}
+              <View style={styles.deviceListContainer}>
+                <Text style={styles.deviceListTitle}>Seleccioná los dispositivos:</Text>
 
-              {/* Mi dispositivo (Responsable) */}
-              <TouchableOpacity
-                style={[
-                  styles.deviceRow,
-                  {
-                    borderLeftWidth: 4,
-                    borderLeftColor: selfHighlight.color,
-                    backgroundColor: deviceIds.includes('self') ? selfHighlight.bgColor : '#FFFFFF',
-                  },
-                ]}
-                onPress={() => onToggleDevice('self')}
-                activeOpacity={0.7}
-              >
-                <View style={styles.deviceLeftCol}>
-                  <View style={[styles.deviceIconBox, { backgroundColor: selfHighlight.bgColor }]}>
-                    <Text style={styles.deviceIconText}>{selfHighlight.icon}</Text>
-                  </View>
-                  <View style={styles.deviceTextCol}>
-                    <View style={styles.deviceNameRow}>
+                {/* Mi dispositivo (Responsable) */}
+                <TouchableOpacity
+                  style={[
+                    styles.deviceRow,
+                    {
+                      borderLeftWidth: 4,
+                      borderLeftColor: selfHighlight.color,
+                      backgroundColor: deviceIds.includes('self') ? selfHighlight.bgColor : '#FFFFFF',
+                    },
+                  ]}
+                  onPress={() => onToggleDevice('self')}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.deviceLeftCol}>
+                    <View style={[styles.deviceIconBox, { backgroundColor: selfHighlight.bgColor }]}>
+                      <Text style={styles.deviceIconText}>{selfHighlight.icon}</Text>
+                    </View>
+                    <View style={styles.deviceTextCol}>
                       <Text style={styles.deviceName}>Mi dispositivo</Text>
-                      <View
-                        style={[
-                          styles.deviceRoleBadge,
-                          { backgroundColor: selfHighlight.bgColor, borderColor: selfHighlight.borderColor },
-                        ]}
-                      >
-                        <Text style={[styles.deviceRoleBadgeText, { color: selfHighlight.color }]}>
-                          {selfHighlight.badgeLabel}
-                        </Text>
-                      </View>
                     </View>
                   </View>
-                </View>
-                <ToggleSwitch
-                  value={deviceIds.includes('self')}
-                  onValueChange={() => onToggleDevice('self')}
-                />
-              </TouchableOpacity>
+                  <ToggleSwitch
+                    value={deviceIds.includes('self')}
+                    onValueChange={() => onToggleDevice('self')}
+                  />
+                </TouchableOpacity>
 
-              {/* Dispositivos Protegidos */}
-              {devices.map((device, idx) => {
-                const highlight = getDeviceHighlight(device.deviceId, device.childName, device.deviceName, idx);
-                const isSelected = deviceIds.includes(device.deviceId);
+                {/* Dispositivos Protegidos */}
+                {devices.map((device, idx) => {
+                  const highlight = getDeviceHighlight(device.deviceId, device.childName, device.deviceName, device.colorIndex ?? idx);
+                  const isSelected = deviceIds.includes(device.deviceId);
 
-                return (
-                  <TouchableOpacity
-                    key={device.deviceId}
-                    style={[
-                      styles.deviceRow,
-                      {
-                        borderLeftWidth: 4,
-                        borderLeftColor: highlight.color,
-                        backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
-                      },
-                    ]}
-                    onPress={() => onToggleDevice(device.deviceId)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.deviceLeftCol}>
-                      <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
-                        <Text style={styles.deviceIconText}>{highlight.icon}</Text>
-                      </View>
-                      <View style={styles.deviceTextCol}>
-                        <View style={styles.deviceNameRow}>
+                  return (
+                    <TouchableOpacity
+                      key={device.deviceId}
+                      style={[
+                        styles.deviceRow,
+                        {
+                          borderLeftWidth: 4,
+                          borderLeftColor: highlight.color,
+                          backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
+                        },
+                      ]}
+                      onPress={() => onToggleDevice(device.deviceId)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.deviceLeftCol}>
+                        <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
+                          <Text style={styles.deviceIconText}>{highlight.icon}</Text>
+                        </View>
+                        <View style={styles.deviceTextCol}>
                           <Text style={styles.deviceName}>{device.deviceName}</Text>
-                          <View
-                            style={[
-                              styles.deviceRoleBadge,
-                              { backgroundColor: highlight.bgColor, borderColor: highlight.borderColor },
-                            ]}
-                          >
-                            <Text style={[styles.deviceRoleBadgeText, { color: highlight.color }]}>
-                              {highlight.badgeLabel}
-                            </Text>
-                          </View>
                         </View>
                       </View>
-                    </View>
-                    <ToggleSwitch
-                      value={isSelected}
-                      onValueChange={() => onToggleDevice(device.deviceId)}
-                    />
-                  </TouchableOpacity>
-                );
-              })}
+                      <ToggleSwitch
+                        value={isSelected}
+                        onValueChange={() => onToggleDevice(device.deviceId)}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
-          </View>
+          </ScrollView>
 
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
             <View style={{ flex: 1 }}>

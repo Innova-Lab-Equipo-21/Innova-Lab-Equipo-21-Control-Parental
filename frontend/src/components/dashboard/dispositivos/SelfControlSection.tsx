@@ -1,7 +1,7 @@
 // ==============================================================================
 // Proyecto: BA Protege+
 // Componente: SelfControlSection (Sección de Autocontrol del Responsable 24h)
-// Archivo: src/components/dashboard/cuenta/SelfControlSection.tsx
+// Archivo: src/components/dashboard/dispositivos/SelfControlSection.tsx
 // ==============================================================================
 
 import React from 'react';
@@ -61,7 +61,7 @@ export const SelfControlSection: React.FC<SelfControlSectionProps> = ({
           ? `Desactivación habilitada en 24hs. Tiempo de espera restante: ${selfControl.remainingWaitHours ?? selfControl.remainingHours}h ${(selfControl.remainingWaitMinutes ?? selfControl.remainingMinutes).toString().padStart(2, '0')}m.`
           : selfControl.active
           ? 'Autoprotección activa. Al solicitar la desactivación se iniciará una espera obligatoria de 24 horas.'
-          : 'Al activar la autoprotección mediante doble confirmación, el bloqueo se mantendrá permanente.'}
+          : 'Al activar el autocontrol, se impedirá el acceso o eliminación de sitios y aplicaciones bloqueadas en este dispositivo. Una vez activo, solo podrá desactivarse tras 24 horas de espera obligatoria.'}
       </Text>
 
       {selfControl.status === 'TEMPORARILY_UNLOCKED' ? (

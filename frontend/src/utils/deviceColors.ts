@@ -24,7 +24,7 @@ export const getDeviceHighlight = (
   deviceId: string,
   childName?: string,
   deviceName?: string,
-  index: number = 0
+  colorIndex: number = 0
 ): DeviceHighlight => {
   if (deviceId === 'self') {
     return {
@@ -36,42 +36,22 @@ export const getDeviceHighlight = (
     };
   }
 
-  const name = `${childName || ''} ${deviceName || ''}`.toLowerCase();
-
-  if (name.includes('mateo')) {
-    return {
-      color: '#28A745',
-      bgColor: '#D1E7DD',
-      borderColor: '#A3CFBB',
-      badgeLabel: childName || 'Mateo',
-      icon: '🛡️',
-    };
-  }
-
-  if (name.includes('sofía') || name.includes('sofia')) {
-    return {
-      color: '#7E22CE',
-      bgColor: '#FAF5FF',
-      borderColor: '#E9D5FF',
-      badgeLabel: childName || 'Sofía',
-      icon: '📱',
-    };
-  }
-
-  // Paleta predefinida para dispositivos adicionales (hasta 5 dispositivos)
-  const fallbackPalette = [
-    { color: '#FD7E14', bgColor: '#FFE8D6', borderColor: '#FFC9A5', icon: '📱' },
-    { color: '#0DCAF0', bgColor: '#CFF4FC', borderColor: '#9EEAF9', icon: '📱' },
-    { color: '#D63384', bgColor: '#F7D6E6', borderColor: '#F1AECF', icon: '📱' },
-    { color: '#6610F2', bgColor: '#E0CFFC', borderColor: '#C5A3FB', icon: '📱' },
+  // Paleta de 5 colores predefinidos para dispositivos protegidos (junto a Responsable forman las 6 colores del proyecto)
+  const protectedPalette = [
+    { color: '#28A745', bgColor: '#D1E7DD', borderColor: '#A3CFBB', icon: '📱️', defaultName: 'Protegido 1' }, // 1. Verde
+    { color: '#7E22CE', bgColor: '#FAF5FF', borderColor: '#E9D5FF', icon: '📱', defaultName: 'Protegido 2' }, // 2. Púrpura
+    { color: '#FD7E14', bgColor: '#FFE8D6', borderColor: '#FFC9A5', icon: '📱', defaultName: 'Protegido 3' }, // 3. Naranja
+    { color: '#0DCAF0', bgColor: '#CFF4FC', borderColor: '#9EEAF9', icon: '📱', defaultName: 'Protegido 4' }, // 4. Ciano
+    { color: '#D63384', bgColor: '#F7D6E6', borderColor: '#F1AECF', icon: '📱', defaultName: 'Protegido 5' }, // 5. Rosa
   ];
 
-  const selected = fallbackPalette[index % fallbackPalette.length];
+  const resolvedIndex = typeof colorIndex === 'number' && colorIndex >= 0 ? colorIndex : 0;
+  const selected = protectedPalette[resolvedIndex % protectedPalette.length];
   return {
     color: selected.color,
     bgColor: selected.bgColor,
     borderColor: selected.borderColor,
-    badgeLabel: childName || `Protegido ${index + 1}`,
+    badgeLabel: childName || selected.defaultName,
     icon: selected.icon,
   };
 };

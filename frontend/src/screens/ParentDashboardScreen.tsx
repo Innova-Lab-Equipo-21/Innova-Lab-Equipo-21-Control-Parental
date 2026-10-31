@@ -27,10 +27,10 @@ import { MAX_PROTECTED_DEVICES, SelfControlState, DeviceInfo, CustomBlockedDomai
 // Subcomponentes modulares organizados por carpetas de la Navbar
 import { SeccionDesplegable } from '../components/dashboard/SeccionDesplegable';
 import { DashboardNavbar, DashboardTab } from '../components/dashboard/DashboardNavbar';
-import { ProtectedDevicesSection, PairingSection } from '../components/dashboard/dispositivos';
+import { ProtectedDevicesSection, PairingSection, PairingModal, SelfControlSection } from '../components/dashboard/dispositivos';
 import { CustomSitesSection, GlobalRulesSection } from '../components/dashboard/sitios';
 import { ActivitySection } from '../components/dashboard/actividad';
-import { SelfControlSection, TutorPermissionsSection, ProfileSection, HelpSection, LegalSection, RatingSection } from '../components/dashboard/cuenta';
+import { TutorPermissionsSection, ProfileSection, HelpSection, LegalSection, RatingSection } from '../components/dashboard/cuenta';
 import { FabWithTooltip } from '../components/FabWithTooltip';
 import { colors } from '../theme/colors';
 import { styles } from './ParentDashboardScreen.styles';
@@ -64,6 +64,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
   // Modal de Permisos del Dispositivo local del Responsable
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+
+  // Modal para Vincular Nuevo Dispositivo (desde FAB +)
+  const [showPairingModal, setShowPairingModal] = useState(false);
 
   // Flujo de Onboarding desde la sección de Cuenta
   const [showOnboardingFlow, setShowOnboardingFlow] = useState(false);
@@ -102,6 +105,23 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       }
     }
   }, [isLoggedIn, initialAction]);
+
+  // Actualización periódica de temporizadores de Autocontrol (espera 24hs o pase temporal)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    let timer: NodeJS.Timeout | null = null;
+    if (
+      selfControl.status === 'DEACTIVATION_PENDING' ||
+      selfControl.status === 'TEMPORARILY_UNLOCKED'
+    ) {
+      timer = setInterval(() => {
+        checkSelfControlStatus();
+      }, 10000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isLoggedIn, selfControl.status]);
 
   const handleLoginSuccess = (user: any, _token: string) => {
     setCurrentUser(user);
@@ -198,10 +218,20 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     try {
       const res = await apiService.disableSelfControl();
       setSelfControl(res);
-      Alert.alert(
-        '🔓 Pase temporal de 24 horas iniciado',
-        'El sistema se ha desbloqueado temporalmente por 24 horas. Cumplido este plazo, se reactivará automáticamente.'
-      );
+      if (res.status === 'DEACTIVATION_PENDING') {
+        const waitH = res.remainingWaitHours ?? res.remainingHours ?? 24;
+        const waitM = (res.remainingWaitMinutes ?? res.remainingMinutes ?? 0).toString().padStart(2, '0');
+        const waitS = (res.remainingWaitSeconds ?? res.remainingSeconds ?? 0).toString().padStart(2, '0');
+        Alert.alert(
+          '⏳ Desactivación en espera de 24hs',
+          `Se ha iniciado el período de espera obligatorio de 24 horas. Tiempo restante: ${waitH}h ${waitM}m ${waitS}s.\n\nDurante este lapso, el bloqueo se mantendrá activo en tu celular.`
+        );
+      } else {
+        Alert.alert(
+          '🔓 Pase temporal de 24 horas iniciado',
+          'El sistema se ha desbloqueado temporalmente por 24 horas. Cumplido este plazo, se reactivará automáticamente.'
+        );
+      }
     } catch (e: any) {
       Alert.alert(
         '🔒 Desactivación en espera',
@@ -224,8 +254,14 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     return (
       <PermissionsScreen
         flowSource="PARENT_LOGIN"
-        onPermissionsComplete={() => setShowPermissionsModal(false)}
-        onBack={() => setShowPermissionsModal(false)}
+        onPermissionsComplete={() => {
+          setShowPermissionsModal(false);
+          loadDevices();
+        }}
+        onBack={() => {
+          setShowPermissionsModal(false);
+          loadDevices();
+        }}
       />
     );
   }
@@ -319,7 +355,17 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               icon="📱"
               initialExpanded={false}
             >
-              <ProtectedDevicesSection devices={devices} />
+              <ProtectedDevicesSection
+                devices={devices}
+                selfControl={selfControl}
+                currentUser={currentUser}
+                onUpdateUser={(updated) => setCurrentUser(updated)}
+                onStartSelfControlFlow={handleStartSelfControlFlow}
+                onDisableSelfControl={handleDisableSelfControl}
+                onRefreshList={loadDevices}
+                onUnbindDevice={() => loadDevices()}
+                onOpenPermissions={() => setShowPermissionsModal(true)}
+              />
             </SeccionDesplegable>
 
             {/* SECCIÓN 4: GESTIÓN DE SITIOS Y APPS */}
@@ -335,6 +381,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                 customSites={customSites}
                 devices={devices}
                 onRefreshList={loadCustomSites}
+                selfControl={selfControl}
               />
             </SeccionDesplegable>
 
@@ -389,14 +436,37 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             subtitle={`Administración de hasta ${MAX_PROTECTED_DEVICES} celulares vinculados`}
             onBack={() => setActiveTab('inicio')}
           />
-          <ScrollView contentContainerStyle={styles.container}>
-            <ProtectedDevicesSection devices={devices} />
+          <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 85 }]}>
+            <ProtectedDevicesSection
+              devices={devices}
+              selfControl={selfControl}
+              currentUser={currentUser}
+              onUpdateUser={(updated) => setCurrentUser(updated)}
+              onStartSelfControlFlow={handleStartSelfControlFlow}
+              onDisableSelfControl={handleDisableSelfControl}
+              onRefreshList={loadDevices}
+              onUnbindDevice={() => loadDevices()}
+              onOpenPermissions={() => setShowPermissionsModal(true)}
+            />
           </ScrollView>
 
-          {/* Botón Flotante (FAB +) con bocadillo explicativo para Nuevo Dispositivo */}
-          <FabWithTooltip
-            label="Nuevo dispositivo"
-            onPress={() => setActiveTab('inicio')}
+          {/* Botón Flotante (FAB +) con bocadillo explicativo para Nuevo Dispositivo (desaparece con 5 dispositivos) */}
+          {devices.length < MAX_PROTECTED_DEVICES && (
+            <FabWithTooltip
+              label="Nuevo dispositivo"
+              onPress={() => setShowPairingModal(true)}
+            />
+          )}
+
+          {/* Modal para Vincular Nuevo Dispositivo */}
+          <PairingModal
+            visible={showPairingModal}
+            deviceCount={devices.length}
+            onClose={() => setShowPairingModal(false)}
+            onDeviceAdded={() => {
+              loadDevices();
+              setShowPairingModal(false);
+            }}
           />
         </View>
       )}
@@ -422,6 +492,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               customSites={customSites}
               devices={devices}
               onRefreshList={loadCustomSites}
+              selfControl={selfControl}
               hideInternalFab={true}
               onSetAddHandler={(handler) => {
                 siteAddHandlerRef.current = handler;
@@ -460,7 +531,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
         <>
           <Header
             title="Perfil y cuenta"
-            subtitle="Ajustes del responsable, permisos y autoprotección"
+            subtitle="Ajustes del responsable, permisos y soporte"
             onBack={() => setActiveTab('inicio')}
           />
           <ScrollView contentContainerStyle={styles.container}>
@@ -486,34 +557,6 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               <TutorPermissionsSection
                 permissions={permissions}
                 onConfigurePermissions={() => setShowPermissionsModal(true)}
-              />
-            </SeccionDesplegable>
-
-            {/* Subsección: Autocontrol del Responsable */}
-            <SeccionDesplegable
-              title="Autocontrol del tutor"
-              subtitle="Bloqueo preventivo de 24 horas"
-              badgeLabel={
-                selfControl.active
-                  ? '🔒 ACTIVO'
-                  : selfControl.remainingHours > 0
-                  ? 'EN ESPERA'
-                  : 'INACTIVO'
-              }
-              badgeStatus={
-                selfControl.active
-                  ? 'activo'
-                  : selfControl.remainingHours > 0
-                  ? 'alerta'
-                  : 'inactivo'
-              }
-              icon="🔒"
-              initialExpanded={false}
-            >
-              <SelfControlSection
-                selfControl={selfControl}
-                onStartSelfControlFlow={handleStartSelfControlFlow}
-                onDisableSelfControl={handleDisableSelfControl}
               />
             </SeccionDesplegable>
 
@@ -622,14 +665,14 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
             {confirmationStep === 1 ? (
               <View>
-                <Text style={styles.modalEmoji}>🔒</Text>
-                <Text style={styles.modalTitle}>Confirmación 1 de 2: Autocontrol del tutor</Text>
+                <Text style={styles.modalEmoji}>🛡️</Text>
+                <Text style={styles.modalTitle}>Confirmación 1 de 2: Autocontrol del responsable</Text>
                 <Text style={styles.modalBody}>
-                  Al activar el autocontrol, se aplicarán restricciones de acceso a sitios de apuestas en tu perfil.
+                  La función de autocontrol impide que puedas acceder o eliminar los sitios web y aplicaciones que bloqueaste para tu propio dispositivo.
                 </Text>
                 <View style={styles.warningBox}>
                   <Text style={styles.warningBoxText}>
-                    ⚠️ IMPORTANTE: El bloqueo se queda permanente y deberás esperar 24 hs obligatorias para desactivar.
+                    ⚠️ Importante: Una vez activada, la protección quedará fija y solo podrás solicitar su desactivación después de 24 horas de espera obligatoria.
                   </Text>
                 </View>
 
@@ -653,15 +696,15 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             ) : (
               <View>
                 <Text style={styles.modalEmoji}>⚠️</Text>
-                <Text style={styles.modalTitle}>Confirmación 2 de 2: Activar bloqueo permanente</Text>
+                <Text style={styles.modalTitle}>Confirmación 2 de 2: Activar bloqueo de autocontrol</Text>
                 <Text style={styles.modalBody}>
-                  ¿Confirmas activar la autoprotección? El bloqueo quedará permanente. Pasadas las 24 hs, podrás tocar el botón para desbloquear inmediatamente por 24 hs.
+                  ¿Confirmás activar el autocontrol en tu celular? No podrás acceder ni desproteger sitios o apps bloqueadas en este dispositivo. Para desactivarlo, deberás esperar 24 horas obligatorias.
                 </Text>
 
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
                   <View style={{ flex: 1 }}>
                     <ActionButton
-                      title="Volver atrás"
+                      title="Volver"
                       variant="secondary"
                       onPress={() => setConfirmationStep(1)}
                     />
@@ -669,7 +712,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                   <View style={{ flex: 1 }}>
                     <ActionButton
                       title="Confirmar"
-                      variant="danger"
+                      variant="primary"
                       onPress={handleFinalSelfControlActivation}
                     />
                   </View>

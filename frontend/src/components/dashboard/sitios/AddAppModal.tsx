@@ -1,11 +1,11 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: AddAppModal (Modal para Bloquear Nueva Aplicación con Catálogo Autocompletado y Límite Diario)
+// Componente: AddAppModal (Modal para Bloquear Nueva Aplicación con Dropdown de 15 Apps y Límite Diario por Dispositivo)
 // Archivo: src/components/dashboard/sitios/AddAppModal.tsx
 // ==============================================================================
 
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Modal, Image, ScrollView } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
@@ -13,27 +13,33 @@ import { DeviceInfo } from '../../../types';
 import { getDeviceHighlight } from '../../../utils/deviceColors';
 import { styles } from './CustomSitesSection.styles';
 
-export const popularAppCatalog = [
-  { name: 'Bet365', pkg: 'com.bet365.mobile', category: 'Apuestas' },
-  { name: '1xBet', pkg: 'com.oneXbet.app', category: 'Apuestas' },
-  { name: 'Pokerstars', pkg: 'com.pokerstars.mobile', category: 'Apuestas' },
-  { name: 'Betano', pkg: 'com.betano.mobile', category: 'Apuestas' },
-  { name: 'Codere', pkg: 'com.codere.apuestas', category: 'Apuestas' },
-  { name: 'Bwin', pkg: 'com.bwin.sports', category: 'Apuestas' },
-  { name: 'TikTok', pkg: 'com.zhiliaoapp.musically', category: 'Redes sociales' },
-  { name: 'Instagram', pkg: 'com.instagram.android', category: 'Redes sociales' },
-  { name: 'Kwai', pkg: 'com.kwai.video', category: 'Redes sociales' },
-  { name: 'Free Fire', pkg: 'com.dts.freefireth', category: 'Juegos' },
-  { name: 'Roblox', pkg: 'com.roblox.client', category: 'Juegos' },
-  { name: 'Twitch', pkg: 'tv.twitch.android.app', category: 'Entretenimiento' },
+// Lista de las 15 aplicaciones más descargadas de la Play Store
+export const top15PlayStoreApps = [
+  { name: 'TikTok', pkg: 'com.zhiliaoapp.musically', category: 'Redes sociales', icon: '📱' },
+  { name: 'Instagram', pkg: 'com.instagram.android', category: 'Redes sociales', icon: '📷' },
+  { name: 'WhatsApp', pkg: 'com.whatsapp', category: 'Comunicación', icon: '💬' },
+  { name: 'Facebook', pkg: 'com.facebook.katana', category: 'Redes sociales', icon: '👥' },
+  { name: 'Telegram', pkg: 'org.telegram.messenger', category: 'Comunicación', icon: '✈️' },
+  { name: 'Snapchat', pkg: 'com.snapchat.android', category: 'Redes sociales', icon: '👻' },
+  { name: 'YouTube', pkg: 'com.google.android.youtube', category: 'Entretenimiento', icon: '▶️' },
+  { name: 'Spotify', pkg: 'com.spotify.music', category: 'Música', icon: '🎵' },
+  { name: 'Netflix', pkg: 'com.netflix.mediaclient', category: 'Entretenimiento', icon: '🎬' },
+  { name: 'Twitch', pkg: 'tv.twitch.android.app', category: 'Entretenimiento', icon: '🎮' },
+  { name: 'Roblox', pkg: 'com.roblox.client', category: 'Juegos', icon: '🕹️' },
+  { name: 'Free Fire', pkg: 'com.dts.freefireth', category: 'Juegos', icon: '🔥' },
+  { name: 'Subway Surfers', pkg: 'com.kiloo.subwaysurf', category: 'Juegos', icon: '🏃' },
+  { name: 'Candy Crush Saga', pkg: 'com.king.candycrushsaga', category: 'Juegos', icon: '🍬' },
+  { name: 'Bet365', pkg: 'com.bet365.mobile', category: 'Apuestas', icon: '🎲' },
 ];
+
+export const popularAppCatalog = top15PlayStoreApps;
 
 interface AddAppModalProps {
   visible: boolean;
   onClose: () => void;
   appName: string;
   onAppNameChange: (text: string) => void;
-  quickSuggestions: Array<{ name: string; pkg: string; category: string }>;
+  quickSuggestions?: Array<{ name: string; pkg: string; category: string }>;
   onSelectSuggestion: (sug: { name: string; pkg: string; category: string }) => void;
   category: string;
   onCategoryChange: (cat: string) => void;
@@ -43,7 +49,9 @@ interface AddAppModalProps {
   devices: DeviceInfo[];
   onToggleDevice: (deviceId: string) => void;
   dailyLimitMinutes?: number;
-  onDailyLimitChange: (mins?: number) => void;
+  onDailyLimitChange?: (mins?: number) => void;
+  deviceLimits?: Record<string, number | undefined>;
+  onDeviceLimitChange?: (deviceId: string, mins?: number) => void;
   loading: boolean;
   onSave: () => void;
 }
@@ -53,7 +61,6 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
   onClose,
   appName,
   onAppNameChange,
-  quickSuggestions,
   onSelectSuggestion,
   category,
   onCategoryChange,
@@ -62,17 +69,282 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
   deviceIds,
   devices,
   onToggleDevice,
-  dailyLimitMinutes,
-  onDailyLimitChange,
+  deviceLimits = {},
+  onDeviceLimitChange,
   loading,
   onSave,
 }) => {
-  // Coincidencias en tiempo real mientras el usuario escribe
-  const liveMatches = appName.trim().length > 0
-    ? popularAppCatalog.filter((item) =>
-        item.name.toLowerCase().includes(appName.toLowerCase().trim())
-      )
-    : [];
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [customMode, setCustomMode] = useState<Record<string, boolean>>({});
+  const [customInput, setCustomInput] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!visible) {
+      setShowDropdown(false);
+      setCustomMode({});
+      setCustomInput({});
+    }
+  }, [visible]);
+
+  // Aplicación seleccionada en el dropdown (si coincide con alguna del catálogo)
+  const selectedDropdownApp = top15PlayStoreApps.find(
+    (item) => item.name.toLowerCase().trim() === appName.toLowerCase().trim()
+  );
+
+  // Formateador de etiqueta para el límite de tiempo
+  const formatLimitBadge = (mins?: number) => {
+    if (mins === undefined) return 'Bloqueo total';
+    if (mins === 30) return '30 min';
+    if (mins === 60) return '1 hora';
+    if (mins === 120) return '2 horas';
+    if (mins === 300) return '5 horas';
+    return `${mins} min`;
+  };
+
+  const handleSelectPreset = (deviceId: string, mins?: number) => {
+    setCustomMode((prev) => ({ ...prev, [deviceId]: false }));
+    onDeviceLimitChange?.(deviceId, mins);
+  };
+
+  const handleActivateCustom = (deviceId: string) => {
+    setCustomMode((prev) => ({ ...prev, [deviceId]: true }));
+    const current = deviceLimits[deviceId];
+    if (current && ![30, 60, 120, 300].includes(current)) {
+      setCustomInput((prev) => ({ ...prev, [deviceId]: String(current) }));
+    } else {
+      setCustomInput((prev) => ({ ...prev, [deviceId]: '' }));
+    }
+  };
+
+  const handleCustomInputChange = (deviceId: string, text: string) => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    setCustomInput((prev) => ({ ...prev, [deviceId]: cleaned }));
+    if (cleaned.length > 0) {
+      const parsed = parseInt(cleaned, 10);
+      onDeviceLimitChange?.(deviceId, parsed > 0 ? parsed : undefined);
+    } else {
+      onDeviceLimitChange?.(deviceId, undefined);
+    }
+  };
+
+  const renderDeviceCard = (
+    deviceId: string,
+    name: string,
+    highlight: { color: string; bgColor: string; borderColor: string; icon: string; badgeLabel: string }
+  ) => {
+    const isSelected = deviceIds.includes(deviceId);
+    const currentLimit = deviceLimits[deviceId];
+    const isCustom =
+      customMode[deviceId] ||
+      (currentLimit !== undefined && ![30, 60, 120, 300].includes(currentLimit));
+
+    return (
+      <View
+        key={deviceId}
+        style={[
+          styles.deviceCardContainer,
+          {
+            borderLeftWidth: 4,
+            borderLeftColor: highlight.color,
+            backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
+          },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.deviceRowHeader}
+          onPress={() => onToggleDevice(deviceId)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.deviceLeftCol}>
+            <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
+              <Text style={styles.deviceIconText}>{highlight.icon}</Text>
+            </View>
+            <View style={styles.deviceTextCol}>
+              <Text style={styles.deviceName}>{name}</Text>
+            </View>
+          </View>
+          <ToggleSwitch
+            value={isSelected}
+            onValueChange={() => onToggleDevice(deviceId)}
+          />
+        </TouchableOpacity>
+
+        {/* Límite de tiempo diario individual si el dispositivo está seleccionado */}
+        {isSelected && (
+          <View style={styles.deviceTimeLimitContainer}>
+            <View style={styles.deviceTimeLimitHeader}>
+              <Text style={styles.deviceTimeLimitLabel}>Límite de tiempo diario:</Text>
+              <Text style={styles.deviceTimeLimitBadgeText}>
+                {formatLimitBadge(currentLimit)}
+              </Text>
+            </View>
+
+            <View style={styles.quickAppChipContainer}>
+              {/* Bloqueo total */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  currentLimit === undefined && !isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleSelectPreset(deviceId, undefined)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    currentLimit === undefined && !isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  Bloqueo total
+                </Text>
+              </TouchableOpacity>
+
+              {/* 30 min */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  currentLimit === 30 && !isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleSelectPreset(deviceId, 30)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    currentLimit === 30 && !isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  30 min
+                </Text>
+              </TouchableOpacity>
+
+              {/* 1 hora */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  currentLimit === 60 && !isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleSelectPreset(deviceId, 60)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    currentLimit === 60 && !isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  1 hora
+                </Text>
+              </TouchableOpacity>
+
+              {/* 2 horas */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  currentLimit === 120 && !isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleSelectPreset(deviceId, 120)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    currentLimit === 120 && !isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  2 horas
+                </Text>
+              </TouchableOpacity>
+
+              {/* 5 horas */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  currentLimit === 300 && !isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleSelectPreset(deviceId, 300)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    currentLimit === 300 && !isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  5 horas
+                </Text>
+              </TouchableOpacity>
+
+              {/* Otro */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleActivateCustom(deviceId)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  Otro
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Input de minutos si Personalizado está activo */}
+            {isCustom && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                <TextInput
+                  style={styles.customMinutesInput}
+                  placeholder="ej: 45"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                  value={customInput[deviceId] ?? (currentLimit ? String(currentLimit) : '')}
+                  selectTextOnFocus={true}
+                  onChangeText={(text) => handleCustomInputChange(deviceId, text)}
+                />
+                <Text style={{ fontSize: 12, color: colors.textSecondary }}>minutos por día</Text>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <Modal
@@ -81,204 +353,143 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <TouchableOpacity style={styles.modalCloseButton} onPress={onClose}>
-            <Text style={styles.modalCloseText}>✕</Text>
-          </TouchableOpacity>
+      <View style={styles.bottomSheetOverlay}>
+        <View style={styles.bottomSheetModalContent}>
+          {/* Manija táctil del Bottom Sheet */}
+          <View style={styles.bottomSheetHandle} />
 
-          <Image
-            source={require('../../../assets/icons/bot/beti.png')}
-            style={styles.modalHeaderImage}
-          />
-          <Text style={styles.modalTitle}>Bloquear aplicación</Text>
-          <Text style={styles.modalBody}>
-            Selecciona o ingresa la aplicación a restringir y define opcionalmente su límite de tiempo diario.
+          {/* Encabezado */}
+          <View style={styles.sheetHeaderRow}>
+            <Text style={styles.sheetTitle}>Bloquear aplicación</Text>
+            <TouchableOpacity
+              style={styles.sheetCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Cerrar modal"
+            >
+              <Text style={styles.sheetCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.sheetSubtitle}>
+            Seleccioná o ingresá la aplicación a restringir y definí opcionalmente su límite de tiempo diario para cada dispositivo.
           </Text>
 
-          <Text style={styles.inputLabel}>Sugerencias rápidas:</Text>
-          <View style={styles.quickAppChipContainer}>
-            {quickSuggestions.map((sug) => (
-              <TouchableOpacity
-                key={sug.pkg}
-                style={styles.quickAppChip}
-                onPress={() => onSelectSuggestion(sug)}
-              >
-                <Text style={styles.quickAppChipText}>{sug.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={styles.inputLabel}>Nombre de la aplicación:</Text>
-          <TextInput
-            style={styles.formInput}
-            placeholder="ejemplo: Bet365, TikTok"
-            placeholderTextColor={colors.textSecondary}
-            value={appName}
-            onChangeText={onAppNameChange}
-          />
-
-          {/* Autocompletado en tiempo real */}
-          {liveMatches.length > 0 && (
-            <View style={{ marginBottom: 10 }}>
-              <Text style={{ fontSize: 11, color: colors.primary, fontWeight: 'bold', marginBottom: 4 }}>
-                🔍 Aplicaciones encontradas en el catálogo oficial:
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 16 }}
+          >
+            {/* Dropdown de las 15 aplicaciones más descargadas de la Play Store */}
+            <Text style={styles.inputLabel}>Sugerencias rápidas:</Text>
+            <TouchableOpacity
+              style={styles.dropdownSelector}
+              onPress={() => setShowDropdown((prev) => !prev)}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Text style={{ fontSize: 16 }}>{selectedDropdownApp?.icon || '📱'}</Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: selectedDropdownApp ? colors.textPrimary : colors.textSecondary,
+                    fontWeight: selectedDropdownApp ? '600' : '400',
+                  }}
+                  numberOfLines={1}
+                >
+                  {selectedDropdownApp
+                    ? `${selectedDropdownApp.name} (${selectedDropdownApp.category})`
+                    : 'Seleccionar app de la lista (Top 15 Play Store)...'}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: colors.primary, fontWeight: 'bold' }}>
+                {showDropdown ? '▲' : '▼'}
               </Text>
-              <View style={styles.quickAppChipContainer}>
-                {liveMatches.map((sug) => (
-                  <TouchableOpacity
-                    key={sug.pkg}
-                    style={[styles.quickAppChip, { backgroundColor: '#E7F1FF', borderColor: colors.primary }]}
-                    onPress={() => onSelectSuggestion(sug)}
-                  >
-                    <Text style={[styles.quickAppChipText, { color: colors.primary, fontWeight: 'bold' }]}>
-                      ✓ {sug.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            </TouchableOpacity>
+
+            {showDropdown && (
+              <View style={styles.dropdownMenu}>
+                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator>
+                  {top15PlayStoreApps.map((item) => {
+                    const isCurrent =
+                      appName.toLowerCase().trim() === item.name.toLowerCase().trim();
+                    return (
+                      <TouchableOpacity
+                        key={item.pkg}
+                        style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
+                        onPress={() => {
+                          onSelectSuggestion(item);
+                          setShowDropdown(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={{ fontSize: 15 }}>{item.icon}</Text>
+                          <View>
+                            <Text
+                              style={[
+                                styles.dropdownItemText,
+                                isCurrent && styles.dropdownItemTextActive,
+                              ]}
+                            >
+                              {item.name}
+                            </Text>
+                            <Text style={styles.dropdownItemSubtext}>{item.category}</Text>
+                          </View>
+                        </View>
+                        {isCurrent && (
+                          <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
+                            ✓
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            <Text style={styles.inputLabel}>Nombre de la aplicación:</Text>
+            <TextInput
+              style={styles.formInput}
+              placeholder="ejemplo: Bet365, TikTok"
+              placeholderTextColor={colors.textSecondary}
+              value={appName}
+              selectTextOnFocus={true}
+              onChangeText={onAppNameChange}
+            />
+
+            <View style={styles.deviceSelectionContainer}>
+              <View style={styles.applyToAllRow}>
+                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (regla global)</Text>
+                <ToggleSwitch value={applyToAll} onValueChange={onApplyToAllChange} />
+              </View>
+
+              {/* Listado de dispositivos con configuración de tiempo por dispositivo */}
+              <View style={styles.deviceListContainer}>
+                <Text style={styles.deviceListTitle}>Seleccioná los dispositivos:</Text>
+
+                {/* Mi dispositivo (Responsable) */}
+                {renderDeviceCard('self', 'Mi dispositivo', getDeviceHighlight('self'))}
+
+                {/* Dispositivos Protegidos */}
+                {devices.map((device, idx) => {
+                  const highlight = getDeviceHighlight(
+                    device.deviceId,
+                    device.childName,
+                    device.deviceName,
+                    device.colorIndex ?? idx
+                  );
+                  return renderDeviceCard(
+                    device.deviceId,
+                    device.deviceName,
+                    highlight
+                  );
+                })}
               </View>
             </View>
-          )}
-
-          {/* Límite de tiempo diario */}
-          <Text style={styles.inputLabel}>Límite de tiempo diario (Opcional):</Text>
-          <View style={styles.quickAppChipContainer}>
-            <TouchableOpacity
-              style={[styles.quickAppChip, dailyLimitMinutes === undefined && { backgroundColor: '#E7F1FF', borderColor: colors.primary }]}
-              onPress={() => onDailyLimitChange(undefined)}
-            >
-              <Text style={[styles.quickAppChipText, dailyLimitMinutes === undefined && { color: colors.primary, fontWeight: 'bold' }]}>
-                ∞ Indeterminado (Por defecto)
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.quickAppChip, dailyLimitMinutes === 30 && { backgroundColor: '#E7F1FF', borderColor: colors.primary }]}
-              onPress={() => onDailyLimitChange(30)}
-            >
-              <Text style={[styles.quickAppChipText, dailyLimitMinutes === 30 && { color: colors.primary, fontWeight: 'bold' }]}>
-                ⏱️ 30 min
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.quickAppChip, dailyLimitMinutes === 60 && { backgroundColor: '#E7F1FF', borderColor: colors.primary }]}
-              onPress={() => onDailyLimitChange(60)}
-            >
-              <Text style={[styles.quickAppChipText, dailyLimitMinutes === 60 && { color: colors.primary, fontWeight: 'bold' }]}>
-                ⏱️ 1 hora
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.quickAppChip, dailyLimitMinutes === 120 && { backgroundColor: '#E7F1FF', borderColor: colors.primary }]}
-              onPress={() => onDailyLimitChange(120)}
-            >
-              <Text style={[styles.quickAppChipText, dailyLimitMinutes === 120 && { color: colors.primary, fontWeight: 'bold' }]}>
-                ⏱️ 2 horas
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.deviceSelectionContainer}>
-            <View style={styles.applyToAllRow}>
-              <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (Regla global)</Text>
-              <ToggleSwitch value={applyToAll} onValueChange={onApplyToAllChange} />
-            </View>
-
-            {/* Listado siempre visible de dispositivos registrados */}
-            <View style={styles.deviceListContainer}>
-              <Text style={styles.deviceListTitle}>Selecciona los dispositivos:</Text>
-
-              {/* Mi dispositivo (Responsable) */}
-              {(() => {
-                const selfHighlight = getDeviceHighlight('self');
-                return (
-                  <TouchableOpacity
-                    style={[
-                      styles.deviceRow,
-                      {
-                        borderLeftWidth: 4,
-                        borderLeftColor: selfHighlight.color,
-                        backgroundColor: deviceIds.includes('self') ? selfHighlight.bgColor : '#FFFFFF',
-                      },
-                    ]}
-                    onPress={() => onToggleDevice('self')}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.deviceLeftCol}>
-                      <View style={[styles.deviceIconBox, { backgroundColor: selfHighlight.bgColor }]}>
-                        <Text style={styles.deviceIconText}>{selfHighlight.icon}</Text>
-                      </View>
-                      <View style={styles.deviceTextCol}>
-                        <View style={styles.deviceNameRow}>
-                          <Text style={styles.deviceName}>Mi dispositivo</Text>
-                          <View
-                            style={[
-                              styles.deviceRoleBadge,
-                              { backgroundColor: selfHighlight.bgColor, borderColor: selfHighlight.borderColor },
-                            ]}
-                          >
-                            <Text style={[styles.deviceRoleBadgeText, { color: selfHighlight.color }]}>
-                              {selfHighlight.badgeLabel}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-                    <ToggleSwitch
-                      value={deviceIds.includes('self')}
-                      onValueChange={() => onToggleDevice('self')}
-                    />
-                  </TouchableOpacity>
-                );
-              })()}
-
-              {/* Dispositivos Protegidos */}
-              {devices.map((device, idx) => {
-                const highlight = getDeviceHighlight(device.deviceId, device.childName, device.deviceName, idx);
-                const isSelected = deviceIds.includes(device.deviceId);
-
-                return (
-                  <TouchableOpacity
-                    key={device.deviceId}
-                    style={[
-                      styles.deviceRow,
-                      {
-                        borderLeftWidth: 4,
-                        borderLeftColor: highlight.color,
-                        backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
-                      },
-                    ]}
-                    onPress={() => onToggleDevice(device.deviceId)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.deviceLeftCol}>
-                      <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
-                        <Text style={styles.deviceIconText}>{highlight.icon}</Text>
-                      </View>
-                      <View style={styles.deviceTextCol}>
-                        <View style={styles.deviceNameRow}>
-                          <Text style={styles.deviceName}>{device.deviceName}</Text>
-                          <View
-                            style={[
-                              styles.deviceRoleBadge,
-                              { backgroundColor: highlight.bgColor, borderColor: highlight.borderColor },
-                            ]}
-                          >
-                            <Text style={[styles.deviceRoleBadgeText, { color: highlight.color }]}>
-                              {highlight.badgeLabel}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-                    <ToggleSwitch
-                      value={isSelected}
-                      onValueChange={() => onToggleDevice(device.deviceId)}
-                    />
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          </ScrollView>
 
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
             <View style={{ flex: 1 }}>

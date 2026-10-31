@@ -9,13 +9,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { CustomBlockedDomain, CustomBlockedApp, DeviceInfo } from '../../../types';
+import { CustomBlockedDomain, CustomBlockedApp, DeviceInfo, SelfControlState } from '../../../types';
 import { apiService } from '../../../services/api.service';
 import { SitesTab } from './SitesTab';
 import { AppsTab } from './AppsTab';
 import { AddSiteModal } from './AddSiteModal';
 import { EditSiteModal } from './EditSiteModal';
 import { AddAppModal } from './AddAppModal';
+import { EditAppModal } from './EditAppModal';
+import { AppTimeLimitModal } from './AppTimeLimitModal';
+import { SitesOptionsMenuModal } from './SitesOptionsMenuModal';
 import { FabWithTooltip } from '../../FabWithTooltip';
 import { isValidDomainOrUrl } from '../../../utils/deviceColors';
 import { styles } from './CustomSitesSection.styles';
@@ -24,6 +27,7 @@ interface CustomSitesSectionProps {
   customSites: CustomBlockedDomain[];
   devices: DeviceInfo[];
   onRefreshList: () => void;
+  selfControl?: SelfControlState;
   hideInternalFab?: boolean;
   onSetAddHandler?: (handler: () => void) => void;
 }
@@ -32,6 +36,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   customSites,
   devices,
   onRefreshList,
+  selfControl,
   hideInternalFab = false,
   onSetAddHandler,
 }) => {
@@ -77,6 +82,16 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   const [newAppApplyToAll, setNewAppApplyToAll] = useState(false);
   const [newAppDeviceIds, setNewAppDeviceIds] = useState<string[]>([]);
   const [newAppDailyLimit, setNewAppDailyLimit] = useState<number | undefined>(undefined);
+  const [newAppDeviceLimits, setNewAppDeviceLimits] = useState<Record<string, number | undefined>>({});
+
+  const [editingApp, setEditingApp] = useState<CustomBlockedApp | null>(null);
+  const [editAppName, setEditAppName] = useState('');
+  const [editAppCategory, setEditAppCategory] = useState('Apuestas');
+  const [editAppApplyToAll, setEditAppApplyToAll] = useState(false);
+  const [editAppDeviceIds, setEditAppDeviceIds] = useState<string[]>([]);
+  const [editAppDailyLimit, setEditAppDailyLimit] = useState<number | undefined>(undefined);
+
+  const [timeLimitApp, setTimeLimitApp] = useState<CustomBlockedApp | null>(null);
 
   // Helper para obtener todos los IDs de dispositivos registrados (incluyendo 'self')
   const getAllDeviceIds = () => ['self', ...devices.map((d) => d.deviceId)];
@@ -97,7 +112,26 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
     setNewAppApplyToAll(false);
     setNewAppDeviceIds([]);
     setNewAppDailyLimit(undefined);
+    setNewAppDeviceLimits({});
     setShowAddAppModal(true);
+  };
+
+  const handleNewAppDeviceLimitChange = (deviceId: string, mins?: number) => {
+    setNewAppDeviceLimits((prev) => ({
+      ...prev,
+      [deviceId]: mins,
+    }));
+  };
+
+  const isAutocontrolActive = Boolean(
+    selfControl?.active ||
+    selfControl?.status === 'ACTIVE_LOCKED' ||
+    selfControl?.status === 'DEACTIVATION_PENDING'
+  );
+
+  const appliesToSelf = (item?: { applyToAll?: boolean; deviceIds?: string[] } | null): boolean => {
+    if (!item) return false;
+    return item.applyToAll === true || (Array.isArray(item.deviceIds) && item.deviceIds.includes('self'));
   };
 
   // Handlers para Regla Global (al activar marca todos, al desactivar desmarca todos)
@@ -112,8 +146,13 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleEditSiteApplyToAllChange = (val: boolean) => {
+    const wasAppliedToSelf = appliesToSelf(editingSite);
     setEditSiteApplyToAll(val);
-    setEditSiteDeviceIds(val ? getAllDeviceIds() : []);
+    if (val) {
+      setEditSiteDeviceIds(getAllDeviceIds());
+    } else {
+      setEditSiteDeviceIds(isAutocontrolActive && wasAppliedToSelf ? ['self'] : []);
+    }
   };
 
   // Handlers para toggle individual de dispositivos (sincroniza con Regla Global)
@@ -142,6 +181,14 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleToggleEditSiteDevice = (deviceId: string) => {
+    const wasAppliedToSelf = appliesToSelf(editingSite);
+    if (deviceId === 'self' && isAutocontrolActive && wasAppliedToSelf && editSiteDeviceIds.includes('self')) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés desactivar el bloqueo en tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
     const allIds = getAllDeviceIds();
     let updatedIds: string[];
     if (editSiteDeviceIds.includes(deviceId)) {
@@ -151,6 +198,36 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
     }
     setEditSiteDeviceIds(updatedIds);
     setEditSiteApplyToAll(allIds.length > 0 && allIds.every((id) => updatedIds.includes(id)));
+  };
+
+  const handleEditAppApplyToAllChange = (val: boolean) => {
+    const wasAppliedToSelf = appliesToSelf(editingApp);
+    setEditAppApplyToAll(val);
+    if (val) {
+      setEditAppDeviceIds(getAllDeviceIds());
+    } else {
+      setEditAppDeviceIds(isAutocontrolActive && wasAppliedToSelf ? ['self'] : []);
+    }
+  };
+
+  const handleToggleEditAppDevice = (deviceId: string) => {
+    const wasAppliedToSelf = appliesToSelf(editingApp);
+    if (deviceId === 'self' && isAutocontrolActive && wasAppliedToSelf && editAppDeviceIds.includes('self')) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés desactivar el bloqueo en tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
+    const allIds = getAllDeviceIds();
+    let updatedIds: string[];
+    if (editAppDeviceIds.includes(deviceId)) {
+      updatedIds = editAppDeviceIds.filter((id) => id !== deviceId);
+    } else {
+      updatedIds = [...editAppDeviceIds, deviceId];
+    }
+    setEditAppDeviceIds(updatedIds);
+    setEditAppApplyToAll(allIds.length > 0 && allIds.every((id) => updatedIds.includes(id)));
   };
 
   useEffect(() => {
@@ -231,6 +308,15 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
       Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
       return;
     }
+    const wasAppliedToSelf = appliesToSelf(editingSite);
+    const willApplyToSelf = editSiteApplyToAll || editSiteDeviceIds.includes('self');
+    if (isAutocontrolActive && wasAppliedToSelf && !willApplyToSelf) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés desactivar el bloqueo en tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
     setLoadingSite(true);
     try {
       await apiService.updateCustomBlockedSite(editingSite.id, {
@@ -250,6 +336,13 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleToggleSiteActive = async (site: CustomBlockedDomain) => {
+    if (isAutocontrolActive && appliesToSelf(site) && site.isActive) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés deshabilitar ni pausar bloqueos aplicados a tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
     try {
       await apiService.updateCustomBlockedSite(site.id, {
         isActive: !site.isActive,
@@ -261,6 +354,13 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleDeleteSite = (site: CustomBlockedDomain) => {
+    if (isAutocontrolActive && appliesToSelf(site)) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
     Alert.alert(
       'Eliminar Sitio Bloqueado',
       `¿Deseas desbloquear y eliminar permanentemente "${site.domain}" de tu lista?`,
@@ -305,6 +405,17 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleBulkPauseSites = async () => {
+    const affectedSelf = selectedSiteIds.some((id) => {
+      const site = customSites.find((s) => s.id === id);
+      return site && appliesToSelf(site);
+    });
+    if (isAutocontrolActive && affectedSelf) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés pausar bloqueos aplicados a tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
     for (const id of selectedSiteIds) {
       await apiService.updateCustomBlockedSite(id, { isActive: false });
     }
@@ -313,6 +424,17 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleBulkDeleteSites = () => {
+    const affectedSelf = selectedSiteIds.some((id) => {
+      const site = customSites.find((s) => s.id === id);
+      return site && appliesToSelf(site);
+    });
+    if (isAutocontrolActive && affectedSelf) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
     Alert.alert(
       'Eliminar sitios seleccionados',
       `¿Deseas eliminar permanentemente los ${selectedSiteIds.length} sitios seleccionados?`,
@@ -346,19 +468,27 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
     setLoadingSite(true);
     try {
       const pkg = newAppPackage.trim() || `com.${newAppName.toLowerCase().replace(/\s+/g, '')}.app`;
+      // Extraer el primer límite definido para compatibilidad hacia atrás
+      const definedLimits = Object.entries(newAppDeviceLimits)
+        .filter(([id, val]) => newAppDeviceIds.includes(id) && val !== undefined)
+        .map(([_, val]) => val);
+      const fallbackLimit = definedLimits.length > 0 ? definedLimits[0] : newAppDailyLimit;
+
       await apiService.addCustomBlockedApp(
         newAppName,
         pkg,
         newAppCategory,
         newAppApplyToAll,
         newAppDeviceIds,
-        newAppDailyLimit
+        fallbackLimit,
+        newAppDeviceLimits
       );
       setNewAppName('');
       setNewAppPackage('');
       setNewAppApplyToAll(false);
       setNewAppDeviceIds([]);
       setNewAppDailyLimit(undefined);
+      setNewAppDeviceLimits({});
       setShowAddAppModal(false);
       await loadApps();
       Alert.alert('🛡️ Aplicación bloqueada', 'La aplicación fue agregada a la lista de restricción.');
@@ -370,6 +500,13 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleToggleAppActive = async (app: CustomBlockedApp) => {
+    if (isAutocontrolActive && appliesToSelf(app) && app.isActive) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés deshabilitar ni pausar aplicaciones bloqueadas en tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
     try {
       await apiService.updateCustomBlockedApp(app.id, {
         isActive: !app.isActive,
@@ -381,6 +518,13 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleDeleteApp = (app: CustomBlockedApp) => {
+    if (isAutocontrolActive && appliesToSelf(app)) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés eliminar aplicaciones bloqueadas para tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
     Alert.alert(
       'Eliminar aplicación bloqueada',
       `¿Deseas desbloquear y eliminar permanentemente "${app.appName}" de tu lista?`,
@@ -401,6 +545,82 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         },
       ]
     );
+  };
+
+  const handleStartEditApp = (app: CustomBlockedApp) => {
+    setEditingApp(app);
+    setEditAppName(app.appName);
+    setEditAppCategory(app.category || 'Apuestas');
+    const isGlobal = app.applyToAll !== false;
+    setEditAppApplyToAll(isGlobal);
+    if (isGlobal) {
+      setEditAppDeviceIds(getAllDeviceIds());
+    } else {
+      setEditAppDeviceIds(app.deviceIds || []);
+    }
+    setEditAppDailyLimit(app.dailyLimitMinutes);
+  };
+
+  const handleSaveEditApp = async () => {
+    if (!editingApp) return;
+    if (!editAppName.trim()) {
+      Alert.alert('Campo Requerido', 'Ingresa el nombre de la aplicación.');
+      return;
+    }
+    if (!editAppApplyToAll && editAppDeviceIds.length === 0) {
+      Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
+      return;
+    }
+    const wasAppliedToSelf = appliesToSelf(editingApp);
+    const willApplyToSelf = editAppApplyToAll || editAppDeviceIds.includes('self');
+    if (isAutocontrolActive && wasAppliedToSelf && !willApplyToSelf) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés desactivar el bloqueo en tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
+    setLoadingSite(true);
+    try {
+      await apiService.updateCustomBlockedApp(editingApp.id, {
+        appName: editAppName,
+        category: editAppCategory,
+        applyToAll: editAppApplyToAll,
+        deviceIds: editAppDeviceIds,
+        dailyLimitMinutes: editAppDailyLimit,
+      });
+      setEditingApp(null);
+      await loadApps();
+      Alert.alert('✅ Aplicación Actualizada', 'Los cambios fueron guardados.');
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'No se pudo actualizar la aplicación.');
+    } finally {
+      setLoadingSite(false);
+    }
+  };
+
+  const handleStartTimeLimit = (app: CustomBlockedApp) => {
+    setTimeLimitApp(app);
+  };
+
+  const handleSaveTimeLimit = async (limit?: number) => {
+    if (!timeLimitApp) return;
+    setLoadingSite(true);
+    try {
+      await apiService.updateCustomBlockedApp(timeLimitApp.id, {
+        dailyLimitMinutes: limit,
+      });
+      const limitDesc = limit
+        ? (limit >= 60 ? `${limit / 60}h diarias` : `${limit} min diarios`)
+        : 'sin límite diario';
+      setTimeLimitApp(null);
+      await loadApps();
+      Alert.alert('⏱️ Límite Actualizado', `Límite de ${timeLimitApp.appName} configurado (${limitDesc}).`);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'No se pudo actualizar el límite de tiempo.');
+    } finally {
+      setLoadingSite(false);
+    }
   };
 
   // Acciones Masivas para Apps
@@ -425,6 +645,17 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleBulkPauseApps = async () => {
+    const affectedSelf = selectedAppIds.some((id) => {
+      const app = customApps.find((a) => a.id === id);
+      return app && appliesToSelf(app);
+    });
+    if (isAutocontrolActive && affectedSelf) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés pausar aplicaciones bloqueadas en tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
     for (const id of selectedAppIds) {
       await apiService.updateCustomBlockedApp(id, { isActive: false });
     }
@@ -433,6 +664,17 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
   };
 
   const handleBulkDeleteApps = () => {
+    const affectedSelf = selectedAppIds.some((id) => {
+      const app = customApps.find((a) => a.id === id);
+      return app && appliesToSelf(app);
+    });
+    if (isAutocontrolActive && affectedSelf) {
+      Alert.alert(
+        'Autocontrol del responsable activo',
+        'No podés eliminar aplicaciones bloqueadas en tu propio dispositivo mientras el autocontrol esté activo.'
+      );
+      return;
+    }
     Alert.alert(
       'Eliminar aplicaciones seleccionadas',
       `¿Deseas eliminar permanentemente las ${selectedAppIds.length} aplicaciones seleccionadas?`,
@@ -516,82 +758,15 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Botón de Menú de 3 Puntos (⋮) */}
-        <View style={{ position: 'relative' }}>
-          <TouchableOpacity
-            style={styles.optionsMenuButton}
-            onPress={() => setShowOptionsMenu((prev) => !prev)}
-            activeOpacity={0.7}
-            accessibilityLabel="Opciones de gestión"
-          >
-            <Text style={styles.optionsMenuIcon}>⋮</Text>
-          </TouchableOpacity>
-
-          {/* Menú Desplegable Dinámico de 5 Opciones con Checkmarks */}
-          {showOptionsMenu && (
-            <View style={styles.optionsMenuDropdown}>
-              <TouchableOpacity
-                style={styles.optionsMenuItem}
-                onPress={() => {
-                  setShowDeviceFilter((prev) => !prev);
-                  setShowOptionsMenu(false);
-                }}
-              >
-                <Text style={[styles.optionsMenuItemText, showDeviceFilter && styles.optionsMenuItemTextActive]}>
-                  {showDeviceFilter ? '✓ 📱 Filtrar por dispositivo' : '📱 Filtrar por dispositivo'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.optionsMenuItem}
-                onPress={() => {
-                  setShowSearchInput((prev) => !prev);
-                  setShowOptionsMenu(false);
-                }}
-              >
-                <Text style={[styles.optionsMenuItemText, showSearchInput && styles.optionsMenuItemTextActive]}>
-                  {showSearchInput ? '✓ 🔍 Buscar' : '🔍 Buscar'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.optionsMenuItem}
-                onPress={() => {
-                  setSortBy('date');
-                  setShowOptionsMenu(false);
-                }}
-              >
-                <Text style={[styles.optionsMenuItemText, sortBy === 'date' && styles.optionsMenuItemTextActive]}>
-                  {sortBy === 'date' ? '✓ 📅 Ordenar por fecha' : '📅 Ordenar por fecha'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.optionsMenuItem}
-                onPress={() => {
-                  setSortBy('az');
-                  setShowOptionsMenu(false);
-                }}
-              >
-                <Text style={[styles.optionsMenuItemText, sortBy === 'az' && styles.optionsMenuItemTextActive]}>
-                  {sortBy === 'az' ? '✓ 🔤 Ordenar A-Z' : '🔤 Ordenar A-Z'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.optionsMenuItem}
-                onPress={() => {
-                  setIsSelectionMode((prev) => !prev);
-                  setShowOptionsMenu(false);
-                }}
-              >
-                <Text style={[styles.optionsMenuItemText, isSelectionMode && styles.optionsMenuItemTextActive]}>
-                  {isSelectionMode ? '✓ ☑️ Selección múltiple' : '☑️ Selección múltiple'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+        {/* Botón de Menú de 3 Puntos (⋮) que abre el Bottom Sheet */}
+        <TouchableOpacity
+          style={styles.optionsMenuButton}
+          onPress={() => setShowOptionsMenu(true)}
+          activeOpacity={0.7}
+          accessibilityLabel="Opciones de gestión"
+        >
+          <Text style={styles.optionsMenuIcon}>⋮</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Filtro por Dispositivo (Solo visible si el usuario lo activa en el menú ⋮) */}
@@ -670,6 +845,7 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
           onBulkDelete={handleBulkDeleteApps}
           onToggleActive={handleToggleAppActive}
           onDeleteApp={handleDeleteApp}
+          onStartEdit={handleStartEditApp}
         />
       )}
 
@@ -719,7 +895,6 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         onClose={() => setShowAddAppModal(false)}
         appName={newAppName}
         onAppNameChange={setNewAppName}
-        quickSuggestions={quickAppSuggestions}
         onSelectSuggestion={(sug) => {
           setNewAppName(sug.name);
           setNewAppPackage(sug.pkg);
@@ -734,8 +909,48 @@ export const CustomSitesSection: React.FC<CustomSitesSectionProps> = ({
         onToggleDevice={handleToggleNewAppDevice}
         dailyLimitMinutes={newAppDailyLimit}
         onDailyLimitChange={setNewAppDailyLimit}
+        deviceLimits={newAppDeviceLimits}
+        onDeviceLimitChange={handleNewAppDeviceLimitChange}
         loading={loadingSite}
         onSave={handleAddApp}
+      />
+
+      <EditAppModal
+        editingApp={editingApp}
+        onClose={() => setEditingApp(null)}
+        appName={editAppName}
+        onAppNameChange={setEditAppName}
+        category={editAppCategory}
+        onCategoryChange={setEditAppCategory}
+        applyToAll={editAppApplyToAll}
+        onApplyToAllChange={handleEditAppApplyToAllChange}
+        deviceIds={editAppDeviceIds}
+        devices={devices}
+        onToggleDevice={handleToggleEditAppDevice}
+        dailyLimitMinutes={editAppDailyLimit}
+        onDailyLimitChange={setEditAppDailyLimit}
+        loading={loadingSite}
+        onSave={handleSaveEditApp}
+      />
+
+      <AppTimeLimitModal
+        app={timeLimitApp}
+        onClose={() => setTimeLimitApp(null)}
+        loading={loadingSite}
+        onSave={handleSaveTimeLimit}
+      />
+
+      <SitesOptionsMenuModal
+        visible={showOptionsMenu}
+        onClose={() => setShowOptionsMenu(false)}
+        showSearchInput={showSearchInput}
+        onToggleSearch={() => setShowSearchInput((prev) => !prev)}
+        showDeviceFilter={showDeviceFilter}
+        onToggleDeviceFilter={() => setShowDeviceFilter((prev) => !prev)}
+        isSelectionMode={isSelectionMode}
+        onToggleSelectionMode={() => setIsSelectionMode((prev) => !prev)}
+        sortBy={sortBy}
+        onSelectSortBy={setSortBy}
       />
     </View>
   );
