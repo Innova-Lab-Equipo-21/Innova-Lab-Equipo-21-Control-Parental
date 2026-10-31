@@ -99,114 +99,99 @@ export const devicesApi = {
   // Lista de Dispositivos Protegidos y Persistencia
   // --------------------------------------------------------------------------
   async listDevices(): Promise<{ success: boolean; data: DeviceInfo[] }> {
+    let backendDevices: DeviceInfo[] = [];
     try {
       const response = await apiClient.get('/devices');
       if (response.data?.data && Array.isArray(response.data.data)) {
-        return response.data;
+        backendDevices = response.data.data;
       }
     } catch (e) {
       // Usar almacenamiento local / demo
     }
 
+    let localDevices: DeviceInfo[] = [];
     try {
       const raw = await safeStorage.getItem('@ba_protege_devices_list');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          // Garantizar que cada dispositivo conserve su colorIndex permanente
-          let modified = false;
-          const usedIndices = new Set<number>();
-          parsed.forEach((d: DeviceInfo) => {
-            if (typeof d.colorIndex === 'number') {
-              usedIndices.add(d.colorIndex);
-            }
-          });
-          parsed.forEach((d: DeviceInfo, i: number) => {
-            if (typeof d.colorIndex !== 'number') {
-              let nextIdx = 0;
-              while (usedIndices.has(nextIdx) && nextIdx < 5) {
-                nextIdx++;
-              }
-              d.colorIndex = nextIdx < 5 ? nextIdx : i % 5;
-              usedIndices.add(d.colorIndex);
-              modified = true;
-            }
-            // Asegurar que el título sea únicamente "Nombre" y no "Dispositivo (Nombre)"
-            if (d.childName && (!d.deviceName || d.deviceName.includes('('))) {
-              d.deviceName = d.childName;
-              modified = true;
-            }
-          });
-          if (modified) {
-            await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(parsed));
-          }
-          return { success: true, data: parsed };
+          localDevices = parsed;
         }
       }
     } catch (e) {}
 
-    const defaultDevices: DeviceInfo[] = [
-      {
-        deviceId: 'dev-1',
-        deviceUuid: 'uuid-samsung-mateo-a54',
-        deviceName: 'Mateo',
-        childName: 'Mateo',
-        isProtected: true,
-        status: 'ACTIVE',
-        lastHeartbeat: 'Hace 1m',
-        blockedCount: 12,
-        blocklistVersion: 4,
-        phone: '11 4567-8901',
-        birthDate: '14/05/2012',
-        gender: 'Masculino',
-        profileType: 'Menor',
-        deviceModel: 'Samsung Galaxy A54 5G',
-        createdAt: '10/01/2024',
-        colorIndex: 0,
-        permissions: {
-          vpn: true,
-          accessibility: true,
-          notifications: true,
-          batteryOptimization: true,
-          location: true,
-          usageStats: true,
-          grantedCount: 6,
-        },
-      },
-      {
-        deviceId: 'dev-2',
-        deviceUuid: 'uuid-xiaomi-sofia-note12',
-        deviceName: 'Sofía',
-        childName: 'Sofía',
-        isProtected: true,
-        status: 'ACTIVE',
-        lastHeartbeat: 'Hace 3m',
-        blockedCount: 4,
-        blocklistVersion: 4,
-        phone: '11 2345-6789',
-        birthDate: '15/05/2012',
-        gender: 'Femenino',
-        profileType: 'Menor',
-        deviceModel: 'Xiaomi Redmi Note 12',
-        createdAt: '15/02/2024',
-        colorIndex: 1,
-        permissions: {
-          vpn: true,
-          accessibility: false,
-          notifications: true,
-          batteryOptimization: true,
-          location: true,
-          usageStats: false,
-          grantedCount: 4,
-        },
-      },
-    ];
+    // Combinar dispositivos del backend con dispositivos creados en el emulador (sin duplicados)
+    const combinedMap = new Map<string, DeviceInfo>();
+    backendDevices.forEach((d) => combinedMap.set(d.deviceId || d.deviceUuid, d));
+    localDevices.forEach((d) => combinedMap.set(d.deviceId || d.deviceUuid, d));
 
-    await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(defaultDevices));
-    return {
-      success: true,
-      data: defaultDevices,
+    let finalDevices = Array.from(combinedMap.values());
+
+    // Dispositivo mock para pruebas solicitado por el usuario
+    const mockProtectedDevice: DeviceInfo = {
+      deviceId: 'dev-mock-1',
+      deviceUuid: 'uuid-samsung-mateo-a54',
+      deviceName: 'Mateo',
+      childName: 'Mateo',
+      isProtected: true,
+      status: 'ACTIVE',
+      lastHeartbeat: 'En línea',
+      blockedCount: 12,
+      blocklistVersion: 4,
+      phone: '11 4567-8901',
+      birthDate: '14/05/2012',
+      gender: 'Masculino',
+      profileType: 'Menor',
+      deviceModel: 'Samsung Galaxy A54 5G',
+      createdAt: '10/01/2024',
+      colorIndex: 0,
+      permissions: {
+        vpn: true,
+        accessibility: true,
+        notifications: true,
+        batteryOptimization: true,
+        location: true,
+        usageStats: true,
+        grantedCount: 6,
+      },
     };
+
+    // Si no hay ningún dispositivo protegido registrado, incluir el mock de pruebas
+    const hasProtected = finalDevices.some((d) => d.deviceId !== 'self');
+    if (!hasProtected) {
+      finalDevices = [mockProtectedDevice];
+      await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(finalDevices));
+    }
+
+    // Garantizar que cada dispositivo conserve su colorIndex permanente
+    let modified = false;
+    const usedIndices = new Set<number>();
+    finalDevices.forEach((d) => {
+      if (typeof d.colorIndex === 'number') {
+        usedIndices.add(d.colorIndex);
+      }
+    });
+    finalDevices.forEach((d, i) => {
+      if (typeof d.colorIndex !== 'number') {
+        let nextIdx = 0;
+        while (usedIndices.has(nextIdx) && nextIdx < 5) {
+          nextIdx++;
+        }
+        d.colorIndex = nextIdx < 5 ? nextIdx : i % 5;
+        usedIndices.add(d.colorIndex);
+        modified = true;
+      }
+      if (d.childName && (!d.deviceName || d.deviceName.includes('('))) {
+        d.deviceName = d.childName;
+        modified = true;
+      }
+    });
+
+    if (modified) {
+      await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(finalDevices));
+    }
+
+    return { success: true, data: finalDevices };
   },
 
   async updateDevice(

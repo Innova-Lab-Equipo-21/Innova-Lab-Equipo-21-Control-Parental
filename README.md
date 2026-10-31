@@ -178,7 +178,6 @@ El panel principal cuenta con barra de navegación inferior de 5 pestañas (`Das
 | **Mobile (Frontend)** | React Native + TypeScript | 0.87 / 0.76+ |
 | **Kit UI/UX (Design System)** | Custom Theme + Components (`uikit.txt`) | Tokens e Iconografía oficial |
 | **Nativo Android** | Kotlin + Android SDK (`VpnService`) | Kotlin 2.x / SDK 35/37 (Java 17) |
-| **Simulador Web (Frontend)** | Vite + React + TypeScript | Vite 8 / React 18 |
 | **Backend (API REST)** | Node.js (LTS) + Express + TypeScript | Node 24.20 LTS / Express 4/5 |
 | **ORM & Base de Datos** | Prisma ORM + PostgreSQL | PostgreSQL 18.6 / Prisma 5.x |
 | **Autenticación** | JWT (`jsonwebtoken`) + Hashing (`bcryptjs`) | Estándar con Refresh Tokens |
@@ -202,7 +201,7 @@ baprotege+/
 │   │   ├── services/             # Lógica de negocio (Pairing, Heartbeat, Listas LOTBA, Blocklist)
 │   │   └── server.ts             # Punto de entrada y arranque del servidor HTTP
 │   └── tests/                    # Pruebas automatizadas (Blocklist CRUD, Permisos, Auth, etc.)
-├── frontend/                     # Aplicación Mobile (React Native + Kotlin + Simulador Web)
+├── frontend/                     # Aplicación Mobile (React Native + Kotlin)
 │   ├── android/                  # Módulos nativos Android (VpnService, BootReceiver, Bridge)
 │   ├── src/
 │   │   ├── components/           # Componentes del Kit UI/UX (Header, StatusCard, ActionButton, Badge, etc.)
@@ -210,8 +209,7 @@ baprotege+/
 │   │   ├── services/             # API Client y Heartbeat con payload de permisos
 │   │   ├── theme/                # Tokens de diseño (colors.ts, typography.ts)
 │   │   ├── types/                # Interface DevicePermissionsStatus, Blocklist, etc.
-│   │   ├── utils/                # Utilidades y validaciones (age.ts: cálculo de mayoría de edad +18)
-│   │   └── web/                  # Simulador interactivo web de pruebas (Dashboard, Registro, Simulación)
+│   │   └── utils/                # Utilidades y validaciones (age.ts: cálculo de mayoría de edad +18)
 │   ├── tests/                    # Pruebas unitarias (CustomBlocklist, Permissions, SelfControl, Age, UIKit)
 │   ├── ui/                       # Especificaciones e iconografía del Kit UI/UX (uikit.txt, *.svg, *.png)
 └── README.md                     # Documentación principal del proyecto
@@ -250,9 +248,9 @@ npm install
 
 ---
 
-## 🧪 Guía de Pruebas Rápidas (Modo Simulado / Sin Base de Datos)
+## 🧪 Guía de Pruebas y Ejecución de la Aplicación (Modo Simulado / Sin Base de Datos)
 
-El proyecto incluye un **Modo de Datos Simulados (Mock Data)** y un **Simulador Web Interactivo** para probar todas las funcionalidades de extremo a extremo sin necesidad de instalar PostgreSQL ni configurar emuladores pesados.
+El proyecto incluye un **Modo de Datos Simulados (Mock Data)** en el Backend para probar todas las funcionalidades de extremo a extremo sin necesidad de instalar PostgreSQL. La aplicación móvil se ejecuta en un celular físico o emulador Android mediante la generación de su APK.
 
 ### Paso 1: Iniciar el Servidor Backend
 En una terminal, ingresar a la carpeta `backend` y ejecutar:
@@ -270,20 +268,26 @@ npm run dev
 ====================================================
 ```
 
-### Paso 2: Iniciar el Simulador Web del Frontend
-En una segunda terminal, ingresar a la carpeta `frontend` y ejecutar:
+### Paso 2: Compilar e Instalar la APK en Emulador o Celular Físico
+En una segunda terminal, ingresar a la carpeta `frontend`:
 ```bash
 cd frontend
-npm run dev
-```
-*Salida esperada:*
-```text
-  VITE v8.3.0  ready in 150 ms
-  ➜  Local:   http://localhost:5173/
+
+# 1. Empaquetar el bundle de React Native
+npm run build:bundle
+
+# 2. Compilar la APK Debug
+npm run build:apk
+# El APK generado se ubica en: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+
+# 3. Instalar y ejecutar directamente en el dispositivo conectado (emulador o celular vía USB):
+npm run install:device
+
+# O alternativamente:
+npm run android
 ```
 
-### Paso 3: Abrir y Probar en el Navegador
-Abrir en el navegador la URL indicada: **[http://localhost:5173/](http://localhost:5173/)**
+### Paso 3: Probar en el Dispositivo (Emulador / Celular Físico)
 
 #### Escenarios de prueba interactiva:
 1. **🌟 Onboarding con Wizard de 3 Pantallas y Video Optativo:**

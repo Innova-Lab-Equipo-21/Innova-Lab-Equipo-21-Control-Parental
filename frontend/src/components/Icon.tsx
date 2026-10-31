@@ -27,6 +27,7 @@ import celularPng from '../assets/icons/celular.png';
 import preguntaPng from '../assets/icons/pregunta.png';
 import editarPng from '../assets/icons/editar.png';
 import eliminarPng from '../assets/icons/eliminar.png';
+import engrenajePng from '../assets/icons/engrenaje.png';
 
 export type IconName =
   | 'ojo'
@@ -46,7 +47,8 @@ export type IconName =
   | 'celular'
   | 'pregunta'
   | 'editar'
-  | 'eliminar';
+  | 'eliminar'
+  | 'engrenaje';
 
 interface IconProps {
   name: IconName;
@@ -74,6 +76,7 @@ const ICON_MAP: Record<IconName, any> = {
   pregunta: preguntaPng,
   editar: editarPng,
   eliminar: eliminarPng,
+  engrenaje: engrenajePng,
 };
 
 export const Icon: React.FC<IconProps> = ({

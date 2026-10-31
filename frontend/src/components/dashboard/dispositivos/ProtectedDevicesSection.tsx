@@ -52,19 +52,6 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   onOpenPermissions,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'NAME' | 'DATE'>('NAME');
-
-  // Estados de expansión de Permisos y Datos Cadastrales (independientes por dispositivo)
-  const [expandedPermsIds, setExpandedPermsIds] = useState<Record<string, boolean>>({});
-  const [expandedCadastralIds, setExpandedCadastralIds] = useState<Record<string, boolean>>({});
-
-  const togglePerms = (deviceId: string) => {
-    setExpandedPermsIds((prev) => ({ ...prev, [deviceId]: !prev[deviceId] }));
-  };
-
-  const toggleCadastral = (deviceId: string) => {
-    setExpandedCadastralIds((prev) => ({ ...prev, [deviceId]: !prev[deviceId] }));
-  };
 
   // Ref y estado para control de cierre de búsqueda al tocar fuera
   const searchInputRef = useRef<TextInput>(null);
@@ -161,19 +148,6 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
       (dev.phone && dev.phone.includes(term)) ||
       (dev.deviceModel && dev.deviceModel.toLowerCase().includes(term))
     );
-  });
-
-  // Ordenamiento por Nombre o Fecha de Vinculación
-  const sortedProtectedDevices = [...filteredDevices].sort((a, b) => {
-    if (sortBy === 'NAME') {
-      const nameA = a.deviceName || a.childName || '';
-      const nameB = b.deviceName || b.childName || '';
-      return nameA.localeCompare(nameB);
-    } else {
-      const dateA = a.createdAt || a.pairedAt || a.lastHeartbeat || '';
-      const dateB = b.createdAt || b.pairedAt || b.lastHeartbeat || '';
-      return dateB.localeCompare(dateA);
-    }
   });
 
   // Manejador de Edición: Abre Modal según el tipo de dispositivo
@@ -286,8 +260,41 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
       }}
     >
       <View style={styles.container}>
-        {/* Buscador y Ordenamiento en UNA SOLA LÍNEA (Solo íconos para Nombre y Fecha) */}
-        <View style={styles.searchAndSortRow}>
+        {/* SECCIÓN 1: MI DISPOSITIVO (RESPONSABLE) */}
+        {selfDev && (
+          <View style={styles.sectionHeaderContainer}>
+            <Text style={styles.sectionTitle}>Mi dispositivo</Text>
+          </View>
+        )}
+
+        {selfDev && (
+          <DeviceCard
+            device={selfDev}
+            index={0}
+            isSelf={true}
+            onEdit={handleEditDevice}
+            onUnbind={() => {}}
+            onAuditPermissions={handleAuditPermissions}
+            isAuditing={auditingDeviceId === selfDev.deviceId}
+            selfControl={resolvedSelfControl}
+            onStartSelfControlFlow={handleSelfControlStart}
+            onDisableSelfControl={handleSelfControlDisable}
+            onOpenPermissions={onOpenPermissions}
+          />
+        )}
+
+        {/* SECCIÓN 2: DISPOSITIVOS PROTEGIDOS */}
+        <View style={styles.protectedSectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Dispositivos Protegidos</Text>
+          <Text style={styles.countText}>
+            {searchTerm.trim().length > 0
+              ? `${filteredDevices.length} de ${devices.length} ${devices.length === 1 ? 'vinculado' : 'vinculados'}`
+              : `${devices.length} ${devices.length === 1 ? 'vinculado' : 'vinculados'}`}
+          </Text>
+        </View>
+
+        {/* Buscador de Dispositivos Protegidos a Ancho Completo */}
+        <View style={styles.searchRow}>
           <View style={styles.searchContainer}>
             <Text style={styles.searchIconPrefix}>🔍</Text>
             <TextInput
@@ -316,57 +323,10 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
               </TouchableOpacity>
             )}
           </View>
-
-          <View style={styles.sortIconsRow}>
-            <TouchableOpacity
-              style={[styles.sortIconBtn, sortBy === 'NAME' && styles.sortIconBtnActive]}
-              onPress={() => setSortBy('NAME')}
-              activeOpacity={0.8}
-              accessibilityLabel="Ordenar por nombre"
-            >
-              <Text style={styles.sortIconEmoji}>🔤</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.sortIconBtn, sortBy === 'DATE' && styles.sortIconBtnActive]}
-              onPress={() => setSortBy('DATE')}
-              activeOpacity={0.8}
-              accessibilityLabel="Ordenar por fecha de vinculación"
-            >
-              <Text style={styles.sortIconEmoji}>📅</Text>
-            </TouchableOpacity>
-          </View>
         </View>
-
-        {/* Contador de Dispositivos */}
-        <View style={styles.countRow}>
-          <Text style={styles.countText}>
-            Mostrando {selfDev ? 1 : 0} responsable + {sortedProtectedDevices.length} de {devices.length} protegidos
-          </Text>
-        </View>
-
-        {/* PRIMER CARD: SIEMPRE EL DISPOSITIVO DEL RESPONSABLE */}
-        {selfDev && (
-          <DeviceCard
-            device={selfDev}
-            index={0}
-            isSelf={true}
-            isPermsExpanded={!!expandedPermsIds[selfDev.deviceId]}
-            isCadastralExpanded={!!expandedCadastralIds[selfDev.deviceId]}
-            onTogglePerms={() => togglePerms(selfDev.deviceId)}
-            onToggleCadastral={() => toggleCadastral(selfDev.deviceId)}
-            onEdit={handleEditDevice}
-            onUnbind={() => {}}
-            onAuditPermissions={handleAuditPermissions}
-            isAuditing={auditingDeviceId === selfDev.deviceId}
-            selfControl={resolvedSelfControl}
-            onStartSelfControlFlow={handleSelfControlStart}
-            onDisableSelfControl={handleSelfControlDisable}
-          />
-        )}
 
         {/* LISTA DE DISPOSITIVOS PROTEGIDOS */}
-        {sortedProtectedDevices.length === 0 ? (
+        {filteredDevices.length === 0 ? (
           devices.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>
@@ -381,20 +341,17 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
             </View>
           )
         ) : (
-          sortedProtectedDevices.map((dev, idx) => (
+          filteredDevices.map((dev, idx) => (
             <DeviceCard
               key={dev.deviceId || dev.deviceUuid}
               device={dev}
               index={dev.colorIndex ?? idx}
               isSelf={false}
-              isPermsExpanded={!!expandedPermsIds[dev.deviceId]}
-              isCadastralExpanded={!!expandedCadastralIds[dev.deviceId]}
-              onTogglePerms={() => togglePerms(dev.deviceId)}
-              onToggleCadastral={() => toggleCadastral(dev.deviceId)}
               onEdit={handleEditDevice}
               onUnbind={(d) => setUnbindingDevice(d)}
               onAuditPermissions={handleAuditPermissions}
               isAuditing={auditingDeviceId === dev.deviceId}
+              onOpenPermissions={onOpenPermissions}
             />
           ))
         )}

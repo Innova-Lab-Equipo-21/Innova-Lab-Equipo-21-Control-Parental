@@ -30,6 +30,7 @@ interface PermissionsScreenProps {
   onPermissionsComplete: () => void;
   onBack?: () => void;
   flowSource?: 'PARENT_LOGIN' | 'DEVICE_PAIRING';
+  userId?: string;
 }
 
 export interface PermissionItemState {
@@ -56,8 +57,9 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   onPermissionsComplete,
   onBack,
   flowSource = 'DEVICE_PAIRING',
+  userId,
 }) => {
-  // Inicialización de permisos (se sincroniza con el estado real del sistema)
+  // Inicialización de permisos (se sincroniza con el estado real del sistema para este usuario)
   const [permissions, setPermissions] = useState<PermissionItemState>({
     vpn: false,
     accessibility: false,
@@ -69,7 +71,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
 
   // Consultar permisos reales nativos al montar
   useEffect(() => {
-    checkRealDevicePermissions().then((real) => {
+    checkRealDevicePermissions(userId).then((real) => {
       setPermissions({
         vpn: real.vpn,
         accessibility: real.accessibility,
@@ -79,13 +81,13 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         usageStats: real.usageStats,
       });
     });
-  }, []);
+  }, [userId]);
 
   // Helper para actualizar y persistir el estado real de permisos
   const updatePermission = (key: keyof PermissionItemState, value: boolean) => {
     setPermissions((prev) => {
       const next = { ...prev, [key]: value };
-      saveDevicePermissions(next);
+      saveDevicePermissions(next, userId);
       return next;
     });
   };

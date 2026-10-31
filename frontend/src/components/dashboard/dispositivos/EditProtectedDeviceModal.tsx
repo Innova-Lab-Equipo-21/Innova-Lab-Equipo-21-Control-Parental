@@ -495,7 +495,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
             </View>
             <View style={{ flex: 1.5 }}>
               <ActionButton
-                title="Guardar cambios"
+                title="Guardar"
                 variant="primary"
                 loading={loading}
                 onPress={handleSave}

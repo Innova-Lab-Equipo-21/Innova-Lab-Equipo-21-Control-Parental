@@ -82,6 +82,14 @@ class ProtectionVpnService : VpnService(), Runnable {
                 // Enrutamiento de paquetes DNS
                 addRoute("0.0.0.0", 0)
                 setBlocking(false)
+
+                // Excluir la propia app y servicios de Google para garantizar conectividad con backend, OAuth y FCM
+                try {
+                    addDisallowedApplication(packageName)
+                    addDisallowedApplication("com.google.android.gms")
+                } catch (e: Exception) {
+                    Log.w(TAG, "No se pudieron excluir paquetes de la VPN: ${e.message}")
+                }
             }
 
             vpnInterface = builder.establish()

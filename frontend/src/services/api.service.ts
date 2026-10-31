@@ -47,8 +47,11 @@ export const apiService = {
   // --------------------------------------------------------------------------
   register: authApi.register.bind(authApi),
   login: authApi.login.bind(authApi),
+  googleAuth: authApi.googleAuth.bind(authApi),
+  googleLink: authApi.googleLink.bind(authApi),
   recoverPassword: authApi.recoverPassword.bind(authApi),
   logout: authApi.logout.bind(authApi),
+  registerFcmToken: authApi.registerFcmToken.bind(authApi),
 
   // --------------------------------------------------------------------------
   // Pareamiento y Dispositivos (Máximo 5 dispositivos por responsable)

@@ -3,28 +3,29 @@
 // Componente: DeviceCard (Tarjeta Individual de Dispositivo)
 // Archivo: src/components/dashboard/dispositivos/DeviceCard.tsx
 // Descripción: Tarjeta modular que representa un dispositivo (Responsable o Protegido)
-//              con cabecera, datos cadastrales colapsables, 6 permisos y autocontrol.
+//              con cabecera, botón de engrenaje a la izquierda de editar, badge inferior
+//              y toggle de autoprotección en el card del responsable.
 // ==============================================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Badge } from '../../Badge';
 import { Icon } from '../../Icon';
-import { colors } from '../../../theme/colors';
+import { ToggleSwitch } from '../../ToggleSwitch';
 import { DeviceInfo, SelfControlState } from '../../../types';
 import { getDeviceHighlight } from '../../../utils/deviceColors';
-import { calculateAge } from '../../../utils/age';
 import { apiService } from '../../../services/api.service';
+import { DevicePermissionsModal } from './DevicePermissionsModal';
 import { styles } from './ProtectedDevicesSection.styles';
 
 interface DeviceCardProps {
   device: DeviceInfo;
   index: number;
   isSelf: boolean;
-  isPermsExpanded: boolean;
-  isCadastralExpanded: boolean;
-  onTogglePerms: () => void;
-  onToggleCadastral: () => void;
+  isPermsExpanded?: boolean;
+  isCadastralExpanded?: boolean;
+  onTogglePerms?: () => void;
+  onToggleCadastral?: () => void;
   onEdit: (dev: DeviceInfo) => void;
   onUnbind: (dev: DeviceInfo) => void;
   onAuditPermissions?: (dev: DeviceInfo) => void;
@@ -32,24 +33,22 @@ interface DeviceCardProps {
   selfControl?: SelfControlState;
   onStartSelfControlFlow?: () => void;
   onDisableSelfControl?: () => void;
+  onOpenPermissions?: () => void;
 }
 
 export const DeviceCard: React.FC<DeviceCardProps> = ({
   device,
   index,
   isSelf,
-  isPermsExpanded,
-  isCadastralExpanded,
-  onTogglePerms,
-  onToggleCadastral,
   onEdit,
   onUnbind,
-  onAuditPermissions,
-  isAuditing = false,
   selfControl,
   onStartSelfControlFlow,
   onDisableSelfControl,
+  onOpenPermissions,
 }) => {
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+
   const highlight = getDeviceHighlight(
     device.deviceId,
     device.childName,
@@ -122,19 +121,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
     (device.status as any)?.effectiveStatus === 'ACTIVE' ||
     device.isProtected;
 
-  const perms = device.permissions || {
-    vpn: true,
-    accessibility: true,
-    notifications: true,
-    batteryOptimization: true,
-    location: true,
-    usageStats: true,
-    grantedCount: 6,
-  };
-
-  const age = device.birthDate ? calculateAge(device.birthDate) : null;
-
-  // Título del dispositivo: "Nombre" (ej. "Mateo", "Cesar", "Tutor Responsable") en vez de "Dispositivo (Nombre)"
+  // Título del dispositivo: "Nombre" (ej. "Mateo", "Cesar", "Tutor Responsable")
   const deviceTitle = isSelf
     ? (device.childName || 'Tutor Responsable')
     : (device.childName || device.deviceName?.replace(/^.*?\((.*?)\)$/, '$1') || device.deviceName || 'Protegido');
@@ -162,8 +149,15 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         </View>
 
         <View style={styles.headerRightActions}>
-          {/* Badge de Estado: al lado izquierdo de los íconos de acción, perfectamente centrado verticalmente */}
-          <Badge status={isActive ? 'activo' : 'inactivo'} style={styles.headerBadge} />
+          {/* Ícono de Engranaje / Permisos (al lado izquierdo de editar) */}
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setShowPermissionsModal(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Permisos del dispositivo"
+          >
+            <Icon name="engrenaje" size={20} />
+          </TouchableOpacity>
 
           {/* Ícono de Edición de Datos */}
           <TouchableOpacity
@@ -174,22 +168,6 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
           >
             <Icon name="editar" size={20} />
           </TouchableOpacity>
-
-          {/* Ícono Inteligente de Autocontrol (Solo responsable, verde si activo) */}
-          {isSelf && (
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={handleSelfControlPress}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel="Autocontrol del responsable"
-            >
-              <Icon
-                name="escudo"
-                size={20}
-                color={isAutocontrolActive ? '#28A745' : colors.textSecondary}
-              />
-            </TouchableOpacity>
-          )}
 
           {/* Ícono de Desvinculación (Solo dispositivos protegidos) */}
           {!isSelf && (
@@ -205,186 +183,41 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         </View>
       </View>
 
-      {/* Resumen de Datos Registrados y Toggle Desplegable (Solo flecha ▼/▲) */}
-      <TouchableOpacity
-        style={styles.cadastralSummaryRow}
-        onPress={onToggleCadastral}
-        activeOpacity={0.7}
-      >
-        <View style={styles.cadastralBadgeContainer}>
-          <Text style={styles.permLabel}>Datos registrados:</Text>
-          {device.createdAt && (
-            <Text style={styles.countText}>Vinculado: {device.createdAt}</Text>
-          )}
-        </View>
-        <Text style={styles.expandArrowOnly}>
-          {isCadastralExpanded ? '▲' : '▼'}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Detalle Desplegable de Datos Registrados */}
-      {isCadastralExpanded && (
-        <View style={styles.cadastralBox}>
-          <View style={styles.cadastralGrid}>
-            <View style={styles.cadastralRow}>
-              <View style={styles.cadastralCol}>
-                <Text style={styles.cadastralLabel}>Titular / protegido:</Text>
-                <Text style={styles.cadastralValue} numberOfLines={1}>
-                  {device.childName || 'No informado'}
-                </Text>
-              </View>
-              <View style={styles.cadastralCol}>
-                <Text style={styles.cadastralLabel}>Perfil:</Text>
-                <Text style={styles.cadastralValue}>
-                  {device.profileType || (isSelf ? 'Responsable' : 'Menor')}
-                  {age !== null ? ` (${age} años)` : ''}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.cadastralRow}>
-              <View style={styles.cadastralCol}>
-                <Text style={styles.cadastralLabel}>Teléfono / línea:</Text>
-                <Text style={styles.cadastralValue} numberOfLines={1}>
-                  {device.phone || 'Sin registrar'}
-                </Text>
-              </View>
-              <View style={styles.cadastralCol}>
-                <Text style={styles.cadastralLabel}>Modelo:</Text>
-                <Text style={styles.cadastralValue} numberOfLines={1}>
-                  {device.deviceModel || device.deviceName}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.cadastralRow}>
-              <View style={styles.cadastralCol}>
-                <Text style={styles.cadastralLabel}>Género:</Text>
-                <Text style={styles.cadastralValue}>{device.gender || 'No informado'}</Text>
-              </View>
-              {device.birthDate ? (
-                <View style={styles.cadastralCol}>
-                  <Text style={styles.cadastralLabel}>Fecha de nac.:</Text>
-                  <Text style={styles.cadastralValue}>{device.birthDate}</Text>
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* Resumen de Permisos y Toggle Desplegable (6 Permisos, Solo flecha ▼/▲) */}
-      <TouchableOpacity
-        style={styles.permSummaryRow}
-        onPress={onTogglePerms}
-        activeOpacity={0.7}
-      >
-        <View style={styles.permBadgeContainer}>
-          <Text style={styles.permLabel}>Permisos Android:</Text>
+      {/* Línea inferior: Badge Vinculado/Inactivo a la izquierda (solo protegidos), y Autocontrol con Toggle a la derecha (solo responsable) */}
+      <View style={styles.deviceFooterRow}>
+        {!isSelf ? (
           <Badge
-            status={perms.grantedCount === 6 ? 'activo' : 'alerta'}
-            label={`${perms.grantedCount}/6 concedidos`}
+            status={isActive ? 'activo' : 'inactivo'}
+            label={isActive ? 'Vinculado' : 'Inactivo'}
           />
-          {perms.grantedCount < 6 && (
-            <View style={styles.auditAttentionTag}>
-              <Text style={styles.auditAttentionTagText}>⚠️ Atención</Text>
-            </View>
-          )}
-        </View>
-        <Text style={styles.expandArrowOnly}>
-          {isPermsExpanded ? '▲' : '▼'}
-        </Text>
-      </TouchableOpacity>
+        ) : (
+          <View />
+        )}
 
-      {/* Detalle Desplegable de Permisos Android (Los 6 Permisos del Sistema) */}
-      {isPermsExpanded && (
-        <View style={styles.permDetailBox}>
-          <View style={styles.permAuditHeaderRow}>
-            <Text style={styles.permDetailTitle}>Estado de permisos del sistema (6):</Text>
-            <Text style={styles.permAuditTimestamp}>
-              {device.lastHeartbeat ? `Reporte: ${device.lastHeartbeat}` : 'En línea'}
-            </Text>
-          </View>
+        {isSelf && (
+          <TouchableOpacity
+            style={styles.autoprotectionRow}
+            activeOpacity={0.8}
+            onPress={handleSelfControlPress}
+          >
+            <Text style={styles.autoprotectionLabel}>Autocontrol</Text>
+            <ToggleSwitch
+              value={isAutocontrolActive}
+              onValueChange={handleSelfControlPress}
+              activeColor="#007AFF"
+            />
+          </TouchableOpacity>
+        )}
+      </View>
 
-          {perms.grantedCount < 6 ? (
-            <View style={styles.permWarningBox}>
-              <Text style={styles.permWarningText}>
-                {isSelf
-                  ? `⚠️ Atención: Faltan ${6 - perms.grantedCount} permiso(s) en este celular. Para garantizar el filtrado y la autoprotección, debés activarlos en este dispositivo.`
-                  : `⚠️ Atención: Faltan ${6 - perms.grantedCount} permiso(s) en este celular. Para garantizar el filtrado y la protección antidesinstalación, deben otorgarse en el dispositivo protegido.`}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.permSuccessBox}>
-              <Text style={styles.permSuccessText}>
-                {isSelf
-                  ? '✓ Todos los permisos del sistema están activos en tu dispositivo.'
-                  : '✓ Todos los permisos del sistema están activos y reportando normalmente.'}
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.permItemRow}>
-            <Text style={styles.permItemText}>🌐 Servicio VPN (filtrado LOTBA):</Text>
-            <Text style={[styles.permStatusText, perms.vpn ? styles.textGreen : styles.textRed]}>
-              {perms.vpn ? '✓ Concedido' : '✕ Pendiente'}
-            </Text>
-          </View>
-
-          <View style={styles.permItemRow}>
-            <Text style={styles.permItemText}>🔒 Accesibilidad (antidesinstalación):</Text>
-            <Text style={[styles.permStatusText, perms.accessibility ? styles.textGreen : styles.textRed]}>
-              {perms.accessibility ? '✓ Concedido' : '⚠️ Pendiente'}
-            </Text>
-          </View>
-
-          <View style={styles.permItemRow}>
-            <Text style={styles.permItemText}>🔔 Notificaciones en primer plano:</Text>
-            <Text style={[styles.permStatusText, perms.notifications ? styles.textGreen : styles.textRed]}>
-              {perms.notifications ? '✓ Concedido' : '✕ Pendiente'}
-            </Text>
-          </View>
-
-          <View style={styles.permItemRow}>
-            <Text style={styles.permItemText}>🔋 Sin optimización de batería:</Text>
-            <Text style={[styles.permStatusText, perms.batteryOptimization ? styles.textGreen : styles.textRed]}>
-              {perms.batteryOptimization ? '✓ Concedido' : '⚠️ Pendiente'}
-            </Text>
-          </View>
-
-          <View style={styles.permItemRow}>
-            <Text style={styles.permItemText}>📍 Ubicación (geolocalización segura):</Text>
-            <Text style={[styles.permStatusText, perms.location ? styles.textGreen : styles.textRed]}>
-              {perms.location ? '✓ Concedido' : '⚠️ Pendiente'}
-            </Text>
-          </View>
-
-          <View style={styles.permItemRow}>
-            <Text style={styles.permItemText}>⏱️ Acceso al uso (límites de tiempo):</Text>
-            <Text style={[styles.permStatusText, perms.usageStats ? styles.textGreen : styles.textRed]}>
-              {perms.usageStats ? '✓ Concedido' : '⚠️ Pendiente'}
-            </Text>
-          </View>
-
-          {/* Botón de Auditoría y Verificación de Permisos */}
-          {onAuditPermissions && (
-            <TouchableOpacity
-              style={styles.auditPermsBtn}
-              onPress={() => onAuditPermissions(device)}
-              activeOpacity={0.7}
-              disabled={isAuditing}
-            >
-              <Text style={styles.auditPermsBtnText}>
-                {isAuditing
-                  ? 'Auditando permisos...'
-                  : isSelf
-                  ? '🔄 Auditar permisos de mi celular'
-                  : '🔄 Auditar permisos del protegido'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+      {/* Modal Bottom Sheet de Permisos del Dispositivo */}
+      <DevicePermissionsModal
+        visible={showPermissionsModal}
+        device={device}
+        isSelf={isSelf}
+        onClose={() => setShowPermissionsModal(false)}
+        onNavigateToPermissions={onOpenPermissions}
+      />
     </View>
   );
 };

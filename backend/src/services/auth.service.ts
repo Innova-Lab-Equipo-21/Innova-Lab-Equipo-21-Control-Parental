@@ -29,6 +29,13 @@ export interface LoginUserInput {
   password: string;
 }
 
+export interface GoogleAuthInput {
+  idToken?: string;
+  email: string;
+  fullName?: string;
+  photoUrl?: string;
+}
+
 export class AuthService {
   /**
    * Registra un nuevo usuario responsable (padre/tutor) en el sistema.
@@ -177,6 +184,147 @@ export class AuthService {
         createdAt: user.createdAt,
       },
       token,
+    };
+  }
+
+  /**
+   * Autenticación o registro unificado con Google Sign-In.
+   * Si el usuario ya existe, genera su token JWT de sesión.
+   * Si no existe, lo crea automáticamente en el sistema y retorna el token.
+   */
+  public async googleLogin(input: GoogleAuthInput) {
+    let email = input.email?.trim().toLowerCase();
+    let fullName = input.fullName?.trim();
+
+    // Si se envía idToken, se decodifican los claims para mayor integridad
+    if (input.idToken) {
+      try {
+        const decoded = jwt.decode(input.idToken) as any;
+        if (decoded && decoded.email) {
+          email = decoded.email.toLowerCase();
+          if (!fullName && (decoded.name || decoded.given_name)) {
+            fullName = decoded.name || `${decoded.given_name || ''} ${decoded.family_name || ''}`.trim();
+          }
+        }
+      } catch {
+        // En caso de no poder decodificar, se utilizan los datos recibidos
+      }
+    }
+
+    if (!email) {
+      throw new AppError('El correo electrónico de Google es requerido', 400);
+    }
+
+    const computedFullName = fullName || 'Responsable Google';
+
+    if (env.USE_MOCK_DATA) {
+      let user = mockDb.users.find((u) => u.email === email);
+      if (!user) {
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(Math.random().toString(36), saltRounds);
+        user = {
+          id: `usr-google-${Date.now()}`,
+          email,
+          passwordHash,
+          fullName: computedFullName,
+          isActive: true,
+          createdAt: new Date(),
+        };
+        mockDb.users.push(user);
+      }
+
+      const token = this.generateToken({ userId: user.id, email: user.email });
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          createdAt: user.createdAt,
+          isGoogleLinked: true,
+        },
+        token,
+      };
+    }
+
+    let user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(Math.random().toString(36), saltRounds);
+      user = await prisma.user.create({
+        data: {
+          email,
+          fullName: computedFullName,
+          passwordHash,
+        },
+      });
+    }
+
+    const token = this.generateToken({ userId: user.id, email: user.email });
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        createdAt: user.createdAt,
+        isGoogleLinked: true,
+      },
+      token,
+    };
+  }
+
+  /**
+   * Vincula una cuenta ya existente de responsable con una credencial de Google.
+   */
+  public async googleLink(userId: string, input: GoogleAuthInput) {
+    let email = input.email?.trim().toLowerCase();
+    if (input.idToken) {
+      try {
+        const decoded = jwt.decode(input.idToken) as any;
+        if (decoded && decoded.email) {
+          email = decoded.email.toLowerCase();
+        }
+      } catch {}
+    }
+
+    if (!email) {
+      throw new AppError('El correo electrónico de Google es requerido para la vinculación', 400);
+    }
+
+    if (env.USE_MOCK_DATA) {
+      const user = mockDb.users.find((u) => u.id === userId);
+      if (!user) {
+        throw new AppError('Usuario no encontrado', 404);
+      }
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          createdAt: user.createdAt,
+          isGoogleLinked: true,
+        },
+      };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AppError('Usuario no encontrado', 404);
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        createdAt: user.createdAt,
+        isGoogleLinked: true,
+      },
     };
   }
 

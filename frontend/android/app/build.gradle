@@ -56,6 +56,9 @@ dependencies {
 
     implementation project(':react-native-async-storage_async-storage')
     implementation project(':react-native-community_datetimepicker')
+    implementation project(':react-native-firebase_app')
+    implementation project(':react-native-firebase_messaging')
+    implementation project(':react-native-google-signin_google-signin')
     
     // Kotlin Standard Library
     implementation("org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}")
@@ -64,3 +67,6 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
 }
+
+apply plugin: "com.google.gms.google-services"
+

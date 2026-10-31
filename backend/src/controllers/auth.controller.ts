@@ -7,7 +7,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service.js';
-import { ApiResponse } from '../types/index.js';
+import { ApiResponse, AuthenticatedRequest } from '../types/index.js';
 
 export class AuthController {
   /**
@@ -50,6 +50,54 @@ export class AuthController {
       res.status(200).json({
         success: true,
         message: 'Autenticación exitosa',
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Autenticación con Google Sign-In.
+   * POST /api/auth/google
+   */
+  public async googleLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { idToken, email, fullName, photoUrl } = req.body;
+      const result = await authService.googleLogin({ idToken, email, fullName, photoUrl });
+
+      res.status(200).json({
+        success: true,
+        message: 'Autenticación con Google exitosa',
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Vinculación de cuenta existente de responsable con Google.
+   * POST /api/auth/google/link
+   */
+  public async googleLink(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado',
+        } satisfies ApiResponse);
+        return;
+      }
+
+      const { idToken, email, fullName, photoUrl } = req.body;
+      const result = await authService.googleLink(userId, { idToken, email, fullName, photoUrl });
+
+      res.status(200).json({
+        success: true,
+        message: 'Cuenta vinculada exitosamente con Google',
         data: result,
       } satisfies ApiResponse);
     } catch (error) {

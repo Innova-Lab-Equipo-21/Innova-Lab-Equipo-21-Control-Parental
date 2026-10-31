@@ -7,8 +7,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// URL base para el entorno de desarrollo (10.0.2.2 apunta al localhost del host en el emulador Android)
-export const BASE_API_URL = 'http://10.0.2.2:3000/api';
+// URL base para el entorno de desarrollo (127.0.0.1 funciona mediante adb reverse tcp:3000 tcp:3000)
+export const BASE_API_URL = 'http://127.0.0.1:3000/api';
 
 const memoryStorage = new Map<string, string>();
 
@@ -57,7 +57,7 @@ export const safeStorage = {
 
 export const apiClient = axios.create({
   baseURL: BASE_API_URL,
-  timeout: 1000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },

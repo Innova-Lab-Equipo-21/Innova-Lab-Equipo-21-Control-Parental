@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "578907185126",
+    "project_id": "ba-protege-d304e",
+    "storage_bucket": "ba-protege-d304e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:578907185126:android:df9d31b9dd22e32c254027",
+        "android_client_info": {
+          "package_name": "com.baprotege"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "578907185126-8bf4dmodjte6k7fdcmr4k9ts05arh0tr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCX_IZ_wVEkxjp6g1yV6SgDpVErkg8lH3g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "578907185126-8bf4dmodjte6k7fdcmr4k9ts05arh0tr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

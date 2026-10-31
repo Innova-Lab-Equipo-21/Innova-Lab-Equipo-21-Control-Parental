@@ -70,12 +70,38 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         appVersion: '1.0.0',
       });
 
+      // Registrar token FCM del dispositivo para notificaciones push
+      try {
+        // @ts-ignore
+        const messagingModule: any = await import('@react-native-firebase/messaging');
+        const messaging = messagingModule.default || messagingModule;
+        const fcmToken = await messaging().getToken();
+        if (fcmToken) {
+          await apiService.registerFcmToken(fcmToken);
+        }
+      } catch (fcmError) {
+        // FCM no disponible en este entorno; se omite silenciosamente
+      }
+
       Alert.alert(
         '¡Vinculación exitosa!',
         `El dispositivo ha sido vinculado correctamente en perfil ${pairedMode === 'ADULT' ? 'ADULTO' : 'MENOR'}.`
       );
       onPairingComplete(result.data.deviceId, result.data.deviceUuid, pairedMode);
     } catch (error: any) {
+      // Registrar token FCM del dispositivo para notificaciones push
+      try {
+        // @ts-ignore
+        const messagingModule: any = await import('@react-native-firebase/messaging');
+        const messaging = messagingModule.default || messagingModule;
+        const fcmToken = await messaging().getToken();
+        if (fcmToken) {
+          await apiService.registerFcmToken(fcmToken);
+        }
+      } catch (fcmError) {
+        // FCM no disponible en este entorno; se omite silenciosamente
+      }
+
       // Fallback local instantáneo mientras no hay backend conectado
       const deviceUuid = 'dev-uuid-' + Math.random().toString(36).substring(2, 9);
       Alert.alert(

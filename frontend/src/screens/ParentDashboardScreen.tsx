@@ -28,11 +28,18 @@ import { MAX_PROTECTED_DEVICES, SelfControlState, DeviceInfo, CustomBlockedDomai
 import { SeccionDesplegable } from '../components/dashboard/SeccionDesplegable';
 import { DashboardNavbar, DashboardTab } from '../components/dashboard/DashboardNavbar';
 import { ProtectedDevicesSection, PairingSection, PairingModal, SelfControlSection } from '../components/dashboard/dispositivos';
-import { CustomSitesSection, GlobalRulesSection } from '../components/dashboard/sitios';
+import { CustomSitesSection } from '../components/dashboard/sitios';
 import { ActivitySection } from '../components/dashboard/actividad';
-import { TutorPermissionsSection, ProfileSection, HelpSection, LegalSection, RatingSection } from '../components/dashboard/cuenta';
+import {
+  ProfileSection,
+  GlobalRulesSection,
+  HelpSection,
+  LegalSection,
+  RatingSection,
+} from '../components/dashboard/cuenta';
 import { FabWithTooltip } from '../components/FabWithTooltip';
 import { colors } from '../theme/colors';
+import { checkRealDevicePermissions } from '../utils/permissionChecker';
 import { styles } from './ParentDashboardScreen.styles';
 
 interface ParentDashboardScreenProps {
@@ -72,9 +79,19 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const [showOnboardingFlow, setShowOnboardingFlow] = useState(false);
 
   // Estados de Reglas de Control Parental
-  const [ruleBetting, setRuleBetting] = useState(true);
   const [ruleAlerts, setRuleAlerts] = useState(true);
   const [ruleUninstallProtection, setRuleUninstallProtection] = useState(true);
+  const [rulePermissions, setRulePermissions] = useState(
+    permissions
+      ? !!(
+          permissions.vpn &&
+          permissions.accessibility &&
+          permissions.notifications &&
+          permissions.batteryOptimization &&
+          permissions.location
+        )
+      : false
+  );
 
   // Estados de Autocontrol del Responsable (Bloqueo de 24hs)
   const [selfControl, setSelfControl] = useState<SelfControlState>({
@@ -127,6 +144,28 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     setCurrentUser(user);
     setIsLoggedIn(true);
   };
+
+  const refreshPermissions = async () => {
+    try {
+      const real = await checkRealDevicePermissions(currentUser?.id);
+      const allGranted = !!(
+        real.vpn &&
+        real.accessibility &&
+        real.notifications &&
+        real.batteryOptimization &&
+        real.location
+      );
+      setRulePermissions(allGranted);
+    } catch (e) {
+      // fallback
+    }
+  };
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      refreshPermissions();
+    }
+  }, [isLoggedIn, currentUser?.id]);
 
   const loadDevices = async () => {
     try {
@@ -254,12 +293,15 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     return (
       <PermissionsScreen
         flowSource="PARENT_LOGIN"
+        userId={currentUser?.id}
         onPermissionsComplete={() => {
           setShowPermissionsModal(false);
+          refreshPermissions();
           loadDevices();
         }}
         onBack={() => {
           setShowPermissionsModal(false);
+          refreshPermissions();
           loadDevices();
         }}
       />
@@ -327,26 +369,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               />
             </SeccionDesplegable>
 
-            {/* SECCIÓN 2: REGLAS DE PROTECCIÓN GLOBAL */}
-            <SeccionDesplegable
-              title="Reglas de protección global"
-              subtitle="Filtros LOTBA y protección antidesinstalación"
-              badgeLabel="3 REGLAS"
-              badgeStatus="activo"
-              icon="🛡️"
-              initialExpanded={false}
-            >
-              <GlobalRulesSection
-                ruleBetting={ruleBetting}
-                ruleAlerts={ruleAlerts}
-                ruleUninstallProtection={ruleUninstallProtection}
-                onToggleBetting={setRuleBetting}
-                onToggleAlerts={setRuleAlerts}
-                onToggleUninstallProtection={setRuleUninstallProtection}
-              />
-            </SeccionDesplegable>
-
-            {/* SECCIÓN 3: DISPOSITIVOS PROTEGIDOS */}
+            {/* SECCIÓN 2: DISPOSITIVOS PROTEGIDOS */}
             <SeccionDesplegable
               title="Dispositivos protegidos"
               subtitle="Estado y monitoreo de celulares vinculados"
@@ -545,34 +568,29 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               }}
             />
 
-            {/* Subsección: Permisos del Dispositivo */}
-            <SeccionDesplegable
-              title="Permisos de aplicación"
-              subtitle="Auditoría y re-autorización de permisos Android"
-              badgeLabel="CONFIGURAR"
-              badgeStatus="activo"
-              icon="🔒"
-              initialExpanded={false}
-            >
-              <TutorPermissionsSection
-                permissions={permissions}
-                onConfigurePermissions={() => setShowPermissionsModal(true)}
-              />
-            </SeccionDesplegable>
+            {/* Reglas de protección global (Bloqueo sitios LotBA, Alertas, Antidesinstalación, Autocontrol, Permisos) */}
+            <GlobalRulesSection
+              ruleAlerts={ruleAlerts}
+              ruleUninstallProtection={ruleUninstallProtection}
+              rulePermissions={rulePermissions}
+              selfControl={selfControl}
+              onToggleAlerts={setRuleAlerts}
+              onToggleUninstallProtection={setRuleUninstallProtection}
+              onTogglePermissions={(val) => {
+                setRulePermissions(val);
+                if (val) {
+                  setShowPermissionsModal(true);
+                }
+              }}
+              onStartSelfControlFlow={handleStartSelfControlFlow}
+              onDisableSelfControl={handleDisableSelfControl}
+              onOpenPermissions={() => setShowPermissionsModal(true)}
+            />
 
-            {/* 2. Ayuda (FAQ + Ver onboarding + Form para dudas y sugerencias con hasta 3 anexos para baprotegemas@gmail.com) */}
-            <SeccionDesplegable
-              title="Ayuda y soporte"
-              subtitle="Preguntas frecuentes, onboarding y contacto con baprotegemas@gmail.com"
-              badgeLabel="SOPORTE"
-              badgeStatus="activo"
-              icon="❓"
-              initialExpanded={false}
-            >
-              <HelpSection
-                onOpenOnboarding={() => setShowOnboardingFlow(true)}
-              />
-            </SeccionDesplegable>
+            {/* 2. Ayuda y soporte (Tutorial y Preguntas frecuentes) */}
+            <HelpSection
+              onOpenOnboarding={() => setShowOnboardingFlow(true)}
+            />
 
             {/* 3, 4 & 5. Información legal y valoración (Términos, Privacidad y Evaluar la app) */}
             <LegalSection />

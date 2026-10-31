@@ -6,26 +6,28 @@
 //              locales o variables de entorno (FCM / Notificaciones Push).
 // ==============================================================================
 
-import admin from 'firebase-admin';
+import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 const serviceAccountPath = join(process.cwd(), 'docs', 'firebase-service-account.json');
 
-if (!admin.apps.length) {
+let app: App | undefined;
+
+if (!getApps().length) {
   if (existsSync(serviceAccountPath)) {
     try {
       const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+      app = initializeApp({
+        credential: cert(serviceAccount),
       });
       console.log('🔥 Firebase Admin SDK inicializado correctamente desde credenciales locales.');
     } catch (error) {
       console.error('❌ Error al cargar credenciales locales de Firebase:', error);
     }
   } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
-    admin.initializeApp({
-      credential: admin.credential.cert({
+    app = initializeApp({
+      credential: cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
         privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
@@ -35,6 +37,8 @@ if (!admin.apps.length) {
   } else {
     console.warn('⚠️ Firebase Admin SDK: No se detectaron credenciales. Notificaciones push desactivadas.');
   }
+} else {
+  app = getApps()[0];
 }
 
-export default admin;
+export default app;

@@ -12,14 +12,12 @@ export const styles = StyleSheet.create({
   container: {
     paddingVertical: 4,
   },
-  searchAndSortRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  searchRow: {
+    width: '100%',
     marginBottom: 8,
   },
   searchContainer: {
-    flex: 1,
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -47,28 +45,6 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '600',
-  },
-  sortIconsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  sortIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sortIconBtnActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  sortIconEmoji: {
-    fontSize: 16,
   },
   // Compatibilidad hacia atrás
   searchInput: {
@@ -114,13 +90,30 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
+  sectionHeaderContainer: {
+    marginBottom: 6,
+    marginTop: 2,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.2,
+  },
+  protectedSectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
   countRow: {
     marginBottom: 8,
   },
   countText: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '500',
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
@@ -213,6 +206,25 @@ export const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  deviceFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  autoprotectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  autoprotectionLabel: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
   cadastralBox: {
     backgroundColor: '#F8F9FA',

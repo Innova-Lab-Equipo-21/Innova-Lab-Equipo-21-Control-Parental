@@ -9,6 +9,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authController } from '../controllers/auth.controller.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
+import { requireAuth } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -60,6 +61,16 @@ const loginSchema = z.object({
   }),
 });
 
+// Esquema de validación para autenticación con Google
+const googleAuthSchema = z.object({
+  body: z.object({
+    idToken: z.string().optional(),
+    email: z.string().email('Correo electrónico inválido'),
+    fullName: z.string().optional(),
+    photoUrl: z.string().optional(),
+  }),
+});
+
 // Esquema de validación para recuperar contraseña
 const recoverPasswordSchema = z.object({
   body: z.object({
@@ -85,6 +96,14 @@ router.post('/register', validateRequest(registerSchema), (req, res, next) =>
 
 router.post('/login', validateRequest(loginSchema), (req, res, next) =>
   authController.login(req, res, next),
+);
+
+router.post('/google', validateRequest(googleAuthSchema), (req, res, next) =>
+  authController.googleLogin(req, res, next),
+);
+
+router.post('/google/link', requireAuth, validateRequest(googleAuthSchema), (req, res, next) =>
+  authController.googleLink(req, res, next),
 );
 
 router.post('/recover-password', validateRequest(recoverPasswordSchema), (req, res, next) =>

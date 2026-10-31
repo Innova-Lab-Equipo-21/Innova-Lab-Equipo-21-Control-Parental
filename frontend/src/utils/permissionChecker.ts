@@ -45,14 +45,25 @@ const safeStorage = {
       memoryStorage.set(key, value);
     }
   },
+  async removeItem(key: string): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch {
+      memoryStorage.delete(key);
+    }
+  },
 };
 
 const PERMISSIONS_STORAGE_KEY = '@ba_protege_self_permissions';
+// Limpieza de clave global heredada para garantizar que cuentas nuevas comiencen deshabilitadas
+safeStorage.removeItem(PERMISSIONS_STORAGE_KEY).catch(() => {});
 
 /**
  * Consulta y audita el estado real de los 6 permisos en el dispositivo actual.
+ * Cada usuario responsable mantiene su propio registro de permisos para evitar
+ * heredar estados de cuentas anteriores en el mismo dispositivo.
  */
-export async function checkRealDevicePermissions(): Promise<DevicePermissionsStatus> {
+export async function checkRealDevicePermissions(userId?: string): Promise<DevicePermissionsStatus> {
   let vpn = false;
   let accessibility = false;
   let notifications = false;
@@ -60,9 +71,11 @@ export async function checkRealDevicePermissions(): Promise<DevicePermissionsSta
   let location = false;
   let usageStats = false;
 
-  // 1. Cargar estado persistido previamente desde el flujo de configuración de permisos
+  const storageKey = userId ? `@ba_protege_permissions_${userId}` : PERMISSIONS_STORAGE_KEY;
+
+  // 1. Cargar estado persistido para este usuario específico
   try {
-    const raw = await safeStorage.getItem(PERMISSIONS_STORAGE_KEY);
+    const raw = await safeStorage.getItem(storageKey);
     if (raw) {
       const parsed = JSON.parse(raw);
       vpn = !!parsed.vpn;
@@ -127,12 +140,13 @@ export async function checkRealDevicePermissions(): Promise<DevicePermissionsSta
 }
 
 /**
- * Persiste el estado de permisos concedidos localmente en el dispositivo.
+ * Persiste el estado de permisos concedidos localmente en el dispositivo para un usuario.
  */
 export async function saveDevicePermissions(
-  perms: Partial<DevicePermissionsStatus>
+  perms: Partial<DevicePermissionsStatus>,
+  userId?: string
 ): Promise<DevicePermissionsStatus> {
-  const current = await checkRealDevicePermissions();
+  const current = await checkRealDevicePermissions(userId);
   const updated: DevicePermissionsStatus = {
     ...current,
     ...perms,
@@ -147,6 +161,15 @@ export async function saveDevicePermissions(
   ];
   updated.grantedCount = list.filter(Boolean).length;
 
-  await safeStorage.setItem(PERMISSIONS_STORAGE_KEY, JSON.stringify(updated));
+  const storageKey = userId ? `@ba_protege_permissions_${userId}` : PERMISSIONS_STORAGE_KEY;
+  await safeStorage.setItem(storageKey, JSON.stringify(updated));
   return updated;
+}
+
+/**
+ * Reinicia los permisos almacenados para un usuario o dispositivo.
+ */
+export async function resetDevicePermissions(userId?: string): Promise<void> {
+  const storageKey = userId ? `@ba_protege_permissions_${userId}` : PERMISSIONS_STORAGE_KEY;
+  await safeStorage.setItem(storageKey, '');
 }

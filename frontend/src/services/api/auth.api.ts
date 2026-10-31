@@ -22,6 +22,13 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface GoogleAuthPayload {
+  idToken?: string;
+  email: string;
+  fullName?: string;
+  photoUrl?: string;
+}
+
 export const authApi = {
   async register(data: RegisterPayload) {
     const response = await apiClient.post('/auth/register', data);
@@ -39,6 +46,19 @@ export const authApi = {
     return response.data;
   },
 
+  async googleAuth(data: GoogleAuthPayload) {
+    const response = await apiClient.post('/auth/google', data);
+    if (response.data.data?.token) {
+      await safeStorage.setItem('@ba_protege_jwt_token', response.data.data.token);
+    }
+    return response.data;
+  },
+
+  async googleLink(data: GoogleAuthPayload) {
+    const response = await apiClient.post('/auth/google/link', data);
+    return response.data;
+  },
+
   async recoverPassword(email: string) {
     const response = await apiClient.post('/auth/recover-password', { email });
     return response.data;
@@ -46,5 +66,14 @@ export const authApi = {
 
   async logout() {
     await safeStorage.removeItem('@ba_protege_jwt_token');
+  },
+
+  async registerFcmToken(fcmToken: string) {
+    try {
+      const response = await apiClient.post('/auth/fcm-token', { fcmToken });
+      return response.data;
+    } catch (e) {
+      // Silencioso si falla
+    }
   },
 };

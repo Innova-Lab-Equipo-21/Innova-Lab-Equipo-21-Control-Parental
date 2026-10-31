@@ -1,9 +1,9 @@
-# BA Protege+ — Frontend Mobile & Simulador Web
+# BA Protege+ — Frontend Mobile Android
 
 <!--
 ==============================================================================
 Proyecto: BA Protege+
-Componente: Frontend Mobile & Web Simulator
+Componente: Frontend Mobile Android (React Native + Kotlin)
 Archivo: frontend/README.md
 Descripción: Documentación técnica completa, guía de instalación, Kit UI/UX,
              Flujo de 5 Pasos, Autenticación Modular, Modales Bottom Sheet Legales,
@@ -15,7 +15,7 @@ Descripción: Documentación técnica completa, guía de instalación, Kit UI/UX
 ==============================================================================
 -->
 
-Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **Kit UI/UX del Sistema de Diseño oficial**, **Flujo Ordenado de 5 Pasos**, pantalla de **Selección de Modo optimizada sin scroll**, arquitectura de **Autenticación Modular (`src/components/auth/`)** con **Modales Bottom Sheet Legales (`TermsModal` / `PrivacyModal`)** y selector de fecha (`DatePickerModal`), **Ingreso con Google e ícono oficial (`logo_google.png`)**, **Rediseño Completo de Permisos de Aplicación (`PermissionsScreen.tsx`)** con cabecera `#EAF3FF`, banner estilo *Card 1*, acordeón de 6 permisos del sistema Android y retorno deslogueado a `LoginForm`, **Estandarización del ícono `volver.png` en color negro**, **Navegación de 5 Pestañas con Resalte `#E5F1FF` y Nombres (`DashboardNavbar.tsx`)**, **Estructura Modular por Carpetas (`src/components/dashboard/`)**, **Búsqueda, Ordenamiento y Desvinculación de Dispositivos con Doble Confirmación**, **Optimización de Rendimiento con Caché en RAM (0ms)**, **Íconos e Isotipos Unificados (`logo_ba.png` / `logo_baprotege.png`)**, **Dashboards Especializados de 4 Módulos para Menor Protegido y Adulto en Tratamiento con Quiz Diario, Mascot Beti (`beti.png`) e Incentivo de Desconexión Outdoor**, **Botón Flotante (FAB `+`) con Bocadillo Tooltip Auto-Ocultable de 3 Segundos (`FabWithTooltip.tsx`)**, **Modal Bottom Sheet de Evaluación de la App (`RatingModal.tsx`)**, **Escudo Inteligente de Autocontrol del Responsable con inviolabilidad de bloqueos y cuenta regresiva de 24hs**, gestión de **hasta 5 dispositivos por responsable**, módulos nativos en **Kotlin 2.x** para filtrado local `VpnService`, **Capa de Servicios API Modularizada (`src/services/api/`)** y un **Simulador Web Interactivo con Vite**.
+Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **Kit UI/UX del Sistema de Diseño oficial**, **Flujo Ordenado de 5 Pasos**, pantalla de **Selección de Modo optimizada sin scroll**, arquitectura de **Autenticación Modular (`src/components/auth/`)** con **Modales Bottom Sheet Legales (`TermsModal` / `PrivacyModal`)** y selector de fecha (`DatePickerModal`), **Ingreso con Google e ícono oficial (`logo_google.png`)**, **Rediseño Completo de Permisos de Aplicación (`PermissionsScreen.tsx`)** con cabecera `#EAF3FF`, banner estilo *Card 1*, acordeón de 6 permisos del sistema Android y retorno deslogueado a `LoginForm`, **Estandarización del ícono `volver.png` en color negro**, **Navegación de 5 Pestañas con Resalte `#E5F1FF` y Nombres (`DashboardNavbar.tsx`)**, **Estructura Modular por Carpetas (`src/components/dashboard/`)**, **Búsqueda, Ordenamiento y Desvinculación de Dispositivos con Doble Confirmación**, **Optimización de Rendimiento con Caché en RAM (0ms)**, **Íconos e Isotipos Unificados (`logo_ba.png` / `logo_baprotege.png`)**, **Dashboards Especializados de 4 Módulos para Menor Protegido y Adulto en Tratamiento con Quiz Diario, Mascot Beti (`beti.png`) e Incentivo de Desconexión Outdoor**, **Botón Flotante (FAB `+`) con Bocadillo Tooltip Auto-Ocultable de 3 Segundos (`FabWithTooltip.tsx`)**, **Modal Bottom Sheet de Evaluación de la App (`RatingModal.tsx`)**, **Escudo Inteligente de Autocontrol del Responsable con inviolabilidad de bloqueos y cuenta regresiva de 24hs**, gestión de **hasta 5 dispositivos por responsable**, módulos nativos en **Kotlin 2.x** para filtrado local `VpnService`, **Capa de Servicios API Modularizada (`src/services/api/`)** y generación de APK para pruebas en celular físico o emulador.
 
 ---
 
@@ -33,7 +33,7 @@ Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **K
 10. [Isotipos Institucionales y Optimización de Rendimiento](#-isotipos-institucionales-y-optimización-de-rendimiento)
 11. [Dashboards Especializados de 4 Módulos para Menor y Adulto Protegido](#-dashboards-especializados-de-4-módulos-para-menor-y-adulto-protegido)
 12. [Estructura del Proyecto](#-estructura-del-proyecto)
-13. [Guía de Instalación y Pruebas Rápida](#-guía-de-instalación-y-pruebas-rápida)
+13. [Guía de Instalación y Pruebas con APK](#-guía-de-instalación-y-pruebas-con-apk)
 
 ---
 
@@ -41,7 +41,7 @@ Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **K
 
 - **Framework Móvil:** React Native 0.87 (TypeScript)
 - **Sistema de Diseño:** Kit UI/UX oficial (`src/theme/` y `src/components/`)
-- **Simulador Web:** Vite 8 + React 18 + TypeScript (puerto `5173`)
+- **Compilación Android:** Gradle + Android Studio (Emulador o Celular Físico)
 - **Capa Nativa Android:** Kotlin 2.x / Android SDK Platform 35/37 (Java 17)
 - **Motor de Filtrado:** `android.net.VpnService` local con caché offline
 - **Anti-Bypass & Resiliencia:** `BootReceiver` (`RECEIVE_BOOT_COMPLETED`) y validación de tiempo del servidor NTP (`getReliableTimestamp()`)
@@ -54,7 +54,7 @@ Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **K
 
 ## 🔄 Flujo Ordenado de 5 Pasos
 
-La aplicación se navega a través de un flujo estructurado de 5 fases principales (`App.tsx` y `WebSimulator.tsx`):
+La aplicación se navega a través de un flujo estructurado de 5 fases principales (`App.tsx`):
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
@@ -308,15 +308,12 @@ frontend/
 │   │   ├── authValidation.ts                 # Validadores de correo, contraseñas y campos de registro
 │   │   ├── deviceColors.ts                   # Asignación persistente de paleta de colores/avatares y URL regex
 │   │   └── permissionChecker.ts              # Auditoría y verificación de los 6 permisos Android en tiempo real
-│   ├── web/                                  # Simulador Web Interactivo (Vite 8 + React 18)
-│   │   ├── components/                       # Componentes espejo para simulación Web
-│   │   └── WebSimulator.tsx                  # Orquestador del Simulador Web
 ├── tests/                                    # Pruebas unitarias automatizadas (55 tests / 11 suites)
 ```
 
 ---
 
-## ⚡ Guía de Instalación y Pruebas Rápida
+## ⚡ Guía de Instalación y Pruebas con APK
 
 ### 1. Instalar dependencias
 ```bash
@@ -334,11 +331,22 @@ npm run lint
 npm test
 ```
 
-### 4. Iniciar el Simulador Web
+### 4. Generar el Bundle de React Native
 ```bash
-npm run dev
+npm run build:bundle
 ```
 
-### 5. Abrir en el navegador
-Ingresar a: **[http://localhost:5173/](http://localhost:5173/)**
+### 5. Compilar la APK Debug
+```bash
+npm run build:apk
+```
+*El archivo APK generado se ubicará en:*
+`android/app/build/outputs/apk/debug/app-debug.apk`
+
+### 6. Instalar y Ejecutar en Emulador o Celular Físico
+```bash
+npm run install:device
+# O alternativamente:
+npm run android
+```
 

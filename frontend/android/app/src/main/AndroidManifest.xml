@@ -36,6 +36,7 @@ Descripción: Manifiesto de Android con permisos de VpnService, arranque automá
         android:roundIcon="@drawable/logo_ba"
         android:allowBackup="false"
         android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true"
         android:supportsRtl="true">
 
         <!-- Actividad Principal (React Native) -->

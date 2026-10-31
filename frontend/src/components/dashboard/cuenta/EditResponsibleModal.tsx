@@ -42,14 +42,14 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const [nombre, setNombre] = useState('Tutor');
-  const [apellido, setApellido] = useState('Responsable');
-  const [fechaNacimiento, setFechaNacimiento] = useState('10/03/1985');
-  const [genero, setGenero] = useState<string>('Masculino');
-  const [telefono, setTelefono] = useState('11 5544-3322');
-  const [registerEmail, setRegisterEmail] = useState('tutor@baprotege.gob.ar');
-  const [registerPassword, setRegisterPassword] = useState('123456');
-  const [confirmPassword, setConfirmPassword] = useState('123456');
+  const [nombre, setNombre] = useState('');
+  const [apellido, setApellido] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [genero, setGenero] = useState<string>('No informado');
+  const [telefono, setTelefono] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -63,14 +63,14 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
   // Sincronizar datos al abrir el modal con el usuario actual
   useEffect(() => {
     if (visible && currentUser) {
-      setNombre(currentUser.firstName || currentUser.fullName?.split(' ')[0] || 'Tutor');
-      setApellido(currentUser.lastName || currentUser.fullName?.split(' ').slice(1).join(' ') || 'Responsable');
-      setFechaNacimiento(currentUser.birthDate || '10/03/1985');
-      setGenero(currentUser.gender || 'Masculino');
-      setTelefono(currentUser.phone || '11 5544-3322');
-      setRegisterEmail(currentUser.email || 'tutor@baprotege.gob.ar');
-      setRegisterPassword(currentUser.password || '123456');
-      setConfirmPassword(currentUser.password || '123456');
+      setNombre(currentUser.firstName || currentUser.fullName?.split(' ')[0] || '');
+      setApellido(currentUser.lastName || currentUser.fullName?.split(' ').slice(1).join(' ') || '');
+      setFechaNacimiento(currentUser.birthDate || '');
+      setGenero(currentUser.gender || 'No informado');
+      setTelefono(currentUser.phone || '');
+      setRegisterEmail(currentUser.email || '');
+      setRegisterPassword('');
+      setConfirmPassword('');
       setFieldErrors({});
     }
   }, [visible, currentUser]);
@@ -109,17 +109,24 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
   };
 
   const handleSave = () => {
+    const effectivePassword = registerPassword.trim() || (currentUser?.isGoogleLinked ? 'google-oauth-pwd' : currentUser?.password || 'default-pwd');
+    const effectiveConfirmPassword = confirmPassword.trim() || effectivePassword;
+
     const formData = {
       nombre,
       apellido,
       fechaNacimiento,
       telefono,
       registerEmail,
-      registerPassword,
-      confirmPassword,
+      registerPassword: effectivePassword,
+      confirmPassword: effectiveConfirmPassword,
     };
 
     const errors = validateRegisterFields(formData);
+    if (!registerPassword.trim()) {
+      delete errors.registerPassword;
+      delete errors.confirmPassword;
+    }
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -140,12 +147,12 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
       ...currentUser,
       firstName: nombre,
       lastName: apellido,
-      fullName: `${nombre} ${apellido}`,
+      fullName: `${nombre} ${apellido}`.trim() || currentUser?.fullName,
       birthDate: fechaNacimiento,
       gender: genero,
       phone: telefono,
       email: registerEmail,
-      password: registerPassword,
+      password: registerPassword || currentUser?.password,
     };
 
     onSave(updatedUser);
@@ -417,7 +424,7 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
             </View>
             <View style={{ flex: 1.5 }}>
               <ActionButton
-                title="Guardar cambios"
+                title="Guardar"
                 variant="primary"
                 onPress={handleSave}
               />
