@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { View, Text, Image, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { EditResponsibleModal } from './EditResponsibleModal';
+import { FeedbackModal } from '../../FeedbackModal';
 import { styles } from './ProfileSection.styles';
 import { signInWithGoogle, statusCodes } from '../../../services/googleAuth.service';
 import { apiService } from '../../../services/api.service';
@@ -27,6 +28,23 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
   const [isEditing, setIsEditing] = useState(false);
   const [linkingLoading, setLinkingLoading] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const showFeedback = (config: { icon?: string; title: string; message: string }) => {
+    setFeedbackModal({
+      visible: true,
+      ...config,
+    });
+  };
 
   // Datos reales del usuario (sin valores hardcodeados / mocados)
   const nombre = currentUser?.firstName || currentUser?.fullName?.split(' ')[0] || '';
@@ -157,11 +175,26 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         currentUser={currentUser}
         onClose={() => setIsEditing(false)}
         onSave={(updated) => {
+          setIsEditing(false);
           if (onUpdateUser) {
             onUpdateUser(updated);
           }
-          Alert.alert('Perfil actualizado', 'Los datos del responsable han sido actualizados exitosamente.');
+          showFeedback({
+            icon: '✅',
+            title: 'Perfil actualizado',
+            message: 'Los datos del responsable han sido actualizados exitosamente.',
+          });
         }}
+      />
+
+      {/* Modal Estándar de Retroalimentación del App */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        buttonText="Entendido"
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </View>
   );

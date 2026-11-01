@@ -1,32 +1,35 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: EditAppModal (Modal para Editar Aplicación Bloqueada)
+// Componente: EditAppModal (Modal para Editar Aplicación Bloqueada con Límite Diario por Dispositivo)
 // Archivo: src/components/dashboard/sitios/EditAppModal.tsx
+// Descripción: Modal de edición de aplicación bloqueada:
+//              - Nombre de la aplicación fijo (no editable).
+//              - Límite de tiempo diario configurado individualmente por dispositivo.
+//              - Mismo diseño y funcionalidades que Bloquear aplicación (AddAppModal).
 // ==============================================================================
 
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, Image, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
 import { CustomBlockedApp, DeviceInfo } from '../../../types';
 import { getDeviceHighlight } from '../../../utils/deviceColors';
-import { styles } from './CustomSitesSection.styles';
+import { styles } from './EditAppModal.styles';
 
 interface EditAppModalProps {
   editingApp: CustomBlockedApp | null;
   onClose: () => void;
   appName: string;
-  onAppNameChange: (text: string) => void;
-  category: string;
-  onCategoryChange: (cat: string) => void;
+  category?: string;
+  onCategoryChange?: (cat: string) => void;
   applyToAll: boolean;
   onApplyToAllChange: (val: boolean) => void;
   deviceIds: string[];
   devices: DeviceInfo[];
   onToggleDevice: (deviceId: string) => void;
-  dailyLimitMinutes?: number;
-  onDailyLimitChange: (mins?: number) => void;
+  deviceLimits?: Record<string, number | undefined>;
+  onDeviceLimitChange?: (deviceId: string, mins?: number) => void;
   loading: boolean;
   onSave: () => void;
 }
@@ -35,55 +38,300 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
   editingApp,
   onClose,
   appName,
-  onAppNameChange,
-  category,
-  onCategoryChange,
   applyToAll,
   onApplyToAllChange,
   deviceIds,
   devices,
   onToggleDevice,
-  dailyLimitMinutes,
-  onDailyLimitChange,
+  deviceLimits = {},
+  onDeviceLimitChange,
   loading,
   onSave,
 }) => {
-  const [isCustom, setIsCustom] = React.useState(false);
-  const [customText, setCustomText] = React.useState('');
+  const [customMode, setCustomMode] = useState<Record<string, boolean>>({});
+  const [customInput, setCustomInput] = useState<Record<string, string>>({});
 
-  React.useEffect(() => {
+  // Sincronizar estado personalizado al abrir o cambiar la aplicación
+  useEffect(() => {
     if (editingApp) {
-      if (dailyLimitMinutes !== undefined && ![30, 60, 120, 300].includes(dailyLimitMinutes)) {
-        setIsCustom(true);
-        setCustomText(String(dailyLimitMinutes));
-      } else {
-        setIsCustom(false);
-        setCustomText('');
-      }
-    }
-  }, [editingApp, dailyLimitMinutes]);
+      const initialCustomMode: Record<string, boolean> = {};
+      const initialCustomInput: Record<string, string> = {};
 
-  const handleSelectPreset = (mins?: number) => {
-    setIsCustom(false);
-    onDailyLimitChange(mins);
+      Object.entries(deviceLimits).forEach(([deviceId, mins]) => {
+        if (mins !== undefined && ![30, 60, 120, 300].includes(mins)) {
+          initialCustomMode[deviceId] = true;
+          initialCustomInput[deviceId] = String(mins);
+        }
+      });
+
+      setCustomMode(initialCustomMode);
+      setCustomInput(initialCustomInput);
+    } else {
+      setCustomMode({});
+      setCustomInput({});
+    }
+  }, [editingApp, visibleStateKey(deviceLimits)]);
+
+  // Helper para detectar cambios en deviceLimits
+  function visibleStateKey(limits: Record<string, number | undefined>): string {
+    return Object.entries(limits)
+      .map(([k, v]) => `${k}:${v}`)
+      .join('|');
+  }
+
+  // Formateador de etiqueta para el límite de tiempo
+  const formatLimitBadge = (mins?: number) => {
+    if (mins === undefined) return 'Bloqueo total';
+    if (mins === 30) return '30 min';
+    if (mins === 60) return '1 hora';
+    if (mins === 120) return '2 horas';
+    if (mins === 300) return '5 horas';
+    return `${mins} min`;
   };
 
-  const handleActivateCustom = () => {
-    setIsCustom(true);
-    if (dailyLimitMinutes && ![30, 60, 120, 300].includes(dailyLimitMinutes)) {
-      setCustomText(String(dailyLimitMinutes));
+  const handleSelectPreset = (deviceId: string, mins?: number) => {
+    setCustomMode((prev) => ({ ...prev, [deviceId]: false }));
+    onDeviceLimitChange?.(deviceId, mins);
+  };
+
+  const handleActivateCustom = (deviceId: string) => {
+    setCustomMode((prev) => ({ ...prev, [deviceId]: true }));
+    const current = deviceLimits[deviceId];
+    if (current && ![30, 60, 120, 300].includes(current)) {
+      setCustomInput((prev) => ({ ...prev, [deviceId]: String(current) }));
+    } else {
+      setCustomInput((prev) => ({ ...prev, [deviceId]: '' }));
     }
   };
 
-  const handleCustomTextChange = (text: string) => {
+  const handleCustomInputChange = (deviceId: string, text: string) => {
     const cleaned = text.replace(/[^0-9]/g, '');
-    setCustomText(cleaned);
+    setCustomInput((prev) => ({ ...prev, [deviceId]: cleaned }));
     if (cleaned.length > 0) {
       const parsed = parseInt(cleaned, 10);
-      onDailyLimitChange(parsed > 0 ? parsed : undefined);
+      onDeviceLimitChange?.(deviceId, parsed > 0 ? parsed : undefined);
     } else {
-      onDailyLimitChange(undefined);
+      onDeviceLimitChange?.(deviceId, undefined);
     }
+  };
+
+  const renderDeviceCard = (
+    deviceId: string,
+    name: string,
+    highlight: { color: string; bgColor: string; borderColor: string; icon: string; badgeLabel: string }
+  ) => {
+    const isSelected = deviceIds.includes(deviceId);
+    const currentLimit = deviceLimits[deviceId];
+    const isCustom =
+      customMode[deviceId] ||
+      (currentLimit !== undefined && ![30, 60, 120, 300].includes(currentLimit));
+
+    return (
+      <View
+        key={deviceId}
+        style={[
+          styles.deviceCardContainer,
+          {
+            borderLeftWidth: 4,
+            borderLeftColor: highlight.color,
+            backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
+          },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.deviceRowHeader}
+          onPress={() => onToggleDevice(deviceId)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.deviceLeftCol}>
+            <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
+              <Text style={styles.deviceIconText}>{highlight.icon}</Text>
+            </View>
+            <View style={styles.deviceTextCol}>
+              <Text style={styles.deviceName}>{name}</Text>
+            </View>
+          </View>
+          <ToggleSwitch
+            value={isSelected}
+            onValueChange={() => onToggleDevice(deviceId)}
+          />
+        </TouchableOpacity>
+
+        {/* Límite de tiempo diario individual si el dispositivo está seleccionado */}
+        {isSelected && (
+          <View style={styles.deviceTimeLimitContainer}>
+            <View style={styles.deviceTimeLimitHeader}>
+              <Text style={styles.deviceTimeLimitLabel}>Límite de tiempo diario:</Text>
+              <Text style={styles.deviceTimeLimitBadgeText}>
+                {formatLimitBadge(currentLimit)}
+              </Text>
+            </View>
+
+            <View style={styles.quickAppChipContainer}>
+              {/* Bloqueo total */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  currentLimit === undefined && !isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleSelectPreset(deviceId, undefined)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    currentLimit === undefined && !isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  Bloqueo total
+                </Text>
+              </TouchableOpacity>
+
+              {/* 30 min */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  currentLimit === 30 && !isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleSelectPreset(deviceId, 30)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    currentLimit === 30 && !isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  30 min
+                </Text>
+              </TouchableOpacity>
+
+              {/* 1 hora */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  currentLimit === 60 && !isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleSelectPreset(deviceId, 60)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    currentLimit === 60 && !isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  1 hora
+                </Text>
+              </TouchableOpacity>
+
+              {/* 2 horas */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  currentLimit === 120 && !isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleSelectPreset(deviceId, 120)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    currentLimit === 120 && !isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  2 horas
+                </Text>
+              </TouchableOpacity>
+
+              {/* 5 horas */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  currentLimit === 300 && !isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleSelectPreset(deviceId, 300)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    currentLimit === 300 && !isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  5 horas
+                </Text>
+              </TouchableOpacity>
+
+              {/* Otro */}
+              <TouchableOpacity
+                style={[
+                  styles.quickAppChip,
+                  isCustom && {
+                    backgroundColor: '#E7F1FF',
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => handleActivateCustom(deviceId)}
+              >
+                <Text
+                  style={[
+                    styles.quickAppChipText,
+                    isCustom && {
+                      color: colors.primary,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  Otro
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Input de minutos si Personalizado está activo */}
+            {isCustom && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                <TextInput
+                  style={styles.customMinutesInput}
+                  placeholder="ej: 45"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                  value={customInput[deviceId] ?? (currentLimit ? String(currentLimit) : '')}
+                  selectTextOnFocus={true}
+                  onChangeText={(text) => handleCustomInputChange(deviceId, text)}
+                />
+                <Text style={{ fontSize: 12, color: colors.textSecondary }}>minutos por día</Text>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    );
   };
 
   return (
@@ -112,7 +360,7 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Modificá los detalles, tiempo de uso y dispositivos asignados.
+            Modificá los dispositivos asignados y definí opcionalmente su límite de tiempo diario para cada dispositivo.
           </Text>
 
           <ScrollView
@@ -121,274 +369,57 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 16 }}
           >
-
+            {/* Nombre de la aplicación (No editable) */}
             <Text style={styles.inputLabel}>Nombre de la aplicación:</Text>
             <TextInput
-              style={styles.formInput}
+              style={[
+                styles.formInput,
+                {
+                  backgroundColor: '#F0F2F5',
+                  color: colors.textPrimary,
+                  borderColor: colors.border,
+                },
+              ]}
               value={appName}
-              selectTextOnFocus={true}
-              onChangeText={onAppNameChange}
-              placeholder="ejemplo: Bet365, TikTok"
-              placeholderTextColor={colors.textSecondary}
+              editable={false}
+              selectTextOnFocus={false}
             />
 
-            {/* Límite de tiempo diario */}
-            <Text style={styles.inputLabel}>Límite de tiempo diario:</Text>
-            <View style={styles.quickAppChipContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.quickAppChip,
-                  dailyLimitMinutes === undefined && !isCustom && {
-                    backgroundColor: '#E7F1FF',
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={() => handleSelectPreset(undefined)}
-              >
-                <Text
-                  style={[
-                    styles.quickAppChipText,
-                    dailyLimitMinutes === undefined && !isCustom && {
-                      color: colors.primary,
-                      fontWeight: 'bold',
-                    },
-                  ]}
-                >
-                  Bloqueo total
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.quickAppChip,
-                  dailyLimitMinutes === 30 && !isCustom && {
-                    backgroundColor: '#E7F1FF',
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={() => handleSelectPreset(30)}
-              >
-                <Text
-                  style={[
-                    styles.quickAppChipText,
-                    dailyLimitMinutes === 30 && !isCustom && {
-                      color: colors.primary,
-                      fontWeight: 'bold',
-                    },
-                  ]}
-                >
-                  30 min
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.quickAppChip,
-                  dailyLimitMinutes === 60 && !isCustom && {
-                    backgroundColor: '#E7F1FF',
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={() => handleSelectPreset(60)}
-              >
-                <Text
-                  style={[
-                    styles.quickAppChipText,
-                    dailyLimitMinutes === 60 && !isCustom && {
-                      color: colors.primary,
-                      fontWeight: 'bold',
-                    },
-                  ]}
-                >
-                  1 hora
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.quickAppChip,
-                  dailyLimitMinutes === 120 && !isCustom && {
-                    backgroundColor: '#E7F1FF',
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={() => handleSelectPreset(120)}
-              >
-                <Text
-                  style={[
-                    styles.quickAppChipText,
-                    dailyLimitMinutes === 120 && !isCustom && {
-                      color: colors.primary,
-                      fontWeight: 'bold',
-                    },
-                  ]}
-                >
-                  2 horas
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.quickAppChip,
-                  dailyLimitMinutes === 300 && !isCustom && {
-                    backgroundColor: '#E7F1FF',
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={() => handleSelectPreset(300)}
-              >
-                <Text
-                  style={[
-                    styles.quickAppChipText,
-                    dailyLimitMinutes === 300 && !isCustom && {
-                      color: colors.primary,
-                      fontWeight: 'bold',
-                    },
-                  ]}
-                >
-                  5 horas
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.quickAppChip,
-                  isCustom && {
-                    backgroundColor: '#E7F1FF',
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={handleActivateCustom}
-              >
-                <Text
-                  style={[
-                    styles.quickAppChipText,
-                    isCustom && {
-                      color: colors.primary,
-                      fontWeight: 'bold',
-                    },
-                  ]}
-                >
-                  Otro
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {isCustom && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 8 }}>
-                <TextInput
-                  style={styles.customMinutesInput}
-                  placeholder="ej: 45"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                  value={customText}
-                  selectTextOnFocus={true}
-                  onChangeText={handleCustomTextChange}
+            <View style={styles.deviceSelectionContainer}>
+              <View style={styles.applyToAllRow}>
+                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (regla global)</Text>
+                <ToggleSwitch
+                  value={applyToAll}
+                  onValueChange={onApplyToAllChange}
                 />
-                <Text style={{ fontSize: 12, color: colors.textSecondary }}>minutos diarios</Text>
               </View>
-            )}
 
-          {(() => {
-            const hasInput = appName.trim().length > 0;
-            return (
-              <View
-                style={[
-                  styles.deviceSelectionContainer,
-                  !hasInput && styles.deviceSelectionContainerDisabled,
-                ]}
-                pointerEvents={hasInput ? 'auto' : 'none'}
-              >
-                {!hasInput && (
-                  <Text style={styles.deviceSelectionDisabledHint}>
-                    Ingresá primero el nombre de la aplicación para seleccionar los dispositivos.
-                  </Text>
-                )}
+              {/* Listado de dispositivos con configuración de tiempo por dispositivo */}
+              <View style={styles.deviceListContainer}>
+                <Text style={styles.deviceListTitle}>Seleccioná los dispositivos:</Text>
 
-                <View style={styles.applyToAllRow}>
-                  <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (Regla global)</Text>
-                  <ToggleSwitch
-                    value={applyToAll}
-                    onValueChange={hasInput ? onApplyToAllChange : () => {}}
-                    disabled={!hasInput}
-                  />
-                </View>
+                {/* Mi dispositivo (Responsable) */}
+                {renderDeviceCard('self', 'Mi dispositivo', getDeviceHighlight('self'))}
 
-                {/* Listado siempre visible de dispositivos registrados */}
-                <View style={styles.deviceListContainer}>
-                  <Text style={styles.deviceListTitle}>Selecciona los dispositivos:</Text>
-
-                  {/* Mi dispositivo (Responsable) */}
-                  {(() => {
-                    const selfHighlight = getDeviceHighlight('self');
-                    return (
-                      <TouchableOpacity
-                        style={[
-                          styles.deviceRow,
-                          {
-                            borderLeftWidth: 4,
-                            borderLeftColor: selfHighlight.color,
-                            backgroundColor: deviceIds.includes('self') ? selfHighlight.bgColor : '#FFFFFF',
-                          },
-                        ]}
-                        onPress={hasInput ? () => onToggleDevice('self') : undefined}
-                        activeOpacity={0.7}
-                        disabled={!hasInput}
-                      >
-                        <View style={styles.deviceLeftCol}>
-                          <View style={[styles.deviceIconBox, { backgroundColor: selfHighlight.bgColor }]}>
-                            <Text style={styles.deviceIconText}>{selfHighlight.icon}</Text>
-                          </View>
-                          <View style={styles.deviceTextCol}>
-                            <Text style={styles.deviceName}>Mi dispositivo</Text>
-                          </View>
-                        </View>
-                        <ToggleSwitch
-                          value={deviceIds.includes('self')}
-                          onValueChange={hasInput ? () => onToggleDevice('self') : () => {}}
-                          disabled={!hasInput}
-                        />
-                      </TouchableOpacity>
-                    );
-                  })()}
-
-                  {/* Dispositivos Protegidos */}
-                  {devices.map((device, idx) => {
-                    const highlight = getDeviceHighlight(device.deviceId, device.childName, device.deviceName, device.colorIndex ?? idx);
-                    const isSelected = deviceIds.includes(device.deviceId);
-
-                    return (
-                      <TouchableOpacity
-                        key={device.deviceId}
-                        style={[
-                          styles.deviceRow,
-                          {
-                            borderLeftWidth: 4,
-                            borderLeftColor: highlight.color,
-                            backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
-                          },
-                        ]}
-                        onPress={hasInput ? () => onToggleDevice(device.deviceId) : undefined}
-                        activeOpacity={0.7}
-                        disabled={!hasInput}
-                      >
-                        <View style={styles.deviceLeftCol}>
-                          <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
-                            <Text style={styles.deviceIconText}>{highlight.icon}</Text>
-                          </View>
-                          <View style={styles.deviceTextCol}>
-                            <Text style={styles.deviceName}>{device.deviceName}</Text>
-                          </View>
-                        </View>
-                        <ToggleSwitch
-                          value={isSelected}
-                          onValueChange={hasInput ? () => onToggleDevice(device.deviceId) : () => {}}
-                          disabled={!hasInput}
-                        />
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                {/* Dispositivos Protegidos */}
+                {devices.map((device, idx) => {
+                  const highlight = getDeviceHighlight(
+                    device.deviceId,
+                    device.childName,
+                    device.deviceName,
+                    device.colorIndex ?? idx
+                  );
+                  return renderDeviceCard(
+                    device.deviceId,
+                    device.deviceName,
+                    highlight
+                  );
+                })}
               </View>
-            );
-          })()}
+            </View>
           </ScrollView>
 
+          {/* Fila de CTAs con igual tamaño */}
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
             <View style={{ flex: 1 }}>
               <ActionButton

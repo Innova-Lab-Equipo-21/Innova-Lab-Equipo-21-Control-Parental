@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   Keyboard,
   TouchableWithoutFeedback,
+  Pressable,
   Alert,
 } from 'react-native';
 import { colors } from '../../../theme/colors';
@@ -24,6 +25,11 @@ import { DeviceCard } from './DeviceCard';
 import { EditResponsibleModal } from '../cuenta/EditResponsibleModal';
 import { EditProtectedDeviceModal } from './EditProtectedDeviceModal';
 import { UnbindConfirmationModal } from './UnbindConfirmationModal';
+import {
+  AutocontrolConfirmationModal,
+  AutocontrolModalMode,
+} from './AutocontrolConfirmationModal';
+import { FeedbackModal } from '../../FeedbackModal';
 import { styles } from './ProtectedDevicesSection.styles';
 
 interface ProtectedDevicesSectionProps {
@@ -32,6 +38,7 @@ interface ProtectedDevicesSectionProps {
   selfControl?: SelfControlState;
   currentUser?: any;
   onUpdateUser?: (updated: any) => void;
+  onUpdateSelfControl?: (sc: SelfControlState) => void;
   onStartSelfControlFlow?: () => void;
   onDisableSelfControl?: () => void;
   onUnbindDevice?: (deviceId: string) => void;
@@ -45,6 +52,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   selfControl: propSelfControl,
   currentUser,
   onUpdateUser,
+  onUpdateSelfControl,
   onStartSelfControlFlow,
   onDisableSelfControl,
   onUnbindDevice,
@@ -71,6 +79,25 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   const [isEditingSelf, setIsEditingSelf] = useState(false);
   const [editingProtectedDevice, setEditingProtectedDevice] = useState<DeviceInfo | null>(null);
   const [unbindingDevice, setUnbindingDevice] = useState<DeviceInfo | null>(null);
+
+  // Modal estándar de retroalimentación / éxito del app
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const showFeedback = (config: { icon?: string; title: string; message: string }) => {
+    setFeedbackModal({
+      visible: true,
+      ...config,
+    });
+  };
 
   // Cargar datos del dispositivo del responsable (se recarga ante cambios externos o actualización de lista)
   useEffect(() => {
@@ -99,42 +126,51 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
     remainingMinutes: 0,
   };
 
-  const handleSelfControlStart = () => {
-    if (onStartSelfControlFlow) {
-      onStartSelfControlFlow();
+  // Estados y manejadores de Modal de Autocontrol con doble confirmación
+  const [autocontrolModalVisible, setAutocontrolModalVisible] = useState(false);
+  const [autocontrolModalMode, setAutocontrolModalMode] = useState<AutocontrolModalMode | null>(null);
+
+  const handleOpenSelfControlModal = async () => {
+    let currentSc = resolvedSelfControl;
+    try {
+      currentSc = await apiService.getSelfControlStatus();
+      setLocalSelfControl(currentSc);
+      if (onUpdateSelfControl) {
+        onUpdateSelfControl(currentSc);
+      }
+    } catch {
+      // Usar estado en memoria como respaldo
+    }
+
+    if (!currentSc.active || currentSc.status === 'INACTIVE') {
+      // Estado inicial: Desactivado -> Doble confirmación para activar
+      setAutocontrolModalMode('ACTIVATE');
+      setAutocontrolModalVisible(true);
+    } else if (!currentSc.canDisable || currentSc.status === 'ACTIVE_LOCKED') {
+      // Activado: Durante las 24h, la desactivación NO está permitida -> Mostrar aviso
+      setAutocontrolModalMode('ACTIVE_LOCKED');
+      setAutocontrolModalVisible(true);
     } else {
-      apiService
-        .enableSelfControl()
-        .then((updated) => {
-          setLocalSelfControl(updated);
-          Alert.alert(
-            '🛡️ Autocontrol activado exitosamente',
-            'La protección de autocontrol está activa de forma permanente. Para desactivarla, deberás solicitar la espera de 24 horas.'
-          );
-        })
-        .catch((e: any) => {
-          Alert.alert('Error', e.message || 'No se pudo activar el autocontrol.');
-        });
+      // Activado: Tras 24h, la desactivación ESTÁ permitida -> Confirmar desactivación
+      setAutocontrolModalMode('DEACTIVATION_READY');
+      setAutocontrolModalVisible(true);
     }
   };
 
-  const handleSelfControlDisable = () => {
-    if (onDisableSelfControl) {
-      onDisableSelfControl();
-    } else {
-      apiService
-        .disableSelfControl()
-        .then((updated) => {
-          setLocalSelfControl(updated);
-          Alert.alert(
-            '🔓 Pase temporal de 24 horas iniciado',
-            'El sistema se ha desbloqueado temporalmente por 24 horas. Cumplido este plazo, se reactivará automáticamente.'
-          );
-        })
-        .catch((e: any) => {
-          Alert.alert('🔒 Desactivación en espera', e.message || 'La desactivación se habilitará en 24 horas.');
-        });
-    }
+  const handleActivateSelfControl = async () => {
+    const res = await apiService.enableSelfControl();
+    setLocalSelfControl(res);
+    if (onUpdateSelfControl) onUpdateSelfControl(res);
+    setAutocontrolModalVisible(false);
+    if (onRefreshList) onRefreshList();
+  };
+
+  const handleConfirmDeactivation = async () => {
+    const res = await apiService.disableSelfControl();
+    setLocalSelfControl(res);
+    if (onUpdateSelfControl) onUpdateSelfControl(res);
+    setAutocontrolModalVisible(false);
+    if (onRefreshList) onRefreshList();
   };
 
   // Filtrado de dispositivos protegidos por buscador
@@ -184,13 +220,13 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
       }
 
       const perms: DevicePermissionsStatus = updated.permissions || {
-        vpn: true,
-        accessibility: true,
-        notifications: true,
-        batteryOptimization: true,
-        location: true,
-        usageStats: true,
-        grantedCount: 6,
+        vpn: false,
+        accessibility: false,
+        notifications: false,
+        batteryOptimization: false,
+        location: false,
+        usageStats: false,
+        grantedCount: 0,
       };
       const missing: string[] = [];
       if (!perms.vpn) missing.push('Servicio VPN (filtrado LOTBA)');
@@ -233,9 +269,18 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
       if (onUpdateUser) {
         onUpdateUser(updatedUser);
       }
-      Alert.alert('Perfil actualizado', 'Los datos del responsable han sido actualizados exitosamente.');
+      setIsEditingSelf(false);
+      showFeedback({
+        icon: '✅',
+        title: 'Perfil actualizado',
+        message: 'Los datos del responsable han sido actualizados exitosamente.',
+      });
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudieron actualizar los datos del responsable.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error al actualizar',
+        message: e.message || 'No se pudieron actualizar los datos del responsable.',
+      });
     }
   };
 
@@ -251,8 +296,29 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
     password: '••••••••',
   };
 
+  // Cálculo preciso de totalizadores: Vinculados e Inactivos respetando singular y plural
+  const isDeviceActive = (d: DeviceInfo) =>
+    d.status === 'ACTIVE' ||
+    (d.status as any)?.effectiveStatus === 'ACTIVE' ||
+    (Boolean(d.isProtected) && d.status !== 'INACTIVE');
+
+  const countVinculados = devices.filter(isDeviceActive).length;
+  const countInactivos = devices.filter((d) => !isDeviceActive(d)).length;
+
+  const filteredVinculados = filteredDevices.filter(isDeviceActive).length;
+  const filteredInactivos = filteredDevices.filter((d) => !isDeviceActive(d)).length;
+
+  const formatPlural = (count: number, singular: string, plural: string) =>
+    `${count} ${count === 1 ? singular : plural}`;
+
+  const counterText =
+    searchTerm.trim().length > 0
+      ? `${formatPlural(filteredVinculados, 'vinculado', 'vinculados')} • ${formatPlural(filteredInactivos, 'inactivo', 'inactivos')}`
+      : `${formatPlural(countVinculados, 'vinculado', 'vinculados')} • ${formatPlural(countInactivos, 'inactivo', 'inactivos')}`;
+
   return (
-    <TouchableWithoutFeedback
+    <Pressable
+      style={{ flex: 1, minHeight: '100%' }}
       onPress={() => {
         if (isSearchActive || searchTerm.length > 0) {
           handleCloseSearch();
@@ -262,9 +328,16 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
       <View style={styles.container}>
         {/* SECCIÓN 1: MI DISPOSITIVO (RESPONSABLE) */}
         {selfDev && (
-          <View style={styles.sectionHeaderContainer}>
+          <Pressable
+            style={styles.sectionHeaderContainer}
+            onPress={() => {
+              if (isSearchActive || searchTerm.length > 0) {
+                handleCloseSearch();
+              }
+            }}
+          >
             <Text style={styles.sectionTitle}>Mi dispositivo</Text>
-          </View>
+          </Pressable>
         )}
 
         {selfDev && (
@@ -277,21 +350,25 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
             onAuditPermissions={handleAuditPermissions}
             isAuditing={auditingDeviceId === selfDev.deviceId}
             selfControl={resolvedSelfControl}
-            onStartSelfControlFlow={handleSelfControlStart}
-            onDisableSelfControl={handleSelfControlDisable}
+            onStartSelfControlFlow={handleOpenSelfControlModal}
+            onDisableSelfControl={handleOpenSelfControlModal}
+            onPressSelfControl={handleOpenSelfControlModal}
             onOpenPermissions={onOpenPermissions}
           />
         )}
 
         {/* SECCIÓN 2: DISPOSITIVOS PROTEGIDOS */}
-        <View style={styles.protectedSectionHeaderRow}>
+        <Pressable
+          style={styles.protectedSectionHeaderRow}
+          onPress={() => {
+            if (isSearchActive || searchTerm.length > 0) {
+              handleCloseSearch();
+            }
+          }}
+        >
           <Text style={styles.sectionTitle}>Dispositivos protegidos</Text>
-          <Text style={styles.countText}>
-            {searchTerm.trim().length > 0
-              ? `${filteredDevices.length} de ${devices.length} ${devices.length === 1 ? 'vinculado' : 'vinculados'}`
-              : `${devices.length} ${devices.length === 1 ? 'vinculado' : 'vinculados'}`}
-          </Text>
-        </View>
+          <Text style={styles.countText}>{counterText}</Text>
+        </Pressable>
 
         {/* Buscador de Dispositivos Protegidos a Ancho Completo */}
         <View style={styles.searchRow}>
@@ -334,11 +411,14 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
               </Text>
             </View>
           ) : (
-            <View style={styles.emptyCard}>
+            <Pressable
+              style={styles.emptyCard}
+              onPress={handleCloseSearch}
+            >
               <Text style={styles.emptyText}>
                 No se encontraron dispositivos que coincidan con la búsqueda.
               </Text>
-            </View>
+            </Pressable>
           )
         ) : (
           filteredDevices.map((dev, idx) => (
@@ -369,10 +449,17 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
           visible={!!editingProtectedDevice}
           device={editingProtectedDevice}
           onClose={() => setEditingProtectedDevice(null)}
-          onSaveSuccess={() => {
+          onSaveSuccess={(savedName) => {
+            const devName = savedName || editingProtectedDevice?.childName || 'este dispositivo';
+            setEditingProtectedDevice(null);
             if (onRefreshList) {
               onRefreshList();
             }
+            showFeedback({
+              icon: '✅',
+              title: 'Datos actualizados',
+              message: `Los datos del protegido "${devName}" fueron actualizados correctamente.`,
+            });
           }}
         />
 
@@ -382,15 +469,44 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
           device={unbindingDevice}
           onClose={() => setUnbindingDevice(null)}
           onSuccess={(deviceId) => {
+            const devName = unbindingDevice?.childName || unbindingDevice?.deviceName || 'este dispositivo';
+            setUnbindingDevice(null);
             if (onUnbindDevice) {
               onUnbindDevice(deviceId);
             }
             if (onRefreshList) {
               onRefreshList();
             }
+            showFeedback({
+              icon: '📱',
+              title: 'Dispositivo desvinculado',
+              message: `El celular de "${devName}" fue desvinculado correctamente.`,
+            });
           }}
         />
+
+        {/* Modal 4: Gestión y Doble Confirmación de Autocontrol */}
+        <AutocontrolConfirmationModal
+          visible={autocontrolModalVisible}
+          mode={autocontrolModalMode}
+          selfControl={resolvedSelfControl}
+          onClose={() => setAutocontrolModalVisible(false)}
+          onActivate={handleActivateSelfControl}
+          onRequestDeactivation={handleConfirmDeactivation}
+          onConfirmDeactivation={handleConfirmDeactivation}
+          onReactivate={handleActivateSelfControl}
+        />
+
+        {/* Modal Estándar de Retroalimentación del App */}
+        <FeedbackModal
+          visible={feedbackModal.visible}
+          icon={feedbackModal.icon}
+          title={feedbackModal.title}
+          message={feedbackModal.message}
+          buttonText="Entendido"
+          onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+        />
       </View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   );
 };

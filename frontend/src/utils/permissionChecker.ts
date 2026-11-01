@@ -98,9 +98,7 @@ export async function checkRealDevicePermissions(userId?: string): Promise<Devic
         const notifGranted = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
         );
-        if (notifGranted) {
-          notifications = true;
-        }
+        notifications = Boolean(notifGranted);
       }
 
       // Ubicación GPS / Geolocalización
@@ -111,17 +109,13 @@ export async function checkRealDevicePermissions(userId?: string): Promise<Devic
         const coarseLocationGranted = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION
         );
-        if (fineLocationGranted || coarseLocationGranted) {
-          location = true;
-        }
+        location = Boolean(fineLocationGranted || coarseLocationGranted);
       }
 
       // Servicio VPN: verificar si el túnel de protección está activo
       if (vpnServiceBridge && typeof vpnServiceBridge.isProtectionActive === 'function') {
         const isVpnRunning = await vpnServiceBridge.isProtectionActive();
-        if (isVpnRunning) {
-          vpn = true;
-        }
+        vpn = Boolean(isVpnRunning);
       }
     } catch (err) {
       console.warn('[permissionChecker] Error al consultar permisos nativos de Android:', err);

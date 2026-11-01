@@ -13,13 +13,13 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Platform,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ActionButton } from '../../ActionButton';
 import { Icon } from '../../Icon';
 import { DatePickerModal } from '../../auth/DatePickerModal';
+import { FeedbackModal } from '../../FeedbackModal';
 import { colors } from '../../../theme/colors';
 import {
   formatBirthDate,
@@ -57,6 +57,12 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  } | null>(null);
 
   const genderOptions = ['Masculino', 'Femenino', 'Otro', 'No informado'];
 
@@ -130,16 +136,23 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      Alert.alert('Datos incompletos o inválidos', 'Por favor revisa los campos marcados en rojo.');
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Datos incompletos o inválidos',
+        message: 'Por favor revisa los campos marcados en rojo.',
+      });
       return;
     }
 
     const age = calculateAge(fechaNacimiento);
     if (age !== null && age < 18) {
-      Alert.alert(
-        'Validación de edad',
-        'Solo personas adultas (+18) pueden registrarse en el modo responsable.'
-      );
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Validación de edad',
+        message: 'Solo personas adultas (+18) pueden registrarse en el modo responsable.',
+      });
       return;
     }
 
@@ -422,7 +435,7 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
                 onPress={onClose}
               />
             </View>
-            <View style={{ flex: 1.5 }}>
+            <View style={{ flex: 1 }}>
               <ActionButton
                 title="Guardar"
                 variant="primary"
@@ -443,6 +456,19 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
           if (fieldErrors.fechaNacimiento) setFieldErrors((p) => ({ ...p, fechaNacimiento: '' }));
         }}
       />
+
+      {/* Modal Estándar de Retroalimentación / Validación */}
+      {feedbackModal && (
+        <FeedbackModal
+          visible={feedbackModal.visible}
+          icon={feedbackModal.icon}
+          title={feedbackModal.title}
+          message={feedbackModal.message}
+          buttonText="Entendido"
+          asOverlay={true}
+          onClose={() => setFeedbackModal(null)}
+        />
+      )}
     </Modal>
   );
 };

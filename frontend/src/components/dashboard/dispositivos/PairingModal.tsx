@@ -3,9 +3,11 @@
 // Componente: PairingModal (Modal para Vinculación de Nuevo Dispositivo)
 // Archivo: src/components/dashboard/dispositivos/PairingModal.tsx
 // Descripción: Modal activado por el FAB + para registrar y vincular un nuevo dispositivo.
+//              Con rodapé que contiene los CTAs Cancelar y Guardar en la misma línea
+//              siguiendo el estándar visual oficial del app.
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,7 +16,8 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { PairingSection, PairingFormData } from './PairingSection';
+import { PairingSection, PairingFormData, PairingSectionRef } from './PairingSection';
+import { ActionButton } from '../../ActionButton';
 import { apiService } from '../../../services/api.service';
 import { MAX_PROTECTED_DEVICES } from '../../../types';
 import { styles } from './PairingModal.styles';
@@ -23,7 +26,7 @@ interface PairingModalProps {
   visible: boolean;
   deviceCount: number;
   onClose: () => void;
-  onDeviceAdded: () => void;
+  onDeviceAdded: (deviceName?: string) => void;
 }
 
 export const PairingModal: React.FC<PairingModalProps> = ({
@@ -34,7 +37,16 @@ export const PairingModal: React.FC<PairingModalProps> = ({
 }) => {
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [lastFormData, setLastFormData] = useState<PairingFormData | null>(null);
+  const pairingSectionRef = useRef<PairingSectionRef>(null);
+
+  const handleClose = () => {
+    setPairingCode(null);
+    setLastFormData(null);
+    pairingSectionRef.current?.reset();
+    onClose();
+  };
 
   const handleGenerateCode = async (data?: PairingFormData) => {
     if (data) {
@@ -45,42 +57,53 @@ export const PairingModal: React.FC<PairingModalProps> = ({
       const res = await apiService.generatePairingCode(data);
       const code = res.data?.code || res.data?.pairingCode || Math.floor(100000 + Math.random() * 900000).toString();
       setPairingCode(code);
-      onDeviceAdded();
     } catch (e: any) {
       const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
       setPairingCode(fallbackCode);
-      onDeviceAdded();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCompletePairing = async () => {
-    if (!lastFormData) {
-      Alert.alert('Atención', 'Primero genera el código de vinculación con los datos del protegido.');
+  const handleSave = async () => {
+    let dataToSave = lastFormData;
+    if (!dataToSave && pairingSectionRef.current) {
+      dataToSave = pairingSectionRef.current.getFormData();
+    }
+
+    if (!dataToSave) {
+      pairingSectionRef.current?.submit();
+      Alert.alert('Atención', 'Por favor completa todos los datos requeridos del protegido.');
       return;
     }
 
+    if (!pairingCode) {
+      const generatedData = pairingSectionRef.current?.submit();
+      if (generatedData) {
+        Alert.alert('Código generado', 'Se generó el código de vinculación. Puedes vincular el dispositivo y presionar Guardar.');
+      }
+      return;
+    }
+
+    setSaving(true);
     try {
       await apiService.addDevice({
-        childName: lastFormData.protectedName,
-        birthDate: lastFormData.birthDate,
-        profileType: lastFormData.protectedType,
-        gender: lastFormData.genero,
-        phone: lastFormData.protectedPhone,
-        deviceModel: lastFormData.deviceModel || 'Android',
+        childName: dataToSave.protectedName,
+        birthDate: dataToSave.birthDate,
+        profileType: dataToSave.protectedType,
+        gender: dataToSave.genero,
+        phone: dataToSave.protectedPhone,
+        deviceModel: dataToSave.deviceModel || 'Android',
+        status: 'INACTIVE',
+        isProtected: false,
       });
 
-      Alert.alert(
-        '✅ Dispositivo vinculado',
-        `El celular de ${lastFormData.protectedName} fue vinculado exitosamente.`
-      );
-      setPairingCode(null);
-      setLastFormData(null);
-      onDeviceAdded();
-      onClose();
+      handleClose();
+      onDeviceAdded(dataToSave.protectedName);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo vincular el dispositivo.');
+      Alert.alert('Error', e.message || 'No se pudo guardar el dispositivo.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -89,7 +112,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
       visible={visible}
       transparent={true}
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -99,14 +122,17 @@ export const PairingModal: React.FC<PairingModalProps> = ({
             <Text style={styles.modalTitle}>Vincular nuevo dispositivo</Text>
             <TouchableOpacity
               style={styles.closeBtn}
-              onPress={onClose}
+              onPress={handleClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.closeBtnText}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {deviceCount >= MAX_PROTECTED_DEVICES ? (
               <View style={styles.limitWarningCard}>
                 <Text style={styles.limitWarningText}>
@@ -114,28 +140,36 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                 </Text>
               </View>
             ) : (
-              <>
-                <PairingSection
-                  pairingCode={pairingCode}
-                  deviceCount={deviceCount}
-                  loading={loading}
-                  onGenerateCode={handleGenerateCode}
-                />
-
-                {pairingCode && lastFormData && (
-                  <TouchableOpacity
-                    style={styles.confirmPairingBtn}
-                    onPress={handleCompletePairing}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.confirmPairingBtnText}>
-                      ✓ Confirmar y activar dispositivo
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </>
+              <PairingSection
+                ref={pairingSectionRef}
+                pairingCode={pairingCode}
+                deviceCount={deviceCount}
+                loading={loading}
+                onGenerateCode={handleGenerateCode}
+              />
             )}
           </ScrollView>
+
+          {/* Rodapé con los CTAs Cancelar y Guardar en la misma línea (mismo tamaño, estilo oficial del app) */}
+          <View style={styles.buttonsRow}>
+            <View style={{ flex: 1 }}>
+              <ActionButton
+                title="Cancelar"
+                variant="secondary"
+                disabled={loading || saving}
+                onPress={handleClose}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <ActionButton
+                title="Guardar"
+                variant="primary"
+                loading={saving}
+                disabled={deviceCount >= MAX_PROTECTED_DEVICES}
+                onPress={handleSave}
+              />
+            </View>
+          </View>
         </View>
       </View>
     </Modal>

@@ -2,6 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: AppsTab (Sub-vista de Gestión de Apps Bloqueadas)
 // Archivo: src/components/dashboard/sitios/AppsTab.tsx
+// Descripción: Sub-pestaña interactiva de aplicaciones móviles bloqueadas con barra de búsqueda,
+//              acciones masivas, tarjetas individuales y controles de edición/pausa.
 // ==============================================================================
 
 import React from 'react';
@@ -11,7 +13,7 @@ import { ToggleSwitch } from '../../ToggleSwitch';
 import { Icon } from '../../Icon';
 import { colors } from '../../../theme/colors';
 import { CustomBlockedApp } from '../../../types';
-import { styles } from './CustomSitesSection.styles';
+import { styles } from './AppsTab.styles';
 
 interface AppsTabProps {
   appSearch: string;
@@ -174,11 +176,6 @@ export const AppsTab: React.FC<AppsTabProps> = ({
                     {app.applyToAll
                       ? 'Todos los dispositivos'
                       : `${app.deviceIds?.length || 0} ${app.deviceIds?.length === 1 ? 'dispositivo' : 'dispositivos'}`}
-                  </Text>
-                  <Text style={styles.usageLimitText} numberOfLines={1}>
-                    {app.dailyLimitMinutes
-                      ? `Límite diario: ${app.dailyLimitMinutes >= 60 ? `${app.dailyLimitMinutes / 60}h` : `${app.dailyLimitMinutes} min`}`
-                      : 'Bloqueo total'}
                   </Text>
                 </View>
 

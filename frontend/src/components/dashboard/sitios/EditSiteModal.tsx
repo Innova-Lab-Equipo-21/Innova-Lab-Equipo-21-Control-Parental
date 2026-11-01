@@ -2,6 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: EditSiteModal (Modal Bottom Sheet para Editar Sitio Web Bloqueado)
 // Archivo: src/components/dashboard/sitios/EditSiteModal.tsx
+// Descripción: Modal Bottom Sheet para modificar el dominio o asignación de dispositivos
+//              de un sitio web previamente restringido.
 // ==============================================================================
 
 import React from 'react';
@@ -11,7 +13,7 @@ import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
 import { CustomBlockedDomain, DeviceInfo } from '../../../types';
 import { getDeviceHighlight, isValidDomainOrUrl, cleanDomainInput } from '../../../utils/deviceColors';
-import { styles } from './CustomSitesSection.styles';
+import { styles } from './EditSiteModal.styles';
 
 interface EditSiteModalProps {
   editingSite: CustomBlockedDomain | null;

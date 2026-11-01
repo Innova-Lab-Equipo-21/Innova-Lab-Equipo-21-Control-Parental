@@ -2,16 +2,18 @@
 // Proyecto: BA Protege+
 // Componente: AddAppModal (Modal para Bloquear Nueva Aplicación con Dropdown de 15 Apps y Límite Diario por Dispositivo)
 // Archivo: src/components/dashboard/sitios/AddAppModal.tsx
+// Descripción: Modal Bottom Sheet para bloquear una aplicación con selector rápido de apps populares,
+//              asignación por dispositivo y configuración de límites diarios individuales.
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, Image, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
 import { DeviceInfo } from '../../../types';
 import { getDeviceHighlight } from '../../../utils/deviceColors';
-import { styles } from './CustomSitesSection.styles';
+import { styles } from './AddAppModal.styles';
 
 // Lista de las 15 aplicaciones más descargadas de la Play Store
 export const top15PlayStoreApps = [

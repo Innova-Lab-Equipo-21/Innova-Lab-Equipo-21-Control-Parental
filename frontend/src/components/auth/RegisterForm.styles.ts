@@ -308,7 +308,7 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   modalConfirmBtn: {
-    flex: 1.5,
+    flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
     backgroundColor: colors.primary,

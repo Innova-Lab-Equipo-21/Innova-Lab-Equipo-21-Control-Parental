@@ -2,6 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: AddSiteModal (Modal Bottom Sheet para Bloquear Nuevo Sitio Web)
 // Archivo: src/components/dashboard/sitios/AddSiteModal.tsx
+// Descripción: Modal Bottom Sheet para ingresar y bloquear un nuevo dominio web,
+//              con validación en tiempo real y asignación personalizada de dispositivos.
 // ==============================================================================
 
 import React from 'react';
@@ -11,7 +13,7 @@ import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
 import { DeviceInfo } from '../../../types';
 import { getDeviceHighlight, isValidDomainOrUrl, cleanDomainInput } from '../../../utils/deviceColors';
-import { styles } from './CustomSitesSection.styles';
+import { styles } from './AddSiteModal.styles';
 
 interface AddSiteModalProps {
   visible: boolean;

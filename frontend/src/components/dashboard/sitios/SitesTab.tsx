@@ -2,6 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: SitesTab (Sub-vista de Gestión de Sitios Web Bloqueados)
 // Archivo: src/components/dashboard/sitios/SitesTab.tsx
+// Descripción: Sub-pestaña interactiva de sitios web bloqueados con barra de búsqueda,
+//              acciones masivas, tarjetas individuales y controles de edición/pausa.
 // ==============================================================================
 
 import React from 'react';
@@ -11,7 +13,7 @@ import { ToggleSwitch } from '../../ToggleSwitch';
 import { Icon } from '../../Icon';
 import { colors } from '../../../theme/colors';
 import { CustomBlockedDomain } from '../../../types';
-import { styles } from './CustomSitesSection.styles';
+import { styles } from './SitesTab.styles';
 
 interface SitesTabProps {
   siteSearch: string;

@@ -2,7 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: DevicePermissionsModal Styles
 // Archivo: src/components/dashboard/dispositivos/DevicePermissionsModal.styles.ts
-// Descripción: Estilos visuales para el modal bottom sheet de permisos de dispositivo.
+// Descripción: Estilos visuales optimizados y compactos para el modal bottom sheet
+//              de permisos de dispositivo (sin necesidad de scroll vertical).
 // ==============================================================================
 
 import { StyleSheet, Platform } from 'react-native';
@@ -16,13 +17,13 @@ export const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    maxHeight: '86%',
+    maxHeight: '94%',
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 12,
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
@@ -30,31 +31,32 @@ export const styles = StyleSheet.create({
     elevation: 10,
   },
   bottomSheetHandle: {
-    width: 44,
-    height: 5,
-    borderRadius: 3,
+    width: 40,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#D1D5DB',
     alignSelf: 'center',
-    marginBottom: 14,
+    marginBottom: 8,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 6,
   },
   modalTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: colors.textPrimary,
   },
   modalSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.primary,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 1,
   },
   modalCloseBtn: {
-    padding: 6,
+    padding: 4,
   },
   modalCloseText: {
     fontSize: 18,
@@ -63,10 +65,10 @@ export const styles = StyleSheet.create({
   },
   summaryBox: {
     backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 12,
-    marginBottom: 10,
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
@@ -74,46 +76,47 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   summaryTitle: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '800',
     color: colors.textPrimary,
   },
   summaryDesc: {
-    fontSize: 11.5,
+    fontSize: 11,
     color: colors.textSecondary,
-    lineHeight: 16,
+    lineHeight: 14,
   },
   scrollBody: {
-    marginVertical: 4,
+    marginVertical: 2,
   },
   permCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 6,
     borderWidth: 1,
     borderColor: colors.borderLight,
     flexDirection: 'row',
     alignItems: 'center',
   },
   permCardPending: {
-    backgroundColor: '#FFFDF9',
-    borderColor: '#FED7AA',
+    backgroundColor: '#FAFAFA',
+    borderColor: '#E5E7EB',
   },
   permIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 8,
   },
   permIcon: {
-    fontSize: 18,
+    fontSize: 14,
   },
   permInfoCol: {
     flex: 1,
@@ -122,55 +125,46 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 2,
   },
   permName: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
     color: colors.textPrimary,
     flex: 1,
     paddingRight: 6,
   },
-  statusPill: {
+  badgeItem: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 6,
-  },
-  statusPillGreen: {
-    backgroundColor: '#E8F5E9',
-  },
-  statusPillOrange: {
-    backgroundColor: '#FFF3E0',
-  },
-  statusPillText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  statusPillTextGreen: {
-    color: '#2E7D32',
-  },
-  statusPillTextOrange: {
-    color: '#E65100',
+    borderRadius: 8,
   },
   permDesc: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: colors.textSecondary,
-    lineHeight: 15,
+    lineHeight: 13,
+    marginTop: 1,
   },
   protectedNoticeBox: {
     backgroundColor: '#E7F1FF',
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 8,
+    padding: 8,
     marginTop: 4,
     borderWidth: 1,
     borderColor: '#B6D4FE',
   },
   protectedNoticeText: {
-    fontSize: 11.5,
+    fontSize: 11,
     color: '#0A58CA',
-    lineHeight: 16,
+    lineHeight: 15,
   },
   footerActions: {
-    marginTop: 10,
+    marginTop: 8,
+  },
+  footerButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  footerBtnCol: {
+    flex: 1,
   },
 });

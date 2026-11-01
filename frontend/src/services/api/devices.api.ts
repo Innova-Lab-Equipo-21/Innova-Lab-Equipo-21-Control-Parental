@@ -27,45 +27,7 @@ export const devicesApi = {
       }
     }
 
-    // Al insertar un nuevo protegido antes de vincularse, registrarlo en la lista como Inactivo
-    if (data?.protectedName) {
-      const newDev: DeviceInfo = {
-        deviceId: `dev-${Date.now()}`,
-        deviceUuid: `uuid-unpaired-${Date.now()}`,
-        deviceName: data.protectedName,
-        childName: data.protectedName,
-        profileType: data.protectedType || 'Menor',
-        gender: data.genero || 'No informado',
-        birthDate: data.birthDate || '',
-        phone: data.protectedPhone || '',
-        deviceModel: data.deviceModel || 'Android',
-        status: 'INACTIVE',
-        isProtected: false,
-        blockedCount: 0,
-        blocklistVersion: 1,
-        createdAt: new Date().toISOString(),
-        permissions: {
-          vpn: false,
-          accessibility: false,
-          notifications: false,
-          batteryOptimization: false,
-          location: false,
-          usageStats: false,
-          grantedCount: 0,
-        },
-      };
-
-      try {
-        let existing: DeviceInfo[] = [];
-        const raw = await safeStorage.getItem('@ba_protege_devices_list');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) existing = parsed;
-        }
-        existing.push(newDev);
-        await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(existing));
-      } catch (e) {}
-    }
+    // No insertar dispositivo prematuramente aquí; el registro se persiste formalmente al presionar "Guardar"
 
     try {
       const response = await apiClient.post('/devices/pair/generate', data || {});
@@ -165,48 +127,44 @@ export const devicesApi = {
       }
     } catch (e) {}
 
-    // Combinar dispositivos del backend con dispositivos creados en el emulador (sin duplicados)
+    // Combinar dispositivos del backend con dispositivos creados en el emulador (sin duplicados por ID)
     const combinedMap = new Map<string, DeviceInfo>();
     backendDevices.forEach((d) => combinedMap.set(d.deviceId || d.deviceUuid, d));
     localDevices.forEach((d) => combinedMap.set(d.deviceId || d.deviceUuid, d));
 
     let finalDevices = Array.from(combinedMap.values());
 
-    // Dispositivo mock para pruebas solicitado por el usuario
-    const mockProtectedDevice: DeviceInfo = {
-      deviceId: 'dev-mock-1',
-      deviceUuid: 'uuid-samsung-mateo-a54',
-      deviceName: 'Mateo',
-      childName: 'Mateo',
-      isProtected: true,
-      status: 'ACTIVE',
-      lastHeartbeat: 'En línea',
-      blockedCount: 12,
-      blocklistVersion: 4,
-      phone: '11 4567-8901',
-      birthDate: '14/05/2012',
-      gender: 'Masculino',
-      profileType: 'Menor',
-      deviceModel: 'Samsung Galaxy A54 5G',
-      createdAt: '10/01/2024',
-      colorIndex: 0,
-      permissions: {
-        vpn: true,
-        accessibility: true,
-        notifications: true,
-        batteryOptimization: true,
-        location: true,
-        usageStats: true,
-        grantedCount: 6,
-      },
-    };
-
-    // Si no hay ningún dispositivo protegido registrado, incluir el mock de pruebas
-    const hasProtected = finalDevices.some((d) => d.deviceId !== 'self');
-    if (!hasProtected) {
-      finalDevices = [mockProtectedDevice];
-      await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(finalDevices));
-    }
+    // Deduplicar por nombre del protegido: conservar un único registro por protegido.
+    // Si existen duplicados y alguno está INACTIVE (no vinculado en el teléfono del protegido),
+    // reflejar fielmente el estado INACTIVE.
+    const nameMap = new Map<string, DeviceInfo>();
+    finalDevices.forEach((d) => {
+      const rawName = (d.childName || d.deviceName || '').trim().toLowerCase();
+      if (!rawName || d.deviceId === 'self') {
+        nameMap.set(d.deviceId || d.deviceUuid, d);
+        return;
+      }
+      if (!nameMap.has(rawName)) {
+        nameMap.set(rawName, d);
+      } else {
+        const existing = nameMap.get(rawName)!;
+        const keepInactive = existing.status === 'INACTIVE' || d.status === 'INACTIVE';
+        nameMap.set(rawName, {
+          ...existing,
+          ...d,
+          status: keepInactive ? 'INACTIVE' : (d.status || existing.status),
+          isProtected: keepInactive ? false : (d.isProtected ?? existing.isProtected),
+          lastHeartbeat: keepInactive ? 'Pendiente de vinculación' : (d.lastHeartbeat || existing.lastHeartbeat),
+        });
+      }
+    });
+    // Filtrar y eliminar definitivamente el dispositivo mock "Mateo" solicitado por el usuario
+    finalDevices = Array.from(nameMap.values()).filter(
+      (d) =>
+        d.deviceId !== 'dev-mock-1' &&
+        d.childName?.trim().toLowerCase() !== 'mateo' &&
+        d.deviceName?.trim().toLowerCase() !== 'mateo'
+    );
 
     // Garantizar que cada dispositivo conserve su colorIndex permanente
     let modified = false;
@@ -232,7 +190,7 @@ export const devicesApi = {
       }
     });
 
-    if (modified) {
+    if (modified || localDevices.length !== finalDevices.length) {
       await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(finalDevices));
     }
 
@@ -281,6 +239,32 @@ export const devicesApi = {
       );
     }
 
+    // Si ya existe un dispositivo con el mismo nombre o ID, actualizarlo en lugar de crear un duplicado
+    const targetName = (data.childName || data.deviceName || '').trim().toLowerCase();
+    const existingIndex = res.data.findIndex(
+      (d) =>
+        d.deviceId !== 'self' &&
+        targetName &&
+        (d.childName || d.deviceName || '').trim().toLowerCase() === targetName
+    );
+
+    if (existingIndex >= 0) {
+      const existing = res.data[existingIndex];
+      const updatedDevice: DeviceInfo = {
+        ...existing,
+        ...data,
+        deviceName: data.childName || data.deviceName || existing.deviceName,
+        childName: data.childName || existing.childName,
+        status: data.status || existing.status || 'INACTIVE',
+        isProtected: data.isProtected ?? existing.isProtected ?? false,
+        lastHeartbeat: data.lastHeartbeat || existing.lastHeartbeat || 'Pendiente de vinculación',
+      };
+      const updatedList = [...res.data];
+      updatedList[existingIndex] = updatedDevice;
+      await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updatedList));
+      return { success: true, data: updatedDevice };
+    }
+
     // Calcular el siguiente color de la paleta institucional (0..4) que no esté en uso
     const usedIndices = new Set(
       res.data
@@ -305,9 +289,9 @@ export const devicesApi = {
         data.deviceName ||
         `Protegido ${nextIndex + 1}`,
       childName: data.childName || `Protegido ${nextIndex + 1}`,
-      isProtected: true,
-      status: 'ACTIVE',
-      lastHeartbeat: 'Recién vinculado',
+      isProtected: data.isProtected ?? false,
+      status: data.status || 'INACTIVE',
+      lastHeartbeat: data.lastHeartbeat || 'Pendiente de vinculación',
       blockedCount: 0,
       blocklistVersion: 4,
       phone: data.phone || '',
@@ -317,14 +301,14 @@ export const devicesApi = {
       deviceModel: data.deviceModel || 'Android',
       createdAt: new Date().toLocaleDateString('es-AR'),
       colorIndex: typeof data.colorIndex === 'number' ? data.colorIndex : assignedColorIndex,
-      permissions: {
-        vpn: true,
-        accessibility: true,
-        notifications: true,
-        batteryOptimization: true,
-        location: true,
-        usageStats: true,
-        grantedCount: 6,
+      permissions: data.permissions || {
+        vpn: false,
+        accessibility: false,
+        notifications: false,
+        batteryOptimization: false,
+        location: false,
+        usageStats: false,
+        grantedCount: 0,
       },
     };
 

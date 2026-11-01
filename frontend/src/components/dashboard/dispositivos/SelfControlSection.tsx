@@ -2,6 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: SelfControlSection (Sección de Autocontrol del Responsable 24h)
 // Archivo: src/components/dashboard/dispositivos/SelfControlSection.tsx
+// Descripción: Tarjeta de estado y control del modo de autocontrol del responsable,
+//              con visualización del cronómetro de 24 horas y acciones de activación.
 // ==============================================================================
 
 import React from 'react';
@@ -28,66 +30,41 @@ export const SelfControlSection: React.FC<SelfControlSectionProps> = ({
         <Text style={styles.subtitleText}>Estado de autoprotección:</Text>
         <Badge
           status={
-            selfControl.status === 'TEMPORARILY_UNLOCKED'
+            selfControl.status === 'DEACTIVATION_READY'
               ? 'activo'
-              : selfControl.status === 'DEACTIVATION_READY'
-              ? 'activo'
-              : selfControl.status === 'DEACTIVATION_PENDING'
-              ? 'alerta'
               : selfControl.active
-              ? 'alerta'
+              ? 'activo'
               : 'inactivo'
           }
           label={
-            selfControl.status === 'TEMPORARILY_UNLOCKED'
-              ? 'PASE 24H ACTIVO'
-              : selfControl.status === 'DEACTIVATION_READY'
-              ? 'DESACTIVACIÓN LISTA'
-              : selfControl.status === 'DEACTIVATION_PENDING'
-              ? 'ESPERA 24H'
+            selfControl.status === 'DEACTIVATION_READY'
+              ? 'LISTO PARA DESACTIVAR'
               : selfControl.active
-              ? 'ACTIVA'
+              ? 'ACTIVO (24H)'
               : 'INACTIVO'
           }
         />
       </View>
 
       <Text style={styles.descText}>
-        {selfControl.status === 'TEMPORARILY_UNLOCKED'
-          ? `Autoprotección desbloqueada por pase temporal. Restan ${selfControl.remainingUnlockHours ?? selfControl.remainingHours}h ${(selfControl.remainingUnlockMinutes ?? selfControl.remainingMinutes).toString().padStart(2, '0')}m para el rebloqueo automático.`
-          : selfControl.status === 'DEACTIVATION_READY'
-          ? 'Pasaron las 24 horas requeridas. Presiona por segunda vez para desbloquear inmediatamente por 24 hs.'
-          : selfControl.status === 'DEACTIVATION_PENDING'
-          ? `Desactivación habilitada en 24hs. Tiempo de espera restante: ${selfControl.remainingWaitHours ?? selfControl.remainingHours}h ${(selfControl.remainingWaitMinutes ?? selfControl.remainingMinutes).toString().padStart(2, '0')}m.`
+        {selfControl.status === 'DEACTIVATION_READY'
+          ? 'Pasaron las 24 horas de protección obligatoria. Ya puedes desactivar el autocontrol si lo deseas.'
           : selfControl.active
-          ? 'Autoprotección activa. Al solicitar la desactivación se iniciará una espera obligatoria de 24 horas.'
-          : 'Al activar el autocontrol, se impedirá el acceso o eliminación de sitios y aplicaciones bloqueadas en este dispositivo. Una vez activo, solo podrá desactivarse tras 24 horas de espera obligatoria.'}
+          ? `Autocontrol activo. Restan ${selfControl.remainingHours}h ${selfControl.remainingMinutes.toString().padStart(2, '0')}m de protección obligatoria antes de poder desactivarlo.`
+          : 'Al activar el autocontrol, se impedirá deshabilitar, editar o eliminar sitios y aplicaciones bloqueadas en este dispositivo. Una vez activo, solo podrá desactivarse tras 24 horas de protección obligatoria.'}
       </Text>
 
-      {selfControl.status === 'TEMPORARILY_UNLOCKED' ? (
+      {selfControl.status === 'DEACTIVATION_READY' ? (
         <ActionButton
-          title="🔒 Volver a activar ahora"
-          variant="primary"
-          onPress={onStartSelfControlFlow}
-        />
-      ) : selfControl.status === 'DEACTIVATION_READY' ? (
-        <ActionButton
-          title="🔓 Confirmar desactivación (Desbloqueo inmediato)"
+          title="Desactivar autocontrol"
           variant="danger"
-          onPress={onDisableSelfControl}
-        />
-      ) : selfControl.status === 'DEACTIVATION_PENDING' ? (
-        <ActionButton
-          title={`🔒 Habilitado en ${selfControl.remainingWaitHours ?? selfControl.remainingHours}h ${(selfControl.remainingWaitMinutes ?? selfControl.remainingMinutes).toString().padStart(2, '0')}m`}
-          variant="secondary"
-          disabled
           onPress={onDisableSelfControl}
         />
       ) : selfControl.active ? (
         <ActionButton
-          title="Desactivar autoprotección"
-          variant="danger"
-          onPress={onDisableSelfControl}
+          title={`Habilitado en ${selfControl.remainingHours}h ${selfControl.remainingMinutes.toString().padStart(2, '0')}m`}
+          variant="secondary"
+          onPress={onStartSelfControlFlow}
         />
       ) : (
         <ActionButton

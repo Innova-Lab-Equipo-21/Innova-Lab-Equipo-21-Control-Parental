@@ -3,14 +3,16 @@
 // Componente: UnbindConfirmationModal (Modal de Doble Confirmación de Desvinculación)
 // Archivo: src/components/dashboard/dispositivos/UnbindConfirmationModal.tsx
 // Descripción: Modal de doble confirmación para desvincular un dispositivo protegido.
+//              Con CTAs en la misma fila y del mismo tamaño (1: Cancelar/Continuar,
+//              2: Volver/Desvincular), botón X de cierre y altura idéntica entre pasos.
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, Alert } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, Alert } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { DeviceInfo } from '../../../types';
 import { apiService } from '../../../services/api.service';
-import { styles } from './ProtectedDevicesSection.styles';
+import { styles } from './UnbindConfirmationModal.styles';
 
 interface UnbindConfirmationModalProps {
   visible: boolean;
@@ -34,6 +36,8 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
     }
   }, [visible]);
 
+  const targetName = device?.childName || device?.deviceName || 'este dispositivo';
+
   const handleFinalUnbind = async () => {
     if (!device) return;
 
@@ -41,10 +45,6 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
     try {
       await apiService.unbindDevice(device.deviceId);
 
-      Alert.alert(
-        '✅ Dispositivo Desvinculado',
-        `El dispositivo "${device.deviceName}" fue desvinculado correctamente.`
-      );
       onSuccess(device.deviceId);
       onClose();
     } catch (error: any) {
@@ -58,59 +58,86 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
     <Modal
       visible={visible && !!device}
       transparent={true}
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
+          {/* Botón X superior para cerrar modal */}
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={onClose}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Cerrar modal"
+          >
+            <Text style={styles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+
           {unbindStep === 1 ? (
             <View>
               <Text style={styles.modalEmoji}>🔗</Text>
               <Text style={styles.modalTitle}>
-                Confirmación 1 de 2: Desvincular Dispositivo
+                Confirmación 1 de 2: Desvincular
               </Text>
               <Text style={styles.modalBody}>
-                ¿Deseas desvincular el dispositivo "{device?.deviceName}" (Protegido: {device?.childName || 'Protegido'})?
+                ¿Deseas desvincular el celular de {targetName} de tu cuenta?
               </Text>
               <View style={styles.warningBox}>
                 <Text style={styles.warningBoxText}>
-                  ⚠️ IMPORTANTE: Al desvincular el dispositivo, el motor de protección de red local se desactivará en dicho celular y dejará de recibir bloqueos LOTBA.
+                  ⚠️ El motor de protección de red local se desactivará en dicho celular y dejará de recibir bloqueos LOTBA.
                 </Text>
               </View>
 
-              <ActionButton
-                title="Entiendo las consecuencias, Continuar ➔"
-                variant="primary"
-                onPress={() => setUnbindStep(2)}
-              />
-              <ActionButton
-                title="Cancelar"
-                variant="secondary"
-                onPress={onClose}
-              />
+              <View style={styles.buttonsRow}>
+                <View style={styles.buttonCol}>
+                  <ActionButton
+                    title="Cancelar"
+                    variant="secondary"
+                    onPress={onClose}
+                  />
+                </View>
+                <View style={styles.buttonCol}>
+                  <ActionButton
+                    title="Continuar"
+                    variant="primary"
+                    onPress={() => setUnbindStep(2)}
+                  />
+                </View>
+              </View>
             </View>
           ) : (
             <View>
               <Text style={styles.modalEmoji}>⚠️</Text>
               <Text style={styles.modalTitle}>
-                Confirmación 2 de 2: Confirmar Desvinculación
+                Confirmación 2 de 2: Desvincular
               </Text>
               <Text style={styles.modalBody}>
-                ¿Estás completamente seguro de eliminar permanentemente la vinculación de "{device?.deviceName}"?
+                ¿Confirmas eliminar permanentemente el celular de {targetName}?
               </Text>
+              <View style={styles.warningBox}>
+                <Text style={styles.warningBoxText}>
+                  ⚠️ Esta acción es permanente. Para supervisar este celular en el futuro, deberás vincularlo nuevamente.
+                </Text>
+              </View>
 
-              <ActionButton
-                title="Desvincular dispositivo"
-                variant="danger"
-                loading={loadingUnbind}
-                onPress={handleFinalUnbind}
-              />
-              <ActionButton
-                title="Volver Atrás"
-                variant="secondary"
-                disabled={loadingUnbind}
-                onPress={() => setUnbindStep(1)}
-              />
+              <View style={styles.buttonsRow}>
+                <View style={styles.buttonCol}>
+                  <ActionButton
+                    title="Volver"
+                    variant="secondary"
+                    disabled={loadingUnbind}
+                    onPress={() => setUnbindStep(1)}
+                  />
+                </View>
+                <View style={styles.buttonCol}>
+                  <ActionButton
+                    title="Desvincular"
+                    variant="danger"
+                    loading={loadingUnbind}
+                    onPress={handleFinalUnbind}
+                  />
+                </View>
+              </View>
             </View>
           )}
         </View>

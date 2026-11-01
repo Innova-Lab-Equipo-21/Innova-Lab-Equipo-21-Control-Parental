@@ -76,6 +76,7 @@ export const apiService = {
   confirmDeactivation: selfControlApi.confirmDeactivation.bind(selfControlApi),
   disableSelfControl: selfControlApi.disableSelfControl.bind(selfControlApi),
   getSelfControlStatus: selfControlApi.getSelfControlStatus.bind(selfControlApi),
+  resetSelfControl: selfControlApi.resetSelfControl.bind(selfControlApi),
 
   // --------------------------------------------------------------------------
   // Listas de Bloqueo y Sitios Personalizados (CRUD)

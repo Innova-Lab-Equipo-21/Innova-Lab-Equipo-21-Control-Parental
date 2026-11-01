@@ -117,6 +117,31 @@ describe('Gestión y Bloqueo de Aplicaciones (Modo Responsable)', () => {
     assert.ok(!listRes.data.apps?.some((a) => a.id === created.data.id));
   });
 
+  test('UPDATE: Debe permitir modificar los límites de tiempo diarios específicos por dispositivo', async () => {
+    const appName = `App Edit Limits ${Date.now()}`;
+    const created = await apiService.addCustomBlockedApp(
+      appName,
+      `com.editlimits.${Date.now()}`,
+      'Redes sociales',
+      false,
+      ['self', 'dev-1'],
+      undefined,
+      { self: undefined, 'dev-1': 30 }
+    );
+
+    // Modificar límites por dispositivo
+    const updated = await apiService.updateCustomBlockedApp(created.data.id, {
+      deviceLimits: {
+        self: 120, // Actualizado a 2 horas
+        'dev-1': undefined, // Actualizado a Bloqueo total
+      },
+    });
+
+    assert.equal(updated.success, true);
+    assert.equal(updated.data.deviceLimits?.['self'], 120);
+    assert.equal(updated.data.deviceLimits?.['dev-1'], undefined);
+  });
+
   test('USAGE STATS: Debe consultar las estadísticas de tiempo de uso de aplicaciones', async () => {
     const stats = await apiService.getAppUsageStats('dev-mateo-123');
     assert.ok(Array.isArray(stats));

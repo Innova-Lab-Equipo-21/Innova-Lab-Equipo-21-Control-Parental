@@ -2,29 +2,66 @@
 // Proyecto: BA Protege+
 // Componente: Autocontrol y Autoprotección del Tutor (SelfControl API)
 // Archivo: src/services/api/selfControl.api.ts
+// Descripción: Máquina de estados de Autocontrol del Responsable:
+//              - Estado inicial: desactivado (INACTIVE)
+//              - Al activar (con doble confirmación): cuenta tiempo de 24h para
+//                desactivación manteniendo la función activada (ACTIVE_LOCKED).
+//                En este período, la desactivación NO está permitida.
+//              - Al pasar 24h: permite la desactivación de la función (DEACTIVATION_READY).
+//                Al desactivar, vuelve al estado inicial desactivado.
 // ==============================================================================
 
 import {
   SELF_CONTROL_LOCK_HOURS,
-  SELF_CONTROL_UNLOCK_WINDOW_HOURS,
   SelfControlState,
 } from '../../types';
 import { apiClient, safeStorage, timestampProvider } from './client';
 
 export const selfControlApi = {
   // --------------------------------------------------------------------------
-  // Autocontrol / Autoprotección del Tutor (Temporizador de 24hs al solicitar y pase de 24hs)
+  // Limpiar todo el estado de Autocontrol (Reinicio al estado inicial desactivado)
   // --------------------------------------------------------------------------
-  async enableSelfControl(): Promise<SelfControlState> {
-    const now = await timestampProvider.now();
-
-    await safeStorage.setItem('@ba_protege_self_control_active', 'true');
-    await safeStorage.setItem('@ba_protege_self_control_enabled_at', new Date(now).toISOString());
+  async resetSelfControl(): Promise<SelfControlState> {
+    await safeStorage.setItem('@ba_protege_self_control_active', 'false');
+    await safeStorage.removeItem('@ba_protege_self_control_enabled_at');
+    await safeStorage.removeItem('@ba_protege_self_control_can_disable_at');
     await safeStorage.removeItem('@ba_protege_self_control_deactivation_requested_at');
     await safeStorage.removeItem('@ba_protege_self_control_deactivation_available_at');
     await safeStorage.removeItem('@ba_protege_self_control_unlocked_at');
     await safeStorage.removeItem('@ba_protege_self_control_auto_relock_at');
-    await safeStorage.removeItem('@ba_protege_self_control_can_disable_at');
+    await safeStorage.removeItem('@ba_protege_self_control_expires_at');
+
+    return {
+      active: false,
+      status: 'INACTIVE',
+      enabledAt: null,
+      deactivationRequestedAt: null,
+      deactivationAvailableAt: null,
+      canDisableAt: null,
+      expiresAt: null,
+      canDisable: true,
+      unlockedAt: null,
+      autoRelockAt: null,
+      remainingHours: 0,
+      remainingMinutes: 0,
+      remainingSeconds: 0,
+    };
+  },
+
+  // --------------------------------------------------------------------------
+  // Activación de Autocontrol: inicia el cronómetro de 24 horas para desactivación
+  // --------------------------------------------------------------------------
+  async enableSelfControl(): Promise<SelfControlState> {
+    const now = await timestampProvider.now();
+    const canDisableAt = now + SELF_CONTROL_LOCK_HOURS * 60 * 60 * 1000;
+
+    await safeStorage.setItem('@ba_protege_self_control_active', 'true');
+    await safeStorage.setItem('@ba_protege_self_control_enabled_at', new Date(now).toISOString());
+    await safeStorage.setItem('@ba_protege_self_control_can_disable_at', new Date(canDisableAt).toISOString());
+    await safeStorage.removeItem('@ba_protege_self_control_deactivation_requested_at');
+    await safeStorage.removeItem('@ba_protege_self_control_deactivation_available_at');
+    await safeStorage.removeItem('@ba_protege_self_control_unlocked_at');
+    await safeStorage.removeItem('@ba_protege_self_control_auto_relock_at');
     await safeStorage.removeItem('@ba_protege_self_control_expires_at');
 
     try {
@@ -36,130 +73,55 @@ export const selfControlApi = {
     return this.getSelfControlStatus();
   },
 
-  async requestDeactivation(): Promise<SelfControlState> {
-    const current = await this.getSelfControlStatus();
-    if (!current.active) return current;
-
-    const now = await timestampProvider.now();
-    const deactivationAvailableAt = now + SELF_CONTROL_LOCK_HOURS * 60 * 60 * 1000;
-
-    await safeStorage.setItem(
-      '@ba_protege_self_control_deactivation_requested_at',
-      new Date(now).toISOString()
-    );
-    await safeStorage.setItem(
-      '@ba_protege_self_control_deactivation_available_at',
-      new Date(deactivationAvailableAt).toISOString()
-    );
-
-    return this.getSelfControlStatus();
-  },
-
-  async confirmDeactivation(): Promise<SelfControlState> {
-    const status = await this.getSelfControlStatus();
-
-    if (!status.canDisable || status.status !== 'DEACTIVATION_READY') {
-      const waitText = `${status.remainingHours}h ${status.remainingMinutes.toString().padStart(2, '0')}m`;
-      throw new Error(
-        `La desactivación se habilitará en 24 horas.\nTiempo restante: ${waitText}.`
-      );
-    }
-
-    const now = await timestampProvider.now();
-    const autoRelockAt = now + SELF_CONTROL_UNLOCK_WINDOW_HOURS * 60 * 60 * 1000;
-
-    // Desbloqueo real inmediato con pase temporal de 24 horas
-    await safeStorage.setItem('@ba_protege_self_control_active', 'false');
-    await safeStorage.removeItem('@ba_protege_self_control_deactivation_requested_at');
-    await safeStorage.removeItem('@ba_protege_self_control_deactivation_available_at');
-    await safeStorage.setItem('@ba_protege_self_control_unlocked_at', new Date(now).toISOString());
-    await safeStorage.setItem('@ba_protege_self_control_auto_relock_at', new Date(autoRelockAt).toISOString());
-
-    try {
-      await apiClient.post('/self-control/disable', { autoRelockAt }, { timeout: 1000 });
-    } catch (e) {
-      // Modo offline / demo
-    }
-
-    return this.getSelfControlStatus();
-  },
-
+  // --------------------------------------------------------------------------
+  // Desactivación de Autocontrol: solo permitida tras cumplirse las 24 horas
+  // --------------------------------------------------------------------------
   async disableSelfControl(): Promise<SelfControlState> {
     const status = await this.getSelfControlStatus();
 
-    // Caso 1: Autoprotección activa sin solicitud previa -> Clic 1: Inicia temporizador de 24hs
-    if (status.status === 'ACTIVE_LOCKED') {
-      return this.requestDeactivation();
-    }
-
-    // Caso 2: Temporizador corriendo pero aún no pasaron 24hs
-    if (status.status === 'DEACTIVATION_PENDING') {
+    // Si aún no pasaron las 24h, la desactivación NO está permitida
+    if (!status.canDisable || status.status === 'ACTIVE_LOCKED') {
       const waitText = `${status.remainingHours}h ${status.remainingMinutes.toString().padStart(2, '0')}m`;
       throw new Error(
-        `La desactivación se habilitará en 24 horas.\nTiempo restante: ${waitText}.`
+        `La desactivación no está permitida durante el período de protección obligatoria de 24 horas.\nTiempo restante: ${waitText}.`
       );
     }
 
-    // Caso 3: Ya pasaron las 24hs -> Clic 2: Desbloqueo real inmediato con pase temporal
-    if (status.status === 'DEACTIVATION_READY' || status.canDisable) {
-      return this.confirmDeactivation();
-    }
-
-    return status;
+    // Pasadas las 24h: desactiva y vuelve al estado inicial desactivado
+    return this.resetSelfControl();
   },
 
+  // Compatibilidad con flujos heredados
+  async requestDeactivation(): Promise<SelfControlState> {
+    return this.disableSelfControl();
+  },
+
+  async confirmDeactivation(): Promise<SelfControlState> {
+    return this.disableSelfControl();
+  },
+
+  // --------------------------------------------------------------------------
+  // Consulta del estado actual de Autocontrol
+  // --------------------------------------------------------------------------
   async getSelfControlStatus(): Promise<SelfControlState> {
     const now = await timestampProvider.now();
     const activeStr = await safeStorage.getItem('@ba_protege_self_control_active');
     const enabledAt = await safeStorage.getItem('@ba_protege_self_control_enabled_at');
-    const deactivationRequestedAt = await safeStorage.getItem(
-      '@ba_protege_self_control_deactivation_requested_at'
-    );
-    const deactivationAvailableAt =
-      (await safeStorage.getItem('@ba_protege_self_control_deactivation_available_at')) ||
-      (await safeStorage.getItem('@ba_protege_self_control_can_disable_at')) ||
-      (await safeStorage.getItem('@ba_protege_self_control_expires_at'));
-    const unlockedAt = await safeStorage.getItem('@ba_protege_self_control_unlocked_at');
-    const autoRelockAt = await safeStorage.getItem('@ba_protege_self_control_auto_relock_at');
-
-    // 1. Caso: Pase temporal de 24 horas activo
-    if (unlockedAt && autoRelockAt && activeStr !== 'true') {
-      const autoRelockTime = new Date(autoRelockAt).getTime();
-      if (now >= autoRelockTime) {
-        // Cumplido el plazo de 24hs de pase temporal -> se vuelve a activar automáticamente!
-        return this.enableSelfControl();
-      }
-
-      const remainingUnlockMs = Math.max(0, autoRelockTime - now);
-      const remainingUnlockTotalSeconds = Math.floor(remainingUnlockMs / 1000);
-      const remainingUnlockHours = Math.floor(remainingUnlockTotalSeconds / 3600);
-      const remainingUnlockMinutes = Math.floor((remainingUnlockTotalSeconds % 3600) / 60);
-      const remainingUnlockSeconds = remainingUnlockTotalSeconds % 60;
-
-      return {
-        active: false,
-        status: 'TEMPORARILY_UNLOCKED',
-        enabledAt: null,
-        deactivationRequestedAt: null,
-        deactivationAvailableAt: null,
-        canDisableAt: null,
-        expiresAt: autoRelockAt,
-        canDisable: false,
-        unlockedAt,
-        autoRelockAt,
-        remainingHours: remainingUnlockHours,
-        remainingMinutes: remainingUnlockMinutes,
-        remainingSeconds: remainingUnlockSeconds,
-        remainingUnlockHours,
-        remainingUnlockMinutes,
-        remainingUnlockSeconds,
-      };
-    }
+    const canDisableAt = await safeStorage.getItem('@ba_protege_self_control_can_disable_at');
 
     const isActive = activeStr === 'true';
 
-    // 2. Caso: Inactivo totalmente
+    // 1. Estado inicial o desactivado: limpia residuos de claves previas
     if (!isActive || !enabledAt) {
+      await safeStorage.removeItem('@ba_protege_self_control_active');
+      await safeStorage.removeItem('@ba_protege_self_control_enabled_at');
+      await safeStorage.removeItem('@ba_protege_self_control_can_disable_at');
+      await safeStorage.removeItem('@ba_protege_self_control_deactivation_requested_at');
+      await safeStorage.removeItem('@ba_protege_self_control_deactivation_available_at');
+      await safeStorage.removeItem('@ba_protege_self_control_unlocked_at');
+      await safeStorage.removeItem('@ba_protege_self_control_auto_relock_at');
+      await safeStorage.removeItem('@ba_protege_self_control_expires_at');
+
       return {
         active: false,
         status: 'INACTIVE',
@@ -177,73 +139,59 @@ export const selfControlApi = {
       };
     }
 
-    // 3. Caso: Autoprotección activa con solicitud de desactivación iniciada
-    if (deactivationAvailableAt) {
-      const availableTime = new Date(deactivationAvailableAt).getTime();
-      const remainingWaitMs = availableTime - now;
+    // 2. Estado activo: calcular tiempo restante de las 24 horas desde la activación
+    const enabledTime = new Date(enabledAt).getTime();
+    const targetCanDisableTime = canDisableAt
+      ? new Date(canDisableAt).getTime()
+      : enabledTime + SELF_CONTROL_LOCK_HOURS * 60 * 60 * 1000;
 
-      if (remainingWaitMs <= 0) {
-        // Pasaron las 24 horas: el botón cambia de estado para permitir el desbloqueo real (segundo clic)
-        return {
-          active: true,
-          status: 'DEACTIVATION_READY',
-          enabledAt,
-          deactivationRequestedAt,
-          deactivationAvailableAt,
-          canDisableAt: deactivationAvailableAt,
-          expiresAt: deactivationAvailableAt,
-          canDisable: true,
-          unlockedAt: null,
-          autoRelockAt: null,
-          remainingHours: 0,
-          remainingMinutes: 0,
-          remainingSeconds: 0,
-          remainingWaitHours: 0,
-          remainingWaitMinutes: 0,
-          remainingWaitSeconds: 0,
-        };
-      }
+    const remainingMs = targetCanDisableTime - now;
 
-      // Temporizador de 24 horas corriendo: la desactivación se habilitará en 24 horas
-      const totalWaitSeconds = Math.max(0, Math.floor(remainingWaitMs / 1000));
-      const remainingWaitHours = Math.floor(totalWaitSeconds / 3600);
-      const remainingWaitMinutes = Math.floor((totalWaitSeconds % 3600) / 60);
-      const remainingWaitSeconds = totalWaitSeconds % 60;
+    // Caso A: Aún no pasaron las 24h -> Función activa y desactivación NO permitida
+    if (remainingMs > 0) {
+      const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+      const remainingHours = Math.floor(totalSeconds / 3600);
+      const remainingMinutes = Math.floor((totalSeconds % 3600) / 60);
+      const remainingSeconds = totalSeconds % 60;
 
       return {
         active: true,
-        status: 'DEACTIVATION_PENDING',
+        status: 'ACTIVE_LOCKED',
         enabledAt,
-        deactivationRequestedAt,
-        deactivationAvailableAt,
-        canDisableAt: deactivationAvailableAt,
-        expiresAt: deactivationAvailableAt,
-        canDisable: false,
+        deactivationRequestedAt: null,
+        deactivationAvailableAt: new Date(targetCanDisableTime).toISOString(),
+        canDisableAt: new Date(targetCanDisableTime).toISOString(),
+        expiresAt: null,
+        canDisable: false, // Desactivación NO permitida
         unlockedAt: null,
         autoRelockAt: null,
-        remainingHours: remainingWaitHours,
-        remainingMinutes: remainingWaitMinutes,
-        remainingSeconds: remainingWaitSeconds,
-        remainingWaitHours,
-        remainingWaitMinutes,
-        remainingWaitSeconds,
+        remainingHours,
+        remainingMinutes,
+        remainingSeconds,
+        remainingWaitHours: remainingHours,
+        remainingWaitMinutes: remainingMinutes,
+        remainingWaitSeconds: remainingSeconds,
       };
     }
 
-    // 4. Caso: Autoprotección activa estándar (muestra botón "Desactivar autoprotección")
+    // Caso B: Ya pasaron las 24h -> Función continúa activa pero desactivación pasa a estar PERMITIDA
     return {
       active: true,
-      status: 'ACTIVE_LOCKED',
+      status: 'DEACTIVATION_READY',
       enabledAt,
       deactivationRequestedAt: null,
-      deactivationAvailableAt: null,
-      canDisableAt: null,
+      deactivationAvailableAt: new Date(targetCanDisableTime).toISOString(),
+      canDisableAt: new Date(targetCanDisableTime).toISOString(),
       expiresAt: null,
-      canDisable: false,
+      canDisable: true, // Desactivación PERMITIDA
       unlockedAt: null,
       autoRelockAt: null,
       remainingHours: 0,
       remainingMinutes: 0,
+      remainingSeconds: 0,
+      remainingWaitHours: 0,
+      remainingWaitMinutes: 0,
+      remainingWaitSeconds: 0,
     };
   },
 };

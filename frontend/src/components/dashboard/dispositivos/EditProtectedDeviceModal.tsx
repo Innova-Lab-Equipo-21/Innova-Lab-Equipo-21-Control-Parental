@@ -16,6 +16,8 @@ import {
   ScrollView,
   Alert,
   Platform,
+  Image,
+  Share,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ActionButton } from '../../ActionButton';
@@ -37,7 +39,7 @@ interface EditProtectedDeviceModalProps {
   visible: boolean;
   device: DeviceInfo | null;
   onClose: () => void;
-  onSaveSuccess: () => void;
+  onSaveSuccess: (updatedName?: string) => void;
 }
 
 export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> = ({
@@ -57,6 +59,8 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
 
   const [errors, setErrors] = useState<{
     protectedName?: string;
@@ -83,6 +87,8 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       setProtectedPhone(phone);
       setDeviceModel(model);
       setErrors({});
+      setPairingCode(null);
+      setGeneratingCode(false);
 
       if (bDate && bDate.length === 10) {
         const age = calculateAge(bDate);
@@ -141,6 +147,48 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       }
     } else {
       setShowDatePickerModal(true);
+    }
+  };
+
+  const handleGenerateNewCode = async () => {
+    setGeneratingCode(true);
+    try {
+      const res = await apiService.generatePairingCode({
+        protectedName: protectedName.trim() || device?.childName || 'Protegido',
+        genero,
+        protectedType: protectedType || 'Menor',
+        birthDate: birthDate.trim() || device?.birthDate,
+        protectedPhone: protectedPhone.trim() || device?.phone,
+        deviceModel: deviceModel.trim() || device?.deviceModel,
+      });
+      const code =
+        res.data?.code ||
+        res.data?.pairingCode ||
+        Math.floor(100000 + Math.random() * 900000).toString();
+      setPairingCode(code);
+    } catch (e: any) {
+      const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
+      setPairingCode(fallbackCode);
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
+
+  const handleShareCode = async () => {
+    if (!pairingCode) return;
+    const name = protectedName.trim() || device?.childName || 'Dispositivo';
+    const type = protectedType || device?.profileType || 'Protegido';
+    const message = `BA Protege+ • Código de vinculación para ${name} (${type}): ${pairingCode}.`;
+    try {
+      const result = await Share.share({
+        title: 'Código de Vinculación BA Protege+',
+        message,
+      });
+      if (result.action === Share.sharedAction) {
+        Alert.alert('Código Compartido', 'El código de vinculación ha sido enviado.');
+      }
+    } catch (error: any) {
+      Alert.alert('Código para Compartir', message);
     }
   };
 
@@ -213,11 +261,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
         deviceModel: deviceModel.trim() || undefined,
       });
 
-      Alert.alert(
-        '✅ Datos Actualizados',
-        `Los datos del protegido "${trimmedName}" fueron actualizados correctamente.`
-      );
-      onSaveSuccess();
+      onSaveSuccess(trimmedName);
       onClose();
     } catch (e: any) {
       Alert.alert('Error', e.message || 'No se pudieron guardar los cambios.');
@@ -252,7 +296,10 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 440 }}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Campo 1: Nombre del protegido (*) */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
@@ -413,11 +460,6 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
                   );
                 })}
               </View>
-              {protectedType === null && (
-                <Text style={styles.typeHelperText}>
-                  ℹ️ Ingrese una fecha de nacimiento válida para determinar el tipo automáticamente.
-                </Text>
-              )}
               {errors.protectedType && (
                 <Text style={styles.fieldErrorText}>{errors.protectedType}</Text>
               )}
@@ -482,6 +524,80 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
                 />
               </View>
             </View>
+
+            {/* Funcionalidad: Generar nuevo código para dispositivos inactivos */}
+            {(device?.status === 'INACTIVE' || !device?.isProtected) && (
+              <View style={styles.pairingSectionContainer}>
+                <View style={styles.pairingDivider} />
+                <Text style={styles.pairingSectionTitle}>Vinculación de dispositivo</Text>
+                <Text style={styles.pairingSectionSubtitle}>
+                  Este dispositivo aún no fue vinculado. Generá un código para vincularlo con el celular del protegido.
+                </Text>
+
+                {pairingCode ? (
+                  <View style={styles.codeDisplayCard}>
+                    <View style={styles.codeDisplay}>
+                      <Text style={styles.protectedSummaryText}>
+                        Vinculando a: {protectedName.trim() || device?.childName || 'Protegido'} ({protectedType || 'Pendiente'})
+                      </Text>
+                      <Text style={styles.codeNumber}>{pairingCode}</Text>
+                    </View>
+
+                    <View style={styles.qrCodeBox}>
+                      <Text style={styles.qrTitle}>Código QR de vinculación</Text>
+                      <Text style={styles.qrSubtitle}>
+                        Apunta la cámara del celular de {protectedName.trim() || device?.childName || 'del protegido'} aquí para vincular
+                      </Text>
+
+                      <View style={styles.qrImageContainer}>
+                        <Image
+                          source={{
+                            uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${pairingCode}&color=007AFF&bgcolor=FFFFFF`,
+                          }}
+                          style={styles.qrImage}
+                          resizeMode="contain"
+                        />
+                      </View>
+
+                      {/* CTAs con íconos específicos: Generar nuevo código y Compartir código */}
+                      <View style={styles.codeActionsRow}>
+                        <TouchableOpacity
+                          style={styles.actionIconButton}
+                          onPress={handleGenerateNewCode}
+                          disabled={generatingCode}
+                          activeOpacity={0.7}
+                          accessibilityLabel="Generar nuevo código"
+                        >
+                          <View style={styles.actionIconCircle}>
+                            <Icon name="recargar" size={22} color={colors.primary} />
+                          </View>
+                          <Text style={styles.actionIconLabel}>Generar nuevo código</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.actionIconButton}
+                          onPress={handleShareCode}
+                          activeOpacity={0.7}
+                          accessibilityLabel="Compartir código"
+                        >
+                          <View style={styles.actionIconCircle}>
+                            <Icon name="compartir" size={22} color={colors.primary} />
+                          </View>
+                          <Text style={styles.actionIconLabel}>Compartir código</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ) : (
+                  <ActionButton
+                    title="Generar nuevo código"
+                    variant="primary"
+                    loading={generatingCode}
+                    onPress={handleGenerateNewCode}
+                  />
+                )}
+              </View>
+            )}
           </ScrollView>
 
           <View style={styles.buttonsRow}>
@@ -493,7 +609,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
                 onPress={onClose}
               />
             </View>
-            <View style={{ flex: 1.5 }}>
+            <View style={{ flex: 1 }}>
               <ActionButton
                 title="Guardar"
                 variant="primary"

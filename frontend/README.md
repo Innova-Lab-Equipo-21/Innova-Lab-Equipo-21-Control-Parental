@@ -100,8 +100,11 @@ Para garantizar un control seguro y estructurado de los dispositivos protegidos,
 1. **Límite de Dispositivos Protegidos:** Un Tutor / Responsable puede vincular y controlar un máximo de **5 dispositivos protegidos** (`MAX_PROTECTED_DEVICES = 5`). Al alcanzar este límite, la interfaz de vinculación de nuevos dispositivos se deshabilita automáticamente.
 2. **Autocontrol del Responsable con Escudo Inteligente y Bloqueo de 24 Horas:**
    - El Responsable cuenta como un dispositivo propio (`self`). Puede habilitar la función de **Autocontrol**, integrada como un escudo inteligente (`escudo.png`) directamente en la cabecera de su tarjeta de dispositivo al lado del botón de editar.
+   - **Doble Confirmación Guiada (`AutocontrolConfirmationModal.tsx`):** Al activar, se requiere confirmación doble para prevenir activaciones accidentales, informando el compromiso de protección.
    - **Inviolabilidad de Bloqueos:** Mientras el autocontrol esté activo, el responsable **no puede desactivar, pausar ni eliminar** ningún sitio web ni aplicación bloqueada asignada a su propio dispositivo. Tampoco puede desmarcar su dispositivo en los modales de edición.
-   - **Espera Obligatoria de 24 Horas:** Al solicitar la desactivación, se inicia un período de espera preventivo de 24 horas con un **cronómetro dinámico en tiempo real (`Xh Ym Zs`)** que impide desactivaciones impulsivas. Cumplidas las 24 horas, se habilita un pase temporal de desbloqueo de 24 horas antes del rebloqueo automático.
+   - **Período de Protección Obligatoria de 24 Horas:** Al activar, el sistema permanece activo y bloqueado durante **24 horas obligatorias** (`ACTIVE_LOCKED`). Durante este intervalo, la desactivación está estrictamente prohibida (se despliega un aviso pedagógico si se intenta desactivar).
+   - **Desactivación Permitida y Rebloqueo Automático:** Cumplidas las 24 horas (`DEACTIVATION_READY`), el responsable puede desactivar la función manualmente. Si decide reactivarla en cualquier momento, el cronómetro de arrepentimiento de 24 horas vuelve a correr desde cero.
+   - **Cronómetro Dinámico en Segundos:** Indicador visual en tiempo real (`Xh Ym Zs`) que computa la cuenta regresiva exacta hacia el desbloqueo o rebloqueo automático.
 3. **Listas de Bloqueo Granulares de Sitios y Aplicaciones:** El Tutor tiene la capacidad de crear y gestionar listas de sitios web y aplicaciones móviles bloqueadas de forma **personalizada por cada dispositivo**. Cada regla puede ser asignada específicamente a uno o varios dispositivos elegidos (incluyendo el suyo).
 4. **Auditoría y Monitoreo de 6 Permisos del Sistema Android:**
    - Supervisión en tiempo real de los 6 permisos clave requeridos por el sistema (`permissionChecker.ts`):
@@ -141,17 +144,25 @@ El proyecto cuenta con un **Kit UI/UX estandarizado** basado en las especificaci
 
 ---
 
-## ⚙️ Módulo Avanzado de Gestión de Sitios y Apps (`CustomSitesSection.tsx`)
+## ⚙️ Módulo Avanzado de Gestión de Sitios y Apps (`SitesAndAppsSection.tsx`)
 
 1. **Sub-pestañas Especializadas:**
-   - **`🌐 Sitios web`:** Administración de dominios web con filtro oficial LOTBA inmutable + listas personalizadas.
-   - **`📱 Aplicaciones`:** Restricción de aplicaciones móviles Android (Bet365, TikTok, Instagram, Free Fire, etc.) mediante el servicio de accesibilidad.
+   - **`🌐 Sitios web` (`SitesTab.tsx`):** Administración de dominios web con filtro oficial LOTBA inmutable + listas personalizadas, normalización automática de URLs y regla global.
+   - **`📱 Aplicaciones` (`AppsTab.tsx`):** Restricción de aplicaciones móviles Android (Bet365, TikTok, Instagram, Free Fire, etc.) con sugerencias rápidas de Top apps y límites de tiempo diarios personalizados por dispositivo.
 
-2. **Menú de Opciones de 3 Puntos (⋮) y Limpieza Visual:**
-   - Menú emergente desplegable que reúne las 5 herramientas de gestión: `📱 Filtrar por dispositivo`, `🔍 Buscar`, `📅 Ordenar por fecha`, `🔤 Ordenar A-Z` y `☑️ Selección múltiple`.
+2. **Arquitectura Desacoplada en Hooks Especializados:**
+   - **`useSitesManagement.ts`:** Encapsula el estado de creación/edición, validaciones de dominio, restricciones de autocontrol, filtrado, ordenamiento y acciones en lote de sitios web.
+   - **`useAppsManagement.ts`:** Encapsula el estado de aplicaciones, límites diarios por dispositivo, restricciones de autocontrol, filtrado, ordenamiento y acciones en lote de aplicaciones.
 
-3. **Botón Flotante (FAB `+`) con Tooltip Explicativo:**
-   - Botón flotante `+` con el bocadillo explicativo *"Bloquear sitio o app"* que desaparece a los 3 segundos.
+3. **Menú de Opciones de 3 Puntos (⋮) y Limpieza Visual (`SitesAppsOptionsMenuModal.tsx`):**
+   - Menú emergente Bottom Sheet que reúne las herramientas de gestión unificadas: `📱 Filtrar por dispositivo`, `🔍 Barra de búsqueda`, `📅 Ordenar recientes`, `🔤 Ordenar A-Z` y `☑️ Acciones en lote`.
+
+4. **Modales Estándar de Confirmación y Retroalimentación:**
+   - **`DeleteBlockItemModal.tsx`:** Modal estándar de confirmación con títulos en Sentence case y botones simétricos en una misma fila para desbloquear y eliminar sitios o apps.
+   - **`FeedbackModal.tsx`:** Modal estándar de retroalimentación (*"Sitio bloqueado"*, *"Aplicación bloqueada"*, *"Cambios guardados"*) con íconos visuales y botón de cierre accesible.
+
+5. **Botón Flotante (FAB `+`) con Tooltip Explicativo:**
+   - Botón flotante `+` con el bocadillo explicativo *"Bloquear sitio o app"* que desaparece automáticamente a los 3 segundos.
 
 ---
 
@@ -235,9 +246,16 @@ frontend/
 │   │   │   ├── RegisterForm.tsx              # Formulario (+18, Google Auth, Términos y Calendario)
 │   │   │   └── TermsModal.tsx                # Modal Bottom Sheet de Términos y Condiciones
 │   │   ├── dashboard/                        # Módulos Modulares del Dashboard
+│   │   │   ├── inicio/                       # Pestaña Panel / Inicio del Responsable
+│   │   │   │   ├── ParentInicioSection.tsx   # Resumen de estado de protección, accesos rápidos y FAQ
+│   │   │   │   └── ParentInicioSection.styles.ts # Estilos de tarjetas y accesos del panel
 │   │   │   ├── actividad/                    # Sección de Registro de Actividad
-│   │   │   ├── cuenta/                       # Permisos, Perfil, Ayuda, Legal y RatingModal
+│   │   │   │   ├── ActivitySection.tsx       # Gráficos y registro de actividad de dispositivos
+│   │   │   │   └── ActivitySection.styles.ts # Estilos de visualización de actividad
+│   │   │   ├── cuenta/                       # Permisos, Perfil, Ayuda, Legal, FAQ y RatingModal
 │   │   │   │   ├── EditResponsibleModal.tsx  # Modal institucional de edición del perfil del responsable
+│   │   │   │   ├── FaqModal.tsx              # Modal Bottom Sheet de preguntas frecuentes sobre LOTBA
+│   │   │   │   ├── GlobalRulesSection.tsx    # Regla inmutable oficial de LOTBA y alertas de protección
 │   │   │   │   ├── HelpSection.tsx           # Asistencia y canales de contacto oficial
 │   │   │   │   ├── LegalSection.tsx          # Información legal, términos, privacidad y valoración
 │   │   │   │   ├── ProfileSection.tsx        # Perfil del tutor responsable con avatar y edición
@@ -245,13 +263,15 @@ frontend/
 │   │   │   │   ├── RatingSection.tsx         # Sección de valoración en pantalla
 │   │   │   │   └── TutorPermissionsSection.tsx # Resumen de permisos del responsable
 │   │   │   ├── dispositivos/                 # Dispositivos vinculados, Auditoría, Autocontrol y Pairing
-│   │   │   │   ├── DeviceCard.tsx            # Tarjeta individual con colores persistentes, 6 permisos y escudo de autocontrol
+│   │   │   │   ├── AutocontrolConfirmationModal.tsx # Modal estándar con doble confirmación de Autocontrol 24h
+│   │   │   │   ├── DeviceCard.tsx            # Tarjeta individual con colores persistentes, 6 permisos y escudo
+│   │   │   │   ├── DevicePermissionsModal.tsx # Modal de auditoría detallada de 6 permisos Android por dispositivo
 │   │   │   │   ├── EditProtectedDeviceModal.tsx # Modal con estilo y validaciones para editar datos del protegido
 │   │   │   │   ├── PairingModal.tsx          # Modal Bottom Sheet para vincular nuevo dispositivo
-│   │   │   │   ├── PairingSection.tsx        # Formulario de vinculación con inputs limpios y código QR
+│   │   │   │   ├── PairingSection.tsx        # Formulario de vinculación dual por código de 6 dígitos o QR
 │   │   │   │   ├── ProtectedDevicesSection.tsx # Vista orquestadora modular de dispositivos vinculados
-│   │   │   │   ├── SelfControlSection.tsx    # Componente modal de confirmación guiada de Autocontrol 24h
-│   │   │   │   └── UnbindConfirmationModal.tsx # Modal de doble confirmación de desvinculación
+│   │   │   │   ├── SelfControlSection.tsx    # Sección con switch y escudo inteligente de Autocontrol
+│   │   │   │   └── UnbindConfirmationModal.tsx # Modal de doble confirmación simétrica de desvinculación
 │   │   │   ├── protected/                    # Sub-módulo para el Usuario Protegido (Menor / Adulto)
 │   │   │   │   ├── BlockModal.tsx            # Modal de bloqueo rápido desplegado desde FAB +
 │   │   │   │   ├── ProtectedActividadSection.tsx  # Pestaña "MI USO DIARIO"
@@ -260,22 +280,26 @@ frontend/
 │   │   │   │   ├── ProtectedNavbar.tsx            # Navbar de 4 módulos para protegido
 │   │   │   │   ├── ProtectedSitiosSection.tsx     # Pestaña "Sitios y apps" bloqueadas por el usuario
 │   │   │   │   └── QuizModal.tsx                  # Modal interactivo de Quiz con shuffle e incentivo outdoor
-│   │   │   ├── sitios/                       # Reglas Globales y CRUD de Sitios y Apps Bloqueadas
-│   │   │   │   ├── AddAppModal.tsx           # Modal Bottom Sheet para bloquear app (Top 15 Play Store y límites)
+│   │   │   ├── sitios/                       # Reglas y CRUD de Sitios y Apps Bloqueadas
+│   │   │   │   ├── hooks/                    # Hooks modulares de lógica desacoplada
+│   │   │   │   │   ├── useSitesManagement.ts # Hook con estado, normalización, CRUD y reglas de sitios
+│   │   │   │   │   └── useAppsManagement.ts  # Hook con estado, límites de tiempo, CRUD y reglas de apps
+│   │   │   │   ├── AddAppModal.tsx           # Modal Bottom Sheet para bloquear app (Top apps y límites)
 │   │   │   │   ├── AddSiteModal.tsx          # Modal Bottom Sheet para bloquear dominio/sitio web
 │   │   │   │   ├── AppTimeLimitModal.tsx     # Modal Bottom Sheet para configurar límite diario de app
 │   │   │   │   ├── AppsTab.tsx               # Sub-pestaña especializada en aplicaciones móviles
-│   │   │   │   ├── CustomSitesSection.tsx    # Orquestador principal de sitios y apps con bloqueo de Autocontrol
-│   │   │   │   ├── EditAppModal.tsx          # Modal Bottom Sheet para editar app y dispositivos asignados
-│   │   │   │   ├── EditSiteModal.tsx         # Modal Bottom Sheet para editar sitio web y regla de asignación
-│   │   │   │   ├── GlobalRulesSection.tsx    # Regla inmutable oficial de LOTBA
-│   │   │   │   ├── SitesOptionsMenuModal.tsx # Menú modal de 3 puntos (⋮) para filtros y orden
+│   │   │   │   ├── DeleteBlockItemModal.tsx  # Modal estándar de confirmación de eliminación de sitio o app
+│   │   │   │   ├── EditAppModal.tsx          # Modal Bottom Sheet para editar app y límites por dispositivo
+│   │   │   │   ├── EditSiteModal.tsx         # Modal Bottom Sheet para editar sitio web y asignación
+│   │   │   │   ├── SitesAndAppsSection.tsx   # Orquestador principal modular de sitios y apps con Autocontrol
+│   │   │   │   ├── SitesAppsOptionsMenuModal.tsx # Menú modal de 3 puntos (⋮) para filtros, búsqueda y orden
 │   │   │   │   └── SitesTab.tsx              # Sub-pestaña especializada en sitios web
 │   │   │   ├── DashboardNavbar.tsx           # Navbar 5 Pestañas con Resalte #E5F1FF y centrado vertical
 │   │   │   └── SeccionDesplegable.tsx        # Contenedor Desplegable con Badges
 │   │   ├── ActionButton.tsx                  # Botón con variantes primario/secundario y estados de carga
 │   │   ├── Badge.tsx                         # Etiquetas de estado (activo, inactivo, atención, peligro)
 │   │   ├── FabWithTooltip.tsx                # Botón Flotante FAB + con Tooltip de 3 segundos
+│   │   ├── FeedbackModal.tsx                 # Modal estándar unificado de retroalimentación (inclusión, edición, exclusión)
 │   │   ├── Header.tsx                        # Encabezado con ícono Volver negro y logo_ba.png
 │   │   ├── Icon.tsx                          # Componente unificado de íconos PNG
 │   │   ├── Logo.tsx                          # Logotipo oficial (logo_baprotege.png)
@@ -286,7 +310,9 @@ frontend/
 │   │   ├── PairingScreen.tsx                 # Pareamiento por 6 dígitos o QR (123456 / 654321)
 │   │   ├── ParentDashboardScreen.tsx         # Panel del responsable modularizado
 │   │   ├── PermissionsScreen.tsx             # Pantalla de 6 permisos Android con acordeón y GPS
-│   │   └── ProtectedDeviceScreen.tsx         # Panel del protegido de 4 módulos (Menor / Adulto)
+│   │   ├── ProtectedDeviceScreen.tsx         # Panel del protegido de 4 módulos (Menor / Adulto)
+│   │   ├── ResponsibleActionScreen.tsx       # Pantalla de acción y orientación del tutor responsable
+│   │   └── WelcomeScreen.tsx                 # Pantalla de Selección de Modo (Paso 2: Responsable vs Protegido)
 │   ├── services/                             # Lógica de comunicación y arquitectura de datos modular
 │   │   ├── api/                              # Capa de servicios API modularizada
 │   │   │   ├── auth.api.ts                   # Autenticación, login, registro y usuario actual
@@ -308,7 +334,7 @@ frontend/
 │   │   ├── authValidation.ts                 # Validadores de correo, contraseñas y campos de registro
 │   │   ├── deviceColors.ts                   # Asignación persistente de paleta de colores/avatares y URL regex
 │   │   └── permissionChecker.ts              # Auditoría y verificación de los 6 permisos Android en tiempo real
-├── tests/                                    # Pruebas unitarias automatizadas (55 tests / 11 suites)
+├── tests/                                    # Pruebas unitarias automatizadas (71 tests / 11 suites)
 ```
 
 ---
@@ -326,7 +352,7 @@ npm install
 npm run lint
 ```
 
-### 3. Ejecutar la Suite Completa de Tests Automatizados (55 tests / 11 suites)
+### 3. Ejecutar la Suite Completa de Tests Automatizados (71 tests / 11 suites)
 ```bash
 npm test
 ```

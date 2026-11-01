@@ -35,10 +35,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    marginBottom: 8,
   },
   modalTitle: {
     fontSize: 17,
@@ -83,5 +80,10 @@ export const styles = StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  buttonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 14,
   },
 });

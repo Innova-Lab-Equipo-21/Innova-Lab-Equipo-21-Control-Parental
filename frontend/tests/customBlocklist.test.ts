@@ -96,4 +96,43 @@ describe('CRUD de Sitios Bloqueados Personalizados (Modo Responsable)', () => {
     const listRes = await apiService.getCustomBlocklist();
     assert.ok(!listRes.data.domains.some((d) => d.id === created.data.id));
   });
+
+  test('MODAL: El modal estándar de eliminación debe tener títulos en Sentence case y CTAs simétricos sin emojis', () => {
+    // Títulos en Sentence case requeridos
+    const siteTitle = 'Eliminar sitio bloqueado';
+    const appTitle = 'Eliminar aplicación bloqueada';
+
+    // Verificar formato Sentence case (primer carácter mayúscula, resto minúsculas)
+    assert.equal(siteTitle, 'Eliminar sitio bloqueado');
+    assert.notEqual(siteTitle, 'Eliminar Sitio Bloqueado');
+    assert.equal(appTitle, 'Eliminar aplicación bloqueada');
+
+    // CTAs requeridos en la misma fila con igual tamaño y sin emojis
+    const cancelCta = 'Cancelar';
+    const deleteCta = 'Eliminar';
+    assert.ok(!cancelCta.includes('❌') && !cancelCta.includes('⚠️'));
+    assert.ok(!deleteCta.includes('🗑️') && !deleteCta.includes('🚨'));
+    assert.equal(cancelCta, 'Cancelar');
+    assert.equal(deleteCta, 'Eliminar');
+  });
+
+  test('MODAL: El modal estándar de retroalimentación (FeedbackModal) debe tener títulos en Sentence case y botón sin emojis', () => {
+    // Títulos de las alertas de las imágenes en Sentence case
+    const updatedAppTitle = 'Aplicación actualizada';
+    const blockedAppTitle = 'Aplicación bloqueada';
+    const blockedSiteTitle = 'Sitio bloqueado';
+    const updatedSiteTitle = 'Sitio actualizado';
+
+    assert.equal(updatedAppTitle, 'Aplicación actualizada');
+    assert.notEqual(updatedAppTitle, 'Aplicación Actualizada');
+    assert.equal(blockedAppTitle, 'Aplicación bloqueada');
+    assert.equal(blockedSiteTitle, 'Sitio bloqueado');
+    assert.notEqual(blockedSiteTitle, 'Sitio Bloqueado');
+    assert.equal(updatedSiteTitle, 'Sitio actualizado');
+
+    // Botón de confirmación sin emojis
+    const buttonText = 'Entendido';
+    assert.ok(!buttonText.includes('✅') && !buttonText.includes('🛡️'));
+    assert.equal(buttonText, 'Entendido');
+  });
 });

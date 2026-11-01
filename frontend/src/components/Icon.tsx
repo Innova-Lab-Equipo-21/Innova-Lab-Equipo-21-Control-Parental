@@ -28,6 +28,8 @@ import preguntaPng from '../assets/icons/pregunta.png';
 import editarPng from '../assets/icons/editar.png';
 import eliminarPng from '../assets/icons/eliminar.png';
 import engrenajePng from '../assets/icons/engrenaje.png';
+import compartirPng from '../assets/icons/compartir.png';
+import recargarPng from '../assets/icons/recargar.png';
 
 export type IconName =
   | 'ojo'
@@ -48,7 +50,10 @@ export type IconName =
   | 'pregunta'
   | 'editar'
   | 'eliminar'
-  | 'engrenaje';
+  | 'engrenaje'
+  | 'compartir'
+  | 'recargar'
+  | 'refrescar';
 
 interface IconProps {
   name: IconName;
@@ -77,6 +82,9 @@ const ICON_MAP: Record<IconName, any> = {
   editar: editarPng,
   eliminar: eliminarPng,
   engrenaje: engrenajePng,
+  compartir: compartirPng,
+  recargar: recargarPng,
+  refrescar: recargarPng,
 };
 
 export const Icon: React.FC<IconProps> = ({

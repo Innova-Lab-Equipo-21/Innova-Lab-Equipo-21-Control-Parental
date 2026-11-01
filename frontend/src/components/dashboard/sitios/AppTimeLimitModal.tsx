@@ -2,14 +2,16 @@
 // Proyecto: BA Protege+
 // Componente: AppTimeLimitModal (Modal para Configurar Límite de Tiempo Diario de App)
 // Archivo: src/components/dashboard/sitios/AppTimeLimitModal.tsx
+// Descripción: Modal Bottom Sheet para definir opciones predeterminadas de tiempo
+//              de uso diario (bloqueo total, 30 min, 1h, 2h, 5h) para una aplicación.
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { colors } from '../../../theme/colors';
 import { CustomBlockedApp } from '../../../types';
-import { styles } from './CustomSitesSection.styles';
+import { styles } from './AppTimeLimitModal.styles';
 
 interface AppTimeLimitModalProps {
   app: CustomBlockedApp | null;

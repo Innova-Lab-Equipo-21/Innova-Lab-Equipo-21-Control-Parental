@@ -6,3 +6,5 @@ export * from './EditProtectedDeviceModal';
 export * from './UnbindConfirmationModal';
 export * from './SelfControlSection';
 export * from './DevicePermissionsModal';
+export * from './AutocontrolConfirmationModal';
+export * from '../../FeedbackModal';
