@@ -10,6 +10,7 @@ import { authRoutes } from './auth.routes.js';
 import { deviceRoutes } from './device.routes.js';
 import { blocklistRoutes } from './blocklist.routes.js';
 import { telemetryRoutes } from './telemetry.routes.js';
+import { metricsRoutes } from './metrics.routes.js';
 
 const router = Router();
 
@@ -27,5 +28,6 @@ router.use('/auth', authRoutes);
 router.use('/devices', deviceRoutes);
 router.use('/blocklist', blocklistRoutes);
 router.use('/telemetry', telemetryRoutes);
+router.use('/metrics', metricsRoutes);
 
 export const apiRouter = router;
