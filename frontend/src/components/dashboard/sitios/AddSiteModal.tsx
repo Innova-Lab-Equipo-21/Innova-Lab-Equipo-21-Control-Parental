@@ -1,16 +1,19 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: AddSiteModal (Modal para Bloquear Nuevo Sitio Web)
+// Componente: AddSiteModal (Modal Bottom Sheet para Bloquear Nuevo Sitio Web)
 // Archivo: src/components/dashboard/sitios/AddSiteModal.tsx
+// Descripción: Modal Bottom Sheet para ingresar y bloquear un nuevo dominio web,
+//              con validación en tiempo real y asignación personalizada de dispositivos.
 // ==============================================================================
 
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
 import { DeviceInfo } from '../../../types';
-import { styles } from './CustomSitesSection.styles';
+import { getDeviceHighlight, isValidDomainOrUrl, cleanDomainInput } from '../../../utils/deviceColors';
+import { styles } from './AddSiteModal.styles';
 
 interface AddSiteModalProps {
   visible: boolean;
@@ -43,6 +46,12 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
   loading,
   onSave,
 }) => {
+  const hasInput = domain.trim().length > 0;
+  const isDomainValid = isValidDomainOrUrl(domain);
+  const normalizedDomain = hasInput ? cleanDomainInput(domain) : '';
+
+  const selfHighlight = getDeviceHighlight('self');
+
   return (
     <Modal
       visible={visible}
@@ -50,71 +59,154 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <TouchableOpacity style={styles.modalCloseButton} onPress={onClose}>
-            <Text style={styles.modalCloseText}>✕</Text>
-          </TouchableOpacity>
+      <View style={styles.bottomSheetOverlay}>
+        <View style={styles.bottomSheetModalContent}>
+          {/* Manija táctil del Bottom Sheet */}
+          <View style={styles.bottomSheetHandle} />
 
-          <Image
-            source={require('../../../assets/icons/bot/beti.png')}
-            style={styles.modalHeaderImage}
-          />
-          <Text style={styles.modalTitle}>Bloquear sitio web</Text>
-          <Text style={styles.modalBody}>
-            Ingresa el dominio o dirección web que deseas restringir en los dispositivos de tu familia.
+          {/* Encabezado */}
+          <View style={styles.sheetHeaderRow}>
+            <Text style={styles.sheetTitle}>Bloquear sitio web</Text>
+            <TouchableOpacity
+              style={styles.sheetCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Cerrar modal"
+            >
+              <Text style={styles.sheetCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.sheetSubtitle}>
+            Ingresá el dominio o dirección web que deseás restringir en los dispositivos de tu familia.
           </Text>
 
-          <Text style={styles.inputLabel}>Dominio o URL del sitio:</Text>
-          <TextInput
-            style={styles.formInput}
-            placeholder="ejemplo: casino-ilegal.bet"
-            placeholderTextColor={colors.textSecondary}
-            value={domain}
-            onChangeText={onDomainChange}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 16 }}
+          >
+            <Text style={styles.inputLabel}>Dominio o URL del sitio:</Text>
+            <TextInput
+              style={[
+                styles.formInput,
+                hasInput && (isDomainValid ? styles.inputValid : styles.inputInvalid),
+              ]}
+              placeholder="ejemplo: casino-ilegal.bet o https://..."
+              placeholderTextColor={colors.textSecondary}
+              value={domain}
+              selectTextOnFocus={true}
+              onChangeText={onDomainChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
 
-          <View style={styles.deviceSelectionContainer}>
-            <View style={styles.applyToAllRow}>
-              <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (Regla global)</Text>
-              <ToggleSwitch value={applyToAll} onValueChange={onApplyToAllChange} />
-            </View>
+            {/* Verificación de Sitio Válido en Tiempo Real */}
+            {hasInput && (
+              <View style={isDomainValid ? styles.domainFeedbackValid : styles.domainFeedbackInvalid}>
+                <Text style={isDomainValid ? styles.domainFeedbackTextValid : styles.domainFeedbackTextInvalid}>
+                  {isDomainValid
+                    ? `✓ Sitio válido (se bloqueará: ${normalizedDomain})`
+                    : '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
+                </Text>
+              </View>
+            )}
 
-            {!applyToAll && (
+            <View
+              style={[
+                styles.deviceSelectionContainer,
+                !hasInput && styles.deviceSelectionContainerDisabled,
+              ]}
+              pointerEvents={hasInput ? 'auto' : 'none'}
+            >
+              {!hasInput && (
+                <Text style={styles.deviceSelectionDisabledHint}>
+                  Ingresá primero el dominio o URL del sitio para seleccionar los dispositivos.
+                </Text>
+              )}
+
+              <View style={styles.applyToAllRow}>
+                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (regla global)</Text>
+                <ToggleSwitch
+                  value={applyToAll}
+                  onValueChange={hasInput ? onApplyToAllChange : () => {}}
+                  disabled={!hasInput}
+                />
+              </View>
+
+              {/* Listado siempre visible de dispositivos registrados */}
               <View style={styles.deviceListContainer}>
-                <Text style={styles.deviceListTitle}>Selecciona los dispositivos:</Text>
+                <Text style={styles.deviceListTitle}>Seleccioná los dispositivos:</Text>
 
                 {/* Mi dispositivo (Responsable) */}
                 <TouchableOpacity
-                  style={styles.deviceRow}
-                  onPress={() => onToggleDevice('self')}
+                  style={[
+                    styles.deviceRow,
+                    {
+                      borderLeftWidth: 4,
+                      borderLeftColor: selfHighlight.color,
+                      backgroundColor: deviceIds.includes('self') ? selfHighlight.bgColor : '#FFFFFF',
+                    },
+                  ]}
+                  onPress={hasInput ? () => onToggleDevice('self') : undefined}
+                  activeOpacity={0.7}
+                  disabled={!hasInput}
                 >
+                  <View style={styles.deviceLeftCol}>
+                    <View style={[styles.deviceIconBox, { backgroundColor: selfHighlight.bgColor }]}>
+                      <Text style={styles.deviceIconText}>{selfHighlight.icon}</Text>
+                    </View>
+                    <View style={styles.deviceTextCol}>
+                      <Text style={styles.deviceName}>Mi dispositivo</Text>
+                    </View>
+                  </View>
                   <ToggleSwitch
                     value={deviceIds.includes('self')}
-                    onValueChange={() => onToggleDevice('self')}
+                    onValueChange={hasInput ? () => onToggleDevice('self') : () => {}}
+                    disabled={!hasInput}
                   />
-                  <Text style={styles.deviceName}>📱 Mi dispositivo (Responsable)</Text>
                 </TouchableOpacity>
 
                 {/* Dispositivos Protegidos */}
-                {devices.map((device) => (
-                  <TouchableOpacity
-                    key={device.deviceId}
-                    style={styles.deviceRow}
-                    onPress={() => onToggleDevice(device.deviceId)}
-                  >
-                    <ToggleSwitch
-                      value={deviceIds.includes(device.deviceId)}
-                      onValueChange={() => onToggleDevice(device.deviceId)}
-                    />
-                    <Text style={styles.deviceName}>📱 {device.deviceName} {device.childName ? `(${device.childName})` : ''}</Text>
-                  </TouchableOpacity>
-                ))}
+                {devices.map((device, idx) => {
+                  const highlight = getDeviceHighlight(device.deviceId, device.childName, device.deviceName, device.colorIndex ?? idx);
+                  const isSelected = deviceIds.includes(device.deviceId);
+
+                  return (
+                    <TouchableOpacity
+                      key={device.deviceId}
+                      style={[
+                        styles.deviceRow,
+                        {
+                          borderLeftWidth: 4,
+                          borderLeftColor: highlight.color,
+                          backgroundColor: isSelected ? highlight.bgColor : '#FFFFFF',
+                        },
+                      ]}
+                      onPress={hasInput ? () => onToggleDevice(device.deviceId) : undefined}
+                      activeOpacity={0.7}
+                      disabled={!hasInput}
+                    >
+                      <View style={styles.deviceLeftCol}>
+                        <View style={[styles.deviceIconBox, { backgroundColor: highlight.bgColor }]}>
+                          <Text style={styles.deviceIconText}>{highlight.icon}</Text>
+                        </View>
+                        <View style={styles.deviceTextCol}>
+                          <Text style={styles.deviceName}>{device.deviceName}</Text>
+                        </View>
+                      </View>
+                      <ToggleSwitch
+                        value={isSelected}
+                        onValueChange={hasInput ? () => onToggleDevice(device.deviceId) : () => {}}
+                        disabled={!hasInput}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            )}
-          </View>
+            </View>
+          </ScrollView>
 
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
             <View style={{ flex: 1 }}>

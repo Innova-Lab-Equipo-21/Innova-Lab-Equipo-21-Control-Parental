@@ -2,14 +2,18 @@
 // Proyecto: BA Protege+
 // Componente: SitesTab (Sub-vista de Gestión de Sitios Web Bloqueados)
 // Archivo: src/components/dashboard/sitios/SitesTab.tsx
+// Descripción: Sub-pestaña interactiva de sitios web bloqueados con barra de búsqueda,
+//              acciones masivas, tarjetas individuales y controles de edición/pausa.
 // ==============================================================================
 
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Badge } from '../../Badge';
+import { ToggleSwitch } from '../../ToggleSwitch';
+import { Icon } from '../../Icon';
 import { colors } from '../../../theme/colors';
 import { CustomBlockedDomain } from '../../../types';
-import { styles } from './CustomSitesSection.styles';
+import { styles } from './SitesTab.styles';
 
 interface SitesTabProps {
   siteSearch: string;
@@ -126,7 +130,10 @@ export const SitesTab: React.FC<SitesTabProps> = ({
           return (
             <TouchableOpacity
               key={site.id}
-              style={[styles.siteCard, isSelectionMode && isSelected && { borderColor: colors.primary, borderWidth: 1.5 }]}
+              style={[
+                styles.siteCard,
+                isSelectionMode && isSelected && { borderColor: colors.primary, borderWidth: 1.5 },
+              ]}
               onPress={() => {
                 if (isSelectionMode) onToggleSelect(site.id);
               }}
@@ -142,49 +149,54 @@ export const SitesTab: React.FC<SitesTabProps> = ({
                   </TouchableOpacity>
                 )}
 
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={styles.siteDomainText}>🌐 {site.domain}</Text>
+                <View style={styles.cardTitleCol}>
+                  <Text style={styles.siteDomainText} numberOfLines={1}>
+                    {site.domain}
+                  </Text>
                 </View>
-                <Badge
-                  status={site.isActive ? 'activo' : 'inactivo'}
-                  label={site.isActive ? 'BLOQUEADO' : 'PAUSADO'}
-                />
+
+                <View style={styles.headerControlsRow}>
+                  <Badge
+                    status={site.isActive ? 'activo' : 'danger'}
+                    label={site.isActive ? 'Bloqueado' : 'Desbloqueado'}
+                  />
+                  <ToggleSwitch
+                    value={site.isActive}
+                    onValueChange={() => onToggleActive(site)}
+                  />
+                </View>
               </View>
 
-              {/* Fila inferior compacta: Dispositivos aplicados a la izquierda y Acciones a la derecha */}
+              {/* Fila inferior: Dispositivos aplicados a la izquierda y Acciones (editar, eliminar) a la derecha */}
               <View style={styles.cardFooterRow}>
                 <Text style={styles.deviceIndicatorText} numberOfLines={1}>
                   {site.applyToAll
-                    ? '📱 Todos los dispositivos'
-                    : `📱 Aplicado en ${site.deviceIds?.length || 0} dispositivo(s)`}
+                    ? 'Todos los dispositivos'
+                    : `${site.deviceIds?.length || 0} ${site.deviceIds?.length === 1 ? 'dispositivo' : 'dispositivos'}`}
                 </Text>
 
                 <View style={styles.compactActionsRow}>
                   <TouchableOpacity
-                    style={styles.iconActionButton}
-                    onPress={() => onToggleActive(site)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={site.isActive ? 'Pausar' : 'Reanudar'}
-                  >
-                    <Text style={styles.iconActionText}>{site.isActive ? '⏸️' : '▶️'}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.iconActionButton}
+                    style={[styles.iconButton, !site.isActive && styles.iconButtonDisabled]}
                     onPress={() => onStartEdit(site)}
+                    disabled={!site.isActive}
                     activeOpacity={0.7}
-                    accessibilityLabel="Editar"
+                    accessibilityLabel="Editar sitio"
                   >
-                    <Text style={styles.iconActionText}>✏️</Text>
+                    <Icon
+                      name="editar"
+                      size={22}
+                      color={!site.isActive ? colors.textMuted : undefined}
+                    />
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.iconActionButton, styles.deleteIconActionButton]}
+                    style={styles.iconButton}
                     onPress={() => onDeleteSite(site)}
                     activeOpacity={0.7}
-                    accessibilityLabel="Eliminar"
+                    accessibilityLabel="Eliminar sitio"
                   >
-                    <Text style={styles.iconActionText}>🗑️</Text>
+                    <Icon name="eliminar" size={22} />
                   </TouchableOpacity>
                 </View>
               </View>

@@ -149,6 +149,7 @@ export function App(): React.JSX.Element {
         !hasGrantedPermissions && (
           <PermissionsScreen
             flowSource="PARENT_LOGIN"
+            userId={parentUser?.id}
             onPermissionsComplete={handlePermissionsComplete}
             onBack={() => {
               setIsParentLoggedIn(false);

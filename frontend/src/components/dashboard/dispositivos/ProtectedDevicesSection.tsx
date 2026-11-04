@@ -2,328 +2,511 @@
 // Proyecto: BA Protege+
 // Componente: ProtectedDevicesSection (Auditoría y Gestión de Dispositivos Protegidos)
 // Archivo: src/components/dashboard/dispositivos/ProtectedDevicesSection.tsx
+// Descripción: Vista modular de dispositivos con paleta de 6 colores específicos.
+//              Primer card SIEMPRE el responsable (#007AFF) con edición vía EditResponsibleModal.
+//              Cards de protegidos con edición idéntica al formulario de vinculación (EditProtectedDeviceModal).
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Modal,
+  Keyboard,
+  TouchableWithoutFeedback,
+  Pressable,
   Alert,
 } from 'react-native';
-import { ActionButton } from '../../ActionButton';
-import { Badge } from '../../Badge';
 import { colors } from '../../../theme/colors';
-import { DeviceInfo } from '../../../types';
+import { DeviceInfo, DevicePermissionsStatus, SelfControlState } from '../../../types';
 import { apiService } from '../../../services/api.service';
+import { DeviceCard } from './DeviceCard';
+import { EditResponsibleModal } from '../cuenta/EditResponsibleModal';
+import { EditProtectedDeviceModal } from './EditProtectedDeviceModal';
+import { UnbindConfirmationModal } from './UnbindConfirmationModal';
+import {
+  AutocontrolConfirmationModal,
+  AutocontrolModalMode,
+} from './AutocontrolConfirmationModal';
+import { FeedbackModal } from '../../FeedbackModal';
 import { styles } from './ProtectedDevicesSection.styles';
 
 interface ProtectedDevicesSectionProps {
   devices: DeviceInfo[];
+  selfDevice?: DeviceInfo;
+  selfControl?: SelfControlState;
+  currentUser?: any;
+  onUpdateUser?: (updated: any) => void;
+  onUpdateSelfControl?: (sc: SelfControlState) => void;
+  onStartSelfControlFlow?: () => void;
+  onDisableSelfControl?: () => void;
   onUnbindDevice?: (deviceId: string) => void;
   onRefreshList?: () => void;
+  onOpenPermissions?: () => void;
 }
 
 export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = ({
   devices,
+  selfDevice: externalSelfDevice,
+  selfControl: propSelfControl,
+  currentUser,
+  onUpdateUser,
+  onUpdateSelfControl,
+  onStartSelfControlFlow,
+  onDisableSelfControl,
   onUnbindDevice,
   onRefreshList,
+  onOpenPermissions,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'NAME' | 'DATE'>('NAME');
-  const [expandedDeviceId, setExpandedDeviceId] = useState<string | null>(null);
 
-  // Estados para Modal de Doble Confirmación de Desvinculación
+  // Ref y estado para control de cierre de búsqueda al tocar fuera
+  const searchInputRef = useRef<TextInput>(null);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+
+  const handleCloseSearch = () => {
+    setSearchTerm('');
+    setIsSearchActive(false);
+    searchInputRef.current?.blur();
+    Keyboard.dismiss();
+  };
+
+  // Dispositivo propio del responsable (primer card siempre)
+  const [selfDev, setSelfDev] = useState<DeviceInfo | null>(externalSelfDevice || null);
+
+  // Estados de los Modales Modulares
+  const [isEditingSelf, setIsEditingSelf] = useState(false);
+  const [editingProtectedDevice, setEditingProtectedDevice] = useState<DeviceInfo | null>(null);
   const [unbindingDevice, setUnbindingDevice] = useState<DeviceInfo | null>(null);
-  const [unbindStep, setUnbindStep] = useState<1 | 2>(1);
-  const [loadingUnbind, setLoadingUnbind] = useState(false);
 
-  // Filtrado por buscador
+  // Modal estándar de retroalimentación / éxito del app
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const showFeedback = (config: { icon?: string; title: string; message: string }) => {
+    setFeedbackModal({
+      visible: true,
+      ...config,
+    });
+  };
+
+  // Cargar datos del dispositivo del responsable (se recarga ante cambios externos o actualización de lista)
+  useEffect(() => {
+    if (externalSelfDevice) {
+      setSelfDev(externalSelfDevice);
+    } else {
+      apiService.getSelfDevice().then((dev) => setSelfDev(dev));
+    }
+  }, [externalSelfDevice, devices]);
+
+  // Estado local de Autocontrol (sincronizado con props si existen)
+  const [localSelfControl, setLocalSelfControl] = useState<SelfControlState | null>(null);
+
+  useEffect(() => {
+    if (!propSelfControl) {
+      apiService.getSelfControlStatus().then(setLocalSelfControl).catch(() => {});
+    }
+  }, [propSelfControl]);
+
+  const resolvedSelfControl: SelfControlState = propSelfControl || localSelfControl || {
+    active: false,
+    canDisable: false,
+    expiresAt: null,
+    enabledAt: null,
+    remainingHours: 0,
+    remainingMinutes: 0,
+  };
+
+  // Estados y manejadores de Modal de Autocontrol con doble confirmación
+  const [autocontrolModalVisible, setAutocontrolModalVisible] = useState(false);
+  const [autocontrolModalMode, setAutocontrolModalMode] = useState<AutocontrolModalMode | null>(null);
+
+  const handleOpenSelfControlModal = async () => {
+    let currentSc = resolvedSelfControl;
+    try {
+      currentSc = await apiService.getSelfControlStatus();
+      setLocalSelfControl(currentSc);
+      if (onUpdateSelfControl) {
+        onUpdateSelfControl(currentSc);
+      }
+    } catch {
+      // Usar estado en memoria como respaldo
+    }
+
+    if (!currentSc.active || currentSc.status === 'INACTIVE') {
+      // Estado inicial: Desactivado -> Doble confirmación para activar
+      setAutocontrolModalMode('ACTIVATE');
+      setAutocontrolModalVisible(true);
+    } else if (!currentSc.canDisable || currentSc.status === 'ACTIVE_LOCKED') {
+      // Activado: Durante las 24h, la desactivación NO está permitida -> Mostrar aviso
+      setAutocontrolModalMode('ACTIVE_LOCKED');
+      setAutocontrolModalVisible(true);
+    } else {
+      // Activado: Tras 24h, la desactivación ESTÁ permitida -> Confirmar desactivación
+      setAutocontrolModalMode('DEACTIVATION_READY');
+      setAutocontrolModalVisible(true);
+    }
+  };
+
+  const handleActivateSelfControl = async () => {
+    const res = await apiService.enableSelfControl();
+    setLocalSelfControl(res);
+    if (onUpdateSelfControl) onUpdateSelfControl(res);
+    setAutocontrolModalVisible(false);
+    if (onRefreshList) onRefreshList();
+  };
+
+  const handleConfirmDeactivation = async () => {
+    const res = await apiService.disableSelfControl();
+    setLocalSelfControl(res);
+    if (onUpdateSelfControl) onUpdateSelfControl(res);
+    setAutocontrolModalVisible(false);
+    if (onRefreshList) onRefreshList();
+  };
+
+  // Filtrado de dispositivos protegidos por buscador
   const filteredDevices = devices.filter((dev) => {
     const term = searchTerm.toLowerCase().trim();
     if (!term) return true;
     return (
       dev.deviceName?.toLowerCase().includes(term) ||
       (dev.childName && dev.childName.toLowerCase().includes(term)) ||
-      dev.deviceId?.toLowerCase().includes(term)
+      dev.deviceId?.toLowerCase().includes(term) ||
+      (dev.phone && dev.phone.includes(term)) ||
+      (dev.deviceModel && dev.deviceModel.toLowerCase().includes(term))
     );
   });
 
-  // Ordenamiento por Nombre o Fecha de Vinculación
-  const sortedDevices = [...filteredDevices].sort((a, b) => {
-    if (sortBy === 'NAME') {
-      const nameA = a.deviceName || a.childName || '';
-      const nameB = b.deviceName || b.childName || '';
-      return nameA.localeCompare(nameB);
+  // Manejador de Edición: Abre Modal según el tipo de dispositivo
+  const handleEditDevice = (dev: DeviceInfo) => {
+    if (dev.deviceId === 'self') {
+      // Abre modal de "Editar perfil del responsable" existente en Cuenta
+      setIsEditingSelf(true);
     } else {
-      const dateA = (a as any).pairedAt || (a as any).createdAt || a.lastHeartbeat || '';
-      const dateB = (b as any).pairedAt || (b as any).createdAt || b.lastHeartbeat || '';
-      return dateB.localeCompare(dateA); // Más recientes primero
+      // Abre modal con estilo, campos y reglas de vinculación
+      setEditingProtectedDevice(dev);
     }
-  });
-
-  const handleStartUnbind = (dev: DeviceInfo) => {
-    setUnbindingDevice(dev);
-    setUnbindStep(1);
   };
 
-  const handleConfirmStep1 = () => {
-    setUnbindStep(2);
-  };
+  // Estado y manejador de auditoría de permisos para dispositivos (responsable o protegidos)
+  const [auditingDeviceId, setAuditingDeviceId] = useState<string | null>(null);
 
-  const handleFinalUnbind = async () => {
-    if (!unbindingDevice) return;
+  const handleAuditPermissions = async (device: DeviceInfo) => {
+    // Si es el dispositivo del responsable, navega directamente a PermissionsScreen para activar los permisos faltantes
+    if (device.deviceId === 'self') {
+      if (onOpenPermissions) {
+        onOpenPermissions();
+        return;
+      }
+    }
 
-    setLoadingUnbind(true);
     try {
-      await apiService.unbindDevice(unbindingDevice.deviceId);
-
-      if (onUnbindDevice) {
-        onUnbindDevice(unbindingDevice.deviceId);
+      setAuditingDeviceId(device.deviceId);
+      const updated = await apiService.auditDevicePermissions(device.deviceId);
+      if (device.deviceId === 'self') {
+        setSelfDev(updated);
       }
       if (onRefreshList) {
         onRefreshList();
       }
 
-      Alert.alert(
-        '✅ Dispositivo Desvinculado',
-        `El dispositivo "${unbindingDevice.deviceName}" fue desvinculado correctamente.`
-      );
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'No se pudo desvincular el dispositivo.');
+      const perms: DevicePermissionsStatus = updated.permissions || {
+        vpn: false,
+        accessibility: false,
+        notifications: false,
+        batteryOptimization: false,
+        location: false,
+        usageStats: false,
+        grantedCount: 0,
+      };
+      const missing: string[] = [];
+      if (!perms.vpn) missing.push('Servicio VPN (filtrado LOTBA)');
+      if (!perms.accessibility) missing.push('Accesibilidad (antidesinstalación)');
+      if (!perms.notifications) missing.push('Notificaciones en primer plano');
+      if (!perms.batteryOptimization) missing.push('Sin optimización de batería');
+      if (!perms.location) missing.push('Ubicación (geolocalización segura)');
+      if (!perms.usageStats) missing.push('Acceso al uso (límites de tiempo)');
+
+      const name = device.childName || device.deviceName;
+      if (missing.length === 0) {
+        Alert.alert(
+          'Auditoría de permisos exitosa',
+          `Todos los permisos (6/6) se encuentran activos y reportando correctamente en ${name}.`
+        );
+      } else {
+        Alert.alert(
+          'Auditoría de permisos: atención requerida',
+          `El dispositivo de ${name} reporta ${perms.grantedCount}/6 permisos concedidos.\n\nPermisos pendientes:\n• ${missing.join('\n• ')}\n\nPara reactivarlos, deben otorgarse directamente en el celular del protegido.`
+        );
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'No se pudo completar la auditoría de permisos.');
     } finally {
-      setLoadingUnbind(false);
-      setUnbindingDevice(null);
-      setUnbindStep(1);
+      setAuditingDeviceId(null);
     }
   };
 
+  // Guardado de Perfil del Responsable desde su Card
+  const handleSaveResponsible = async (updatedUser: any) => {
+    try {
+      const updatedDevice = await apiService.updateSelfDevice({
+        childName: updatedUser.fullName || `${updatedUser.firstName} ${updatedUser.lastName}`,
+        birthDate: updatedUser.birthDate,
+        gender: updatedUser.gender,
+        phone: updatedUser.phone,
+      });
+      setSelfDev(updatedDevice);
+
+      if (onUpdateUser) {
+        onUpdateUser(updatedUser);
+      }
+      setIsEditingSelf(false);
+      showFeedback({
+        icon: '✅',
+        title: 'Perfil actualizado',
+        message: 'Los datos del responsable han sido actualizados exitosamente.',
+      });
+    } catch (e: any) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error al actualizar',
+        message: e.message || 'No se pudieron actualizar los datos del responsable.',
+      });
+    }
+  };
+
+  // Construcción del objeto de usuario para el modal del responsable
+  const responsibleUserData = currentUser || {
+    firstName: selfDev?.childName?.split(' ')[0] || 'Tutor',
+    lastName: selfDev?.childName?.split(' ').slice(1).join(' ') || 'Responsable',
+    fullName: selfDev?.childName || 'Tutor Responsable',
+    birthDate: selfDev?.birthDate || '10/03/1985',
+    gender: selfDev?.gender || 'Masculino',
+    phone: selfDev?.phone || '11 5544-3322',
+    email: 'tutor@baprotege.gob.ar',
+    password: '••••••••',
+  };
+
+  // Cálculo preciso de totalizadores: Vinculados e Inactivos respetando singular y plural
+  const isDeviceActive = (d: DeviceInfo) =>
+    d.status === 'ACTIVE' ||
+    (d.status as any)?.effectiveStatus === 'ACTIVE' ||
+    (Boolean(d.isProtected) && d.status !== 'INACTIVE');
+
+  const countVinculados = devices.filter(isDeviceActive).length;
+  const countInactivos = devices.filter((d) => !isDeviceActive(d)).length;
+
+  const filteredVinculados = filteredDevices.filter(isDeviceActive).length;
+  const filteredInactivos = filteredDevices.filter((d) => !isDeviceActive(d)).length;
+
+  const formatPlural = (count: number, singular: string, plural: string) =>
+    `${count} ${count === 1 ? singular : plural}`;
+
+  const counterText =
+    searchTerm.trim().length > 0
+      ? `${formatPlural(filteredVinculados, 'vinculado', 'vinculados')} • ${formatPlural(filteredInactivos, 'inactivo', 'inactivos')}`
+      : `${formatPlural(countVinculados, 'vinculado', 'vinculados')} • ${formatPlural(countInactivos, 'inactivo', 'inactivos')}`;
+
   return (
-    <View style={styles.container}>
-      {/* Buscador de Dispositivos */}
-      <TextInput
-        style={styles.searchInput}
-        placeholder="🔍 Buscar por dispositivo o protegido..."
-        placeholderTextColor={colors.textSecondary}
-        value={searchTerm}
-        onChangeText={setSearchTerm}
-      />
-
-      {/* Controles de Ordenamiento */}
-      <View style={styles.sortRow}>
-        <Text style={styles.sortLabel}>Ordenar por:</Text>
-        <TouchableOpacity
-          style={[
-            styles.sortChip,
-            sortBy === 'NAME' && styles.sortChipActive,
-          ]}
-          onPress={() => setSortBy('NAME')}
-          activeOpacity={0.8}
-        >
-          <Text
-            style={[
-              styles.sortChipText,
-              sortBy === 'NAME' && styles.sortChipTextActive,
-            ]}
+    <Pressable
+      style={{ flex: 1, minHeight: '100%' }}
+      onPress={() => {
+        if (isSearchActive || searchTerm.length > 0) {
+          handleCloseSearch();
+        }
+      }}
+    >
+      <View style={styles.container}>
+        {/* SECCIÓN 1: MI DISPOSITIVO (RESPONSABLE) */}
+        {selfDev && (
+          <Pressable
+            style={styles.sectionHeaderContainer}
+            onPress={() => {
+              if (isSearchActive || searchTerm.length > 0) {
+                handleCloseSearch();
+              }
+            }}
           >
-            🔤 Nombre
-          </Text>
-        </TouchableOpacity>
+            <Text style={styles.sectionTitle}>Mi dispositivo</Text>
+          </Pressable>
+        )}
 
-        <TouchableOpacity
-          style={[
-            styles.sortChip,
-            sortBy === 'DATE' && styles.sortChipActive,
-          ]}
-          onPress={() => setSortBy('DATE')}
-          activeOpacity={0.8}
+        {selfDev && (
+          <DeviceCard
+            device={selfDev}
+            index={0}
+            isSelf={true}
+            onEdit={handleEditDevice}
+            onUnbind={() => {}}
+            onAuditPermissions={handleAuditPermissions}
+            isAuditing={auditingDeviceId === selfDev.deviceId}
+            selfControl={resolvedSelfControl}
+            onStartSelfControlFlow={handleOpenSelfControlModal}
+            onDisableSelfControl={handleOpenSelfControlModal}
+            onPressSelfControl={handleOpenSelfControlModal}
+            onOpenPermissions={onOpenPermissions}
+          />
+        )}
+
+        {/* SECCIÓN 2: DISPOSITIVOS PROTEGIDOS */}
+        <Pressable
+          style={styles.protectedSectionHeaderRow}
+          onPress={() => {
+            if (isSearchActive || searchTerm.length > 0) {
+              handleCloseSearch();
+            }
+          }}
         >
-          <Text
-            style={[
-              styles.sortChipText,
-              sortBy === 'DATE' && styles.sortChipTextActive,
-            ]}
-          >
-            📅 Fecha vinculación
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <Text style={styles.sectionTitle}>Dispositivos protegidos</Text>
+          <Text style={styles.countText}>{counterText}</Text>
+        </Pressable>
 
-      {/* Contador de Dispositivos */}
-      <View style={styles.countRow}>
-        <Text style={styles.countText}>
-          Mostrando {sortedDevices.length} de {devices.length} dispositivos vinculados
-        </Text>
-      </View>
-
-      {/* Lista de Dispositivos */}
-      {sortedDevices.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>
-            {devices.length === 0
-              ? 'No hay dispositivos vinculados aún.'
-              : 'No se encontraron dispositivos que coincidan con la búsqueda.'}
-          </Text>
-        </View>
-      ) : (
-        sortedDevices.map((dev) => {
-          const isActive =
-            (dev.status as any) === 'ACTIVE' ||
-            (dev.status as any)?.effectiveStatus === 'ACTIVE' ||
-            dev.isProtected;
-          const perms = dev.permissions || {
-            vpn: true,
-            accessibility: true,
-            notifications: true,
-            batteryOptimization: true,
-            grantedCount: 4,
-          };
-          const isExpanded = expandedDeviceId === dev.deviceId;
-
-          return (
-            <View key={dev.deviceId || dev.deviceUuid} style={styles.deviceCard}>
-              <View style={styles.deviceHeader}>
-                <View style={styles.deviceTitleCol}>
-                  <Text style={styles.deviceName}>{dev.deviceName}</Text>
-                  <Text style={styles.deviceInfo}>
-                    Asignado a: {dev.childName || 'Protegido'}
-                  </Text>
-                </View>
-                <Badge status={isActive ? 'activo' : 'inactivo'} />
-              </View>
-
-              {/* Resumen de Permisos y Toggle Desplegable */}
+        {/* Buscador de Dispositivos Protegidos a Ancho Completo */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchContainer}>
+            <Text style={styles.searchIconPrefix}>🔍</Text>
+            <TextInput
+              ref={searchInputRef}
+              style={styles.searchInputCompact}
+              placeholder="Buscar por dispositivo, titular..."
+              placeholderTextColor={colors.textSecondary}
+              value={searchTerm}
+              selectTextOnFocus={true}
+              onChangeText={(text) => {
+                setSearchTerm(text);
+                if (text.length > 0) {
+                  setIsSearchActive(true);
+                }
+              }}
+              onFocus={() => setIsSearchActive(true)}
+              onSubmitEditing={() => Keyboard.dismiss()}
+            />
+            {searchTerm.length > 0 && (
               <TouchableOpacity
-                style={styles.permSummaryRow}
-                onPress={() => setExpandedDeviceId(isExpanded ? null : dev.deviceId)}
-                activeOpacity={0.7}
+                onPress={handleCloseSearch}
+                style={styles.clearSearchBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <View style={styles.permBadgeContainer}>
-                  <Text style={styles.permLabel}>Permisos Android:</Text>
-                  <Badge
-                    status={perms.grantedCount === 4 ? 'activo' : 'alerta'}
-                    label={`${perms.grantedCount}/4 CONCEDIDOS`}
-                  />
-                </View>
-                <Text style={styles.expandToggleText}>
-                  {isExpanded ? 'Ocultar ▲' : 'Ver Detalle ▼'}
-                </Text>
+                <Text style={styles.clearSearchText}>✕</Text>
               </TouchableOpacity>
-
-              {/* Detalle Desplegable de Permisos */}
-              {isExpanded && (
-                <View style={styles.permDetailBox}>
-                  <Text style={styles.permDetailTitle}>Estado de Permisos del Sistema:</Text>
-
-                  <View style={styles.permItemRow}>
-                    <Text style={styles.permItemText}>🌐 Servicio VPN (Filtrado LOTBA):</Text>
-                    <Text style={[styles.permStatusText, perms.vpn ? styles.textGreen : styles.textRed]}>
-                      {perms.vpn ? '✓ Concedido' : '✕ Pendiente'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.permItemRow}>
-                    <Text style={styles.permItemText}>🔒 Accesibilidad (Antidesinstalación):</Text>
-                    <Text style={[styles.permStatusText, perms.accessibility ? styles.textGreen : styles.textRed]}>
-                      {perms.accessibility ? '✓ Concedido' : '⚠️ Pendiente'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.permItemRow}>
-                    <Text style={styles.permItemText}>🔔 Notificaciones en Primer Plano:</Text>
-                    <Text style={[styles.permStatusText, perms.notifications ? styles.textGreen : styles.textRed]}>
-                      {perms.notifications ? '✓ Concedido' : '✕ Pendiente'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.permItemRow}>
-                    <Text style={styles.permItemText}>🔋 Sin Optimización de Batería:</Text>
-                    <Text style={[styles.permStatusText, perms.batteryOptimization ? styles.textGreen : styles.textRed]}>
-                      {perms.batteryOptimization ? '✓ Concedido' : '⚠️ Pendiente'}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Botón para Desvincular con Dupla Confirmação */}
-              <View style={styles.deviceActionsRow}>
-                <TouchableOpacity
-                  style={styles.unbindButton}
-                  onPress={() => handleStartUnbind(dev)}
-                  activeOpacity={0.75}
-                >
-                  <Text style={styles.unbindButtonText}>🔗 Desvincular Dispositivo</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })
-      )}
-
-      {/* Modal de Doble Confirmación para Desvincular Dispositivo */}
-      <Modal
-        visible={!!unbindingDevice}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setUnbindingDevice(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {unbindStep === 1 ? (
-              <View>
-                <Text style={styles.modalEmoji}>🔗</Text>
-                <Text style={styles.modalTitle}>
-                  Confirmación 1 de 2: Desvincular Dispositivo
-                </Text>
-                <Text style={styles.modalBody}>
-                  ¿Deseas desvincular el dispositivo "{unbindingDevice?.deviceName}" (Protegido: {unbindingDevice?.childName || 'Protegido'})?
-                </Text>
-                <View style={styles.warningBox}>
-                  <Text style={styles.warningBoxText}>
-                    ⚠️ IMPORTANTE: Al desvincular el dispositivo, el motor de protección de red local se desactivará en dicho celular y dejará de recibir bloqueos LOTBA.
-                  </Text>
-                </View>
-
-                <ActionButton
-                  title="Entiendo las consecuencias, Continuar ➔"
-                  variant="primary"
-                  onPress={handleConfirmStep1}
-                />
-                <ActionButton
-                  title="Cancelar"
-                  variant="secondary"
-                  onPress={() => setUnbindingDevice(null)}
-                />
-              </View>
-            ) : (
-              <View>
-                <Text style={styles.modalEmoji}>⚠️</Text>
-                <Text style={styles.modalTitle}>
-                  Confirmación 2 de 2: Confirmar Desvinculación
-                </Text>
-                <Text style={styles.modalBody}>
-                  ¿Estás completamente seguro de eliminar permanentemente la vinculación de "{unbindingDevice?.deviceName}"?
-                </Text>
-
-                <ActionButton
-                  title="Desvincular dispositivo"
-                  variant="danger"
-                  loading={loadingUnbind}
-                  onPress={handleFinalUnbind}
-                />
-                <ActionButton
-                  title="Volver Atrás"
-                  variant="secondary"
-                  disabled={loadingUnbind}
-                  onPress={() => setUnbindStep(1)}
-                />
-              </View>
             )}
           </View>
         </View>
-      </Modal>
-    </View>
+
+        {/* LISTA DE DISPOSITIVOS PROTEGIDOS */}
+        {filteredDevices.length === 0 ? (
+          devices.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>
+                No hay celulares protegidos vinculados aún. Usa el botón + para vincular.
+              </Text>
+            </View>
+          ) : (
+            <Pressable
+              style={styles.emptyCard}
+              onPress={handleCloseSearch}
+            >
+              <Text style={styles.emptyText}>
+                No se encontraron dispositivos que coincidan con la búsqueda.
+              </Text>
+            </Pressable>
+          )
+        ) : (
+          filteredDevices.map((dev, idx) => (
+            <DeviceCard
+              key={dev.deviceId || dev.deviceUuid}
+              device={dev}
+              index={dev.colorIndex ?? idx}
+              isSelf={false}
+              onEdit={handleEditDevice}
+              onUnbind={(d) => setUnbindingDevice(d)}
+              onAuditPermissions={handleAuditPermissions}
+              isAuditing={auditingDeviceId === dev.deviceId}
+              onOpenPermissions={onOpenPermissions}
+            />
+          ))
+        )}
+
+        {/* Modal 1: Editar Perfil del Responsable (desde Cuenta) */}
+        <EditResponsibleModal
+          visible={isEditingSelf}
+          currentUser={responsibleUserData}
+          onClose={() => setIsEditingSelf(false)}
+          onSave={handleSaveResponsible}
+        />
+
+        {/* Modal 2: Editar Dispositivo Protegido (estilo y reglas de Pairing) */}
+        <EditProtectedDeviceModal
+          visible={!!editingProtectedDevice}
+          device={editingProtectedDevice}
+          onClose={() => setEditingProtectedDevice(null)}
+          onSaveSuccess={(savedName) => {
+            const devName = savedName || editingProtectedDevice?.childName || 'este dispositivo';
+            setEditingProtectedDevice(null);
+            if (onRefreshList) {
+              onRefreshList();
+            }
+            showFeedback({
+              icon: '✅',
+              title: 'Datos actualizados',
+              message: `Los datos del protegido "${devName}" fueron actualizados correctamente.`,
+            });
+          }}
+        />
+
+        {/* Modal 3: Doble Confirmación de Desvinculación */}
+        <UnbindConfirmationModal
+          visible={!!unbindingDevice}
+          device={unbindingDevice}
+          onClose={() => setUnbindingDevice(null)}
+          onSuccess={(deviceId) => {
+            const devName = unbindingDevice?.childName || unbindingDevice?.deviceName || 'este dispositivo';
+            setUnbindingDevice(null);
+            if (onUnbindDevice) {
+              onUnbindDevice(deviceId);
+            }
+            if (onRefreshList) {
+              onRefreshList();
+            }
+            showFeedback({
+              icon: '📱',
+              title: 'Dispositivo desvinculado',
+              message: `El celular de "${devName}" fue desvinculado correctamente.`,
+            });
+          }}
+        />
+
+        {/* Modal 4: Gestión y Doble Confirmación de Autocontrol */}
+        <AutocontrolConfirmationModal
+          visible={autocontrolModalVisible}
+          mode={autocontrolModalMode}
+          selfControl={resolvedSelfControl}
+          onClose={() => setAutocontrolModalVisible(false)}
+          onActivate={handleActivateSelfControl}
+          onRequestDeactivation={handleConfirmDeactivation}
+          onConfirmDeactivation={handleConfirmDeactivation}
+          onReactivate={handleActivateSelfControl}
+        />
+
+        {/* Modal Estándar de Retroalimentación del App */}
+        <FeedbackModal
+          visible={feedbackModal.visible}
+          icon={feedbackModal.icon}
+          title={feedbackModal.title}
+          message={feedbackModal.message}
+          buttonText="Entendido"
+          onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+        />
+      </View>
+    </Pressable>
   );
 };

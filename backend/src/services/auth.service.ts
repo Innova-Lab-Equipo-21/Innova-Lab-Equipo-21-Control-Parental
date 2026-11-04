@@ -31,6 +31,13 @@ export interface LoginUserInput {
   password: string;
 }
 
+export interface GoogleAuthInput {
+  idToken?: string;
+  email: string;
+  fullName?: string;
+  photoUrl?: string;
+}
+
 export class AuthService {
   /**
    * Registra un nuevo usuario responsable (padre/tutor) en el sistema.
@@ -81,7 +88,9 @@ export class AuthService {
           id: firebaseUser.uid, // Guardamos el UID de Firebase en la DB relacional
           email: cleanEmail,
           fullName: computedFullName,
-          gender: (input.gender ? input.gender.toUpperCase().replace(/\s+/g, '_') : undefined) as Gender | undefined,
+          gender: (input.gender ? input.gender.toUpperCase().replace(/\s+/g, '_') : undefined) as
+            | Gender
+            | undefined,
           birthDate: input.birthDate ? new Date(input.birthDate) : null,
           phone: input.phone || null,
           isActive: true,
@@ -183,17 +192,14 @@ export class AuthService {
    */
   public async refreshToken(refreshToken: string) {
     const apiKey = env.FIREBASE_API_KEY;
-    const response = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/token?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          grant_type: 'refresh_token',
-          refresh_token: refreshToken,
-        }),
-      }
-    );
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/token?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      }),
+    });
     const data = (await response.json()) as any;
 
     if (!response.ok) {
@@ -268,6 +274,144 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Autenticación o registro unificado con Google Sign-In.
+   * Verifica el ID Token de Firebase y devuelve el perfil del usuario.
+   * El token de Firebase ya viene del cliente, no se genera uno nuevo.
+   */
+  public async googleLogin(input: GoogleAuthInput) {
+    let email = input.email?.trim().toLowerCase();
+    let fullName = input.fullName?.trim();
+    let firebaseToken = input.idToken;
+
+    // Si se envía idToken, se verifica con Firebase para mayor integridad
+    if (input.idToken) {
+      try {
+        const decoded = await auth.verifyIdToken(input.idToken);
+        if (decoded && decoded.email) {
+          email = decoded.email.toLowerCase();
+          if (!fullName && (decoded.name || decoded.given_name)) {
+            fullName =
+              decoded.name || `${decoded.given_name || ''} ${decoded.family_name || ''}`.trim();
+          }
+          firebaseToken = input.idToken;
+        }
+      } catch {
+        // En caso de no poder verificar, se utilizan los datos recibidos
+      }
+    }
+
+    if (!email) {
+      throw new AppError('El correo electrónico de Google es requerido', 400);
+    }
+
+    const computedFullName = fullName || 'Responsable Google';
+
+    if (env.USE_MOCK_DATA) {
+      let user = mockDb.users.find((u) => u.email === email);
+      if (!user) {
+        user = {
+          id: `usr-google-${Date.now()}`,
+          email,
+          fullName: computedFullName,
+          isActive: true,
+          createdAt: new Date(),
+        };
+        mockDb.users.push(user);
+      }
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          createdAt: user.createdAt,
+          isGoogleLinked: true,
+        },
+        token: firebaseToken || '',
+      };
+    }
+
+    let user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          fullName: computedFullName,
+          isActive: true,
+        },
+      });
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        createdAt: user.createdAt,
+        isGoogleLinked: true,
+      },
+      token: firebaseToken || '',
+    };
+  }
+
+  /**
+   * Vincula una cuenta ya existente de responsable con una credencial de Google.
+   * Verifica el ID Token de Firebase para obtener el email.
+   */
+  public async googleLink(userId: string, input: GoogleAuthInput) {
+    let email = input.email?.trim().toLowerCase();
+    if (input.idToken) {
+      try {
+        const decoded = await auth.verifyIdToken(input.idToken);
+        if (decoded && decoded.email) {
+          email = decoded.email.toLowerCase();
+        }
+      } catch {}
+    }
+
+    if (!email) {
+      throw new AppError('El correo electrónico de Google es requerido para la vinculación', 400);
+    }
+
+    if (env.USE_MOCK_DATA) {
+      const user = mockDb.users.find((u) => u.id === userId);
+      if (!user) {
+        throw new AppError('Usuario no encontrado', 404);
+      }
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          createdAt: user.createdAt,
+          isGoogleLinked: true,
+        },
+      };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AppError('Usuario no encontrado', 404);
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        createdAt: user.createdAt,
+        isGoogleLinked: true,
+      },
+    };
   }
 }
 

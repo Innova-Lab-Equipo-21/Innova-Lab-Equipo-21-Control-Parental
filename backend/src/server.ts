@@ -16,7 +16,7 @@ async function bootstrap(): Promise<void> {
   const app = createApp();
   const port = env.PORT;
 
-  app.listen(port, () => {
+  app.listen(port, '0.0.0.0', () => {
     console.log('====================================================');
     console.log(`🚀 Servidor BA Protege+ ejecutándose en el puerto ${port}`);
     console.log(`🌐 Entorno: ${env.NODE_ENV}`);

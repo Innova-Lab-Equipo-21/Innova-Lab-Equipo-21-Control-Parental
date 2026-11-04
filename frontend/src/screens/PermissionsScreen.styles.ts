@@ -2,18 +2,19 @@
 // Proyecto: BA Protege+
 // Componente: PermissionsScreen Styles
 // Archivo: src/screens/PermissionsScreen.styles.ts
-// Descripción: Estilos visuales para la pantalla de configuración de permisos del dispositivo.
+// Descripción: Estilos visuales con encabezado institucional estándar (idéntico a
+//              Elegir protección) y distribución uniforme de tarjetas para ocupar
+//              todo el alto de la pantalla sin scroll en reposo.
 // ==============================================================================
 
 import { StyleSheet, Platform } from 'react-native';
-import { colors } from '../theme/colors';
 
 export const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  // Top Header Bar con logo_baprotege_texto.png y fondo #EAF3FF
+  // Top Header Bar institucional estándar (idéntico a Elegir protección)
   topHeaderBar: {
     backgroundColor: '#EAF3FF',
     paddingHorizontal: 16,
@@ -26,7 +27,7 @@ export const styles = StyleSheet.create({
     height: 36,
     resizeMode: 'contain',
   },
-  // Subheader con botón volver y título "Permisos del Dispositivo"
+  // Subheader estándar con botón volver y título de 22px
   subHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -59,69 +60,66 @@ export const styles = StyleSheet.create({
     flex: 1,
     letterSpacing: -0.3,
   },
-  moreButton: {
-    padding: 4,
-  },
-  moreIconText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  // Contenido con scroll
+  // Contenido principal que llena el espacio
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
+    flexGrow: 1,
+    justifyContent: 'space-between',
   },
-  // Banner / Tarjeta de información azul (Estilo CARD 1 de WelcomeScreen)
+  // Banner de información azul institucional
   infoBox: {
     backgroundColor: '#F0F7FF',
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 2,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1.5,
     borderColor: '#007AFF',
-    marginBottom: 16,
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 4,
   },
   infoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 3,
   },
   infoIcon: {
-    marginRight: 10,
+    marginRight: 8,
   },
   infoTitle: {
-    fontSize: 18,
+    fontSize: 14.5,
     fontWeight: '700',
     color: '#007AFF',
   },
   infoDescription: {
-    fontSize: 13.5,
+    fontSize: 12,
     color: '#1C1C1E',
-    lineHeight: 19,
+    lineHeight: 16.5,
+  },
+  // Contenedor de tarjetas distribuido uniformemente en el espacio vertical
+  cardsContainer: {
+    flex: 1,
+    justifyContent: 'space-between',
+    marginVertical: 8,
+    gap: 8,
   },
   // Tarjetas de Permisos individuales
   permCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 5,
+        shadowOffset: { width: 0, height: 1.5 },
+        shadowOpacity: 0.06,
+        shadowRadius: 3,
       },
       android: {
-        elevation: 2.5,
+        elevation: 2,
       },
     }),
   },
@@ -132,74 +130,92 @@ export const styles = StyleSheet.create({
   },
   permTextColumn: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 10,
   },
   permTitle: {
-    fontSize: 14.5,
+    fontSize: 14,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   permSubtitle: {
     fontSize: 11,
     color: '#8E8E93',
-    lineHeight: 15,
+    lineHeight: 14,
   },
   permRightColumn: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  // Pill badges de estado
-  statusBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  statusBadgeInactive: {
-    backgroundColor: '#F0F0F2',
-  },
-  statusBadgeActive: {
-    backgroundColor: '#D7F5DD',
-  },
-  statusBadgeText: {
-    fontSize: 12.5,
-    fontWeight: '600',
-  },
-  statusBadgeTextInactive: {
-    color: '#8E8E93',
-  },
-  statusBadgeTextActive: {
-    color: '#16A34A',
-    fontWeight: '700',
+  toggleWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chevronIcon: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#007AFF',
     fontWeight: '700',
-    marginLeft: 8,
-    width: 16,
+    marginLeft: 2,
+    width: 14,
     textAlign: 'center',
   },
   // Sección expandida
   expandedSection: {
-    marginTop: 12,
+    marginTop: 10,
   },
   cardDivider: {
     height: 1,
     backgroundColor: '#E5E7EB',
-    marginBottom: 12,
-  },
-  expandedPromptText: {
-    fontSize: 11,
-    color: '#8E8E93',
-    lineHeight: 15,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   expandedDetailedText: {
     fontSize: 12,
     color: '#4B5563',
     lineHeight: 17,
-    marginBottom: 12,
+    marginBottom: 10,
+  },
+  // Bloque de pasos para activar
+  stepsContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 10,
+    marginBottom: 10,
+  },
+  stepsTitle: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 6,
+    letterSpacing: 0.3,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 5,
+  },
+  stepNumberBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#E7F1FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+    marginTop: 1,
+  },
+  stepNumberText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 11.5,
+    color: '#334155',
+    lineHeight: 16,
   },
   actionButtonRow: {
     marginTop: 4,
@@ -207,15 +223,16 @@ export const styles = StyleSheet.create({
   activeNotice: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#F0FDF4',
     borderWidth: 1,
     borderColor: '#BBF7D0',
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   activeNoticeText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '600',
     color: '#16A34A',
   },
@@ -225,51 +242,30 @@ export const styles = StyleSheet.create({
     borderColor: '#007AFF',
     borderWidth: 1,
     borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
+    padding: 8,
+    marginBottom: 10,
   },
   locationBoxLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#007AFF',
     marginBottom: 2,
   },
   locationBoxValue: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '600',
     color: '#1E293B',
   },
   // Sección Inferior (Footer Buttons)
   footerSection: {
-    marginTop: 16,
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
-  continueButton: {
-    height: 50,
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#007AFF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  continueButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.3,
-  },
-  demoButton: {
-    height: 44,
+  backButtonSecondary: {
+    flex: 1,
+    height: 48,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1.5,
@@ -277,9 +273,36 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  demoButtonText: {
-    fontSize: 14,
+  backButtonSecondaryText: {
+    fontSize: 15,
     fontWeight: '700',
     color: '#007AFF',
+  },
+  continueButton: {
+    flex: 1,
+    height: 48,
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#007AFF',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2.5,
+      },
+    }),
+  },
+  continueButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+    textAlign: 'center',
   },
 });

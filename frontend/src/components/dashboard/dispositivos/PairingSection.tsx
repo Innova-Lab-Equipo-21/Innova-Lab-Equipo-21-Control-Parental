@@ -2,11 +2,12 @@
 // Proyecto: BA Protege+
 // Componente: PairingSection (Vinculación de Dispositivos y Código QR)
 // Archivo: src/components/dashboard/dispositivos/PairingSection.tsx
-// Descripción: Formulario de vinculación con Fecha de Nacimiento arriba de Tipo,
-//              tipo calculado automáticamente, y calendario integrado dentro del textfield (estilo RegisterForm).
+// Descripción: Formulario de vinculación con campos en blanco (sin datos mocados),
+//              CTA "Generar código", íconos específicos para compartir y recargar código,
+//              y calendario integrado dentro del textfield (estilo RegisterForm).
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle } from 'react';
 import {
   View,
   Text,
@@ -42,6 +43,12 @@ export interface PairingFormData {
   deviceModel?: string;
 }
 
+export interface PairingSectionRef {
+  submit: () => PairingFormData | null;
+  reset: () => void;
+  getFormData: () => PairingFormData | null;
+}
+
 interface PairingSectionProps {
   pairingCode: string | null;
   deviceCount: number;
@@ -49,17 +56,18 @@ interface PairingSectionProps {
   onGenerateCode: (data?: PairingFormData) => void;
 }
 
-export const PairingSection: React.FC<PairingSectionProps> = ({
+export const PairingSection = React.forwardRef<PairingSectionRef, PairingSectionProps>(({
   pairingCode,
   deviceCount,
   loading,
   onGenerateCode,
-}) => {
-  const [protectedName, setProtectedName] = useState('Sofía');
-  const [genero, setGenero] = useState<GenderOption>('Femenino');
-  const [birthDate, setBirthDate] = useState('15/05/2012');
-  const [protectedType, setProtectedType] = useState<'Menor' | 'Adulto' | null>('Menor');
-  const [protectedPhone, setProtectedPhone] = useState('11 2345-6789');
+}, ref) => {
+  // Sin datos mocados: todos los campos inician limpios
+  const [protectedName, setProtectedName] = useState('');
+  const [genero, setGenero] = useState<GenderOption | ''>('');
+  const [birthDate, setBirthDate] = useState('');
+  const [protectedType, setProtectedType] = useState<'Menor' | 'Adulto' | null>(null);
+  const [protectedPhone, setProtectedPhone] = useState('');
   const [deviceModel, setDeviceModel] = useState('');
 
   // Estados de UI
@@ -93,12 +101,15 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
 
   const handleOpenDatePicker = () => {
     if (Platform.OS === 'android') {
-      let currentDate = new Date(2012, 4, 15);
+      let currentDate = new Date();
       if (birthDate && birthDate.length === 10) {
         const [d, m, y] = birthDate.split('/').map(Number);
         if (d && m && y && !isNaN(d) && !isNaN(m) && !isNaN(y)) {
           currentDate = new Date(y, m - 1, d);
         }
+      } else {
+        const now = new Date();
+        currentDate = new Date(now.getFullYear() - 10, now.getMonth(), now.getDate());
       }
       try {
         DateTimePickerAndroid.open({
@@ -126,7 +137,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
     }
   };
 
-  const handleValidationAndGenerate = () => {
+  const handleValidationAndGenerate = (): PairingFormData | null => {
     const newErrors: {
       protectedName?: string;
       genero?: string;
@@ -178,19 +189,51 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
 
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0 || !protectedType) {
-      return;
+    if (Object.keys(newErrors).length > 0 || !protectedType || !genero) {
+      return null;
     }
 
-    onGenerateCode({
+    const payload: PairingFormData = {
       protectedName: trimmedName,
-      genero,
+      genero: genero as GenderOption,
       protectedType,
       birthDate: trimmedBirth,
       protectedPhone: protectedPhone.trim(),
       deviceModel: deviceModel.trim() || undefined,
-    });
+    };
+
+    onGenerateCode(payload);
+    return payload;
   };
+
+  useImperativeHandle(ref, () => ({
+    submit: () => handleValidationAndGenerate(),
+    reset: () => {
+      setProtectedName('');
+      setGenero('');
+      setBirthDate('');
+      setProtectedType(null);
+      setProtectedPhone('');
+      setDeviceModel('');
+      setErrors({});
+      setIsGenderDropdownOpen(false);
+    },
+    getFormData: () => {
+      const trimmedName = protectedName.trim();
+      const trimmedBirth = birthDate.trim();
+      if (!trimmedName || !genero || !protectedType || !trimmedBirth || !protectedPhone.trim()) {
+        return null;
+      }
+      return {
+        protectedName: trimmedName,
+        genero: genero as GenderOption,
+        protectedType,
+        birthDate: trimmedBirth,
+        protectedPhone: protectedPhone.trim(),
+        deviceModel: deviceModel.trim() || undefined,
+      };
+    },
+  }));
 
   const handleShareCode = async () => {
     if (!pairingCode) return;
@@ -230,6 +273,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
               errors.protectedName ? styles.inputErrorBorder : null,
             ]}
             value={protectedName}
+            selectTextOnFocus={true}
             onChangeText={(text) => {
               setProtectedName(text);
               if (errors.protectedName) {
@@ -250,12 +294,22 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
             Género<Text style={styles.requiredAsterisk}>*</Text>
           </Text>
           <TouchableOpacity
-            style={styles.dropdownContainer}
+            style={[
+              styles.dropdownContainer,
+              errors.genero ? styles.inputErrorBorder : null,
+            ]}
             onPress={() => setIsGenderDropdownOpen((prev) => !prev)}
             activeOpacity={0.8}
             accessibilityLabel="Seleccionar género"
           >
-            <Text style={styles.dropdownSelectedText}>{genero}</Text>
+            <Text
+              style={[
+                styles.dropdownSelectedText,
+                !genero && styles.dropdownPlaceholderText,
+              ]}
+            >
+              {genero || 'Seleccionar género'}
+            </Text>
             <Text style={styles.dropdownArrow}>{isGenderDropdownOpen ? '▲' : '▼'}</Text>
           </TouchableOpacity>
 
@@ -311,6 +365,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
             <TextInput
               style={styles.inputNoBorder}
               value={birthDate}
+              selectTextOnFocus={true}
               onChangeText={(text) => {
                 const formatted = formatBirthDate(text);
                 setBirthDate(formatted);
@@ -337,7 +392,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
           )}
         </View>
 
-        {/* Campo 4: Tipo (*) - Seleccionado automáticamente por fecha de nacimiento */}
+        {/* Campo 4: Tipo (*) - Determinado automáticamente según fecha de nacimiento */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>
             Tipo<Text style={styles.requiredAsterisk}>*</Text>
@@ -359,17 +414,12 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
                       isSelected && styles.typeChipTextSelected,
                     ]}
                   >
-                    {type === 'Menor' ? 'Menor' : 'Adulto'}
+                    {type}
                   </Text>
                 </View>
               );
             })}
           </View>
-          {protectedType === null && (
-            <Text style={[styles.errorText, { color: colors.textMuted }]}>
-              ℹ️ Ingrese una fecha de nacimiento válida para determinar el tipo automáticamente.
-            </Text>
-          )}
           {errors.protectedType && (
             <Text style={styles.errorText}>⚠️ {errors.protectedType}</Text>
           )}
@@ -386,6 +436,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
               errors.protectedPhone ? styles.inputErrorBorder : null,
             ]}
             value={protectedPhone}
+            selectTextOnFocus={true}
             onChangeText={(text) => {
               const formatted = formatPhone(text);
               setProtectedPhone(formatted);
@@ -411,6 +462,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
           <TextInput
             style={styles.input}
             value={deviceModel}
+            selectTextOnFocus={true}
             onChangeText={setDeviceModel}
             placeholder="Ej: Samsung Galaxy A54"
             placeholderTextColor={colors.textMuted}
@@ -418,12 +470,12 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
         </View>
       </View>
 
-      {/* MUESTRA DE CÓDIGO, QR Y BOTÓN COMPARTIR */}
+      {/* MUESTRA DE CÓDIGO, QR Y ACCIONES POR ÍCONOS */}
       {pairingCode ? (
         <View style={styles.codeDisplayCard}>
           <View style={styles.codeDisplay}>
             <Text style={styles.protectedSummaryText}>
-              Vinculando a: {protectedName} ({protectedType || 'Pendiente'})
+              Vinculando a: {protectedName.trim() || 'Nuevo protegido'} ({protectedType || 'Pendiente'})
             </Text>
             <Text style={styles.codeNumber}>{pairingCode}</Text>
           </View>
@@ -431,7 +483,7 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
           <View style={styles.qrCodeBox}>
             <Text style={styles.qrTitle}>Código QR de vinculación</Text>
             <Text style={styles.qrSubtitle}>
-              Apunta la cámara del celular de {protectedName || 'del protegido'} aquí para vincular
+              Apunta la cámara del celular de {protectedName.trim() || 'del protegido'} aquí para vincular
             </Text>
 
             <View style={styles.qrImageContainer}>
@@ -444,25 +496,47 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
               />
             </View>
 
-            {/* BOTÓN PARA COMPARTIR EL CÓDIGO */}
-            <View style={styles.shareContainer}>
-              <ActionButton
-                title="Compartir código"
-                variant="primary"
+            {/* ACCIONES ESPECÍFICAS CON ÍCONOS: Generar nuevo código y Compartir código */}
+            <View style={styles.codeActionsRow}>
+              <TouchableOpacity
+                style={styles.actionIconButton}
+                onPress={handleValidationAndGenerate}
+                disabled={loading}
+                activeOpacity={0.7}
+                accessibilityLabel="Generar nuevo código"
+              >
+                <View style={styles.actionIconCircle}>
+                  <Icon name="recargar" size={22} color={colors.primary} />
+                </View>
+                <Text style={styles.actionIconLabel}>Generar nuevo código</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionIconButton}
                 onPress={handleShareCode}
-              />
+                activeOpacity={0.7}
+                accessibilityLabel="Compartir código"
+              >
+                <View style={styles.actionIconCircle}>
+                  <Icon name="compartir" size={22} color={colors.primary} />
+                </View>
+                <Text style={styles.actionIconLabel}>Compartir código</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
       ) : null}
 
-      <ActionButton
-        title={pairingCode ? 'Generar nuevo código' : 'Generar código y QR de vinculación'}
-        variant="primary"
-        onPress={handleValidationAndGenerate}
-        loading={loading}
-        disabled={deviceCount >= MAX_PROTECTED_DEVICES}
-      />
+      {/* CTA: Generar código (visible cuando aún no se ha generado el código) */}
+      {!pairingCode && (
+        <ActionButton
+          title="Generar código"
+          variant="primary"
+          onPress={handleValidationAndGenerate}
+          loading={loading}
+          disabled={deviceCount >= MAX_PROTECTED_DEVICES}
+        />
+      )}
 
       {/* Modal de Selección de Calendario */}
       <DatePickerModal
@@ -478,4 +552,4 @@ export const PairingSection: React.FC<PairingSectionProps> = ({
       />
     </View>
   );
-};
+});

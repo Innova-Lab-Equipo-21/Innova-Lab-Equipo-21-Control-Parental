@@ -54,6 +54,33 @@ describe('Gestión y Bloqueo de Aplicaciones (Modo Responsable)', () => {
     assert.deepEqual(res.data.deviceIds, targetDevices);
   });
 
+  test('DEVICE LIMITS: Debe permitir configurar límites de tiempo diarios específicos por dispositivo con fallback a Bloqueo total', async () => {
+    const appName = 'Instagram Limit Test';
+    const packageName = `com.instagram.test.${Date.now()}`;
+    const deviceIds = ['self', 'dev-mateo-123', 'dev-sofia-456'];
+    const deviceLimits = {
+      self: undefined, // Bloqueo total
+      'dev-mateo-123': 60, // 1 hora
+      'dev-sofia-456': 300, // 5 horas
+    };
+
+    const res = await apiService.addCustomBlockedApp(
+      appName,
+      packageName,
+      'Redes sociales',
+      false,
+      deviceIds,
+      undefined,
+      deviceLimits
+    );
+
+    assert.equal(res.success, true);
+    assert.deepEqual(res.data.deviceLimits, deviceLimits);
+    assert.equal(res.data.deviceLimits?.['self'], undefined);
+    assert.equal(res.data.deviceLimits?.['dev-mateo-123'], 60);
+    assert.equal(res.data.deviceLimits?.['dev-sofia-456'], 300);
+  });
+
   test('UPDATE: Debe permitir pausar y reanudar el bloqueo de una aplicación (isActive)', async () => {
     const appName = `App Toggle ${Date.now()}`;
     const created = await apiService.addCustomBlockedApp(
@@ -88,6 +115,31 @@ describe('Gestión y Bloqueo de Aplicaciones (Modo Responsable)', () => {
 
     const listRes = await apiService.getCustomBlocklist();
     assert.ok(!listRes.data.apps?.some((a) => a.id === created.data.id));
+  });
+
+  test('UPDATE: Debe permitir modificar los límites de tiempo diarios específicos por dispositivo', async () => {
+    const appName = `App Edit Limits ${Date.now()}`;
+    const created = await apiService.addCustomBlockedApp(
+      appName,
+      `com.editlimits.${Date.now()}`,
+      'Redes sociales',
+      false,
+      ['self', 'dev-1'],
+      undefined,
+      { self: undefined, 'dev-1': 30 }
+    );
+
+    // Modificar límites por dispositivo
+    const updated = await apiService.updateCustomBlockedApp(created.data.id, {
+      deviceLimits: {
+        self: 120, // Actualizado a 2 horas
+        'dev-1': undefined, // Actualizado a Bloqueo total
+      },
+    });
+
+    assert.equal(updated.success, true);
+    assert.equal(updated.data.deviceLimits?.['self'], 120);
+    assert.equal(updated.data.deviceLimits?.['dev-1'], undefined);
   });
 
   test('USAGE STATS: Debe consultar las estadísticas de tiempo de uso de aplicaciones', async () => {

@@ -24,6 +24,7 @@ import { PrivacyModal } from './PrivacyModal';
 import { colors } from '../../theme/colors';
 import { apiService } from '../../services/api.service';
 import { validateEmailFormat } from '../../utils/authValidation';
+import { signInWithGoogle, statusCodes } from '../../services/googleAuth.service';
 
 export type AuthViewMode = 'LOGIN' | 'RECOVERY' | 'REGISTER';
 
@@ -92,15 +93,46 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     }
   };
 
-  const handleGoogleLogin = () => {
-    Alert.alert(
-      'Google Sign-In',
-      'Iniciando sesión segura con tu cuenta de Google...',
-    );
-    onLoginSuccess(
-      { email: 'tutor.google@baprotege.gob.ar', fullName: 'Tutor Google' },
-      'google-oauth-token-123'
-    );
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const googleUser = await signInWithGoogle();
+      if (!googleUser) {
+        return;
+      }
+
+      const res = await apiService.googleAuth({
+        idToken: googleUser.idToken || undefined,
+        email: googleUser.user.email,
+        fullName: googleUser.user.name || undefined,
+        photoUrl: googleUser.user.photo || undefined,
+      });
+
+      if (res.data?.token) {
+        try {
+          // @ts-ignore
+          const messagingModule: any = await import('@react-native-firebase/messaging');
+          const messaging = messagingModule.default || messagingModule;
+          const fcmToken = await messaging().getToken();
+          if (fcmToken) {
+            await apiService.registerFcmToken(fcmToken);
+          }
+        } catch {
+          // FCM opcional
+        }
+
+        onLoginSuccess(res.data.user, res.data.token);
+      }
+    } catch (error: any) {
+      if (error?.code === statusCodes?.SIGN_IN_CANCELLED) {
+        return;
+      }
+      const msg = error.response?.data?.message || error.message || 'Error al iniciar sesión con Google.';
+      setErrorMessage(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

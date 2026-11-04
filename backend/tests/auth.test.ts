@@ -156,4 +156,23 @@ describe('Módulo de Autenticación (Auth API)', () => {
     assert.equal(data.success, true);
     assert.ok(data.message);
   });
+
+  test('POST /api/auth/google debe autenticar o registrar usuario con Google', async () => {
+    const googleEmail = `google.${Date.now()}@example.com`;
+    const res = await fetch(`${baseUrl}/api/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: googleEmail,
+        fullName: 'Usuario Google Test',
+      }),
+    });
+
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.ok(data.data.token);
+    assert.equal(data.data.user.email, googleEmail);
+    assert.equal(data.data.user.fullName, 'Usuario Google Test');
+  });
 });

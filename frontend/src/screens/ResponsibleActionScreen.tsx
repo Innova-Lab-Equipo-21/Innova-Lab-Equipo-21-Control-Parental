@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { Icon } from '../components/Icon';
 import { colors } from '../theme/colors';
-import { ResponsibleHelpModal } from '../components/modals/ResponsibleHelpModal';
+import { ResponsibleHelpModal } from '../components/auth/ResponsibleHelpModal';
 import { styles } from './ResponsibleActionScreen.styles';
 
 interface ResponsibleActionScreenProps {

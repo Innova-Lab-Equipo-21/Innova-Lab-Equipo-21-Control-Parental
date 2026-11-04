@@ -24,6 +24,7 @@ enum Gender {
   FEMENINO
   OTRO
   NO_INFORMADO
+  directUrl = env("DIRECT_URL")
 }
 
 // ------------------------------------------------------------------------------
@@ -74,6 +75,12 @@ model User {
   phone     String?
   fcmToken  String?   @map("fcm_token")
   isActive  Boolean   @default(true) @map("is_active")
+
+  // Regla 2: Autocontrol (El Responsable se autocontrola y aguarda 24h para desbloqueo)
+  selfControlActive       Boolean         @default(false) @map("self_control_active")
+  selfControlEnabledAt    DateTime?       @map("self_control_enabled_at")
+  deactivationRequestedAt DateTime?       @map("deactivation_requested_at")
+
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 

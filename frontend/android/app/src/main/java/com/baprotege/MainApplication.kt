@@ -2,6 +2,7 @@ package com.baprotege
 
 import android.app.Application
 import com.baprotege.bridge.ProtectionPackage
+import com.reactnativegooglesignin.RNGoogleSigninPackage
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -20,6 +21,9 @@ class MainApplication : Application(), ReactApplication {
             override fun getPackages(): List<ReactPackage> =
                 PackageList(this).packages.apply {
                     add(ProtectionPackage())
+                    if (none { it is RNGoogleSigninPackage }) {
+                        add(RNGoogleSigninPackage())
+                    }
                 }
 
             override fun getJSMainModuleName(): String = "index"

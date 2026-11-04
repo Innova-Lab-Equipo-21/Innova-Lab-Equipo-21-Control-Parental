@@ -2,7 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: ProtectedDevicesSection Styles
 // Archivo: src/components/dashboard/dispositivos/ProtectedDevicesSection.styles.ts
-// Descripción: Estilos visuales para la auditoría y gestión de dispositivos protegidos.
+// Descripción: Estilos visuales para la auditoría, datos cadastrales y gestión de dispositivos protegidos.
 // ==============================================================================
 
 import { StyleSheet } from 'react-native';
@@ -12,6 +12,41 @@ export const styles = StyleSheet.create({
   container: {
     paddingVertical: 4,
   },
+  searchRow: {
+    width: '100%',
+    marginBottom: 8,
+  },
+  searchContainer: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 40,
+  },
+  searchIconPrefix: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  searchInputCompact: {
+    flex: 1,
+    fontSize: 12.5,
+    color: colors.textPrimary,
+    paddingVertical: 0,
+    height: '100%',
+  },
+  clearSearchBtn: {
+    padding: 4,
+  },
+  clearSearchText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  // Compatibilidad hacia atrás
   searchInput: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -55,13 +90,30 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
+  sectionHeaderContainer: {
+    marginBottom: 6,
+    marginTop: 2,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.2,
+  },
+  protectedSectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
   countRow: {
     marginBottom: 8,
   },
   countText: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '500',
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
@@ -79,28 +131,147 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 14,
-    marginVertical: 4,
+    marginVertical: 5,
     borderWidth: 1,
     borderColor: colors.borderLight,
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   deviceHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  },
+  deviceAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  deviceAvatarIcon: {
+    fontSize: 18,
   },
   deviceTitleCol: {
     flex: 1,
     paddingRight: 8,
+  },
+  deviceNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   deviceName: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  deviceInfo: {
-    fontSize: 12,
+  deviceBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  deviceBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  headerControlsCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerBadge: {
+    alignSelf: 'center',
+    marginRight: 2,
+  },
+  headerTopActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  iconButton: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deviceFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  autoprotectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  autoprotectionLabel: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  cadastralBox: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  cadastralHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
+  },
+  cadastralTitle: {
+    fontSize: 10.5,
+    fontWeight: '700',
     color: colors.textSecondary,
-    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  cadastralGrid: {
+    gap: 4,
+  },
+  cadastralRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 2,
+  },
+  cadastralCol: {
+    flex: 1,
+    paddingRight: 4,
+  },
+  cadastralLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  cadastralValue: {
+    fontSize: 11.5,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    marginTop: 1,
   },
   permSummaryRow: {
     flexDirection: 'row',
@@ -125,6 +296,26 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: colors.primary,
+  },
+  expandArrowOnly: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+    paddingHorizontal: 4,
+  },
+  cadastralSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  cadastralBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   permDetailBox: {
     backgroundColor: colors.background,
@@ -160,25 +351,154 @@ export const styles = StyleSheet.create({
   textRed: {
     color: colors.statusDanger,
   },
-  deviceActionsRow: {
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-    alignItems: 'flex-end',
+  permAuditHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
   },
-  unbindButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#FFF5F5',
+  permAuditTimestamp: {
+    fontSize: 10.5,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  permWarningBox: {
+    backgroundColor: '#FFF3CD',
+    borderColor: '#FFEEBA',
     borderWidth: 1,
-    borderColor: '#F8D7DA',
+    borderRadius: 8,
+    padding: 8,
+    marginVertical: 6,
   },
-  unbindButtonText: {
+  permWarningText: {
+    fontSize: 11,
+    color: '#856404',
+    lineHeight: 15,
+    fontWeight: '500',
+  },
+  permSuccessBox: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#C8E6C9',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+    marginVertical: 6,
+  },
+  permSuccessText: {
+    fontSize: 11,
+    color: '#2E7D32',
+    lineHeight: 15,
+    fontWeight: '500',
+  },
+  auditPermsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
+  },
+  auditPermsBtnText: {
     fontSize: 11.5,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  auditAttentionTag: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  auditAttentionTagText: {
+    fontSize: 10,
     fontWeight: '700',
     color: colors.statusDanger,
+  },
+
+  // Sección de Autocontrol dentro del Card del Responsable
+  selfControlBox: {
+    backgroundColor: '#F0F6FF',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#B6D4FE',
+  },
+  selfControlHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#D0E2FF',
+  },
+  selfControlTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  selfControlTitle: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#0056B3',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  selfControlDesc: {
+    fontSize: 11.5,
+    color: colors.textSecondary,
+    lineHeight: 16,
+    marginBottom: 8,
+  },
+  selfControlActionRow: {
+    marginTop: 2,
+  },
+  selfControlBtnPrimary: {
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selfControlBtnTextPrimary: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  selfControlBtnDanger: {
+    backgroundColor: '#DC3545',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selfControlBtnTextDanger: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  selfControlBtnDisabled: {
+    backgroundColor: '#E9ECEF',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#CED4DA',
+  },
+  selfControlBtnTextDisabled: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
@@ -190,6 +510,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
+    maxHeight: '92%',
   },
   modalEmoji: {
     fontSize: 32,
@@ -224,5 +545,148 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 16,
+  },
+
+  // Estilos del Modal de Edición de Dispositivo
+  editModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  editModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  editCloseBtn: {
+    padding: 4,
+  },
+  editCloseBtnText: {
+    fontSize: 18,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  editFormGroup: {
+    marginBottom: 10,
+  },
+  editFormLabel: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  editFormInput: {
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  dateInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+  },
+  dateInputFlex: {
+    flex: 1,
+    paddingVertical: 7,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  genderOptionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2,
+  },
+  genderChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  genderChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  genderChipText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  genderChipTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  typeOptionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 2,
+  },
+  typeChip: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  typeChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  typeChipText: {
+    fontSize: 11.5,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  typeChipTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  editModalButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  editCancelBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#E9ECEF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editCancelBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  editSaveBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editSaveBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
