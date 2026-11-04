@@ -9,6 +9,7 @@ import { auth } from '../config/firebase.js';
 // import bcrypt from 'bcryptjs';
 // import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
+import { Gender } from '@prisma/client';
 import { env } from '../config/environment.js';
 import { mockDb, MockUser } from '../config/mock-database.js';
 import { AppError } from '../middlewares/error.middleware.js';
@@ -80,7 +81,7 @@ export class AuthService {
           id: firebaseUser.uid, // Guardamos el UID de Firebase en la DB relacional
           email: cleanEmail,
           fullName: computedFullName,
-          gender: input.gender,
+          gender: (input.gender ? input.gender.toUpperCase().replace(/\s+/g, '_') : undefined) as Gender | undefined,
           birthDate: input.birthDate ? new Date(input.birthDate) : null,
           phone: input.phone || null,
           isActive: true,

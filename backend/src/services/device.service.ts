@@ -3,6 +3,7 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/environment.js';
 import { mockDb, MockDevice } from '../config/mock-database.js';
 import { AppError } from '../middlewares/error.middleware.js';
+import { emailService } from './email.service.js';
 
 export interface GeneratePairingCodeInput {
   userId: string;
@@ -240,6 +241,18 @@ export class DeviceService {
         deviceId: device.id,
       },
     });
+
+    // Enviar mail al responsable por la vinculación
+    const user = await prisma.user.findUnique({ where: { id: pairing.userId } });
+    if (user?.email) {
+      emailService
+        .sendEmail(
+          user.email,
+          'Dispositivo vinculado',
+          `El dispositivo ${device.deviceName} ha sido vinculado a tu cuenta.`,
+        )
+        .catch(() => {});
+    }
 
     return {
       message: 'Dispositivo vinculado con éxito',
