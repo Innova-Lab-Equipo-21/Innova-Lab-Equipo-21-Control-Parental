@@ -14,7 +14,7 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-  schemas   = ["public"]
+  schemas   = ["public", "auth"]
 }
 
 // ------------------------------------------------------------------------------
@@ -81,14 +81,13 @@ model User {
   gender                  Gender?
   birthDate               DateTime? @map("birth_date") @db.Date
   phone                   String?
-  passwordHash            String    @map("password_hash")
   fcmToken                String?   @map("fcm_token")
   isActive                Boolean   @default(true) @map("is_active")
   selfControlActive       Boolean   @default(false) @map("self_control_active")
   selfControlEnabledAt    DateTime? @map("self_control_enabled_at")
   deactivationRequestedAt DateTime? @map("deactivation_requested_at")
   createdAt               DateTime  @default(now()) @map("created_at")
-  updatedAt               DateTime  @map("updated_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
 
   devices     Device[]
   pairings    DevicePairing[]
