@@ -5,9 +5,8 @@
 // Descripción: Home institucional del modo Responsable compacta (sin scroll)
 //              compuesta por las 5 secciones ajustadas a especificación y referencia:
 //              1) Card dinámico de protección con escudo y engrenaje.png
-//              2) Card de dispositivos en 2 secciones (Mi dispositivo con toggle +
-//                 Dispositivos protegidos con badges y botón @dispositivos.png)
-//              3) Dos cards métricas: Sitios y Apps con colores del app y botón circular (+)
+//              2) Card de dispositivos protegidos (badges ordenados A-Z con "Yo" al final si está autoprotegido + CTA + condicional)
+//              3) Cards de Sitios y Apps bloqueados con CTA Editar (Estilo imagen de referencia)
 //              4) Gráfico histórico compacto de intentos interceptados con CTA a Actividad
 //              5) Enlace central a Preguntas frecuentes (FAQ)
 // ==============================================================================
@@ -18,10 +17,9 @@ import {
   Text,
   TouchableOpacity,
   Image,
-  Switch,
   LayoutChangeEvent,
 } from 'react-native';
-import { DeviceInfo, SelfControlState } from '../../../types';
+import { DeviceInfo, SelfControlState, MAX_PROTECTED_DEVICES } from '../../../types';
 import { styles } from './ParentInicioSection.styles';
 
 export interface ParentInicioSectionProps {
@@ -113,7 +111,6 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
   grantedCount = 6,
   onNavigateToPermissions,
   onNavigateToDevices,
-  onToggleSelfControl,
   onNavigateToSites,
   onNavigateToApps,
   onNavigateToActivity,
@@ -144,15 +141,49 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
   const pendingCount = Math.max(0, 6 - grantedCount);
 
   // Lista de dispositivos protegidos (excluyendo el propio del tutor)
-  const protectedList = devices.filter((d) => d.profileType !== 'Responsable');
-  const displayDevices =
-    protectedList.length > 0
-      ? protectedList.slice(0, 5).map((d, idx) => ({
+  const protectedList = devices.filter((d) => d.profileType !== 'Responsable' && d.deviceId !== 'self');
+
+  // Ordenamiento alfabético A-Z de dispositivos protegidos
+  const sortedProtected = [...protectedList].sort((a, b) => {
+    const nameA = (a.childName || a.deviceName || '').toLowerCase();
+    const nameB = (b.childName || b.deviceName || '').toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+
+  let displayDevices =
+    sortedProtected.length > 0
+      ? sortedProtected.slice(0, 5).map((d, idx) => ({
           id: d.deviceId || d.deviceUuid || `dev-${idx}`,
           name: d.childName || d.deviceName || `Disp. ${idx + 1}`,
           color: DEVICE_COLORS[idx % DEVICE_COLORS.length],
+          isSelf: false,
         }))
-      : DEFAULT_DEMO_DEVICES;
+      : [...DEFAULT_DEMO_DEVICES]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((d, idx) => ({
+            ...d,
+            color: DEVICE_COLORS[idx % DEVICE_COLORS.length],
+            isSelf: false,
+          }));
+
+  // Cuando el responsable está autoprotegido, se añade su badge ("Yo") al FINAL de la lista
+  const isSelfProtected = Boolean(
+    selfControl?.active ||
+    selfControl?.status === 'ACTIVE_LOCKED' ||
+    selfControl?.status === 'DEACTIVATION_PENDING'
+  );
+
+  if (isSelfProtected) {
+    displayDevices = [
+      ...displayDevices,
+      {
+        id: 'self-protected-badge',
+        name: 'Yo',
+        color: '#007AFF',
+        isSelf: true,
+      },
+    ];
+  }
 
   const isDeviceActive = (d: DeviceInfo) =>
     d.status === 'ACTIVE' || (d.status as any)?.effectiveStatus === 'ACTIVE' || d.isProtected;
@@ -213,7 +244,7 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
 
       {/* ---------------------------------------------------------------------- */}
       {/* SECCIÓN 1: CARD DINÁMICO DE ESTADO (ESTILO FOTO DE REFERENCIA)         */}
-      {/* Borde azul, fondo azul claro, escudo, texto en mayúscula y engrenaje  */}
+      {/* Borde redondeado azul, fondo azul claro, escudo, textos y engrenaje  */}
       {/* ---------------------------------------------------------------------- */}
       <View
         style={[
@@ -269,31 +300,11 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
       </View>
 
       {/* ---------------------------------------------------------------------- */}
-      {/* SECCIÓN 2: CARD DE DISPOSITIVOS EN 2 SUB-SECCIONES                     */}
-      {/* 1: Mi dispositivo: Autocontrol (con toggle)                            */}
-      {/* 2: Dispositivos protegidos: total protegidos e inactivos + ícono       */}
+      {/* SECCIÓN 2: CARD DE DISPOSITIVOS PROTEGIDOS                             */}
+      {/* Dispositivos protegidos (badges) + CTA (+) condicional                 */}
       {/* ---------------------------------------------------------------------- */}
       <View style={styles.devicesCard}>
-        {/* Subsección 1: Mi dispositivo */}
-        <View style={styles.selfControlRow}>
-          <View style={styles.selfControlLabelRow}>
-            <Text style={styles.selfControlTitle}>Mi dispositivo:</Text>
-          </View>
-
-          <View style={styles.selfControlRight}>
-            <Text style={styles.selfControlSubtitle}>Autocontrol</Text>
-            <Switch
-              value={selfControl.active}
-              onValueChange={onToggleSelfControl}
-              trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-              thumbColor={selfControl.active ? '#0072CE' : '#FFFFFF'}
-            />
-          </View>
-        </View>
-
-        <View style={styles.dividerLine} />
-
-        {/* Subsección 2: Dispositivos protegidos */}
+        {/* Encabezado: Dispositivos protegidos */}
         <View style={styles.devicesHeaderRow}>
           <Text style={styles.devicesHeaderTitle}>Dispositivos protegidos:</Text>
 
@@ -313,7 +324,7 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Fila de Avatares Circulares de Dispositivos (cada badge lleva a Dispositivos) */}
+        {/* Fila de Avatares Circulares de Dispositivos (Ordenados A-Z, con 'Yo' al final si está autoprotegido) + CTA (+) si < 5 */}
         <View style={styles.devicesRow}>
           {displayDevices.map((dev) => (
             <TouchableOpacity
@@ -338,57 +349,62 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
               </Text>
             </TouchableOpacity>
           ))}
+
+          {/* CTA (+) para añadir dispositivo (Solo visible si aún no se alcanzó el límite de 5 protegidos) */}
+          {protectedList.length < MAX_PROTECTED_DEVICES && (
+            <TouchableOpacity
+              style={styles.deviceBadgeItem}
+              onPress={onNavigateToDevices}
+              activeOpacity={0.7}
+              accessibilityLabel="Añadir dispositivo"
+            >
+              <View style={[styles.deviceBadgeCircle, styles.addDeviceBadgeCircle]}>
+                <Text style={styles.addDeviceBadgePlus}>+</Text>
+              </View>
+              <Text style={styles.deviceBadgeName} numberOfLines={1}>
+                Nuevo dispositivo
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* ---------------------------------------------------------------------- */}
-      {/* SECCIÓN 3: DOS CARDS (SITIOS Y APPS CON COLORES DEL APP Y BOTÓN (+))  */}
+      {/* SECCIÓN 3: CARDS DE SITIOS Y APPS BLOQUEADOS CON CTA EDITAR           */}
       {/* ---------------------------------------------------------------------- */}
       <View style={styles.metricsRow}>
-        {/* Card: Sitios */}
+        {/* Card 1: Sitios Bloqueados */}
         <View style={styles.metricCard}>
-          <View style={styles.metricHeaderRow}>
-            <Text style={styles.metricLabel}>Sitios</Text>
-          </View>
-
-          <View style={styles.metricBodyRow}>
-            <View style={styles.metricNumberCol}>
-              <Text style={styles.metricNumber}>{customSitesCount}</Text>
-              <Text style={styles.metricSubLabel}>bloqueados</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.circularAddBtn}
-              onPress={onNavigateToSites}
-              activeOpacity={0.8}
-              accessibilityLabel="Gestionar sitios"
-            >
-              <Text style={styles.circularAddBtnText}>+</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.metricLabelLeft}>Sitios</Text>
+          <Text style={styles.metricNumber}>{customSitesCount}</Text>
+          <Text style={styles.metricSubLabelLeft}>
+            {customSitesCount === 1 ? 'bloqueado' : 'bloqueados'}
+          </Text>
+          <TouchableOpacity
+            style={styles.cardEditBtn}
+            onPress={onNavigateToSites}
+            activeOpacity={0.8}
+            accessibilityLabel="Editar sitios bloqueados"
+          >
+            <Text style={styles.cardEditBtnText}>Editar</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Card: Apps */}
+        {/* Card 2: Apps Bloqueadas */}
         <View style={styles.metricCard}>
-          <View style={styles.metricHeaderRow}>
-            <Text style={styles.metricLabel}>Apps</Text>
-          </View>
-
-          <View style={styles.metricBodyRow}>
-            <View style={styles.metricNumberCol}>
-              <Text style={styles.metricNumber}>{blockedAppsCount}</Text>
-              <Text style={styles.metricSubLabel}>bloqueadas</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.circularAddBtn}
-              onPress={onNavigateToApps}
-              activeOpacity={0.8}
-              accessibilityLabel="Gestionar apps"
-            >
-              <Text style={styles.circularAddBtnText}>+</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.metricLabelRight}>Apps</Text>
+          <Text style={styles.metricNumber}>{blockedAppsCount}</Text>
+          <Text style={styles.metricSubLabelRight}>
+            {blockedAppsCount === 1 ? 'bloqueada' : 'bloqueadas'}
+          </Text>
+          <TouchableOpacity
+            style={styles.cardEditBtn}
+            onPress={onNavigateToApps}
+            activeOpacity={0.8}
+            accessibilityLabel="Editar aplicaciones bloqueadas"
+          >
+            <Text style={styles.cardEditBtnText}>Editar</Text>
+          </TouchableOpacity>
         </View>
       </View>
 

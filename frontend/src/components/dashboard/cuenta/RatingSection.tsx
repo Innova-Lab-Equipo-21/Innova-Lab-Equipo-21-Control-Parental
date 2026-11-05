@@ -2,6 +2,9 @@
 // Proyecto: BA Protege+
 // Componente: RatingSection (Evaluar la app, 5 estrellas, form a mail y CTA Play Store)
 // Archivo: src/components/dashboard/cuenta/RatingSection.tsx
+// Descripción: Sección interactiva que permite a los usuarios calificar la aplicación
+//              con un sistema de 1 a 5 estrellas, enviar comentarios por email directo
+//              al equipo de soporte y redirigir a Google Play Store.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -9,10 +12,16 @@ import { View, Text, TouchableOpacity, TextInput, Alert, Linking } from 'react-n
 import { ActionButton } from '../../ActionButton';
 import { styles } from './RatingSection.styles';
 
+/**
+ * Componente que renderiza el módulo de valoración de la aplicación.
+ * Permite seleccionar una calificación en estrellas, ingresar un comentario adicional,
+ * enviarlo por correo o calificar directamente en la tienda oficial de Google Play.
+ */
 export const RatingSection: React.FC = () => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
 
+  /** Abre la aplicación de correo predeterminada con los datos precompletados de la reseña */
   const handleSendReviewEmail = () => {
     const emailTo = 'baprotegemas@gmail.com';
     const emailSubject = encodeURIComponent(`[Evaluación de la App] ${rating} Estrellas`);
@@ -27,6 +36,7 @@ export const RatingSection: React.FC = () => {
     setComment('');
   };
 
+  /** Redirige al usuario a la ficha de la app en la tienda Google Play Store */
   const handleOpenPlayStore = () => {
     const playStoreUrl = 'market://details?id=ar.gob.buenosaires.baprotegemas';
     const webPlayStoreUrl = 'https://play.google.com/store/apps/details?id=ar.gob.buenosaires.baprotegemas';

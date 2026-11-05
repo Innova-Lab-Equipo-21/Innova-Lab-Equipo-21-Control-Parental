@@ -13,6 +13,19 @@ export const styles = StyleSheet.create({
   container: {
     paddingVertical: 4,
   },
+  autoprotectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 2,
+    marginBottom: 10,
+  },
+  autoprotectionText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
   sectionTabRow: {
     flexDirection: 'row',
     alignItems: 'center',

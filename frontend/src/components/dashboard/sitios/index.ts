@@ -10,7 +10,6 @@ export * from './AddAppModal';
 export * from './EditAppModal';
 export * from './AppTimeLimitModal';
 export * from './SitesAppsOptionsMenuModal';
-export * from './SitesOptionsMenuModal';
 export * from './DeleteBlockItemModal';
 export * from './hooks/useSitesManagement';
 export * from './hooks/useAppsManagement';

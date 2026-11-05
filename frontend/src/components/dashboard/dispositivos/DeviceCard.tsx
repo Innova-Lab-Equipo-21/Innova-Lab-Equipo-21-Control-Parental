@@ -138,7 +138,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         </View>
       </View>
 
-      {/* Línea inferior: Badge Vinculado/Inactivo a la izquierda (solo protegidos), y Autocontrol con Toggle a la derecha (solo responsable) */}
+      {/* Línea inferior: Badge Vinculado/Inactivo a la izquierda (solo protegidos), y Autoprotección con Toggle a la derecha (solo responsable) */}
       <View style={styles.deviceFooterRow}>
         {!isSelf ? (
           <Badge
@@ -155,7 +155,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
             activeOpacity={0.8}
             onPress={handleSelfControlPress}
           >
-            <Text style={styles.autoprotectionLabel}>Autocontrol</Text>
+            <Text style={styles.autoprotectionLabel}>Autoprotección</Text>
             <ToggleSwitch
               value={isAutocontrolActive}
               onValueChange={handleSelfControlPress}

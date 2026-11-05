@@ -2,6 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: TutorPermissionsSection (Auditoría de Permisos del Dispositivo Tutor)
 // Archivo: src/components/dashboard/cuenta/TutorPermissionsSection.tsx
+// Descripción: Muestra el estado de permisos clave concedidos en el dispositivo responsable,
+//              desplegando una tarjeta de advertencia si existen permisos faltantes.
 // ==============================================================================
 
 import React from 'react';
@@ -11,11 +13,22 @@ import { Badge } from '../../Badge';
 import { PermissionItemState } from '../../../screens/PermissionsScreen';
 import { styles } from './TutorPermissionsSection.styles';
 
+/**
+ * Propiedades para el componente TutorPermissionsSection.
+ *
+ * @property permissions - Estado actual de los 5 permisos críticos del sistema (VPN, Accesibilidad, Notificaciones, Batería, Ubicación).
+ * @property onConfigurePermissions - Callback invocado al presionar el botón de auditar o configurar permisos faltantes.
+ */
 interface TutorPermissionsSectionProps {
   permissions?: PermissionItemState;
   onConfigurePermissions: () => void;
 }
 
+/**
+ * Componente que audita y visualiza el estado de los permisos requeridos en el dispositivo del tutor.
+ * Muestra un banner verde simplificado si todos los permisos se encuentran activos (5/5),
+ * o un banner de advertencia detallado con el listado de los permisos pendientes en caso contrario.
+ */
 export const TutorPermissionsSection: React.FC<TutorPermissionsSectionProps> = ({
   permissions,
   onConfigurePermissions,

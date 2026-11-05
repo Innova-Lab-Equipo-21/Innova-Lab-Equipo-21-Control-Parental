@@ -3,7 +3,7 @@
 // Componente: DeviceCard Styles
 // Archivo: src/components/dashboard/dispositivos/DeviceCard.styles.ts
 // Descripción: Estilos encapsulados para la tarjeta individual de dispositivo
-//              (avatar, cabecera de acciones, pie con badge y toggle de autocontrol).
+//              (avatar, cabecera de acciones, pie con badge y toggle de autoprotección).
 // ==============================================================================
 
 import { StyleSheet } from 'react-native';

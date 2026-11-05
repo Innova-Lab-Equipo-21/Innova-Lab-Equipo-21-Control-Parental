@@ -3,7 +3,7 @@
 // Componente: SitesAndAppsSection (Gestión de Sitios Web y Apps Bloqueadas)
 // Archivo: src/components/dashboard/sitios/SitesAndAppsSection.tsx
 // Descripción: Orquestador modular de listas personalizadas de dominios web y
-//              aplicaciones móviles con menú de opciones de 3 puntos (⋮),
+//              aplicaciones móviles con opción de Autoprotección (toggle azul),
 //              filtrado por dispositivo, ordenamiento dinámico y acciones masivas.
 // ==============================================================================
 
@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { CustomBlockedDomain, DeviceInfo, SelfControlState } from '../../../types';
 import { apiService } from '../../../services/api.service';
+import { ToggleSwitch } from '../../ToggleSwitch';
 import { SitesTab } from './SitesTab';
 import { AppsTab } from './AppsTab';
 import { AddSiteModal } from './AddSiteModal';
@@ -31,6 +32,7 @@ export interface SitesAndAppsSectionProps {
   devices: DeviceInfo[];
   onRefreshList: () => void;
   selfControl?: SelfControlState;
+  onStartSelfControlFlow?: () => void;
   hideInternalFab?: boolean;
   onSetAddHandler?: (handler: () => void) => void;
   initialSubTab?: 'sites' | 'apps';
@@ -41,6 +43,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   devices,
   onRefreshList,
   selfControl,
+  onStartSelfControlFlow,
   hideInternalFab = false,
   onSetAddHandler,
   initialSubTab = 'sites',
@@ -149,8 +152,33 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
     }
   }, [activeSubTab, onSetAddHandler, sites.handleOpenAddSite, apps.handleOpenAddApp]);
 
+  // Estado de Autoprotección del responsable
+  const isAutoproteccionActive = Boolean(
+    selfControl?.active ||
+    selfControl?.status === 'ACTIVE_LOCKED' ||
+    selfControl?.status === 'DEACTIVATION_PENDING'
+  );
+
+  // Verificación de si la lista actual está vacía para deshabilitar la autoprotección
+  const currentCount = activeSubTab === 'sites' ? sites.sortedAndFilteredSites.length : apps.sortedAndFilteredApps.length;
+  const isAutoproteccionDisabled = currentCount === 0;
+
   return (
     <View style={styles.container}>
+      {/* Opción de Autoprotección en Sitios y Apps (Toggle azul oficial de la app) */}
+      <View style={styles.autoprotectionRow}>
+        <Text style={styles.autoprotectionText}>Autoprotección</Text>
+        <ToggleSwitch
+          value={isAutoproteccionActive}
+          onValueChange={() => {
+            if (onStartSelfControlFlow) {
+              onStartSelfControlFlow();
+            }
+          }}
+          disabled={isAutoproteccionDisabled}
+        />
+      </View>
+
       {/* Selector de Sub-pestañas + Menú de 3 Puntos (⋮) */}
       <View style={styles.sectionTabRow}>
         <View style={styles.subTabContainer}>
@@ -357,14 +385,29 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
       <SitesAppsOptionsMenuModal
         visible={showOptionsMenu}
         onClose={() => setShowOptionsMenu(false)}
+        searchValue={activeSubTab === 'sites' ? sites.siteSearch : apps.appSearch}
+        onSearchChange={(text) => {
+          if (activeSubTab === 'sites') {
+            sites.setSiteSearch(text);
+          } else {
+            apps.setAppSearch(text);
+          }
+          if (text) setShowSearchInput(true);
+        }}
+        devices={devices}
+        selectedDeviceFilter={selectedDeviceFilter}
+        onSelectDeviceFilter={(deviceId) => {
+          setSelectedDeviceFilter(deviceId);
+          setShowDeviceFilter(true);
+        }}
+        sortBy={sortBy}
+        onSelectSortBy={setSortBy}
+        isSelectionMode={isSelectionMode}
+        onToggleSelectionMode={() => setIsSelectionMode((prev) => !prev)}
         showSearchInput={showSearchInput}
         onToggleSearch={() => setShowSearchInput((prev) => !prev)}
         showDeviceFilter={showDeviceFilter}
         onToggleDeviceFilter={() => setShowDeviceFilter((prev) => !prev)}
-        isSelectionMode={isSelectionMode}
-        onToggleSelectionMode={() => setIsSelectionMode((prev) => !prev)}
-        sortBy={sortBy}
-        onSelectSortBy={setSortBy}
       />
 
       {/* Modal estándar de confirmación de eliminación */}

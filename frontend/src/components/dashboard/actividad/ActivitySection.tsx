@@ -2,6 +2,9 @@
 // Proyecto: BA Protege+
 // Componente: ActivitySection (Tiempo de Uso de Pantalla y Auditoría de Actividad)
 // Archivo: src/components/dashboard/actividad/ActivitySection.tsx
+// Descripción: Vista integral que combina el monitoreo del tiempo de uso de pantalla
+//              en aplicaciones con un historial detallado de eventos de auditoría y
+//              seguridad (bloqueos, alertas, cambios del sistema y ubicación).
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -11,6 +14,16 @@ import { DeviceInfo, AppUsageItem } from '../../../types';
 import { apiService } from '../../../services/api.service';
 import { styles } from './ActivitySection.styles';
 
+/**
+ * Representa un registro individual de auditoría en la plataforma.
+ *
+ * @property id - Identificador único del evento.
+ * @property type - Categoría del evento ('BLOCK', 'ALERT', 'SYSTEM', 'LOCATION').
+ * @property title - Título breve y descriptivo del evento.
+ * @property detail - Explicación detallada de la acción registrada.
+ * @property device - Nombre o rol del dispositivo asociado al evento.
+ * @property timestamp - Marca de tiempo relativa o absoluta del suceso.
+ */
 export interface ActivityLogItem {
   id: string;
   type: 'BLOCK' | 'ALERT' | 'SYSTEM' | 'LOCATION';
@@ -20,6 +33,7 @@ export interface ActivityLogItem {
   timestamp: string;
 }
 
+/** Registros de auditoría de ejemplo para simular la actividad del sistema */
 const sampleLogs: ActivityLogItem[] = [
   {
     id: '1',
@@ -63,10 +77,21 @@ const sampleLogs: ActivityLogItem[] = [
   },
 ];
 
+/**
+ * Propiedades recibidas por el componente ActivitySection.
+ *
+ * @property devices - Lista opcional de dispositivos vinculados a la cuenta para filtrado.
+ */
 interface ActivitySectionProps {
   devices?: DeviceInfo[];
 }
 
+/**
+ * Componente principal de la sección de Actividad.
+ * Permite alternar entre dos pestañas principales:
+ * 1. **Tiempo de uso**: visualización gráfica y desglosada del tiempo consumido en apps por dispositivo.
+ * 2. **Historial y auditoría**: registro de eventos de seguridad filtrables por tipo de suceso.
+ */
 export const ActivitySection: React.FC<ActivitySectionProps> = ({ devices = [] }) => {
   const [activeTab, setActiveTab] = useState<'usage' | 'logs'>('usage');
   const [selectedDeviceFilter, setSelectedDeviceFilter] = useState<string>('all');
@@ -77,6 +102,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ devices = [] }
     loadUsage();
   }, [selectedDeviceFilter]);
 
+  /** Carga las estadísticas de uso desde el backend según el filtro de dispositivo seleccionado */
   const loadUsage = async () => {
     try {
       const stats = await apiService.getAppUsageStats(selectedDeviceFilter);
@@ -96,6 +122,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ devices = [] }
     return log.type === filter;
   });
 
+  /** Retorna los colores, íconos y etiquetas según el tipo de log de auditoría */
   const getBadgeStyle = (type: ActivityLogItem['type']) => {
     switch (type) {
       case 'BLOCK':

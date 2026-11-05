@@ -4,7 +4,7 @@
 // Archivo: src/components/dashboard/cuenta/GlobalRulesSection.tsx
 // Descripción: Sección que presenta los 5 controles globales de protección con
 //              toggles en el estándar azul de la app: Bloqueo sitios LotBA, Alertas,
-//              Antidesinstalación, Autocontrol y Permisos. Bloqueo sitios LotBA nunca se desactiva.
+//              Antidesinstalación, Autoprotección y Permisos. Bloqueo sitios LotBA nunca se desactiva.
 // ==============================================================================
 
 import React from 'react';
@@ -36,7 +36,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
   onDisableSelfControl,
   onOpenPermissions,
 }) => {
-  const isAutocontrolActive = Boolean(
+  const isAutoproteccionActive = Boolean(
     selfControl?.active ||
     selfControl?.status === 'ACTIVE_LOCKED' ||
     selfControl?.status === 'DEACTIVATION_PENDING'
@@ -93,15 +93,15 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
         />
       </View>
 
-      {/* 4. Autocontrol */}
+      {/* 4. Autoprotección */}
       <TouchableOpacity
         style={styles.ruleItem}
         activeOpacity={0.8}
         onPress={handleSelfControlPress}
       >
-        <Text style={styles.ruleItemText}>⏱️ Autocontrol</Text>
+        <Text style={styles.ruleItemText}>⏱️ Autoprotección</Text>
         <ToggleSwitch
-          value={isAutocontrolActive}
+          value={isAutoproteccionActive}
           onValueChange={handleSelfControlPress}
           activeColor="#007AFF"
         />

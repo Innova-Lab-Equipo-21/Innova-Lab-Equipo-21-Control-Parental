@@ -4,8 +4,8 @@
 // Archivo: src/components/dashboard/inicio/ParentInicioSection.styles.ts
 // Descripción: Estilos compactos sin scroll para la Home del Responsable:
 //              1) Card dinámico con estilo de referencia (borde azul, escudo, engrenaje)
-//              2) Card de dispositivos en 2 secciones (Mi dispositivo con toggle + Dispositivos protegidos)
-//              3) Cards de Sitios y Apps con colores oficiales del app y botón circular (+)
+//              2) Card de dispositivos protegidos (badges y CTA + "Nuevo dispositivo")
+//              3) Cards de Sitios y Apps bloqueados con CTA Editar (Estilo imagen de referencia)
 //              4) Gráfico histórico compacto de intentos interceptados
 //              5) Enlace a Preguntas frecuentes
 // ==============================================================================
@@ -101,9 +101,8 @@ export const styles = StyleSheet.create({
   },
 
   // ----------------------------------------------------------------------------
-  // Sección 2: Card de Dispositivos Dividido en 2 Secciones
-  // Secc 1: Mi dispositivo: Autocontrol (con toggle) Activado/Desactivado
-  // Secc 2: Dispositivos protegidos (badges) + CTA @dispositivos.png
+  // Sección 2: Card de Dispositivos Protegidos
+  // Dispositivos protegidos (badges) + CTA (+) "Nuevo dispositivo"
   // ----------------------------------------------------------------------------
   devicesCard: {
     backgroundColor: '#F3F4F6',
@@ -114,40 +113,6 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  // Sub-sección 1: Mi dispositivo
-  selfControlRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 7,
-  },
-  selfControlLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  selfControlTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#1F2937',
-  },
-  selfControlSubtitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#374151',
-    marginRight: 4,
-  },
-  selfControlRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  dividerLine: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginBottom: 7,
-  },
-  // Sub-sección 2: Dispositivos protegidos
   devicesHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -213,77 +178,87 @@ export const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
+  addDeviceBadgeCircle: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+  },
+  addDeviceBadgePlus: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginTop: -1,
+  },
 
   // ----------------------------------------------------------------------------
-  // Sección 3: Cards Sitios y Apps (Colores del App + Botón Circular +)
+  // Sección 3: Cards de Sitios y Apps Bloqueados con CTA Editar
   // ----------------------------------------------------------------------------
   metricsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
     marginBottom: 8,
   },
   metricCard: {
     flex: 1,
     backgroundColor: '#EAF3FF',
-    borderRadius: 14,
+    borderRadius: 20,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderWidth: 1.5,
     borderColor: '#B6D4FE',
     justifyContent: 'space-between',
-    minHeight: 88,
-  },
-  metricHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  metricLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0072CE',
-  },
-  metricBodyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginTop: 2,
-  },
-  metricNumberCol: {
-    flex: 1,
-  },
-  metricNumber: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#0072CE',
-    lineHeight: 32,
-    letterSpacing: -0.5,
-  },
-  metricSubLabel: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#4B5563',
-    marginTop: -2,
-  },
-  circularAddBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#0072CE',
-    alignItems: 'center',
-    justifyContent: 'center',
+    minHeight: 135,
     shadowColor: '#0072CE',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  circularAddBtnText: {
-    fontSize: 19,
+  metricLabelLeft: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0072CE',
+    alignSelf: 'flex-start',
+  },
+  metricLabelRight: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0072CE',
+    alignSelf: 'flex-end',
+  },
+  metricNumber: {
+    fontSize: 66,
     fontWeight: '800',
+    color: '#0072CE',
+    textAlign: 'center',
+    lineHeight: 70,
+    letterSpacing: -1.5,
+    marginVertical: 2,
+  },
+  metricSubLabelLeft: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0072CE',
+    alignSelf: 'flex-start',
+  },
+  metricSubLabelRight: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0072CE',
+    alignSelf: 'flex-end',
+  },
+  cardEditBtn: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  cardEditBtnText: {
     color: '#FFFFFF',
-    marginTop: -2,
-    lineHeight: 22,
+    fontSize: 14,
+    fontWeight: '700',
   },
 
   // ----------------------------------------------------------------------------

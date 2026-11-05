@@ -149,9 +149,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       checkSelfControlStatus();
       loadCustomSites();
       if (initialAction === 'SELF_CONTROL') {
-        setActiveTab('cuenta');
-        setSelfControlModalMode('ACTIVATE');
-        setShowSelfControlModal(true);
+        setActiveTab('sitios');
       }
     }
   }, [isLoggedIn, initialAction]);
@@ -433,6 +431,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               devices={devices}
               onRefreshList={loadCustomSites}
               selfControl={selfControl}
+              onStartSelfControlFlow={handleStartSelfControlFlow}
               hideInternalFab={true}
               initialSubTab={sitesInitialSubTab}
               onSetAddHandler={(handler) => {

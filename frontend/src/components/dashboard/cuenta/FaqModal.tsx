@@ -40,9 +40,9 @@ const FAQS: FaqItem[] = [
       'Desde la pestaña "Dispositivos" o "Panel", tocá en "Vincular dispositivo". Podés escanear el código QR con el celular del menor o ingresar manualmente el código PIN numérico de 6 dígitos generado en pantalla.',
   },
   {
-    question: '3. ¿Cómo funciona el autocontrol de 24 horas?',
+    question: '3. ¿Cómo funciona la autoprotección de 24 horas?',
     answer:
-      'El modo autocontrol establece una protección preventiva directamente en este dispositivo con un período obligatorio de reflexión de 24 horas antes de permitir su desactivación, evitando decisiones impulsivas.',
+      'El modo autoprotección establece una protección preventiva directamente en este dispositivo con un período obligatorio de reflexión de 24 horas antes de permitir su desactivación, evitando decisiones impulsivas.',
   },
   {
     question: '4. ¿Por qué se requieren permisos de VPN y accesibilidad?',

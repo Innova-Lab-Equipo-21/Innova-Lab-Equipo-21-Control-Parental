@@ -3,8 +3,8 @@
 // Componente: Frontend Mobile (Pantalla de Acción Inicial del Responsable)
 // Archivo: src/screens/ResponsibleActionScreen.tsx
 // Descripción: Pantalla mostrada tras la habilitación de permisos del responsable,
-//              con bloques espaciados estilo WelcomeScreen, cabecera de PermissionsScreen,
-//              modal de ayuda (estilo TermsModal) y eliminación del icono T.
+//              con opciones para supervisar otro dispositivo o configurar este dispositivo
+//              en la pestaña de Sitios y Apps antes de activar la autoprotección.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -100,24 +100,24 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
             </TouchableOpacity>
           </View>
 
-          {/* CARD 2: EJERCER UN AUTOCONTROL */}
+          {/* CARD 2: EJERCER AUTOPROTECCIÓN */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Icon name="reloj" size={26} color={colors.primary} style={styles.cardIcon} />
-              <Text style={styles.cardTitle}>Ejercer un autocontrol</Text>
+              <Text style={styles.cardTitle}>Ejercer autoprotección</Text>
             </View>
 
             <Text style={styles.cardDesc}>
-              Establecé tus propios límites de uso y gestioná el tiempo en este mismo dispositivo.
+              Elegí los sitios web y aplicaciones a restringir en este mismo dispositivo antes de activar la autoprotección.
             </Text>
 
             <TouchableOpacity
               style={styles.actionBtn}
               onPress={() => onSelectAction('SELF_CONTROL')}
               activeOpacity={0.85}
-              accessibilityLabel="Activar autocontrol"
+              accessibilityLabel="Configurar este dispositivo"
             >
-              <Text style={styles.actionBtnText}>Activar autocontrol</Text>
+              <Text style={styles.actionBtnText}>Configurar este dispositivo</Text>
             </TouchableOpacity>
           </View>
         </View>

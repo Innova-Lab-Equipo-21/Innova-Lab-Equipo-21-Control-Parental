@@ -2,6 +2,9 @@
 // Proyecto: BA Protege+
 // Componente: ProfileSection (Perfil del Responsable / Usuario)
 // Archivo: src/components/dashboard/cuenta/ProfileSection.tsx
+// Descripción: Muestra la tarjeta con la información personal del responsable,
+//              estado de verificación (+18), avatar oficial Beti, acciones para
+//              editar perfil y vinculación directa con cuentas Google.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -13,12 +16,24 @@ import { styles } from './ProfileSection.styles';
 import { signInWithGoogle, statusCodes } from '../../../services/googleAuth.service';
 import { apiService } from '../../../services/api.service';
 
+/**
+ * Propiedades del componente ProfileSection.
+ *
+ * @property currentUser - Objeto que contiene los datos del usuario autenticado actual.
+ * @property onUpdateUser - Callback opcional ejecutado al guardar cambios del perfil en la API.
+ * @property onDeleteAccount - Callback opcional para solicitar la eliminación permanente de la cuenta.
+ */
 interface ProfileSectionProps {
   currentUser: any;
   onUpdateUser?: (updated: any) => void;
   onDeleteAccount?: () => void;
 }
 
+/**
+ * Componente que renderiza la sección de Perfil dentro de la pestaña Cuenta.
+ * Muestra el estado del tutor responsable, permite la edición mediante un modal institucional,
+ * e integra el flujo de vinculación con la cuenta de Google mediante SSO.
+ */
 export const ProfileSection: React.FC<ProfileSectionProps> = ({
   currentUser,
   onUpdateUser,
@@ -39,6 +54,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
     message: '',
   });
 
+  /** Muestra un modal emergente de retroalimentación en la interfaz */
   const showFeedback = (config: { icon?: string; title: string; message: string }) => {
     setFeedbackModal({
       visible: true,
@@ -54,6 +70,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const email = currentUser?.email || '';
   const isGoogleLinked = !!currentUser?.isGoogleLinked;
 
+  /** Maneja la autenticación y vinculación con la cuenta de Google */
   const handleLinkGoogle = async () => {
     setLinkingLoading(true);
     try {

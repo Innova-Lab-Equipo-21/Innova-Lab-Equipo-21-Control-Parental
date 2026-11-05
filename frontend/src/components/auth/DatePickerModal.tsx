@@ -15,8 +15,16 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { styles } from './RegisterForm.styles';
+import { styles } from './DatePickerModal.styles';
 
+/**
+ * Propiedades para el componente DatePickerModal.
+ *
+ * @property visible - Controla la visibilidad del modal en pantalla.
+ * @property initialDate - Fecha inicial opcional en formato DD/MM/YYYY.
+ * @property onClose - Función callback invocada al cancelar o cerrar el modal.
+ * @property onConfirm - Función callback invocada al confirmar la fecha elegida (retorna DD/MM/YYYY).
+ */
 export interface DatePickerModalProps {
   visible: boolean;
   initialDate?: string;
@@ -24,6 +32,11 @@ export interface DatePickerModalProps {
   onConfirm: (formattedDate: string) => void;
 }
 
+/**
+ * Componente modal interactivo para la selección de fecha de nacimiento.
+ * Permite seleccionar día, mes y año de manera intuitiva mediante listas desplazables,
+ * garantizando que el número de días sea coherente según el mes y año bisiesto.
+ */
 export const DatePickerModal: React.FC<DatePickerModalProps> = ({
   visible,
   initialDate,

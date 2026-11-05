@@ -2,11 +2,22 @@
 // Proyecto: BA Protege+
 // Componente: ToggleSwitch (Switch OFF/ON UI Kit)
 // Archivo: src/components/ToggleSwitch.tsx
+// Descripción: Componente reutilizable de UI Kit para interruptor deslizante binario (ON/OFF)
+//              con soporte para personalización de colores, estado deshabilitado y accesibilidad.
 // ==============================================================================
 
 import React from 'react';
 import { TouchableOpacity, View, StyleSheet } from 'react-native';
 
+/**
+ * Propiedades del componente ToggleSwitch.
+ *
+ * @property value - Valor booleano del interruptor (true = Encendido / ON, false = Apagado / OFF).
+ * @property onValueChange - Callback ejecutado con el nuevo estado al presionar el interruptor.
+ * @property disabled - Opcional. Si es true, el switch no responderá a eventos táctiles.
+ * @property activeColor - Color de fondo del carril en estado activo (por defecto azul institucional #007AFF).
+ * @property inactiveColor - Color de fondo del carril en estado inactivo (por defecto gris #D1D5DB).
+ */
 interface ToggleSwitchProps {
   value: boolean;
   onValueChange: (value: boolean) => void;
@@ -15,6 +26,10 @@ interface ToggleSwitchProps {
   inactiveColor?: string;
 }
 
+/**
+ * Componente que renderiza un switch deslizante nativo con soporte de accesibilidad.
+ * Utilizado para alternar estados de protección, VPN, bloqueo de apps y filtros parentales.
+ */
 export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   value,
   onValueChange,

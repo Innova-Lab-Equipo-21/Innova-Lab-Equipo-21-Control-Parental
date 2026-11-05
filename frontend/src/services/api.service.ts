@@ -7,7 +7,7 @@
 //              - client: Cliente Axios, almacenamiento seguro y tiempo confiable
 //              - authApi: Registro, login, recuperación de contraseña y logout
 //              - devicesApi: Pareamiento, auditoría de permisos y gestión de dispositivos
-//              - selfControlApi: Autocontrol de 24hs con temporizador y pase temporal
+//              - selfControlApi: Autoprotección de 24hs con temporizador y pase temporal
 //              - blocklistApi: Listas LOTBA, dominios bloqueados, apps y estadísticas
 //              - telemetryApi: Heartbeats, telemetría y geolocalización híbrida
 // ==============================================================================
@@ -69,7 +69,7 @@ export const apiService = {
   unbindDevice: devicesApi.unbindDevice.bind(devicesApi),
 
   // --------------------------------------------------------------------------
-  // Autocontrol / Autoprotección del Tutor (Temporizador de 24hs al solicitar y pase de 24hs)
+  // Autoprotección del Tutor (Temporizador de 24hs al solicitar y pase de 24hs)
   // --------------------------------------------------------------------------
   enableSelfControl: selfControlApi.enableSelfControl.bind(selfControlApi),
   requestDeactivation: selfControlApi.requestDeactivation.bind(selfControlApi),

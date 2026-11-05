@@ -3,7 +3,7 @@
 // Componente: useAppsManagement (Hook de Lógica de Aplicaciones Bloqueadas)
 // Archivo: src/components/dashboard/sitios/hooks/useAppsManagement.ts
 // Descripción: Encapsula el estado, límites diarios de uso por dispositivo,
-//              restricciones de autocontrol y operaciones CRUD/masivas para apps.
+//              restricciones de autoprotección y operaciones CRUD/masivas para apps.
 // ==============================================================================
 
 import { useState, useEffect } from 'react';
@@ -226,8 +226,8 @@ export const useAppsManagement = ({
     const wasAppliedToSelf = appliesToSelf(editingApp);
     if (deviceId === 'self' && isAutocontrolActive && wasAppliedToSelf && editAppDeviceIds.includes('self')) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés desactivar el bloqueo en tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }
@@ -264,8 +264,8 @@ export const useAppsManagement = ({
     const willApplyToSelf = editAppApplyToAll || editAppDeviceIds.includes('self');
     if (isAutocontrolActive && wasAppliedToSelf && !willApplyToSelf) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés desactivar el bloqueo en tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }
@@ -331,8 +331,8 @@ export const useAppsManagement = ({
   const handleToggleAppActive = async (app: CustomBlockedApp) => {
     if (isAutocontrolActive && appliesToSelf(app) && app.isActive) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés deshabilitar ni pausar aplicaciones bloqueadas en tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés deshabilitar ni pausar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }
@@ -351,8 +351,8 @@ export const useAppsManagement = ({
   const handleDeleteApp = (app: CustomBlockedApp) => {
     if (isAutocontrolActive && appliesToSelf(app)) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés eliminar aplicaciones bloqueadas para tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés eliminar aplicaciones bloqueadas para tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }
@@ -391,8 +391,8 @@ export const useAppsManagement = ({
     });
     if (isAutocontrolActive && affectedSelf) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés pausar aplicaciones bloqueadas en tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés pausar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }
@@ -410,8 +410,8 @@ export const useAppsManagement = ({
     });
     if (isAutocontrolActive && affectedSelf) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés eliminar aplicaciones bloqueadas en tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés eliminar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }

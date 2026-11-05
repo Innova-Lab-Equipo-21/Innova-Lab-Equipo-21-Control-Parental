@@ -2,7 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: AutocontrolConfirmationModal Styles
 // Archivo: src/components/dashboard/dispositivos/AutocontrolConfirmationModal.styles.ts
-// Descripción: Estilos para los modais de confirmación y gestión de Autocontrol.
+// Descripción: Estilos para los modales de confirmación y gestión de Autoprotección.
 //              Garantiza altura simétrica, botones en la misma fila y estética
 //              idéntica a UnbindConfirmationModal.styles.ts.
 // ==============================================================================

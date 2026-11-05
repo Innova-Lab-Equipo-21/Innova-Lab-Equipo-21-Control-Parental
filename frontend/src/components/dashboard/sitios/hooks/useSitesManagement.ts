@@ -3,7 +3,7 @@
 // Componente: useSitesManagement (Hook de Lógica de Sitios Bloqueados)
 // Archivo: src/components/dashboard/sitios/hooks/useSitesManagement.ts
 // Descripción: Encapsula el estado, validaciones de dominio, restricciones de
-//              autocontrol y operaciones CRUD/masivas para sitios web bloqueados.
+//              autoprotección y operaciones CRUD/masivas para sitios web bloqueados.
 // ==============================================================================
 
 import { useState } from 'react';
@@ -171,8 +171,8 @@ export const useSitesManagement = ({
     const wasAppliedToSelf = appliesToSelf(editingSite);
     if (deviceId === 'self' && isAutocontrolActive && wasAppliedToSelf && editSiteDeviceIds.includes('self')) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés desactivar el bloqueo en tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }
@@ -202,8 +202,8 @@ export const useSitesManagement = ({
     const willApplyToSelf = editSiteApplyToAll || editSiteDeviceIds.includes('self');
     if (isAutocontrolActive && wasAppliedToSelf && !willApplyToSelf) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés desactivar el bloqueo en tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }
@@ -233,8 +233,8 @@ export const useSitesManagement = ({
   const handleToggleSiteActive = async (site: CustomBlockedDomain) => {
     if (isAutocontrolActive && appliesToSelf(site) && site.isActive) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés deshabilitar ni pausar bloqueos aplicados a tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés deshabilitar ni pausar bloqueos aplicados a tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }
@@ -252,8 +252,8 @@ export const useSitesManagement = ({
   const handleDeleteSite = (site: CustomBlockedDomain) => {
     if (isAutocontrolActive && appliesToSelf(site)) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }
@@ -292,8 +292,8 @@ export const useSitesManagement = ({
     });
     if (isAutocontrolActive && affectedSelf) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés pausar bloqueos aplicados a tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés pausar bloqueos aplicados a tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }
@@ -311,8 +311,8 @@ export const useSitesManagement = ({
     });
     if (isAutocontrolActive && affectedSelf) {
       Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras el autocontrol esté activo.'
+        'Autoprotección del responsable activa',
+        'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras la autoprotección esté activa.'
       );
       return;
     }

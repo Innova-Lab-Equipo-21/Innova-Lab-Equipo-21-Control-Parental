@@ -2,6 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: Badge (Etiqueta de Estado UI Kit)
 // Archivo: src/components/Badge.tsx
+// Descripción: Componente reutilizable de UI Kit para mostrar insignias informativas de estado
+//              ('activo', 'inactivo', 'alerta', 'danger') con colores e identidades visuales adaptativas.
 // ==============================================================================
 
 import React from 'react';
@@ -9,15 +11,28 @@ import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 
+/** Estados semánticos posibles para el componente Badge */
 export type BadgeStatus = 'activo' | 'inactivo' | 'alerta' | 'danger';
 
+/**
+ * Propiedades recibidas por el componente Badge.
+ *
+ * @property status - Tipo de estado visual a representar ('activo' | 'inactivo' | 'alerta' | 'danger').
+ * @property label - Texto personalizado opcional. Si no se provee, se usará el nombre genérico del estado.
+ * @property style - Estilos adicionales opcionales para extender el contenedor de la insignia.
+ */
 interface BadgeProps {
   status: BadgeStatus;
   label?: string;
   style?: StyleProp<ViewStyle>;
 }
 
+/**
+ * Componente que renderiza una pequeña píldora o etiqueta de estado de color predeterminado.
+ * Se utiliza para marcar la condición operativa de dispositivos, reglas o permisos en toda la app.
+ */
 export const Badge: React.FC<BadgeProps> = ({ status, label, style }) => {
+  /** Obtiene la paleta de colores y etiqueta por defecto asociada a cada estado */
   const getBadgeStyle = () => {
     switch (status) {
       case 'activo':

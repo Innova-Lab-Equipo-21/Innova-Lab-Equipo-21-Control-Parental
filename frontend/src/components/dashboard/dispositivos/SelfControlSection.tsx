@@ -1,8 +1,8 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: SelfControlSection (Sección de Autocontrol del Responsable 24h)
+// Componente: SelfControlSection (Sección de Autoprotección del Responsable 24h)
 // Archivo: src/components/dashboard/dispositivos/SelfControlSection.tsx
-// Descripción: Tarjeta de estado y control del modo de autocontrol del responsable,
+// Descripción: Tarjeta de estado y control del modo de autoprotección del responsable,
 //              con visualización del cronómetro de 24 horas y acciones de activación.
 // ==============================================================================
 
@@ -48,15 +48,15 @@ export const SelfControlSection: React.FC<SelfControlSectionProps> = ({
 
       <Text style={styles.descText}>
         {selfControl.status === 'DEACTIVATION_READY'
-          ? 'Pasaron las 24 horas de protección obligatoria. Ya puedes desactivar el autocontrol si lo deseas.'
+          ? 'Pasaron las 24 horas de protección obligatoria. Ya puedes desactivar la autoprotección si lo deseas.'
           : selfControl.active
-          ? `Autocontrol activo. Restan ${selfControl.remainingHours}h ${selfControl.remainingMinutes.toString().padStart(2, '0')}m de protección obligatoria antes de poder desactivarlo.`
-          : 'Al activar el autocontrol, se impedirá deshabilitar, editar o eliminar sitios y aplicaciones bloqueadas en este dispositivo. Una vez activo, solo podrá desactivarse tras 24 horas de protección obligatoria.'}
+          ? `Autoprotección activa. Restan ${selfControl.remainingHours}h ${selfControl.remainingMinutes.toString().padStart(2, '0')}m de protección obligatoria antes de poder desactivarla.`
+          : 'Al activar la autoprotección, se impedirá deshabilitar, editar o eliminar sitios y aplicaciones bloqueadas en este dispositivo. Una vez activa, solo podrá desactivarse tras 24 horas de protección obligatoria.'}
       </Text>
 
       {selfControl.status === 'DEACTIVATION_READY' ? (
         <ActionButton
-          title="Desactivar autocontrol"
+          title="Desactivar autoprotección"
           variant="danger"
           onPress={onDisableSelfControl}
         />
@@ -68,7 +68,7 @@ export const SelfControlSection: React.FC<SelfControlSectionProps> = ({
         />
       ) : (
         <ActionButton
-          title="Activar autocontrol con doble confirmación"
+          title="Activar autoprotección con doble confirmación"
           variant="primary"
           onPress={onStartSelfControlFlow}
         />
