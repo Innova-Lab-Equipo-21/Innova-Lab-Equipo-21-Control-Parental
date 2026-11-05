@@ -1,19 +1,20 @@
 // ==============================================================================
 // Proyecto: BA Protege+
 // Componente: Base de Datos Relacional (PostgreSQL 18 + Prisma ORM)
-// Archivo: schema.prisma
-// Descripción: Definición del esquema de datos para usuarios responsables, dispositivos
-//              protegidos, listas de bloqueo LOTBA/personalizadas, telemetría y auditoría.
+// Archivo: schema2.prisma
+// Descripción: Schema con formato del backup + tablas QA del db pull
 // ==============================================================================
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  schemas   = ["public", "auth"]
 }
 
 // ------------------------------------------------------------------------------
@@ -24,77 +25,81 @@ enum Gender {
   FEMENINO
   OTRO
   NO_INFORMADO
-  directUrl = env("DIRECT_URL")
+
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Enum de Estados Efectivos de Protección (Reportados por Telemetría / Heartbeat)
+// Enum de Estados Efectivos de Protección
 // ------------------------------------------------------------------------------
 enum ProtectionStatus {
-  ACTIVE // Protección VPN activa y filtrando tráfico correctamente
-  INACTIVE // Protección apagada intencionalmente o pausada
-  STARTING // Servicio VPN en proceso de arranque
-  ERROR // Falla en el servicio o motor de protección
-  PERMISSION_REQUIRED // Permiso de VPN o accesibilidad revocado
-  SYNC_PENDING // Pendiente de sincronizar última versión de la lista LOTBA
-  OUTDATED // Versión de lista desactualizada
-  BYPASS_DETECTED // Intento de evasión o desconfiguración detectado
-  UNKNOWN // Sin comunicación reciente (heartbeat vencido)
+  ACTIVE
+  INACTIVE
+  STARTING
+  ERROR
+  PERMISSION_REQUIRED
+  SYNC_PENDING
+  OUTDATED
+  BYPASS_DETECTED
+  UNKNOWN
+
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
 // Enum de Tipo de Lista de Bloqueo
 // ------------------------------------------------------------------------------
 enum BlocklistType {
-  OFFICIAL_LOTBA // Lista oficial inmutable de Lotería de la Ciudad de Buenos Aires
-  CUSTOM // Lista complementaria personalizada creada por el responsable
+  OFFICIAL_LOTBA
+  CUSTOM
+
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Enum de Tipos de Eventos de Seguridad (Anti-bypass)
+// Enum de Tipos de Eventos de Seguridad
 // ------------------------------------------------------------------------------
 enum SecurityEventType {
-  VPN_DISABLED // El usuario o sistema desactivó la VPN
-  PERMISSION_REVOKED // Permisos del sistema revocados
-  APP_FORCE_STOP // Cierre forzado de la aplicación
-  DEVICE_REBOOT // Reinicio del dispositivo móvil
-  NETWORK_CHANGE // Cambio de interfaz de red (Wi-Fi / Datos móviles)
-  DNS_TAMPERING // Intento de manipulación de DNS privado
-  UNINSTALL_ATTEMPT // Intento detectado de desinstalación de la app
+  VPN_DISABLED
+  PERMISSION_REVOKED
+  APP_FORCE_STOP
+  DEVICE_REBOOT
+  NETWORK_CHANGE
+  DNS_TAMPERING
+  UNINSTALL_ATTEMPT
+
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Usuario Responsable (Padre / Madre / Tutor)
+// Modelo: Usuario Responsable
 // ------------------------------------------------------------------------------
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  fullName  String    @map("full_name")
-  gender    Gender?
-  birthDate DateTime? @map("birth_date") @db.Date
-  phone     String?
-  fcmToken  String?   @map("fcm_token")
-  isActive  Boolean   @default(true) @map("is_active")
+  id                      String    @id @default(uuid())
+  email                   String    @unique
+  fullName                String    @map("full_name")
+  gender                  Gender?
+  birthDate               DateTime? @map("birth_date") @db.Date
+  phone                   String?
+  fcmToken                String?   @map("fcm_token")
+  isActive                Boolean   @default(true) @map("is_active")
+  selfControlActive       Boolean   @default(false) @map("self_control_active")
+  selfControlEnabledAt    DateTime? @map("self_control_enabled_at")
+  deactivationRequestedAt DateTime? @map("deactivation_requested_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
 
-  // Regla 2: Autocontrol (El Responsable se autocontrola y aguarda 24h para desbloqueo)
-  selfControlActive       Boolean         @default(false) @map("self_control_active")
-  selfControlEnabledAt    DateTime?       @map("self_control_enabled_at")
-  deactivationRequestedAt DateTime?       @map("deactivation_requested_at")
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  // Relaciones
   devices     Device[]
   pairings    DevicePairing[]
   customLists Blocklist[]     @relation("UserCustomLists")
   auditLogs   AuditLog[]
 
   @@map("users")
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Dispositivo Protegido (Hijo / Menor)
+// Modelo: Dispositivo Protegido
 // ------------------------------------------------------------------------------
 model Device {
   id         String    @id @default(uuid())
@@ -110,7 +115,6 @@ model Device {
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
-  // Relaciones
   user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   status         DeviceStatus?
   config         ProtectionConfig?
@@ -119,29 +123,30 @@ model Device {
   securityEvents SecurityEvent[]
 
   @@map("devices")
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Códigos de Pareamiento Seguro (Pairing)
+// Modelo: Códigos de Pareamiento
 // ------------------------------------------------------------------------------
 model DevicePairing {
   id          String   @id @default(uuid())
   userId      String   @map("user_id")
   deviceId    String?  @map("device_id")
-  pairingCode String   @unique @map("pairing_code") // Código numérico de 6 dígitos o token QR
+  pairingCode String   @unique @map("pairing_code")
   isUsed      Boolean  @default(false) @map("is_used")
   expiresAt   DateTime @map("expires_at")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  // Relaciones
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
 
   @@map("device_pairings")
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Configuración de Protección del Dispositivo
+// Modelo: Configuración de Protección
 // ------------------------------------------------------------------------------
 model ProtectionConfig {
   id                   String   @id @default(uuid())
@@ -154,14 +159,14 @@ model ProtectionConfig {
   heartbeatIntervalSec Int      @default(60) @map("heartbeat_interval_sec")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
-  // Relaciones
   device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@map("protection_configs")
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Estado Efectivo del Dispositivo (Actualizado vía Telemetría / Heartbeat)
+// Modelo: Estado Efectivo del Dispositivo
 // ------------------------------------------------------------------------------
 model DeviceStatus {
   id               String           @id @default(uuid())
@@ -175,18 +180,18 @@ model DeviceStatus {
   appVersion       String?          @map("app_version")
   lastHeartbeatAt  DateTime         @default(now()) @map("last_heartbeat_at")
 
-  // Relaciones
   device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@map("device_status")
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Listas de Bloqueo (Oficial LOTBA o Personalizada de Usuario)
+// Modelo: Listas de Bloqueo
 // ------------------------------------------------------------------------------
 model Blocklist {
   id          String        @id @default(uuid())
-  userId      String?       @map("user_id") // Null para la lista oficial LOTBA
+  userId      String?       @map("user_id")
   name        String
   description String?
   type        BlocklistType @default(OFFICIAL_LOTBA)
@@ -195,15 +200,15 @@ model Blocklist {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  // Relaciones
   user    User?             @relation("UserCustomLists", fields: [userId], references: [id], onDelete: Cascade)
   domains BlocklistDomain[]
 
   @@map("blocklists")
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Sitios Permitidos (Lista Oficial LOTBA)
+// Modelo: Sitios Permitidos
 // ------------------------------------------------------------------------------
 model AllowedSite {
   id        String   @id @default(uuid())
@@ -215,50 +220,48 @@ model AllowedSite {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("allowed_sites")
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Dominios Registrados en Listas de Bloqueo
+// Modelo: Dominios en Listas de Bloqueo
 // ------------------------------------------------------------------------------
 model BlocklistDomain {
-  id          String  @id @default(uuid())
-  blocklistId String  @map("blocklist_id")
-  domain      String // Ejemplo: "apuestas-online-ilegal.bet"
-  category    String? @default("GAMBLING")
-  isActive    Boolean @default(true) @map("is_active")
+  id          String   @id @default(uuid())
+  blocklistId String   @map("blocklist_id")
+  domain      String
+  category    String?  @default("GAMBLING")
+  isActive    Boolean  @default(true) @map("is_active")
+  applyToAll  Boolean  @default(true) @map("apply_to_all")
+  deviceIds   String[] @map("device_ids")
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  // Reglas 3 y 4: Control Global vs Granular por Dispositivo
-  applyToAll Boolean  @default(true) @map("apply_to_all")
-  deviceIds  String[] @map("device_ids") // IDs de los dispositivos específicos + 'self' si es el responsable
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relaciones
   blocklist Blocklist @relation(fields: [blocklistId], references: [id], onDelete: Cascade)
 
   @@unique([blocklistId, domain])
   @@map("blocklist_domains")
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Eventos de Dominios Bloqueados en Dispositivos
+// Modelo: Eventos de Dominios Bloqueados
 // ------------------------------------------------------------------------------
 model BlockedEvent {
   id              String   @id @default(uuid())
   deviceId        String   @map("device_id")
   attemptedDomain String   @map("attempted_domain")
-  sourceListType  String   @default("LOTBA") @map("source_list_type") // LOTBA o CUSTOM
+  sourceListType  String   @default("LOTBA") @map("source_list_type")
   blockedAt       DateTime @default(now()) @map("blocked_at")
 
-  // Relaciones
   device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@index([deviceId, blockedAt])
   @@map("blocked_events")
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Eventos de Seguridad y Anti-Bypass
+// Modelo: Eventos de Seguridad
 // ------------------------------------------------------------------------------
 model SecurityEvent {
   id          String            @id @default(uuid())
@@ -268,26 +271,186 @@ model SecurityEvent {
   metadata    Json?
   occurredAt  DateTime          @default(now()) @map("occurred_at")
 
-  // Relaciones
   device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@index([deviceId, occurredAt])
   @@map("security_events")
+  @@schema("public")
 }
 
 // ------------------------------------------------------------------------------
-// Modelo: Auditoría de Acciones del Responsable
+// Modelo: Auditoría
 // ------------------------------------------------------------------------------
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
-  action    String // Ejemplo: "UPDATE_PROTECTION_CONFIG", "ADD_CUSTOM_DOMAIN"
+  action    String
   details   Json?
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
 
-  // Relaciones
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("audit_logs")
+  @@schema("public")
+}
+
+// ==============================================================================
+// MODELOS QA (convertidos a formato del backup desde schema.prisma introspectado)
+// ==============================================================================
+
+// ------------------------------------------------------------------------------
+// Modelo: QA Defects
+// ------------------------------------------------------------------------------
+model QaDefect {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bugId            String?  @unique @map("bug_id")
+  bugKey           String?  @unique @map("bug_key")
+  title            String
+  description      String?
+  levelArea        String?  @map("level_area")
+  severity         String?
+  status           String?
+  steps            String?
+  actual           String?
+  expectedBehavior String?  @map("expected_behavior")
+  additionalNotes  String?  @map("additional_notes")
+  attachments      Json     @default("[]")
+  component        String?
+  affectsVersion   String?  @map("affects_version")
+  fixVersion       String?  @map("fix_version")
+  platform         String?
+  reproductionRate String?  @map("reproduction_rate")
+  createdBy        String?  @default(dbgenerated("auth.uid()")) @map("created_by") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  qaTestResultId   String?  @map("qa_test_result_id") @db.Uuid
+
+  qaTestResult QaTestResult? @relation(fields: [qaTestResultId], references: [id], onUpdate: NoAction)
+
+  @@index([qaTestResultId], map: "idx_qa_defects_test_result")
+  @@map("qa_defects")
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: QA Test Cases
+// ------------------------------------------------------------------------------
+model QaTestCase {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caseKey        String    @unique @map("case_key")
+  title          String
+  module         String?
+  testType       String?   @map("test_type")
+  priority       String?
+  preconditions  String?
+  steps          String?
+  expectedResult String?   @map("expected_result")
+  requirementRef String?   @map("requirement_ref")
+  createdBy      String?   @map("created_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  description    String    @default("")
+  isActive       Boolean   @default(true) @map("is_active")
+  archivedAt     DateTime? @map("archived_at") @db.Timestamptz(6)
+  categories     String[]  @default([])
+
+  qaTestResults    QaTestResult[]
+  qaTestSuiteCases QaTestSuiteCase[]
+
+  @@map("qa_test_cases")
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: QA Test Results
+// ------------------------------------------------------------------------------
+model QaTestResult {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  runId        String    @map("run_id") @db.Uuid
+  caseId       String    @map("case_id") @db.Uuid
+  status       String    @default("Not Run")
+  actual       String?
+  caseSnapshot Json?     @map("case_snapshot")
+  executedBy   String?   @map("executed_by") @db.Uuid
+  executedAt   DateTime? @map("executed_at") @db.Timestamptz(6)
+  createdBy    String?   @default(dbgenerated("auth.uid()")) @map("created_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  comment      String    @default("")
+
+  qaDefects  QaDefect[]
+  qaTestCase QaTestCase @relation(fields: [caseId], references: [id], onUpdate: NoAction)
+  qaTestRun  QaTestRun  @relation(fields: [runId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("qa_test_results")
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: QA Test Runs
+// ------------------------------------------------------------------------------
+model QaTestRun {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  build       String?
+  environment String?
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  suiteId     String?  @map("suite_id") @db.Uuid
+
+  qaTestResults QaTestResult[]
+  qaTestSuite   QaTestSuite?   @relation(fields: [suiteId], references: [id], onUpdate: NoAction)
+
+  @@map("qa_test_runs")
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: QA Test Suite Cases
+// ------------------------------------------------------------------------------
+model QaTestSuiteCase {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  suiteId    String    @map("suite_id") @db.Uuid
+  testCaseId String    @map("test_case_id") @db.Uuid
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  qaTestSuite QaTestSuite @relation(fields: [suiteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  qaTestCase  QaTestCase  @relation(fields: [testCaseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([suiteId, testCaseId])
+  @@map("qa_test_suite_cases")
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: QA Test Suites
+// ------------------------------------------------------------------------------
+model QaTestSuite {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String?
+  status      String    @default("ACTIVE")
+  createdBy   String?   @default(dbgenerated("auth.uid()")) @map("created_by") @db.Uuid
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  qaTestRuns       QaTestRun[]
+  qaTestSuiteCases QaTestSuiteCase[]
+
+  @@map("qa_test_suites")
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: QA Workspace Members
+// ------------------------------------------------------------------------------
+model QaWorkspaceMember {
+  userId    String   @id @map("user_id") @db.Uuid
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("qa_workspace_members")
+  @@schema("public")
 }
