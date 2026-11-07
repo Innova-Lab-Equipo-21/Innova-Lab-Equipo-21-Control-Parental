@@ -9,6 +9,7 @@ import {
   CustomBlockedDomain,
   CustomBlockedApp,
   AppUsageItem,
+  BlockOriginMeta,
 } from '../../types';
 import { apiClient, safeStorage } from './client';
 
@@ -36,12 +37,29 @@ export const blocklistApi = {
         // Preservar aplicaciones bloqueadas locales para evitar que la respuesta del backend las sobreescriba
         const cached = await safeStorage.getItem('@ba_protege_custom_blocklist');
         const cachedList: CustomBlocklist | null = cached ? JSON.parse(cached) : null;
+        const localDomains = cachedList?.domains || [];
+        const serverDomains: CustomBlockedDomain[] = (response.data.data.domains || []).map(
+          (serverDomain: CustomBlockedDomain) => {
+            const cachedDomain = localDomains.find(
+              (local) => local.id === serverDomain.id || local.domain === serverDomain.domain
+            );
+            if (!cachedDomain) return serverDomain;
+            return {
+              ...serverDomain,
+              createdBy: serverDomain.createdBy ?? cachedDomain.createdBy,
+              createdByName: serverDomain.createdByName ?? cachedDomain.createdByName,
+              sourceDeviceId: serverDomain.sourceDeviceId ?? cachedDomain.sourceDeviceId,
+            };
+          }
+        );
+
         const localApps = cachedList?.apps || [];
         const serverApps = response.data.data.apps || [];
         const mergedApps = serverApps.length > 0 ? serverApps : localApps;
 
         const mergedData: CustomBlocklist = {
           ...response.data.data,
+          domains: serverDomains,
           apps: mergedApps,
         };
 
@@ -63,48 +81,8 @@ export const blocklistApi = {
         name: 'Lista Personalizada del Tutor',
         type: 'CUSTOM',
         version: 1,
-        domains: [
-          {
-            id: 'demo-site-1',
-            domain: 'casino-clandestino.net',
-            category: 'Apuestas',
-            isActive: true,
-            applyToAll: true,
-            deviceIds: [],
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: 'demo-site-2',
-            domain: 'red-social-peligrosa.org',
-            category: 'Redes Sociales',
-            isActive: true,
-            applyToAll: true,
-            deviceIds: [],
-            createdAt: new Date().toISOString(),
-          },
-        ],
-        apps: [
-          {
-            id: 'demo-app-1',
-            appName: 'Bet365 Mobile',
-            packageName: 'com.bet365.mobile',
-            category: 'Apuestas',
-            isActive: true,
-            applyToAll: true,
-            deviceIds: [],
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: 'demo-app-2',
-            appName: 'TikTok',
-            packageName: 'com.zhiliaoapp.musically',
-            category: 'Redes sociales',
-            isActive: true,
-            applyToAll: false,
-            deviceIds: ['self'],
-            createdAt: new Date().toISOString(),
-          },
-        ],
+        domains: [],
+        apps: [],
       };
       await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(initialList));
       return { success: true, data: initialList };
@@ -118,12 +96,19 @@ export const blocklistApi = {
     domain: string,
     category: string = 'Personalizado',
     applyToAll: boolean = true,
-    deviceIds: string[] = []
+    deviceIds: string[] = [],
+    originMeta?: BlockOriginMeta
   ): Promise<{ success: boolean; data: CustomBlockedDomain }> {
     const cleanDomain = domain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
     if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
       throw new Error('Formato de dominio no válido (ejemplo: sitio.com)');
     }
+
+    const originFields: Partial<CustomBlockedDomain> = {
+      ...(originMeta?.createdBy ? { createdBy: originMeta.createdBy } : {}),
+      ...(originMeta?.createdByName ? { createdByName: originMeta.createdByName } : {}),
+      ...(originMeta?.sourceDeviceId ? { sourceDeviceId: originMeta.sourceDeviceId } : {}),
+    };
 
     try {
       const response = await apiClient.post(
@@ -133,9 +118,30 @@ export const blocklistApi = {
           category,
           applyToAll,
           deviceIds,
+          ...originFields,
         },
         { timeout: 300 }
       );
+      if (response.data?.data && Object.keys(originFields).length > 0) {
+        const enrichedDomain: CustomBlockedDomain = {
+          ...originFields,
+          ...response.data.data,
+        };
+        const cached = await safeStorage.getItem('@ba_protege_custom_blocklist');
+        if (cached) {
+          const cachedList: CustomBlocklist = JSON.parse(cached);
+          const existingIdx = cachedList.domains.findIndex(
+            (d) => d.id === enrichedDomain.id || d.domain === enrichedDomain.domain
+          );
+          if (existingIdx >= 0) {
+            cachedList.domains[existingIdx] = enrichedDomain;
+          } else {
+            cachedList.domains.unshift(enrichedDomain);
+          }
+          await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(cachedList));
+        }
+        return { ...response.data, data: enrichedDomain };
+      }
       return response.data;
     } catch (e: any) {
       // Fallback offline
@@ -152,6 +158,7 @@ export const blocklistApi = {
         applyToAll,
         deviceIds,
         createdAt: new Date().toISOString(),
+        ...originFields,
       };
       list.domains.unshift(newDomain);
       list.version += 1;
@@ -230,11 +237,18 @@ export const blocklistApi = {
     applyToAll: boolean = true,
     deviceIds: string[] = [],
     dailyLimitMinutes?: number,
-    deviceLimits?: Record<string, number | undefined>
+    deviceLimits?: Record<string, number | undefined>,
+    originMeta?: BlockOriginMeta
   ): Promise<{ success: boolean; data: CustomBlockedApp }> {
     const listRes = await this.getCustomBlocklist();
     const list = listRes.data;
     if (!list.apps) list.apps = [];
+
+    const originFields: Partial<CustomBlockedApp> = {
+      ...(originMeta?.createdBy ? { createdBy: originMeta.createdBy } : {}),
+      ...(originMeta?.createdByName ? { createdByName: originMeta.createdByName } : {}),
+      ...(originMeta?.sourceDeviceId ? { sourceDeviceId: originMeta.sourceDeviceId } : {}),
+    };
 
     const newApp: CustomBlockedApp = {
       id: `app-${Date.now()}`,
@@ -247,6 +261,7 @@ export const blocklistApi = {
       dailyLimitMinutes,
       deviceLimits,
       createdAt: new Date().toISOString(),
+      ...originFields,
     };
 
     list.apps.unshift(newApp);

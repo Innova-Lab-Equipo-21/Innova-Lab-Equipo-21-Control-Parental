@@ -101,6 +101,8 @@ export const apiService = {
   // --------------------------------------------------------------------------
   sendHeartbeat: telemetryApi.sendHeartbeat.bind(telemetryApi),
   reportBlockedEvent: telemetryApi.reportBlockedEvent.bind(telemetryApi),
+  getBlockedEvents: telemetryApi.getBlockedEvents.bind(telemetryApi),
+  clearBlockedEvents: telemetryApi.clearBlockedEvents.bind(telemetryApi),
   reportSecurityEvent: telemetryApi.reportSecurityEvent.bind(telemetryApi),
 
   // --------------------------------------------------------------------------

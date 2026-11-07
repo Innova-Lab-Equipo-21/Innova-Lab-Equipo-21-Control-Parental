@@ -23,6 +23,11 @@ import { ResponsibleActionScreen } from './screens/ResponsibleActionScreen';
 import { SplashScreen } from './components/SplashScreen';
 import { AppMode } from './types';
 import { AuthViewMode } from './components/auth/LoginForm';
+import {
+  ResponsibleInitialAction,
+  hasCompletedResponsibleFirstAccess,
+  markResponsibleFirstAccessCompleted,
+} from './utils/responsibleFirstAccess';
 
 export function App(): React.JSX.Element {
   // Splash Screen inicial animado
@@ -42,7 +47,7 @@ export function App(): React.JSX.Element {
   const [loginInitialViewMode, setLoginInitialViewMode] = useState<AuthViewMode>('REGISTER');
   const [hasGrantedPermissions, setHasGrantedPermissions] = useState<boolean>(false);
   const [hasSelectedResponsibleAction, setHasSelectedResponsibleAction] = useState<boolean>(false);
-  const [responsibleActionType, setResponsibleActionType] = useState<'SUPERVISE' | 'SELF_CONTROL'>('SUPERVISE');
+  const [responsibleActionType, setResponsibleActionType] = useState<ResponsibleInitialAction>('NONE');
 
   const [isDevicePaired, setIsDevicePaired] = useState<boolean>(false);
   const [deviceUuid, setDeviceUuid] = useState<string | null>(null);
@@ -54,15 +59,18 @@ export function App(): React.JSX.Element {
     setIsDevicePaired(false);
     setHasGrantedPermissions(false);
     setHasSelectedResponsibleAction(false);
+    setResponsibleActionType('NONE');
   };
 
   // Manejador de Login del Responsable
-  const handleLoginSuccess = (user: any, token: string) => {
+  const handleLoginSuccess = async (user: any, token: string) => {
     setParentUser(user);
     setParentToken(token);
     setIsParentLoggedIn(true);
     setHasGrantedPermissions(false);
-    setHasSelectedResponsibleAction(false);
+    setResponsibleActionType('NONE');
+    const alreadyCompleted = await hasCompletedResponsibleFirstAccess(user);
+    setHasSelectedResponsibleAction(alreadyCompleted);
     // Inicia solicitando permisos primero
   };
 
@@ -77,7 +85,14 @@ export function App(): React.JSX.Element {
   };
 
   // Manejador de confirmación de permisos
-  const handlePermissionsComplete = () => {
+  const handlePermissionsComplete = async () => {
+    if (currentMode === 'PARENT') {
+      const alreadyCompleted = await hasCompletedResponsibleFirstAccess(parentUser);
+      if (alreadyCompleted) {
+        setResponsibleActionType('NONE');
+        setHasSelectedResponsibleAction(true);
+      }
+    }
     setHasGrantedPermissions(true);
   };
 
@@ -88,6 +103,7 @@ export function App(): React.JSX.Element {
     setIsDevicePaired(false);
     setHasGrantedPermissions(false);
     setHasSelectedResponsibleAction(false);
+    setResponsibleActionType('NONE');
   };
 
   if (showSplash) {
@@ -160,7 +176,7 @@ export function App(): React.JSX.Element {
           />
         )}
 
-      {/* 2. MODO RESPONSABLE: Pantalla de Acción Inicial (Se muestra después de habilitar permisos) */}
+      {/* 2. MODO RESPONSABLE: Pantalla "Elegir protección" (Solo en el primer acceso del Responsable) */}
       {!showOnboarding &&
         currentMode === 'PARENT' &&
         isParentLoggedIn &&
@@ -168,7 +184,8 @@ export function App(): React.JSX.Element {
         !hasSelectedResponsibleAction && (
           <ResponsibleActionScreen
             userName={parentUser?.fullName || 'Tutor Responsable'}
-            onSelectAction={(actionType) => {
+            onSelectAction={async (actionType) => {
+              await markResponsibleFirstAccessCompleted(parentUser);
               setResponsibleActionType(actionType);
               setHasSelectedResponsibleAction(true);
             }}
@@ -199,6 +216,9 @@ export function App(): React.JSX.Element {
         !hasGrantedPermissions && (
           <PermissionsScreen
             flowSource="DEVICE_PAIRING"
+            allowDisablePermissions={false}
+            protectedProfile={currentMode}
+            userId={deviceUuid || (currentMode === 'ADULT' ? 'dev-adult-default' : 'dev-local-default')}
             onPermissionsComplete={handlePermissionsComplete}
             onBack={() => setIsDevicePaired(false)}
           />
@@ -211,6 +231,7 @@ export function App(): React.JSX.Element {
         hasGrantedPermissions && (
           <ProtectedDeviceScreen
             deviceUuid={deviceUuid || (currentMode === 'ADULT' ? 'dev-adult-default' : 'dev-local-default')}
+            mode={currentMode}
             onExitMode={handleExitMode}
           />
         )}

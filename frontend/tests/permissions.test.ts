@@ -6,7 +6,14 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { apiService } from '../src/services/api.service.js';
+import { canToggleDevicePermission } from '../src/utils/permissionChecker.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe('Permisos del Dispositivo y Auditoría del Responsable', () => {
   const requiredPermissions = [
@@ -141,5 +148,35 @@ describe('Permisos del Dispositivo y Auditoría del Responsable', () => {
       assert.ok(!item.name.includes('\n'), 'El nombre no debe tener saltos de línea');
       assert.ok(!item.desc.includes('\n'), 'La descripción no debe tener saltos de línea');
     });
+  });
+
+  test('Tanto el adulto protegido como el menor pueden activar permisos, pero nunca desactivarlos', () => {
+    // En modos protegidos (allowDisable = false):
+    // - Si el permiso está inactivo (false), SE PERMITE activarlo.
+    assert.equal(canToggleDevicePermission(false, false), true);
+    // - Si el permiso ya está activo (true), NUNCA se permite desactivarlo.
+    assert.equal(canToggleDevicePermission(true, false), false);
+
+    // En modo Responsable (allowDisable = true), puede tanto activar como desactivar:
+    assert.equal(canToggleDevicePermission(false, true), true);
+    assert.equal(canToggleDevicePermission(true, true), true);
+
+    const permissionsScreenSource = fs.readFileSync(
+      path.resolve(__dirname, '../src/screens/PermissionsScreen.tsx'),
+      'utf8'
+    );
+    const protectedScreenSource = fs.readFileSync(
+      path.resolve(__dirname, '../src/screens/ProtectedDeviceScreen.tsx'),
+      'utf8'
+    );
+
+    assert.equal(
+      permissionsScreenSource.includes('canToggleDevicePermission'),
+      true
+    );
+    assert.equal(
+      protectedScreenSource.includes('allowDisablePermissions={false}'),
+      true
+    );
   });
 });

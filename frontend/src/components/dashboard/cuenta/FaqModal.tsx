@@ -37,7 +37,7 @@ const FAQS: FaqItem[] = [
   {
     question: '2. ¿Cómo se vincula un dispositivo protegido?',
     answer:
-      'Desde la pestaña "Dispositivos" o "Panel", tocá en "Vincular dispositivo". Podés escanear el código QR con el celular del menor o ingresar manualmente el código PIN numérico de 6 dígitos generado en pantalla.',
+      'Desde la pestaña "Dispositivos" o "Inicio", tocá en "Vincular dispositivo". Podés escanear el código QR con el celular del menor o ingresar manualmente el código PIN numérico de 6 dígitos generado en pantalla.',
   },
   {
     question: '3. ¿Cómo funciona la autoprotección de 24 horas?',

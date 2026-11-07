@@ -103,4 +103,15 @@ describe('Autocontrol del Tutor y Límite de 5 Dispositivos', () => {
     assert.equal(reactivated.canDisable, false, 'El tiempo de 24h vuelve a correr');
     assert.equal(reactivated.remainingHours, 24);
   });
+
+  test('7- Autoprotección debe estar deshabilitada solo cuando no hay sitios ni apps registrados (0 sitios y 0 apps) y habilitada si existe al menos uno', () => {
+    const isAutoproteccionDisabled = (sitesCount: number, appsCount: number, isActive = false) =>
+      !isActive && sitesCount + appsCount === 0;
+
+    assert.equal(isAutoproteccionDisabled(0, 0), true, 'Sin sitios ni apps debe estar deshabilitada');
+    assert.equal(isAutoproteccionDisabled(1, 0), false, 'Con al menos 1 sitio y 0 apps debe estar habilitada');
+    assert.equal(isAutoproteccionDisabled(0, 1), false, 'Con 0 sitios y al menos 1 app debe estar habilitada');
+    assert.equal(isAutoproteccionDisabled(2, 1), false, 'Con sitios y apps debe estar habilitada');
+    assert.equal(isAutoproteccionDisabled(0, 0, true), false, 'Si ya está activa debe permitir consultar estado');
+  });
 });

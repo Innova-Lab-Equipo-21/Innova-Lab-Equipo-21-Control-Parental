@@ -1,0 +1,291 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: MemoryGameModal Styles
+// Archivo: src/components/dashboard/protected/juegos/MemoryGameModal.styles.ts
+// Descripción: Estilos para el Juego de la memoria de 12 piezas (cuadrícula 3x4)
+//              siguiendo la estética de Pasatiempos y su celebración con Beti.
+// ==============================================================================
+
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
+const CARD_MAX_WIDTH = Math.min(width * 0.94, 420);
+const SHEET_INNER_WIDTH = CARD_MAX_WIDTH - 68;
+const CARD_GAP = 8;
+const MEMORY_TILE_WIDTH = Math.floor((SHEET_INNER_WIDTH - CARD_GAP * 2) / 3);
+const MEMORY_TILE_HEIGHT = Math.min(Math.floor(MEMORY_TILE_WIDTH * 0.86), 80);
+
+export const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.82)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  outerWrapper: {
+    width: CARD_MAX_WIDTH,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 26,
+    padding: 16,
+    maxHeight: '92%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    elevation: 12,
+  },
+  topHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  screenTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  closeIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeIconText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#334155',
+    lineHeight: 17,
+  },
+  amberFrame: {
+    backgroundColor: '#FBBF24',
+    borderRadius: 22,
+    padding: 12,
+  },
+  whiteBoardSheet: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+  },
+  boardTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#78350F',
+    textAlign: 'center',
+  },
+  boardHintText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    fontWeight: '600',
+    marginTop: 2,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  gridContainer: {
+    width: MEMORY_TILE_WIDTH * 3 + CARD_GAP * 2,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: CARD_GAP,
+    justifyContent: 'center',
+  },
+  memoryCard: {
+    width: MEMORY_TILE_WIDTH,
+    height: MEMORY_TILE_HEIGHT,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    padding: 4,
+  },
+  memoryCardBack: {
+    backgroundColor: '#F59E0B',
+    borderWidth: 2,
+    borderColor: '#D97706',
+    shadowColor: '#92400E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  memoryCardBackInner: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  memoryCardQuestion: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  memoryCardFlipped: {
+    borderWidth: 2,
+    borderColor: '#007AFF',
+  },
+  memoryCardMatched: {
+    borderWidth: 2,
+    borderColor: '#16A34A',
+  },
+  matchedCheckBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#16A34A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  matchedCheckText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  cardEmoji: {
+    fontSize: 26,
+    marginBottom: 2,
+  },
+  cardLabel: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    textAlign: 'center',
+  },
+  footerStatusRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 4,
+  },
+  progressInfoText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  movesPill: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  movesPillText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+  celebrationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.48)',
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  celebrationCardOuter: {
+    width: '100%',
+    backgroundColor: '#FBBF24',
+    borderRadius: 24,
+    padding: 8,
+    shadowColor: '#92400E',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  celebrationCardInner: {
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  celebrationCloseBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  celebrationCloseText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  celebrationTitle: {
+    fontSize: 21,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  celebrationSubtitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  celebrationIllustrationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 8,
+  },
+  celebrationBeti: {
+    width: 125,
+    height: 125,
+  },
+  celebrationCheckCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#4ADE80',
+    borderWidth: 3,
+    borderColor: '#DCFCE7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: -8,
+  },
+  celebrationCheckMark: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  celebrationContinueBtn: {
+    marginTop: 14,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 11,
+    paddingHorizontal: 26,
+    borderRadius: 18,
+    width: '100%',
+    alignItems: 'center',
+  },
+  celebrationContinueText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+});

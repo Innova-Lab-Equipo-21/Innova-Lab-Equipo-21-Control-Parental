@@ -21,15 +21,23 @@ import {
 import { styles } from './PermissionsScreen.styles';
 import { Icon } from '../components/Icon';
 import { ToggleSwitch } from '../components/ToggleSwitch';
+import { FeedbackModal } from '../components/FeedbackModal';
 import { colors } from '../theme/colors';
 import { vpnServiceBridge } from '../services/vpn.service';
 import { apiService } from '../services/api.service';
-import { checkRealDevicePermissions, saveDevicePermissions } from '../utils/permissionChecker';
+import {
+  canToggleDevicePermission,
+  checkRealDevicePermissions,
+  saveDevicePermissions,
+} from '../utils/permissionChecker';
+import { getBotMascotImage } from '../components/dashboard/protected/botAssets';
 
 interface PermissionsScreenProps {
   onPermissionsComplete: () => void;
   onBack?: () => void;
   flowSource?: 'PARENT_LOGIN' | 'DEVICE_PAIRING';
+  allowDisablePermissions?: boolean;
+  protectedProfile?: 'CHILD' | 'ADULT';
   userId?: string;
 }
 
@@ -57,8 +65,15 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   onPermissionsComplete,
   onBack,
   flowSource = 'DEVICE_PAIRING',
+  allowDisablePermissions,
+  protectedProfile = 'CHILD',
   userId,
 }) => {
+  const canDisablePermissions =
+    allowDisablePermissions ?? flowSource === 'PARENT_LOGIN';
+
+  const [lockedPermissionAlert, setLockedPermissionAlert] =
+    useState<boolean>(false);
   // Inicialización de permisos (se sincroniza con el estado real del sistema para este usuario)
   const [permissions, setPermissions] = useState<PermissionItemState>({
     vpn: false,
@@ -241,9 +256,18 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     }
   };
 
+  const showProtectedPermissionNotice = () => {
+    setLockedPermissionAlert(true);
+  };
+
   const handleTogglePermission = (key: keyof PermissionItemState) => {
+    if (!canToggleDevicePermission(permissions[key], canDisablePermissions)) {
+      showProtectedPermissionNotice();
+      return;
+    }
+
     if (permissions[key]) {
-      // Desactivar permiso
+      // Desactivar permiso (exclusivo Modo Responsable)
       updatePermission(key, false);
       if (key === 'location') {
         setLocationAddress(null);
@@ -433,7 +457,14 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
                       <ToggleSwitch
                         value={isGranted}
                         onValueChange={() => handleTogglePermission(item.key)}
-                        disabled={isLoading}
+                        disabled={
+                          isLoading || (isGranted && !canDisablePermissions)
+                        }
+                        onDisabledPress={
+                          isGranted && !canDisablePermissions
+                            ? showProtectedPermissionNotice
+                            : undefined
+                        }
                       />
                     </View>
                     <Text style={styles.chevronIcon}>{isExpanded ? '∧' : '∨'}</Text>
@@ -515,6 +546,14 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <FeedbackModal
+        visible={lockedPermissionAlert}
+        imageSource={getBotMascotImage(protectedProfile, 'nervioso')}
+        title="Permiso protegido"
+        message="Una vez activado, este permiso no puede desactivarse desde un dispositivo protegido."
+        onClose={() => setLockedPermissionAlert(false)}
+      />
     </SafeAreaView>
   );
 };

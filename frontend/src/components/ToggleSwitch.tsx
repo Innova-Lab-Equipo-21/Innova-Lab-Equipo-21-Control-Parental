@@ -22,6 +22,7 @@ interface ToggleSwitchProps {
   value: boolean;
   onValueChange: (value: boolean) => void;
   disabled?: boolean;
+  onDisabledPress?: () => void;
   activeColor?: string;
   inactiveColor?: string;
 }
@@ -34,14 +35,21 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   value,
   onValueChange,
   disabled = false,
+  onDisabledPress,
   activeColor = '#007AFF',
   inactiveColor = '#D1D5DB',
 }) => {
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      disabled={disabled}
-      onPress={() => onValueChange(!value)}
+      disabled={disabled && !onDisabledPress}
+      onPress={() => {
+        if (disabled) {
+          onDisabledPress?.();
+          return;
+        }
+        onValueChange(!value);
+      }}
       style={[
         styles.track,
         value

@@ -148,6 +148,24 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  originBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: '#EEF4FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 8,
+  },
+  originBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: colors.primaryDark,
+  },
   cardFooterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -158,6 +176,8 @@ export const styles = StyleSheet.create({
     borderTopColor: colors.borderLight,
   },
   deviceIndicatorText: {
+    flex: 1,
+    marginRight: 10,
     fontSize: 13,
     fontWeight: '600',
     color: colors.textPrimary,

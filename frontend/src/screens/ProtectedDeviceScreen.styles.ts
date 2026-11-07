@@ -53,6 +53,19 @@ export const styles = StyleSheet.create({
   scrollBody: {
     flex: 1,
   },
+  pasatiemposProgressPill: {
+    backgroundColor: '#E5F1FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  pasatiemposProgressPillText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#0056B3',
+  },
 
   // FAB Floating Action Button (+) para Bloquear Sitio/App
   fabContainer: {
@@ -105,6 +118,12 @@ export const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
+  },
+  pinMascotImage: {
+    width: 72,
+    height: 72,
+    alignSelf: 'center',
+    marginBottom: 8,
   },
   modalTitle: {
     ...typography.header,

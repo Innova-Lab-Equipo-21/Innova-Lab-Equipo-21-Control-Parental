@@ -2,12 +2,15 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla de Acción Inicial del Responsable)
 // Archivo: src/screens/ResponsibleActionScreen.tsx
-// Descripción: Pantalla mostrada tras la habilitación de permisos del responsable,
-//              con opciones para supervisar otro dispositivo o configurar este dispositivo
-//              en la pestaña de Sitios y Apps antes de activar la autoprotección.
+// Descripción: Pantalla mostrada únicamente en el primer acceso del usuario
+//              Responsable tras conceder permisos:
+//              - Vincular dispositivo: abre el modal "Vincular nuevo dispositivo"
+//                y, al guardar el dispositivo, continúa directo a Inicio (Home).
+//              - Configurar este dispositivo: continúa a "Sitios y apps" para
+//                incluir sitios/apps y activar la Autoprotección.
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -19,11 +22,16 @@ import {
 import { Icon } from '../components/Icon';
 import { colors } from '../theme/colors';
 import { ResponsibleHelpModal } from '../components/auth/ResponsibleHelpModal';
+import { PairingModal } from '../components/dashboard/dispositivos';
+import { apiService } from '../services/api.service';
 import { styles } from './ResponsibleActionScreen.styles';
 
 interface ResponsibleActionScreenProps {
   userName?: string;
-  onSelectAction: (actionType: 'SUPERVISE' | 'SELF_CONTROL') => void;
+  onSelectAction: (
+    actionType: 'SUPERVISE' | 'SELF_CONTROL',
+    addedDeviceName?: string
+  ) => void;
   onBack: () => void;
 }
 
@@ -33,6 +41,24 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
   onBack,
 }) => {
   const [helpModalVisible, setHelpModalVisible] = useState<boolean>(false);
+  const [showPairingModal, setShowPairingModal] = useState<boolean>(false);
+  const [deviceCount, setDeviceCount] = useState<number>(0);
+
+  useEffect(() => {
+    let mounted = true;
+    apiService
+      .listDevices()
+      .then((res) => {
+        if (mounted && Array.isArray(res.data)) {
+          setDeviceCount(res.data.length);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -92,7 +118,7 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
 
             <TouchableOpacity
               style={styles.actionBtn}
-              onPress={() => onSelectAction('SUPERVISE')}
+              onPress={() => setShowPairingModal(true)}
               activeOpacity={0.85}
               accessibilityLabel="Vincular dispositivo"
             >
@@ -139,6 +165,17 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal para Vincular Nuevo Dispositivo directamente desde Elegir protección */}
+      <PairingModal
+        visible={showPairingModal}
+        deviceCount={deviceCount}
+        onClose={() => setShowPairingModal(false)}
+        onDeviceAdded={(savedName) => {
+          setShowPairingModal(false);
+          onSelectAction('SUPERVISE', savedName);
+        }}
+      />
 
       {/* Modal de Ayuda con el mismo estilo de TermsModal */}
       <ResponsibleHelpModal

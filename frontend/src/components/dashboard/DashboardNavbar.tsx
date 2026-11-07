@@ -24,7 +24,7 @@ interface DashboardNavbarProps {
   onSelectTab: (tab: DashboardTab) => void;
 }
 
-/** Mapeo de recursos de imágenes de íconos asignados a cada pestaña */
+/** Mapeo de recursos de imágenes de íconos en estado inactivo (por defecto) */
 const navIcons: Record<DashboardTab, any> = {
   inicio: require('../../assets/icons/navbar/inicio.png'),
   dispositivos: require('../../assets/icons/navbar/dispositivos.png'),
@@ -33,9 +33,18 @@ const navIcons: Record<DashboardTab, any> = {
   cuenta: require('../../assets/icons/navbar/cuenta.png'),
 };
 
+/** Mapeo de recursos de imágenes de íconos en estado activo (seleccionado) */
+const activeNavIcons: Record<DashboardTab, any> = {
+  inicio: require('../../assets/icons/navbar/inicio_activo.png'),
+  dispositivos: require('../../assets/icons/navbar/dispositivos_activo.png'),
+  sitios: require('../../assets/icons/navbar/sitios.png'),
+  actividad: require('../../assets/icons/navbar/actividad_activo.png'),
+  cuenta: require('../../assets/icons/navbar/cuenta_activo.png'),
+};
+
 /** Etiquetas en español visibles para cada pestaña de la barra inferior */
 const tabLabels: Record<DashboardTab, string> = {
-  inicio: 'Panel',
+  inicio: 'Inicio',
   dispositivos: 'Dispositivos',
   sitios: 'Sitios y apps',
   actividad: 'Actividad',
@@ -47,7 +56,7 @@ const tabs: DashboardTab[] = ['inicio', 'dispositivos', 'sitios', 'actividad', '
 
 /**
  * Componente principal de la barra de navegación inferior del responsable.
- * Muestra 5 secciones clave: Panel, Dispositivos, Sitios y apps, Actividad y Cuenta.
+ * Muestra 5 secciones clave: Inicio, Dispositivos, Sitios y apps, Actividad y Cuenta.
  */
 export const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
   activeTab,
@@ -70,7 +79,7 @@ export const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
             accessibilityLabel={`Navegar a ${tabLabels[tab]}`}
           >
             <Image
-              source={navIcons[tab]}
+              source={isActive ? activeNavIcons[tab] : navIcons[tab]}
               style={styles.iconImage}
               resizeMode="contain"
             />

@@ -175,3 +175,19 @@ export async function resetDevicePermissions(userId?: string): Promise<void> {
   const storageKey = userId ? `@ba_protege_permissions_${userId}` : PERMISSIONS_STORAGE_KEY;
   await safeStorage.setItem(storageKey, '');
 }
+
+/**
+ * Evalúa si se permite cambiar el estado de un permiso del dispositivo:
+ * - Activar (currentlyGranted === false) siempre está permitido para todos los perfiles.
+ * - Desactivar (currentlyGranted === true) solo se permite cuando allowDisable es true
+ *   (Modo Responsable). Ni el adulto protegido ni el menor pueden desactivar permisos activos.
+ */
+export function canToggleDevicePermission(
+  currentlyGranted: boolean,
+  allowDisable: boolean
+): boolean {
+  if (!currentlyGranted) {
+    return true;
+  }
+  return Boolean(allowDisable);
+}

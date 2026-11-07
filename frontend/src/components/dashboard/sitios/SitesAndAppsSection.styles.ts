@@ -15,9 +15,10 @@ export const styles = StyleSheet.create({
   },
   autoprotectionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingVertical: 10,
+    gap: 10,
+    paddingVertical: 8,
     paddingHorizontal: 2,
     marginBottom: 10,
   },
@@ -25,6 +26,27 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.textPrimary,
+  },
+  autoprotectionEmptyNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  autoprotectionEmptyIcon: {
+    marginRight: 8,
+  },
+  autoprotectionEmptyText: {
+    flex: 1,
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#92400E',
+    lineHeight: 17,
   },
   sectionTabRow: {
     flexDirection: 'row',
@@ -109,5 +131,31 @@ export const styles = StyleSheet.create({
   filterChipTextActive: {
     color: colors.primary,
     fontWeight: '700',
+  },
+  activeOriginFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EEF4FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+  },
+  activeOriginFilterText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: colors.primaryDark,
+  },
+  clearOriginFilterBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  clearOriginFilterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
   },
 });

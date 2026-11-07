@@ -18,6 +18,7 @@ export interface GlobalRulesSectionProps {
   ruleUninstallProtection: boolean;
   rulePermissions?: boolean;
   selfControl?: SelfControlState;
+  isAutoproteccionDisabled?: boolean;
   onToggleAlerts: (val: boolean) => void;
   onToggleUninstallProtection: (val: boolean) => void;
   onTogglePermissions?: (val: boolean) => void;
@@ -30,6 +31,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
   ruleAlerts,
   ruleUninstallProtection,
   selfControl,
+  isAutoproteccionDisabled = false,
   onToggleAlerts,
   onToggleUninstallProtection,
   onStartSelfControlFlow,
@@ -103,6 +105,8 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
         <ToggleSwitch
           value={isAutoproteccionActive}
           onValueChange={handleSelfControlPress}
+          disabled={isAutoproteccionDisabled}
+          onDisabledPress={handleSelfControlPress}
           activeColor="#007AFF"
         />
       </TouchableOpacity>

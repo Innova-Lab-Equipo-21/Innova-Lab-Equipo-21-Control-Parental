@@ -18,7 +18,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import { DeviceInfo } from '../../../types';
+import { BlockOriginFilter, DeviceInfo } from '../../../types';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { Icon } from '../../Icon';
 import { styles } from './SitesAppsOptionsMenuModal.styles';
@@ -50,6 +50,8 @@ export interface SitesAppsOptionsMenuModalProps {
   devices?: DeviceInfo[];
   selectedDeviceFilter?: string;
   onSelectDeviceFilter?: (deviceId: string) => void;
+  selectedOriginFilter?: BlockOriginFilter;
+  onSelectOriginFilter?: (origin: BlockOriginFilter) => void;
   sortBy?: 'date' | 'az';
   onSelectSortBy?: (sort: 'date' | 'az') => void;
   isSelectionMode?: boolean;
@@ -73,6 +75,8 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
   devices = [],
   selectedDeviceFilter = 'all',
   onSelectDeviceFilter,
+  selectedOriginFilter = 'all',
+  onSelectOriginFilter,
   sortBy = 'date',
   onSelectSortBy,
   isSelectionMode = false,
@@ -225,7 +229,71 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                   })}
                 </View>
 
-                {/* 3. CRITERIO DE ORDENACIÓN (Sin emojis) */}
+                {/* 3. FILTRAR POR ORIGEN (Sin emojis) */}
+                <Text style={styles.sheetSectionTitle}>FILTRAR POR ORIGEN</Text>
+                <View style={styles.badgeRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterBadge,
+                      selectedOriginFilter === 'all' && styles.filterBadgeActive,
+                    ]}
+                    onPress={() => {
+                      handleDismissKeyboard();
+                      if (onSelectOriginFilter) onSelectOriginFilter('all');
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.filterBadgeText,
+                        selectedOriginFilter === 'all' && styles.filterBadgeTextActive,
+                      ]}
+                    >
+                      Todos
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.filterBadge,
+                      selectedOriginFilter === 'responsable' && styles.filterBadgeActive,
+                    ]}
+                    onPress={() => {
+                      handleDismissKeyboard();
+                      if (onSelectOriginFilter) onSelectOriginFilter('responsable');
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.filterBadgeText,
+                        selectedOriginFilter === 'responsable' && styles.filterBadgeTextActive,
+                      ]}
+                    >
+                      Responsable
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.filterBadge,
+                      selectedOriginFilter === 'adulto_protegido' && styles.filterBadgeActive,
+                    ]}
+                    onPress={() => {
+                      handleDismissKeyboard();
+                      if (onSelectOriginFilter) onSelectOriginFilter('adulto_protegido');
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.filterBadgeText,
+                        selectedOriginFilter === 'adulto_protegido' && styles.filterBadgeTextActive,
+                      ]}
+                    >
+                      Adulto protegido
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* 4. CRITERIO DE ORDENACIÓN (Sin emojis) */}
                 <Text style={styles.sheetSectionTitle}>ORDENAR LISTA</Text>
                 <View style={styles.badgeRow}>
                   {/* Badge: Por fecha */}

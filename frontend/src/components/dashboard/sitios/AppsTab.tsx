@@ -12,7 +12,11 @@ import { Badge } from '../../Badge';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { Icon } from '../../Icon';
 import { colors } from '../../../theme/colors';
-import { CustomBlockedApp } from '../../../types';
+import { BlockOriginFilter, CustomBlockedApp, DeviceInfo } from '../../../types';
+import {
+  formatBlockCardDeviceScope,
+  getProtectedAdultOriginLabel,
+} from '../../../utils/adultoSitios';
 import { styles } from './AppsTab.styles';
 
 interface AppsTabProps {
@@ -22,6 +26,8 @@ interface AppsTabProps {
   onHideSearch?: () => void;
   isSelectionMode?: boolean;
   appsList: CustomBlockedApp[];
+  devices?: DeviceInfo[];
+  originFilter?: BlockOriginFilter;
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
   onSelectAll: () => void;
@@ -41,6 +47,8 @@ export const AppsTab: React.FC<AppsTabProps> = ({
   onHideSearch,
   isSelectionMode = false,
   appsList,
+  devices = [],
+  originFilter = 'all',
   selectedIds,
   onToggleSelect,
   onSelectAll,
@@ -122,12 +130,15 @@ export const AppsTab: React.FC<AppsTabProps> = ({
       {appsList.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyText}>
-            No tienes aplicaciones bloqueadas. Agrega apps con el botón + flotante.
+            {originFilter === 'adulto_protegido'
+              ? 'No hay aplicaciones agregadas por adultos protegidos.'
+              : 'No tienes aplicaciones bloqueadas. Agrega apps con el botón + flotante.'}
           </Text>
         </View>
       ) : (
         appsList.map((app) => {
           const isSelected = selectedIds.includes(app.id);
+          const originLabel = getProtectedAdultOriginLabel(app);
 
           return (
             <TouchableOpacity
@@ -169,13 +180,20 @@ export const AppsTab: React.FC<AppsTabProps> = ({
                 </View>
               </View>
 
+              {originLabel && (
+                <View style={styles.originBadge}>
+                  <Icon name="usuario" size={13} color={colors.primaryDark} />
+                  <Text style={styles.originBadgeText} numberOfLines={1}>
+                    {originLabel}
+                  </Text>
+                </View>
+              )}
+
               {/* Fila inferior: Dispositivos y tiempo de uso a la izquierda, Acciones (editar, eliminar) a la derecha */}
               <View style={styles.cardFooterRow}>
                 <View style={styles.cardFooterInfoCol}>
                   <Text style={styles.deviceIndicatorText} numberOfLines={1}>
-                    {app.applyToAll
-                      ? 'Todos los dispositivos'
-                      : `${app.deviceIds?.length || 0} ${app.deviceIds?.length === 1 ? 'dispositivo' : 'dispositivos'}`}
+                    {formatBlockCardDeviceScope(app, devices)}
                   </Text>
                 </View>
 

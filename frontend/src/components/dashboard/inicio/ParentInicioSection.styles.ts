@@ -136,13 +136,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    gap: 6,
-  },
-  devicesCtaIcon: {
-    width: 17,
-    height: 17,
-    tintColor: '#0072CE',
-    resizeMode: 'contain',
   },
   devicesRow: {
     flexDirection: 'row',
@@ -150,9 +143,17 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 2,
   },
+  devicesRowSparse: {
+    justifyContent: 'flex-start',
+    gap: 14,
+  },
   deviceBadgeItem: {
     alignItems: 'center',
     flex: 1,
+  },
+  deviceBadgeItemSparse: {
+    flex: 0,
+    minWidth: 52,
   },
   deviceBadgeCircle: {
     width: 36,
@@ -298,6 +299,16 @@ export const styles = StyleSheet.create({
     height: 1.5,
     backgroundColor: '#E5E7EB',
   },
+  chartEmptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chartEmptyText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
   chartDatesRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -324,6 +335,11 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
     gap: 8,
+  },
+  legendEmptyText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#9CA3AF',
   },
   legendItem: {
     alignItems: 'center',

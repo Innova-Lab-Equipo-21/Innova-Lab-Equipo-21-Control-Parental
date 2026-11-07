@@ -1,29 +1,35 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: ActivitySection (Tiempo de Uso de Pantalla y Auditoría de Actividad)
+// Componente: ActivitySection (Orquestador de la Pestaña Actividad — Modo Responsable)
 // Archivo: src/components/dashboard/actividad/ActivitySection.tsx
-// Descripción: Vista integral que combina el monitoreo del tiempo de uso de pantalla
-//              en aplicaciones con un historial detallado de eventos de auditoría y
-//              seguridad (bloqueos, alertas, cambios del sistema y ubicación).
+// Descripción: Orquesta el panel ejecutivo de métricas de Actividad en 5 bloques
+//              modulares + 3 modales bottom-sheet:
+//              1) ActivityFiltersBar: Dispositivos y Período (Semana, Mes, Año, Total)
+//              2) TotalBlocksCard: Bloqueos totales y variación porcentual
+//              3) BlocksBySourceCard: Bloqueos por fuente (Lista LOTBA vs. Personalizada)
+//              4) HourlyAttemptsCard: Franja horaria de intentos (24h + hora pico)
+//              5) RecentAttemptsCard: Últimos intentos bloqueados + Modal "Ver todo"
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { colors } from '../../../theme/colors';
-import { DeviceInfo, AppUsageItem } from '../../../types';
-import { apiService } from '../../../services/api.service';
+import React from 'react';
+import { View } from 'react-native';
+import {
+  CustomBlockedApp,
+  CustomBlockedDomain,
+  DeviceInfo,
+  SelfControlState,
+} from '../../../types';
+import { useActivityDashboard } from './hooks/useActivityDashboard';
+import { ActivityFiltersBar } from './ActivityFiltersBar';
+import { TotalBlocksCard } from './TotalBlocksCard';
+import { BlocksBySourceCard } from './BlocksBySourceCard';
+import { HourlyAttemptsCard } from './HourlyAttemptsCard';
+import { RecentAttemptsCard } from './RecentAttemptsCard';
+import { DeviceFilterSheetModal } from './DeviceFilterSheetModal';
+import { PeriodFilterSheetModal } from './PeriodFilterSheetModal';
+import { AllBlockedAttemptsModal } from './AllBlockedAttemptsModal';
 import { styles } from './ActivitySection.styles';
 
-/**
- * Representa un registro individual de auditoría en la plataforma.
- *
- * @property id - Identificador único del evento.
- * @property type - Categoría del evento ('BLOCK', 'ALERT', 'SYSTEM', 'LOCATION').
- * @property title - Título breve y descriptivo del evento.
- * @property detail - Explicación detallada de la acción registrada.
- * @property device - Nombre o rol del dispositivo asociado al evento.
- * @property timestamp - Marca de tiempo relativa o absoluta del suceso.
- */
 export interface ActivityLogItem {
   id: string;
   type: 'BLOCK' | 'ALERT' | 'SYSTEM' | 'LOCATION';
@@ -33,293 +39,108 @@ export interface ActivityLogItem {
   timestamp: string;
 }
 
-/** Registros de auditoría de ejemplo para simular la actividad del sistema */
-const sampleLogs: ActivityLogItem[] = [
-  {
-    id: '1',
-    type: 'BLOCK',
-    title: 'Intento de acceso bloqueado',
-    detail: 'Se interceptó el dominio clandestino casino-ilegal.bet',
-    device: 'Celular Sofía (Modo Protegido)',
-    timestamp: 'Hace 12 min',
-  },
-  {
-    id: '2',
-    type: 'SYSTEM',
-    title: 'Sincronización VPN Local',
-    detail: 'Lista oficial LOTBA actualizada con 450 dominios bloqueados',
-    device: 'Dispositivo Responsable',
-    timestamp: 'Hace 45 min',
-  },
-  {
-    id: '3',
-    type: 'LOCATION',
-    title: 'Ubicación GPS registrada',
-    detail: 'Av. Corrientes 1234, CABA, Argentina',
-    device: 'Tablet Mateo (Modo Protegido)',
-    timestamp: 'Hace 2 horas',
-  },
-  {
-    id: '4',
-    type: 'ALERT',
-    title: 'Protección Antidesinstalación',
-    detail: 'Intento de cierre de la app sin PIN del tutor bloqueado',
-    device: 'Celular Sofía (Modo Protegido)',
-    timestamp: 'Hace 3 horas',
-  },
-  {
-    id: '5',
-    type: 'BLOCK',
-    title: 'Dominio personalizado restringido',
-    detail: 'Acceso a tiktok.com bloqueado según regla configurada',
-    device: 'Tablet Mateo (Modo Protegido)',
-    timestamp: 'Ayer, 18:30 hs',
-  },
-];
-
-/**
- * Propiedades recibidas por el componente ActivitySection.
- *
- * @property devices - Lista opcional de dispositivos vinculados a la cuenta para filtrado.
- */
-interface ActivitySectionProps {
+export interface ActivitySectionProps {
   devices?: DeviceInfo[];
+  customSites?: CustomBlockedDomain[];
+  customApps?: CustomBlockedApp[];
+  currentUser?: any;
+  selfControl?: SelfControlState;
 }
 
-/**
- * Componente principal de la sección de Actividad.
- * Permite alternar entre dos pestañas principales:
- * 1. **Tiempo de uso**: visualización gráfica y desglosada del tiempo consumido en apps por dispositivo.
- * 2. **Historial y auditoría**: registro de eventos de seguridad filtrables por tipo de suceso.
- */
-export const ActivitySection: React.FC<ActivitySectionProps> = ({ devices = [] }) => {
-  const [activeTab, setActiveTab] = useState<'usage' | 'logs'>('usage');
-  const [selectedDeviceFilter, setSelectedDeviceFilter] = useState<string>('all');
-  const [usageStats, setUsageStats] = useState<AppUsageItem[]>([]);
-  const [filter, setFilter] = useState<'ALL' | 'BLOCK' | 'ALERT' | 'SYSTEM'>('ALL');
-
-  useEffect(() => {
-    loadUsage();
-  }, [selectedDeviceFilter]);
-
-  /** Carga las estadísticas de uso desde el backend según el filtro de dispositivo seleccionado */
-  const loadUsage = async () => {
-    try {
-      const stats = await apiService.getAppUsageStats(selectedDeviceFilter);
-      setUsageStats(stats);
-    } catch (e) {
-      console.warn('Error al cargar tiempo de uso:', e);
-    }
-  };
-
-  const totalUsageMinutes = usageStats.reduce((acc, curr) => acc + curr.timeInMinutes, 0);
-  const totalHours = Math.floor(totalUsageMinutes / 60);
-  const remainingMins = totalUsageMinutes % 60;
-  const maxTimeMinutes = Math.max(...usageStats.map((u) => u.timeInMinutes), 1);
-
-  const filteredLogs = sampleLogs.filter((log) => {
-    if (filter === 'ALL') return true;
-    return log.type === filter;
+export const ActivitySection: React.FC<ActivitySectionProps> = ({
+  devices = [],
+  customSites = [],
+  customApps = [],
+}) => {
+  const {
+    selectedDeviceId,
+    setSelectedDeviceId,
+    selectedPeriod,
+    setSelectedPeriod,
+    deviceOptions,
+    activeDeviceOption,
+    activeDeviceColor,
+    metrics,
+    inspectedHour,
+    inspectedBucket,
+    toggleInspectedHour,
+    showDeviceModal,
+    setShowDeviceModal,
+    showPeriodModal,
+    setShowPeriodModal,
+    showAllAttemptsModal,
+    setShowAllAttemptsModal,
+  } = useActivityDashboard({
+    devices,
+    customSites,
+    customApps,
   });
 
-  /** Retorna los colores, íconos y etiquetas según el tipo de log de auditoría */
-  const getBadgeStyle = (type: ActivityLogItem['type']) => {
-    switch (type) {
-      case 'BLOCK':
-        return { bg: colors.statusDangerBg, text: colors.statusDanger, icon: '🚫', label: 'BLOQUEO' };
-      case 'ALERT':
-        return { bg: colors.statusWarningBg, text: '#856404', icon: '⚠️', label: 'ALERTA' };
-      case 'LOCATION':
-        return { bg: colors.primaryLight, text: colors.primaryDark, icon: '📍', label: 'UBICACIÓN' };
-      case 'SYSTEM':
-      default:
-        return { bg: colors.statusActiveBg, text: colors.statusActive, icon: '🛡️', label: 'SISTEMA' };
-    }
-  };
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Actividad del sistema y uso de pantalla</Text>
-      <Text style={styles.subtitle}>
-        Monitoreo de tiempo en aplicaciones y registro de eventos de seguridad.
-      </Text>
+    <View style={styles.wrapper}>
+      {/* 1. Bloque Filtros: Dispositivos y Período */}
+      <ActivityFiltersBar
+        activeDeviceOption={activeDeviceOption}
+        activeDeviceColor={activeDeviceColor}
+        selectedPeriod={selectedPeriod}
+        onOpenDeviceModal={() => setShowDeviceModal(true)}
+        onOpenPeriodModal={() => setShowPeriodModal(true)}
+      />
 
-      {/* Subsecciones: Tiempo de uso vs Historial de logs */}
-      <View style={styles.sectionTabRow}>
-        <TouchableOpacity
-          style={[styles.sectionTabBtn, activeTab === 'usage' && styles.sectionTabBtnActive]}
-          onPress={() => setActiveTab('usage')}
-        >
-          <Text style={[styles.sectionTabText, activeTab === 'usage' && styles.sectionTabTextActive]}>
-            📊 Tiempo de uso
-          </Text>
-        </TouchableOpacity>
+      {/* 2. Bloque Bloqueos totales */}
+      <TotalBlocksCard
+        formattedTotalBlocks={metrics.formattedTotalBlocks}
+        changeDirection={metrics.changeDirection}
+        changeBadgeText={metrics.changeBadgeText}
+      />
 
-        <TouchableOpacity
-          style={[styles.sectionTabBtn, activeTab === 'logs' && styles.sectionTabBtnActive]}
-          onPress={() => setActiveTab('logs')}
-        >
-          <Text style={[styles.sectionTabText, activeTab === 'logs' && styles.sectionTabTextActive]}>
-            📋 Historial y auditoría
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* 3. Bloque Bloqueos por fuente */}
+      <BlocksBySourceCard
+        totalBlocks={metrics.totalBlocks}
+        sources={metrics.sources}
+      />
 
-      {/* VISTA 1: TIEMPO DE USO */}
-      {activeTab === 'usage' && (
-        <View>
-          {/* Filtro por dispositivo */}
-          <View style={styles.deviceFilterContainer}>
-            <Text style={styles.deviceFilterTitle}>Filtrar por dispositivo:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  selectedDeviceFilter === 'all' && styles.activeFilterChip,
-                ]}
-                onPress={() => setSelectedDeviceFilter('all')}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    selectedDeviceFilter === 'all' && styles.activeFilterChipText,
-                  ]}
-                >
-                  🌎 Todos
-                </Text>
-              </TouchableOpacity>
+      {/* 4. Bloque Franja horaria de intentos */}
+      <HourlyAttemptsCard
+        hourly={metrics.hourly}
+        maxHourlyTotal={metrics.maxHourlyTotal}
+        peakHour={metrics.peakHour}
+        inspectedHour={inspectedHour}
+        inspectedBucket={inspectedBucket}
+        onToggleInspectedHour={toggleInspectedHour}
+      />
 
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  selectedDeviceFilter === 'self' && styles.activeFilterChip,
-                ]}
-                onPress={() => setSelectedDeviceFilter('self')}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    selectedDeviceFilter === 'self' && styles.activeFilterChipText,
-                  ]}
-                >
-                  📱 Mi dispositivo
-                </Text>
-              </TouchableOpacity>
+      {/* 5. Bloque Últimos intentos bloqueados */}
+      <RecentAttemptsCard
+        recentAttempts={metrics.recentAttempts}
+        hasAnyAttempts={metrics.allFilteredAttempts.length > 0}
+        onSeeAll={() => setShowAllAttemptsModal(true)}
+      />
 
-              {devices.map((device) => (
-                <TouchableOpacity
-                  key={device.deviceId}
-                  style={[
-                    styles.filterChip,
-                    selectedDeviceFilter === device.deviceId && styles.activeFilterChip,
-                  ]}
-                  onPress={() => setSelectedDeviceFilter(device.deviceId)}
-                >
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      selectedDeviceFilter === device.deviceId && styles.activeFilterChipText,
-                    ]}
-                  >
-                    📱 {device.childName || device.deviceName}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+      {/* Modales Bottom-Sheet */}
+      <DeviceFilterSheetModal
+        visible={showDeviceModal}
+        deviceOptions={deviceOptions}
+        selectedDeviceId={selectedDeviceId}
+        onSelectDevice={setSelectedDeviceId}
+        onClose={() => setShowDeviceModal(false)}
+      />
 
-          {/* Tarjeta de Resumen de Tiempo */}
-          <View style={styles.usageSummaryCard}>
-            <Text style={styles.usageSummaryTitle}>⏱️ Tiempo total de pantalla hoy</Text>
-            <Text style={styles.usageSummaryValue}>
-              {totalHours > 0 ? `${totalHours}h ` : ''}
-              {remainingMins}m
-            </Text>
-          </View>
+      <PeriodFilterSheetModal
+        visible={showPeriodModal}
+        selectedPeriod={selectedPeriod}
+        onSelectPeriod={setSelectedPeriod}
+        onClose={() => setShowPeriodModal(false)}
+      />
 
-          {/* Listado de aplicaciones con barras de progreso */}
-          {usageStats.map((item) => {
-            const percent = Math.min(100, Math.round((item.timeInMinutes / maxTimeMinutes) * 100));
-            const itemHours = Math.floor(item.timeInMinutes / 60);
-            const itemMins = item.timeInMinutes % 60;
-
-            return (
-              <View key={item.id} style={styles.usageAppCard}>
-                <View style={styles.usageAppHeader}>
-                  <View>
-                    <Text style={styles.usageAppName}>📱 {item.appName}</Text>
-                    <Text style={styles.usageAppCategory}>{item.category || 'Aplicación'}</Text>
-                  </View>
-                  <Text style={styles.usageAppTime}>
-                    {itemHours > 0 ? `${itemHours}h ` : ''}
-                    {itemMins}m
-                  </Text>
-                </View>
-
-                <View style={styles.usageBarTrack}>
-                  <View style={[styles.usageBarFill, { width: `${percent}%` }]} />
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {/* VISTA 2: HISTORIAL Y LOGS DE AUDITORÍA */}
-      {activeTab === 'logs' && (
-        <View>
-          {/* Filtros de Logs */}
-          <View style={styles.filterRow}>
-            {(
-              [
-                { key: 'ALL', label: 'Todos' },
-                { key: 'BLOCK', label: 'Bloqueos' },
-                { key: 'ALERT', label: 'Alertas' },
-                { key: 'SYSTEM', label: 'Sistema' },
-              ] as const
-            ).map((f) => (
-              <TouchableOpacity
-                key={f.key}
-                style={[styles.filterChip, filter === f.key && styles.activeFilterChip]}
-                onPress={() => setFilter(f.key)}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    filter === f.key && styles.activeFilterChipText,
-                  ]}
-                >
-                  {f.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Lista de Registros */}
-          <ScrollView style={styles.logList} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-            {filteredLogs.map((item) => {
-              const badge = getBadgeStyle(item.type);
-
-              return (
-                <View key={item.id} style={styles.logCard}>
-                  <View style={styles.logHeader}>
-                    <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-                      <Text style={[styles.badgeText, { color: badge.text }]}>
-                        {badge.icon} {badge.label}
-                      </Text>
-                    </View>
-                    <Text style={styles.timestamp}>{item.timestamp}</Text>
-                  </View>
-
-                  <Text style={styles.logTitle}>{item.title}</Text>
-                  <Text style={styles.logDetail}>{item.detail}</Text>
-                  <Text style={styles.deviceText}>📱 {item.device}</Text>
-                </View>
-              );
-            })}
-          </ScrollView>
-        </View>
-      )}
+      <AllBlockedAttemptsModal
+        visible={showAllAttemptsModal}
+        deviceLabel={activeDeviceOption.label}
+        selectedPeriod={selectedPeriod}
+        formattedTotalBlocks={metrics.formattedTotalBlocks}
+        attempts={metrics.allFilteredAttempts}
+        onClose={() => setShowAllAttemptsModal(false)}
+      />
     </View>
   );
 };

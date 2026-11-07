@@ -9,7 +9,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { CustomBlockedDomain, DeviceInfo, SelfControlState } from '../../../types';
+import {
+  BlockOriginFilter,
+  CustomBlockedApp,
+  CustomBlockedDomain,
+  DeviceInfo,
+  SelfControlState,
+} from '../../../types';
 import { apiService } from '../../../services/api.service';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { SitesTab } from './SitesTab';
@@ -25,10 +31,16 @@ import { FeedbackModal } from '../../FeedbackModal';
 import { FabWithTooltip } from '../../FabWithTooltip';
 import { useSitesManagement } from './hooks/useSitesManagement';
 import { useAppsManagement } from './hooks/useAppsManagement';
+import { Icon } from '../../Icon';
+import {
+  AUTOPROTECCION_EMPTY_LIST_MESSAGE,
+  shouldShowAutoproteccionEmptyNotice,
+} from '../../../utils/responsibleFirstAccess';
 import { styles } from './SitesAndAppsSection.styles';
 
 export interface SitesAndAppsSectionProps {
   customSites: CustomBlockedDomain[];
+  customApps?: CustomBlockedApp[];
   devices: DeviceInfo[];
   onRefreshList: () => void;
   selfControl?: SelfControlState;
@@ -40,6 +52,7 @@ export interface SitesAndAppsSectionProps {
 
 export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   customSites,
+  customApps = [],
   devices,
   onRefreshList,
   selfControl,
@@ -65,6 +78,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
 
   // Filtros y ordenamiento
   const [selectedDeviceFilter, setSelectedDeviceFilter] = useState<string>('all');
+  const [selectedOriginFilter, setSelectedOriginFilter] = useState<BlockOriginFilter>('all');
   const [sortBy, setSortBy] = useState<'date' | 'az'>('date');
 
   // Modal estándar de confirmación de eliminación
@@ -101,6 +115,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
     onRefreshList,
     selfControl,
     selectedDeviceFilter,
+    selectedOriginFilter,
     sortBy,
     showFeedback,
     setItemToDelete,
@@ -108,10 +123,12 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
 
   // Hook modular de gestión de aplicaciones móviles
   const apps = useAppsManagement({
+    initialApps: customApps,
     devices,
     onRefreshList,
     selfControl,
     selectedDeviceFilter,
+    selectedOriginFilter,
     sortBy,
     showFeedback,
     setItemToDelete,
@@ -156,28 +173,65 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   const isAutoproteccionActive = Boolean(
     selfControl?.active ||
     selfControl?.status === 'ACTIVE_LOCKED' ||
-    selfControl?.status === 'DEACTIVATION_PENDING'
+    selfControl?.status === 'DEACTIVATION_PENDING' ||
+    selfControl?.status === 'DEACTIVATION_READY'
   );
 
-  // Verificación de si la lista actual está vacía para deshabilitar la autoprotección
-  const currentCount = activeSubTab === 'sites' ? sites.sortedAndFilteredSites.length : apps.sortedAndFilteredApps.length;
-  const isAutoproteccionDisabled = currentCount === 0;
+  // Verificación global: habilitado si existe al menos un sitio o una app registrada en la lista
+  const totalSitesAndAppsCount = customSites.length + apps.customApps.length;
+  const isAutoproteccionDisabled = !isAutoproteccionActive && totalSitesAndAppsCount === 0;
+  const showEmptyAutoproteccionNotice = shouldShowAutoproteccionEmptyNotice(
+    customSites.length,
+    apps.customApps.length,
+    isAutoproteccionActive
+  );
+
+  const handleAutoproteccionPress = () => {
+    if (isAutoproteccionDisabled) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Agrega un sitio o aplicación',
+        message:
+          'Para activar la autoprotección, primero debes agregar al menos un sitio web o aplicación a la lista de bloqueo.',
+      });
+      return;
+    }
+    if (onStartSelfControlFlow) {
+      onStartSelfControlFlow();
+    }
+  };
 
   return (
     <View style={styles.container}>
-      {/* Opción de Autoprotección en Sitios y Apps (Toggle azul oficial de la app) */}
-      <View style={styles.autoprotectionRow}>
+      {/* Opción de Autoprotección en Sitios y Apps (Texto al lado del toggle azul oficial) */}
+      <TouchableOpacity
+        style={styles.autoprotectionRow}
+        activeOpacity={0.8}
+        onPress={handleAutoproteccionPress}
+      >
         <Text style={styles.autoprotectionText}>Autoprotección</Text>
         <ToggleSwitch
           value={isAutoproteccionActive}
-          onValueChange={() => {
-            if (onStartSelfControlFlow) {
-              onStartSelfControlFlow();
-            }
-          }}
+          onValueChange={handleAutoproteccionPress}
           disabled={isAutoproteccionDisabled}
+          onDisabledPress={handleAutoproteccionPress}
         />
-      </View>
+      </TouchableOpacity>
+
+      {/* Aviso cuando la lista está vacía explicando el requisito para activar Autoprotección */}
+      {showEmptyAutoproteccionNotice && (
+        <View style={styles.autoprotectionEmptyNotice}>
+          <Icon
+            name="alerta"
+            size={18}
+            color="#B45309"
+            style={styles.autoprotectionEmptyIcon}
+          />
+          <Text style={styles.autoprotectionEmptyText}>
+            {AUTOPROTECCION_EMPTY_LIST_MESSAGE}
+          </Text>
+        </View>
+      )}
 
       {/* Selector de Sub-pestañas + Menú de 3 Puntos (⋮) */}
       <View style={styles.sectionTabRow}>
@@ -250,6 +304,24 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         </View>
       )}
 
+      {/* Indicador de filtro activo por origen con botón rápido para restablecer */}
+      {selectedOriginFilter !== 'all' && (
+        <View style={styles.activeOriginFilterBar}>
+          <Text style={styles.activeOriginFilterText}>
+            {selectedOriginFilter === 'adulto_protegido'
+              ? 'Origen: Adulto protegido'
+              : 'Origen: Responsable'}
+          </Text>
+          <TouchableOpacity
+            style={styles.clearOriginFilterBtn}
+            onPress={() => setSelectedOriginFilter('all')}
+            accessibilityLabel="Quitar filtro de origen"
+          >
+            <Text style={styles.clearOriginFilterText}>Ver todos ✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Vista de Sitios Web */}
       {activeSubTab === 'sites' && (
         <SitesTab
@@ -259,6 +331,8 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
           onHideSearch={() => setShowSearchInput(false)}
           isSelectionMode={isSelectionMode}
           sitesList={sites.sortedAndFilteredSites}
+          devices={devices}
+          originFilter={selectedOriginFilter}
           selectedIds={sites.selectedSiteIds}
           onToggleSelect={sites.handleToggleSelectSite}
           onSelectAll={sites.handleSelectAllSites}
@@ -280,6 +354,8 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
           onHideSearch={() => setShowSearchInput(false)}
           isSelectionMode={isSelectionMode}
           appsList={apps.sortedAndFilteredApps}
+          devices={devices}
+          originFilter={selectedOriginFilter}
           selectedIds={apps.selectedAppIds}
           onToggleSelect={apps.handleToggleSelectApp}
           onSelectAll={apps.handleSelectAllApps}
@@ -400,6 +476,8 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
           setSelectedDeviceFilter(deviceId);
           setShowDeviceFilter(true);
         }}
+        selectedOriginFilter={selectedOriginFilter}
+        onSelectOriginFilter={setSelectedOriginFilter}
         sortBy={sortBy}
         onSelectSortBy={setSortBy}
         isSelectionMode={isSelectionMode}

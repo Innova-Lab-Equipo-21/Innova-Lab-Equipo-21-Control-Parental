@@ -8,9 +8,15 @@
 
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import { CustomBlockedDomain, DeviceInfo, SelfControlState } from '../../../../types';
+import {
+  BlockOriginFilter,
+  CustomBlockedDomain,
+  DeviceInfo,
+  SelfControlState,
+} from '../../../../types';
 import { apiService } from '../../../../services/api.service';
 import { isValidDomainOrUrl } from '../../../../utils/deviceColors';
+import { matchesBlockOriginFilter } from '../../../../utils/adultoSitios';
 
 interface UseSitesManagementProps {
   customSites: CustomBlockedDomain[];
@@ -18,6 +24,7 @@ interface UseSitesManagementProps {
   onRefreshList: () => void;
   selfControl?: SelfControlState;
   selectedDeviceFilter: string;
+  selectedOriginFilter?: BlockOriginFilter;
   sortBy: 'date' | 'az';
   showFeedback: (config: { icon?: string; title: string; message: string }) => void;
   setItemToDelete: (item: { type: 'site' | 'app'; id: string; name: string } | null) => void;
@@ -29,6 +36,7 @@ export const useSitesManagement = ({
   onRefreshList,
   selfControl,
   selectedDeviceFilter,
+  selectedOriginFilter = 'all',
   sortBy,
   showFeedback,
   setItemToDelete,
@@ -148,10 +156,11 @@ export const useSitesManagement = ({
     setEditSiteCategory(site.category || 'Apuestas');
     const isGlobal = site.applyToAll !== false;
     setEditSiteApplyToAll(isGlobal);
+    const availableIds = getAllDeviceIds();
     if (isGlobal) {
-      setEditSiteDeviceIds(getAllDeviceIds());
+      setEditSiteDeviceIds(availableIds);
     } else {
-      setEditSiteDeviceIds(site.deviceIds || []);
+      setEditSiteDeviceIds((site.deviceIds || []).filter((id) => availableIds.includes(id)));
     }
   };
 
@@ -341,9 +350,15 @@ export const useSitesManagement = ({
     const matchesSearch = s.domain.toLowerCase().includes(siteSearch.toLowerCase());
     let matchesDevice = true;
     if (selectedDeviceFilter !== 'all') {
-      matchesDevice = s.applyToAll ? true : s.deviceIds?.includes(selectedDeviceFilter) || false;
+      matchesDevice = s.applyToAll
+        ? true
+        : Boolean(
+            s.deviceIds?.includes(selectedDeviceFilter) ||
+              s.sourceDeviceId === selectedDeviceFilter
+          );
     }
-    return matchesSearch && matchesDevice;
+    const matchesOrigin = matchesBlockOriginFilter(s, selectedOriginFilter);
+    return matchesSearch && matchesDevice && matchesOrigin;
   });
 
   const sortedAndFilteredSites = [...filteredSites].sort((a, b) => {

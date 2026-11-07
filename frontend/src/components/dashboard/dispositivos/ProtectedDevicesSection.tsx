@@ -36,6 +36,7 @@ interface ProtectedDevicesSectionProps {
   devices: DeviceInfo[];
   selfDevice?: DeviceInfo;
   selfControl?: SelfControlState;
+  hasSitesOrApps?: boolean;
   currentUser?: any;
   onUpdateUser?: (updated: any) => void;
   onUpdateSelfControl?: (sc: SelfControlState) => void;
@@ -50,6 +51,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   devices,
   selfDevice: externalSelfDevice,
   selfControl: propSelfControl,
+  hasSitesOrApps = true,
   currentUser,
   onUpdateUser,
   onUpdateSelfControl,
@@ -130,6 +132,14 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   const [autocontrolModalVisible, setAutocontrolModalVisible] = useState(false);
   const [autocontrolModalMode, setAutocontrolModalMode] = useState<AutocontrolModalMode | null>(null);
 
+  const isSelfControlActive = Boolean(
+    resolvedSelfControl.active ||
+    resolvedSelfControl.status === 'ACTIVE_LOCKED' ||
+    resolvedSelfControl.status === 'DEACTIVATION_PENDING' ||
+    resolvedSelfControl.status === 'DEACTIVATION_READY'
+  );
+  const isAutoproteccionDisabled = !isSelfControlActive && !hasSitesOrApps;
+
   const handleOpenSelfControlModal = async () => {
     let currentSc = resolvedSelfControl;
     try {
@@ -140,6 +150,23 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
       }
     } catch {
       // Usar estado en memoria como respaldo
+    }
+
+    const currentlyActive = Boolean(
+      currentSc.active ||
+      currentSc.status === 'ACTIVE_LOCKED' ||
+      currentSc.status === 'DEACTIVATION_PENDING' ||
+      currentSc.status === 'DEACTIVATION_READY'
+    );
+
+    if (!currentlyActive && !hasSitesOrApps) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Agrega un sitio o aplicación',
+        message:
+          'Para activar la autoprotección, primero debes agregar al menos un sitio web o aplicación a la lista de bloqueo.',
+      });
+      return;
     }
 
     if (!currentSc.active || currentSc.status === 'INACTIVE') {
@@ -350,6 +377,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
             onAuditPermissions={handleAuditPermissions}
             isAuditing={auditingDeviceId === selfDev.deviceId}
             selfControl={resolvedSelfControl}
+            isAutoproteccionDisabled={isAutoproteccionDisabled}
             onStartSelfControlFlow={handleOpenSelfControlModal}
             onDisableSelfControl={handleOpenSelfControlModal}
             onPressSelfControl={handleOpenSelfControlModal}

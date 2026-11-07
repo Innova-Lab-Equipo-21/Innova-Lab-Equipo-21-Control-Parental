@@ -2,31 +2,62 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla del Dispositivo Protegido)
 // Archivo: src/screens/ProtectedDeviceScreen.tsx
-// Descripción: Panel del usuario protegido (Menor / Adulto) estructurado en 4 módulos
-//              (Actividad, Inicio, Sitios y apps, Cuenta) con Quiz diario interactivo,
-//              FAB (+) de bloqueo ubicado exclusivamente en "Sitios y apps" y validación
-//              por PIN de tutor.
+// Descripción: Panel del usuario protegido separado modularmente entre:
+//              - Menor (protected/menor): Inicio, Pasatiempos, Actividad y Cuenta.
+//              - Adulto (protected/adulto): Inicio, Sitios y apps (FAB +), Actividad y Cuenta.
+//              - Juegos (protected/juegos): Quiz, Sopa de letras y Juego de la memoria.
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   SafeAreaView,
+  ScrollView,
   Image,
-  Alert,
+  ImageSourcePropType,
   Modal,
 } from 'react-native';
-import { ProtectedNavbar, ProtectedTab } from '../components/dashboard/protected/ProtectedNavbar';
-import { ProtectedInicioSection } from '../components/dashboard/protected/ProtectedInicioSection';
-import { ProtectedActividadSection } from '../components/dashboard/protected/ProtectedActividadSection';
-import { ProtectedSitiosSection } from '../components/dashboard/protected/ProtectedSitiosSection';
-import { ProtectedCuentaSection } from '../components/dashboard/protected/ProtectedCuentaSection';
-import { BlockModal } from '../components/dashboard/protected/BlockModal';
+import {
+  MenorNavbar,
+  MenorInicioSection,
+  MenorPasatiemposSection,
+  MenorActividadSection,
+  MenorCuentaSection,
+} from '../components/dashboard/protected/menor';
+import {
+  AdultoNavbar,
+  AdultoInicioSection,
+  AdultoSitiosSection,
+  AdultoActividadSection,
+  AdultoCuentaSection,
+} from '../components/dashboard/protected/adulto';
+import {
+  QuizModal,
+  WordSearchModal,
+  MemoryGameModal,
+} from '../components/dashboard/protected/juegos';
+import { Header } from '../components/Header';
 import { PinKeyboard } from '../components/PinKeyboard';
 import { ActionButton } from '../components/ActionButton';
 import { FabWithTooltip } from '../components/FabWithTooltip';
-import { PermissionItemState } from './PermissionsScreen';
+import { FeedbackModal } from '../components/FeedbackModal';
+import { FaqModal } from '../components/dashboard/cuenta/FaqModal';
+import { getBotMascotImage } from '../components/dashboard/protected/botAssets';
+import { OnboardingScreen } from './OnboardingScreen';
+import { PermissionsScreen, PermissionItemState } from './PermissionsScreen';
+import { CustomBlockedApp, CustomBlockedDomain, DeviceInfo } from '../types';
+import {
+  CompletedGamesState,
+  INITIAL_COMPLETED_GAMES,
+  PasatiempoGameId,
+  ProtectedTab,
+  canPlayPasatiempoGame,
+  getCompletedGamesCount,
+  normalizeProtectedTabForMode,
+} from '../utils/pasatiempos';
+import { isItemVisibleForAdultoDevice } from '../utils/adultoSitios';
+import { checkRealDevicePermissions } from '../utils/permissionChecker';
 import { vpnServiceBridge } from '../services/vpn.service';
 import { apiService } from '../services/api.service';
 import { styles } from './ProtectedDeviceScreen.styles';
@@ -43,27 +74,83 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
   deviceUuid,
   onExitMode,
   mode = 'CHILD',
-  permissions,
 }) => {
-  // Pestaña activa en la navbar (Por defecto: 'inicio')
   const [activeTab, setActiveTab] = useState<ProtectedTab>('inicio');
 
-  // Modal FAB (+): Bloqueo rápido de sitio o app
-  const [showBlockModal, setShowBlockModal] = useState<boolean>(false);
-  const [customBlockedItems, setCustomBlockedItems] = useState<string[]>([
-    'casino-clandestino.net',
-    'red-social-peligrosa.org',
-  ]);
+  // Estado compartido de juegos entre Inicio y Pasatiempos
+  const [completedGames, setCompletedGames] = useState<CompletedGamesState>(
+    INITIAL_COMPLETED_GAMES
+  );
+  const [completedGamesOrder, setCompletedGamesOrder] = useState<PasatiempoGameId[]>([]);
+  const [activeGameModal, setActiveGameModal] = useState<PasatiempoGameId | null>(null);
+  const [quizScore, setQuizScore] = useState<{ score: number; total: number }>({
+    score: 0,
+    total: 5,
+  });
 
-  // Modal Teclado PIN para tutor
+  // Listas reales de sitios y apps bloqueadas para Modo Protegido Adulto y Actividad
+  const [customSites, setCustomSites] = useState<CustomBlockedDomain[]>([]);
+  const [customApps, setCustomApps] = useState<CustomBlockedApp[]>([]);
+  const [pairedDevices, setPairedDevices] = useState<DeviceInfo[]>([]);
+  const [adultoSitiosSubTab, setAdultoSitiosSubTab] = useState<'sites' | 'apps'>('sites');
+  const [adultoInitialSubTab, setAdultoInitialSubTab] = useState<'sites' | 'apps'>('sites');
+  const adultoAddHandlerRef = useRef<(() => void) | null>(null);
+
+  // Estado real de permisos (tanto Menor como Adulto pueden activar permisos, nunca desactivar)
+  const [grantedPermsCount, setGrantedPermsCount] = useState<number>(6);
+  const [showPermissionsModal, setShowPermissionsModal] = useState<boolean>(false);
+  const [showFaqModal, setShowFaqModal] = useState<boolean>(false);
+  const [showOnboardingFlow, setShowOnboardingFlow] = useState<boolean>(false);
+
+  // Modal Teclado PIN para tutor y retroalimentación con Boti / Botito
   const [showPinModal, setShowPinModal] = useState<boolean>(false);
   const [enteredPin, setEnteredPin] = useState<string>('');
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [pinFeedback, setPinFeedback] = useState<{
+    visible: boolean;
+    imageSource?: ImageSourcePropType;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const refreshPermissions = useCallback(async () => {
+    try {
+      const real = await checkRealDevicePermissions(deviceUuid);
+      setGrantedPermsCount(real.grantedCount);
+    } catch (e) {
+      // Mantener conteo actual si falla la lectura
+    }
+  }, [deviceUuid]);
+
+  const loadCustomBlockedList = useCallback(async () => {
+    try {
+      const [res, devRes] = await Promise.all([
+        apiService.getCustomBlocklist(),
+        apiService.listDevices().catch(() => null),
+      ]);
+      setCustomSites(res.data?.domains || []);
+      setCustomApps(res.data?.apps || []);
+      if (devRes?.data && Array.isArray(devRes.data)) {
+        setPairedDevices(devRes.data);
+      }
+    } catch (e) {
+      // Mantener estado actual ante error de red
+    }
+  }, []);
 
   useEffect(() => {
     checkVpnStatus();
     loadCustomBlockedList();
-  }, []);
+    refreshPermissions();
+  }, [loadCustomBlockedList, refreshPermissions]);
+
+  useEffect(() => {
+    setActiveTab((prev) => normalizeProtectedTabForMode(prev, mode));
+  }, [mode]);
 
   const checkVpnStatus = async () => {
     try {
@@ -73,21 +160,35 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
     }
   };
 
-  const loadCustomBlockedList = async () => {
-    try {
-      const res = await apiService.getCustomBlocklist();
-      if (res.data?.domains && res.data.domains.length > 0) {
-        setCustomBlockedItems(res.data.domains.map((d) => d.domain));
-      }
-    } catch (e) {
-      // Usar elementos locales por defecto
-    }
+  const handleMarkGameCompleted = (gameId: PasatiempoGameId) => {
+    setCompletedGames((prev) => ({
+      ...prev,
+      [gameId]: true,
+    }));
+    setCompletedGamesOrder((prev) =>
+      prev.includes(gameId) ? prev : [...prev, gameId]
+    );
   };
 
-  const handleBlockSuccess = (item: { domainOrApp: string; type: 'SITE' | 'APP' }) => {
-    setCustomBlockedItems((prev) => [item.domainOrApp, ...prev.filter((d) => d !== item.domainOrApp)]);
-    // Forzar actualización de filtrado VPN
-    vpnServiceBridge.updateBlocklist(5, [item.domainOrApp]);
+  const handleOpenChildGame = (gameId: PasatiempoGameId) => {
+    if (!canPlayPasatiempoGame(completedGames, gameId)) {
+      return;
+    }
+    setActiveGameModal(gameId);
+  };
+
+  // El adulto protegido tampoco puede repetir el Quiz una vez completado
+  const handleOpenAdultQuiz = () => {
+    if (!canPlayPasatiempoGame(completedGames, 'quiz')) {
+      return;
+    }
+    setActiveGameModal('quiz');
+  };
+
+  const handleCompleteQuiz = (score: number, total: number) => {
+    setQuizScore({ score, total });
+    handleMarkGameCompleted('quiz');
+    setActiveGameModal(null);
   };
 
   const handlePinKeyPress = (key: string) => {
@@ -102,11 +203,21 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
             pendingAction();
             setPendingAction(null);
           } else {
-            Alert.alert('PIN correcto', 'Acción de tutor autorizada exitosamente.');
+            setPinFeedback({
+              visible: true,
+              imageSource: getBotMascotImage(mode, 'feliz'),
+              title: 'PIN correcto',
+              message: 'Acción de tutor autorizada exitosamente.',
+            });
           }
         } else {
-          Alert.alert('PIN incorrecto', 'El código de tutor es inválido (Demo: 1234). Intenta nuevamente.');
           setEnteredPin('');
+          setPinFeedback({
+            visible: true,
+            imageSource: getBotMascotImage(mode, 'triste'),
+            title: 'PIN incorrecto',
+            message: 'El código de tutor es inválido (Demo: 1234). Intentá nuevamente.',
+          });
         }
       }
     }
@@ -121,6 +232,80 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
     setEnteredPin('');
     setShowPinModal(true);
   };
+
+  const openTutorPinAlert = (alertMessage: string) =>
+    triggerTutorPinAction(() => {
+      setPinFeedback({
+        visible: true,
+        imageSource: getBotMascotImage(mode, 'feliz'),
+        title: 'Modificación autorizada',
+        message: alertMessage,
+      });
+    });
+
+  // Identificación del dispositivo protegido vinculado (Menor o Adulto)
+  const matchedChildDevice =
+    pairedDevices.find(
+      (d) =>
+        (d.deviceUuid === deviceUuid || d.deviceId === deviceUuid) &&
+        d.profileType === 'Menor'
+    ) || pairedDevices.find((d) => d.profileType === 'Menor');
+  const resolvedChildName =
+    matchedChildDevice?.childName || matchedChildDevice?.deviceName || undefined;
+  const resolvedChildPhone = matchedChildDevice?.phone || undefined;
+
+  const matchedAdultDevice =
+    pairedDevices.find(
+      (d) => d.deviceUuid === deviceUuid || d.deviceId === deviceUuid
+    ) || pairedDevices.find((d) => d.profileType === 'Adulto');
+  const resolvedAdultDeviceId = matchedAdultDevice?.deviceId || deviceUuid;
+  const resolvedAdultName =
+    matchedAdultDevice?.childName || matchedAdultDevice?.deviceName || undefined;
+  const resolvedAdultPhone = matchedAdultDevice?.phone || undefined;
+
+  const adultVisibleSites = customSites.filter((s) =>
+    isItemVisibleForAdultoDevice(s, resolvedAdultDeviceId)
+  );
+  const adultVisibleApps = customApps.filter((a) =>
+    isItemVisibleForAdultoDevice(a, resolvedAdultDeviceId)
+  );
+
+  // Lista combinada de nombres para las vistas de Actividad
+  const customBlockedItems: string[] = [
+    ...customSites.filter((s) => s.isActive !== false).map((s) => s.domain),
+    ...customApps.filter((a) => a.isActive !== false).map((a) => a.appName),
+  ];
+
+  const completedCount = getCompletedGamesCount(completedGames);
+
+  if (showPermissionsModal) {
+    return (
+      <PermissionsScreen
+        flowSource="DEVICE_PAIRING"
+        allowDisablePermissions={false}
+        protectedProfile={mode}
+        userId={deviceUuid}
+        onPermissionsComplete={() => {
+          setShowPermissionsModal(false);
+          refreshPermissions();
+        }}
+        onBack={() => {
+          setShowPermissionsModal(false);
+          refreshPermissions();
+        }}
+      />
+    );
+  }
+
+  if (showOnboardingFlow) {
+    return (
+      <OnboardingScreen
+        initialStep={1}
+        completeButtonText="Cerrar"
+        onComplete={() => setShowOnboardingFlow(false)}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -141,66 +326,219 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
         </View>
       </View>
 
-      {/* 2. CONTENIDO PRINCIPAL SEGÚN PESTAÑA ACTIVA (Actividad, Inicio, Sitios y apps, Cuenta) */}
-      <View style={styles.scrollBody}>
-        {activeTab === 'inicio' && (
-          <ProtectedInicioSection
-            mode={mode}
-            tutorName="Ana"
-            onNavigateToActivity={() => setActiveTab('actividad')}
-          />
-        )}
+      {/* Subheader con botón volver a Inicio en Pasatiempos (Modo Menor) */}
+      {mode === 'CHILD' && activeTab === 'pasatiempos' && (
+        <Header
+          showTopLogo={false}
+          title="Pasatiempos"
+          subtitle="Elegí uno de los tres juegos para aprender y divertirte"
+          onBack={() => setActiveTab('inicio')}
+          rightElement={
+            <View style={styles.pasatiemposProgressPill}>
+              <Text style={styles.pasatiemposProgressPillText}>
+                {completedCount}/3 completados
+              </Text>
+            </View>
+          }
+        />
+      )}
 
-        {activeTab === 'actividad' && (
-          <ProtectedActividadSection
-            customBlockedItems={customBlockedItems}
-            onOpenPinModal={() => triggerTutorPinAction(() => {
-              Alert.alert('Modificación autorizada', 'Has ingresado el PIN del tutor.');
-            })}
-          />
-        )}
+      {/* Subheader estilo Responsable cuando el Adulto Protegido entra a Sitios y apps */}
+      {mode === 'ADULT' && activeTab === 'sitios' && (
+        <Header
+          showTopLogo={false}
+          title="Gestión de sitios y apps"
+          subtitle="Filtro oficial LOTBA, dominios y aplicaciones"
+          onBack={() => setActiveTab('inicio')}
+        />
+      )}
 
-        {activeTab === 'sitios' && (
-          <ProtectedSitiosSection
-            customBlockedItems={customBlockedItems}
-            onOpenPinModal={() => triggerTutorPinAction(() => {
-              Alert.alert('Modificación autorizada', 'Has ingresado el PIN del tutor.');
-            })}
-          />
-        )}
+      {/* Subheader estilo Responsable cuando Adulto o Menor entran a Cuenta */}
+      {activeTab === 'cuenta' && (
+        <Header
+          showTopLogo={false}
+          title="Perfil y cuenta"
+          subtitle={
+            mode === 'CHILD'
+              ? 'Información del perfil menor y soporte'
+              : 'Información del perfil adulto y soporte'
+          }
+          onBack={() => setActiveTab('inicio')}
+        />
+      )}
 
-        {activeTab === 'cuenta' && (
-          <ProtectedCuentaSection
-            deviceUuid={deviceUuid}
-            mode={mode}
-            tutorName="Ana"
-            onExitMode={onExitMode}
-            onOpenPinModal={() => triggerTutorPinAction(() => {
-              Alert.alert('Tutor autorizado', 'Modificación de estado habilitada.');
-            })}
+      {/* 2. CONTENIDO PRINCIPAL + FAB (encima de la navbar para no solaparla) */}
+      <View style={{ flex: 1, position: 'relative' }}>
+        <ScrollView
+          style={styles.scrollBody}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {mode === 'CHILD' ? (
+            <>
+              {activeTab === 'inicio' && (
+                <MenorInicioSection
+                  childName={resolvedChildName}
+                  tutorName="Ana"
+                  grantedCount={grantedPermsCount}
+                  completedGames={completedGames}
+                  onOpenGame={handleOpenChildGame}
+                  onNavigateToPermissions={() => setShowPermissionsModal(true)}
+                  onNavigateToPasatiempos={() => setActiveTab('pasatiempos')}
+                  onNavigateToActivity={() => setActiveTab('actividad')}
+                  onOpenFaq={() => setShowFaqModal(true)}
+                />
+              )}
+
+              {activeTab === 'pasatiempos' && (
+                <MenorPasatiemposSection
+                  completedGames={completedGames}
+                  completedGamesOrder={completedGamesOrder}
+                  onSelectGame={handleOpenChildGame}
+                />
+              )}
+
+              {activeTab === 'actividad' && (
+                <MenorActividadSection
+                  customBlockedItems={customBlockedItems}
+                  onOpenPinModal={() =>
+                    openTutorPinAlert('Has ingresado el PIN del tutor.')
+                  }
+                />
+              )}
+
+              {activeTab === 'cuenta' && (
+                <MenorCuentaSection
+                  deviceUuid={deviceUuid}
+                  childName={resolvedChildName}
+                  childPhone={resolvedChildPhone}
+                  tutorName="Ana"
+                  onOpenOnboarding={() => setShowOnboardingFlow(true)}
+                  onExitMode={onExitMode}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {activeTab === 'inicio' && (
+                <AdultoInicioSection
+                  adultName={resolvedAdultName}
+                  tutorName="Ana"
+                  grantedCount={grantedPermsCount}
+                  customSitesCount={adultVisibleSites.length}
+                  blockedAppsCount={adultVisibleApps.length}
+                  quizCompleted={completedGames.quiz}
+                  quizScore={quizScore}
+                  onNavigateToPermissions={() => setShowPermissionsModal(true)}
+                  onOpenQuiz={handleOpenAdultQuiz}
+                  onNavigateToSites={() => {
+                    setAdultoInitialSubTab('sites');
+                    setAdultoSitiosSubTab('sites');
+                    setActiveTab('sitios');
+                  }}
+                  onNavigateToApps={() => {
+                    setAdultoInitialSubTab('apps');
+                    setAdultoSitiosSubTab('apps');
+                    setActiveTab('sitios');
+                  }}
+                  onNavigateToActivity={() => setActiveTab('actividad')}
+                  onOpenFaq={() => setShowFaqModal(true)}
+                />
+              )}
+
+              {activeTab === 'sitios' && (
+                <AdultoSitiosSection
+                  customSites={customSites}
+                  customApps={customApps}
+                  onRefreshList={loadCustomBlockedList}
+                  sourceDeviceId={resolvedAdultDeviceId}
+                  adultName={resolvedAdultName}
+                  hideInternalFab={true}
+                  initialSubTab={adultoInitialSubTab}
+                  onSubTabChange={setAdultoSitiosSubTab}
+                  onSetAddHandler={(handler) => {
+                    adultoAddHandlerRef.current = handler;
+                  }}
+                />
+              )}
+
+              {activeTab === 'actividad' && (
+                <AdultoActividadSection
+                  customBlockedItems={customBlockedItems}
+                  onOpenPinModal={() =>
+                    openTutorPinAlert('Has ingresado el PIN del tutor.')
+                  }
+                />
+              )}
+
+              {activeTab === 'cuenta' && (
+                <AdultoCuentaSection
+                  deviceUuid={deviceUuid}
+                  adultName={resolvedAdultName}
+                  adultPhone={resolvedAdultPhone}
+                  tutorName="Ana"
+                  onOpenOnboarding={() => setShowOnboardingFlow(true)}
+                  onExitMode={onExitMode}
+                />
+              )}
+            </>
+          )}
+        </ScrollView>
+
+        {/* 3. BOTÓN FLOTANTE FAB (+) EXCLUSIVO DE "SITIOS Y APPS" EN MODO ADULTO */}
+        {mode === 'ADULT' && activeTab === 'sitios' && (
+          <FabWithTooltip
+            label={adultoSitiosSubTab === 'sites' ? 'Bloquear sitio' : 'Bloquear app'}
+            onPress={() => {
+              if (adultoAddHandlerRef.current) {
+                adultoAddHandlerRef.current();
+              }
+            }}
           />
         )}
       </View>
 
-      {/* 3. BOTÓN FLOTANTE FAB (+) UBICADO EXCLUSIVAMENTE EN EL MÓDULO "SITIOS Y APPS" */}
-      {activeTab === 'sitios' && (
-        <FabWithTooltip
-          label="Bloquear sitio o app"
-          onPress={() => setShowBlockModal(true)}
+      {/* 4. NAVBAR INFERIOR SEGÚN PERFIL */}
+      {mode === 'CHILD' ? (
+        <MenorNavbar
+          activeTab={
+            activeTab === 'sitios' ? 'inicio' : activeTab
+          }
+          onSelectTab={setActiveTab}
+        />
+      ) : (
+        <AdultoNavbar
+          activeTab={
+            activeTab === 'pasatiempos' ? 'inicio' : activeTab
+          }
+          onSelectTab={setActiveTab}
         />
       )}
 
-      {/* 4. NAVBAR INFERIOR DE 4 MÓDULOS (Actividad, Inicio, Sitios y apps, Cuenta) */}
-      <ProtectedNavbar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
+      {/* MODALES INTERACTIVOS DE JUEGOS (protected/juegos) */}
+      <QuizModal
+        visible={activeGameModal === 'quiz'}
+        mode={mode}
+        onClose={() => setActiveGameModal(null)}
+        onCompleteQuiz={handleCompleteQuiz}
       />
 
-      {/* MODAL DE BLOQUEO RÁPIDO (FAB +) */}
-      <BlockModal
-        visible={showBlockModal}
-        onClose={() => setShowBlockModal(false)}
-        onBlockSuccess={handleBlockSuccess}
+      <WordSearchModal
+        visible={activeGameModal === 'wordsearch'}
+        onClose={() => setActiveGameModal(null)}
+        onCompleteGame={() => handleMarkGameCompleted('wordsearch')}
+      />
+
+      <MemoryGameModal
+        visible={activeGameModal === 'memory'}
+        onClose={() => setActiveGameModal(null)}
+        onCompleteGame={() => handleMarkGameCompleted('memory')}
+      />
+
+      {/* MODAL DE PREGUNTAS FRECUENTES (FAQ) */}
+      <FaqModal
+        visible={showFaqModal}
+        onClose={() => setShowFaqModal(false)}
       />
 
       {/* MODAL TECLADO PIN PARA VALIDACIÓN DE TUTOR */}
@@ -212,6 +550,11 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <Image
+              source={getBotMascotImage(mode, 'nervioso')}
+              style={styles.pinMascotImage}
+              resizeMode="contain"
+            />
             <Text style={styles.modalTitle}>PIN del tutor requerido</Text>
             <Text style={styles.modalSubtitle}>
               Ingresa el PIN de 4 dígitos para autorizar esta acción (Demo: 1234).
@@ -246,6 +589,14 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
           </View>
         </View>
       </Modal>
+
+      <FeedbackModal
+        visible={pinFeedback.visible}
+        imageSource={pinFeedback.imageSource}
+        title={pinFeedback.title}
+        message={pinFeedback.message}
+        onClose={() => setPinFeedback((prev) => ({ ...prev, visible: false }))}
+      />
     </SafeAreaView>
   );
 };

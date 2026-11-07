@@ -8,30 +8,40 @@
 
 import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
-import { CustomBlockedApp, DeviceInfo, SelfControlState } from '../../../../types';
+import {
+  BlockOriginFilter,
+  CustomBlockedApp,
+  DeviceInfo,
+  SelfControlState,
+} from '../../../../types';
 import { apiService } from '../../../../services/api.service';
+import { matchesBlockOriginFilter } from '../../../../utils/adultoSitios';
 
 interface UseAppsManagementProps {
+  initialApps?: CustomBlockedApp[];
   devices: DeviceInfo[];
   onRefreshList: () => void;
   selfControl?: SelfControlState;
   selectedDeviceFilter: string;
+  selectedOriginFilter?: BlockOriginFilter;
   sortBy: 'date' | 'az';
   showFeedback: (config: { icon?: string; title: string; message: string }) => void;
   setItemToDelete: (item: { type: 'site' | 'app'; id: string; name: string } | null) => void;
 }
 
 export const useAppsManagement = ({
+  initialApps = [],
   devices,
   onRefreshList,
   selfControl,
   selectedDeviceFilter,
+  selectedOriginFilter = 'all',
   sortBy,
   showFeedback,
   setItemToDelete,
 }: UseAppsManagementProps) => {
   // Lista de apps y selección múltiple
-  const [customApps, setCustomApps] = useState<CustomBlockedApp[]>([]);
+  const [customApps, setCustomApps] = useState<CustomBlockedApp[]>(initialApps);
   const [selectedAppIds, setSelectedAppIds] = useState<string[]>([]);
 
   // Búsqueda y modal de creación
@@ -192,10 +202,11 @@ export const useAppsManagement = ({
     setEditAppCategory(app.category || 'Apuestas');
     const isGlobal = app.applyToAll !== false;
     setEditAppApplyToAll(isGlobal);
+    const availableIds = getAllDeviceIds();
     if (isGlobal) {
-      setEditAppDeviceIds(getAllDeviceIds());
+      setEditAppDeviceIds(availableIds);
     } else {
-      setEditAppDeviceIds(app.deviceIds || []);
+      setEditAppDeviceIds((app.deviceIds || []).filter((id) => availableIds.includes(id)));
     }
     setEditAppDailyLimit(app.dailyLimitMinutes);
 
@@ -286,6 +297,7 @@ export const useAppsManagement = ({
       });
       setEditingApp(null);
       await loadApps();
+      onRefreshList();
       showFeedback({
         icon: '✅',
         title: 'Aplicación actualizada',
@@ -382,6 +394,7 @@ export const useAppsManagement = ({
     }
     setSelectedAppIds([]);
     await loadApps();
+    onRefreshList();
   };
 
   const handleBulkPauseApps = async () => {
@@ -401,6 +414,7 @@ export const useAppsManagement = ({
     }
     setSelectedAppIds([]);
     await loadApps();
+    onRefreshList();
   };
 
   const handleBulkDeleteApps = () => {
@@ -429,6 +443,7 @@ export const useAppsManagement = ({
             }
             setSelectedAppIds([]);
             await loadApps();
+            onRefreshList();
           },
         },
       ]
@@ -442,9 +457,15 @@ export const useAppsManagement = ({
       a.packageName.toLowerCase().includes(appSearch.toLowerCase());
     let matchesDevice = true;
     if (selectedDeviceFilter !== 'all') {
-      matchesDevice = a.applyToAll ? true : a.deviceIds?.includes(selectedDeviceFilter) || false;
+      matchesDevice = a.applyToAll
+        ? true
+        : Boolean(
+            a.deviceIds?.includes(selectedDeviceFilter) ||
+              a.sourceDeviceId === selectedDeviceFilter
+          );
     }
-    return matchesSearch && matchesDevice;
+    const matchesOrigin = matchesBlockOriginFilter(a, selectedOriginFilter);
+    return matchesSearch && matchesDevice && matchesOrigin;
   });
 
   const sortedAndFilteredApps = [...filteredApps].sort((a, b) => {

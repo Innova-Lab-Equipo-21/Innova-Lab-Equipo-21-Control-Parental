@@ -22,7 +22,13 @@ import { PermissionsScreen, PermissionItemState } from './PermissionsScreen';
 import { LoginScreen } from './LoginScreen';
 import { OnboardingScreen } from './OnboardingScreen';
 import { apiService } from '../services/api.service';
-import { MAX_PROTECTED_DEVICES, SelfControlState, DeviceInfo, CustomBlockedDomain } from '../types';
+import {
+  MAX_PROTECTED_DEVICES,
+  SelfControlState,
+  DeviceInfo,
+  CustomBlockedDomain,
+  CustomBlockedApp,
+} from '../types';
 
 // Subcomponentes modulares organizados por carpetas de la Navbar
 import { SeccionDesplegable } from '../components/dashboard/SeccionDesplegable';
@@ -50,6 +56,10 @@ import { FabWithTooltip } from '../components/FabWithTooltip';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { colors } from '../theme/colors';
 import { checkRealDevicePermissions } from '../utils/permissionChecker';
+import {
+  ResponsibleInitialAction,
+  shouldRedirectToHomeAfterSelfControlActivation,
+} from '../utils/responsibleFirstAccess';
 import { styles } from './ParentDashboardScreen.styles';
 
 interface ParentDashboardScreenProps {
@@ -57,7 +67,7 @@ interface ParentDashboardScreenProps {
   initialUser?: any;
   initialToken?: string | null;
   permissions?: PermissionItemState;
-  initialAction?: 'SUPERVISE' | 'SELF_CONTROL';
+  initialAction?: ResponsibleInitialAction;
 }
 
 export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
@@ -76,8 +86,13 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   // Ref para disparar el modal de agregar sitio o app desde el FAB fijo
   const siteAddHandlerRef = useRef<(() => void) | null>(null);
 
-  // Pestaña Activa de la Navbar (Default: 'inicio')
-  const [activeTab, setActiveTab] = useState<DashboardTab>('inicio');
+  // Pestaña Activa de la Navbar ('sitios' si eligió "Configurar este dispositivo", sino 'inicio')
+  const [activeTab, setActiveTab] = useState<DashboardTab>(
+    initialAction === 'SELF_CONTROL' ? 'sitios' : 'inicio'
+  );
+  const [redirectHomeOnSelfControl, setRedirectHomeOnSelfControl] = useState<boolean>(
+    initialAction === 'SELF_CONTROL'
+  );
 
   // Modal de Permisos del Dispositivo local del Responsable
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
@@ -136,9 +151,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const [showSelfControlModal, setShowSelfControlModal] = useState(false);
   const [selfControlModalMode, setSelfControlModalMode] = useState<AutocontrolModalMode | null>(null);
 
-  // Estados de Sitios Bloqueados Personalizados (CRUD)
+  // Estados de Sitios y Apps Bloqueados Personalizados (CRUD)
   const [customSites, setCustomSites] = useState<CustomBlockedDomain[]>([]);
-  const [customAppsCount, setCustomAppsCount] = useState<number>(0);
+  const [customApps, setCustomApps] = useState<CustomBlockedApp[]>([]);
   const [grantedPermsCount, setGrantedPermsCount] = useState<number>(6);
   const [showHomeFaqModal, setShowHomeFaqModal] = useState<boolean>(false);
   const [sitesInitialSubTab, setSitesInitialSubTab] = useState<'sites' | 'apps'>('sites');
@@ -150,6 +165,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       loadCustomSites();
       if (initialAction === 'SELF_CONTROL') {
         setActiveTab('sitios');
+        setRedirectHomeOnSelfControl(true);
+      } else if (initialAction === 'SUPERVISE') {
+        setActiveTab('inicio');
       }
     }
   }, [isLoggedIn, initialAction]);
@@ -221,9 +239,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     try {
       const res = await apiService.getCustomBlocklist();
       setCustomSites(res.data?.domains || []);
-      if (res.data?.apps) {
-        setCustomAppsCount(res.data.apps.length);
-      }
+      setCustomApps(res.data?.apps || []);
     } catch (e) {
       console.warn('Error al cargar sitios personalizados:', e);
     }
@@ -249,6 +265,15 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     }
   };
 
+  const hasSitesOrApps = customSites.length + customApps.length > 0;
+  const isSelfControlCurrentlyActive = Boolean(
+    selfControl.active ||
+    selfControl.status === 'ACTIVE_LOCKED' ||
+    selfControl.status === 'DEACTIVATION_PENDING' ||
+    selfControl.status === 'DEACTIVATION_READY'
+  );
+  const isAutoproteccionDisabled = !isSelfControlCurrentlyActive && !hasSitesOrApps;
+
   const handleStartSelfControlFlow = async () => {
     let currentSc = selfControl;
     try {
@@ -256,6 +281,37 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       setSelfControl(currentSc);
     } catch {
       // Usar estado en memoria como respaldo
+    }
+
+    const currentlyActive = Boolean(
+      currentSc.active ||
+      currentSc.status === 'ACTIVE_LOCKED' ||
+      currentSc.status === 'DEACTIVATION_PENDING' ||
+      currentSc.status === 'DEACTIVATION_READY'
+    );
+
+    let currentHasItems = hasSitesOrApps;
+    if (!currentlyActive && !currentHasItems) {
+      try {
+        const freshList = await apiService.getCustomBlocklist();
+        const freshDomains = freshList.data?.domains || [];
+        const freshApps = freshList.data?.apps || [];
+        setCustomSites(freshDomains);
+        setCustomApps(freshApps);
+        currentHasItems = freshDomains.length + freshApps.length > 0;
+      } catch {
+        // Conservar conteo actual
+      }
+    }
+
+    if (!currentlyActive && !currentHasItems) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Agrega un sitio o aplicación',
+        message:
+          'Para activar la autoprotección, primero debes agregar al menos un sitio web o aplicación a la lista de bloqueo.',
+      });
+      return;
     }
 
     if (!currentSc.active || currentSc.status === 'INACTIVE') {
@@ -277,6 +333,10 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     const res = await apiService.enableSelfControl();
     setSelfControl(res);
     setShowSelfControlModal(false);
+    if (shouldRedirectToHomeAfterSelfControlActivation(activeTab, redirectHomeOnSelfControl)) {
+      setRedirectHomeOnSelfControl(false);
+      setActiveTab('inicio');
+    }
   };
 
   const handleConfirmDeactivation = async () => {
@@ -336,8 +396,8 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             currentUser={currentUser}
             devices={devices}
             selfControl={selfControl}
-            customSitesCount={customSites.length}
-            blockedAppsCount={customAppsCount}
+            customSitesCount={customSites.filter((s) => s.isActive !== false).length}
+            blockedAppsCount={customApps.filter((a) => a.isActive !== false).length}
             grantedCount={grantedPermsCount}
             onNavigateToPermissions={() => setShowPermissionsModal(true)}
             onNavigateToDevices={() => setActiveTab('dispositivos')}
@@ -372,6 +432,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             <ProtectedDevicesSection
               devices={devices}
               selfControl={selfControl}
+              hasSitesOrApps={hasSitesOrApps}
               currentUser={currentUser}
               onUpdateUser={(updated) => setCurrentUser(updated)}
               onUpdateSelfControl={(sc) => setSelfControl(sc)}
@@ -428,6 +489,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
             <SitesAndAppsSection
               customSites={customSites}
+              customApps={customApps}
               devices={devices}
               onRefreshList={loadCustomSites}
               selfControl={selfControl}
@@ -460,8 +522,14 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             subtitle="Auditoría de bloqueos, alertas y geolocalización"
             onBack={() => setActiveTab('inicio')}
           />
-          <ScrollView contentContainerStyle={styles.container}>
-            <ActivitySection devices={devices} />
+          <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 85 }]}>
+            <ActivitySection
+              devices={devices}
+              customSites={customSites}
+              customApps={customApps}
+              currentUser={currentUser}
+              selfControl={selfControl}
+            />
           </ScrollView>
         </>
       )}
@@ -491,6 +559,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               ruleUninstallProtection={ruleUninstallProtection}
               rulePermissions={rulePermissions}
               selfControl={selfControl}
+              isAutoproteccionDisabled={isAutoproteccionDisabled}
               onToggleAlerts={setRuleAlerts}
               onToggleUninstallProtection={setRuleUninstallProtection}
               onTogglePermissions={(val) => {

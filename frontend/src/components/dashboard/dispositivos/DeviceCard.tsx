@@ -30,6 +30,7 @@ interface DeviceCardProps {
   onAuditPermissions?: (dev: DeviceInfo) => void;
   isAuditing?: boolean;
   selfControl?: SelfControlState;
+  isAutoproteccionDisabled?: boolean;
   onStartSelfControlFlow?: () => void;
   onDisableSelfControl?: () => void;
   onPressSelfControl?: () => void;
@@ -43,6 +44,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
   onEdit,
   onUnbind,
   selfControl,
+  isAutoproteccionDisabled = false,
   onStartSelfControlFlow,
   onDisableSelfControl,
   onPressSelfControl,
@@ -159,6 +161,8 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
             <ToggleSwitch
               value={isAutocontrolActive}
               onValueChange={handleSelfControlPress}
+              disabled={isAutoproteccionDisabled}
+              onDisabledPress={handleSelfControlPress}
               activeColor="#007AFF"
             />
           </TouchableOpacity>
