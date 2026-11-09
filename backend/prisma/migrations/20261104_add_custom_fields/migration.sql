@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "public"."Gender" AS ENUM ('MASCULINO', 'FEMENINO', 'OTRO', 'NO_INFORMADO');
+
 -- AlterTable
 ALTER TABLE "public"."users" ADD COLUMN IF NOT EXISTS "fcm_token" TEXT;
 ALTER TABLE "public"."users" ADD COLUMN IF NOT EXISTS "gender" "public"."Gender";
