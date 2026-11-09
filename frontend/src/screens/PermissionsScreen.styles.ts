@@ -220,6 +220,9 @@ export const styles = StyleSheet.create({
   actionButtonRow: {
     marginTop: 4,
   },
+  grantedActionsContainer: {
+    gap: 8,
+  },
   activeNotice: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -235,6 +238,21 @@ export const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '600',
     color: '#16A34A',
+  },
+  disablePermissionButton: {
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disablePermissionButtonText: {
+    color: '#E11D48',
+    fontSize: 12,
+    fontWeight: '700',
   },
   // Caja de Ubicación GPS
   locationBox: {

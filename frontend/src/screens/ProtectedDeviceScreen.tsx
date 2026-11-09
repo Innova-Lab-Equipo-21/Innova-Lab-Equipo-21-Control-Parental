@@ -58,7 +58,8 @@ import {
 } from '../utils/pasatiempos';
 import { isItemVisibleForAdultoDevice } from '../utils/adultoSitios';
 import { checkRealDevicePermissions } from '../utils/permissionChecker';
-import { vpnServiceBridge } from '../services/vpn.service';
+import { saveNavigationState } from '../utils/navigationSession';
+import { protectionService } from '../services/protection.service';
 import { apiService } from '../services/api.service';
 import { styles } from './ProtectedDeviceScreen.styles';
 
@@ -154,7 +155,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
 
   const checkVpnStatus = async () => {
     try {
-      await vpnServiceBridge.isProtectionActive();
+      await protectionService.isProtectionActive();
     } catch (e) {
       console.warn('Servicio VPN en modo emulador');
     }
@@ -278,6 +279,11 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
 
   const completedCount = getCompletedGamesCount(completedGames);
 
+  const handleOpenPermissions = () => {
+    saveNavigationState({ activeScreen: 'PERMISSIONS' }).catch(() => {});
+    setShowPermissionsModal(true);
+  };
+
   if (showPermissionsModal) {
     return (
       <PermissionsScreen
@@ -286,10 +292,12 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
         protectedProfile={mode}
         userId={deviceUuid}
         onPermissionsComplete={() => {
+          saveNavigationState({ activeScreen: 'PROTECTED_DEVICE' }).catch(() => {});
           setShowPermissionsModal(false);
           refreshPermissions();
         }}
         onBack={() => {
+          saveNavigationState({ activeScreen: 'PROTECTED_DEVICE' }).catch(() => {});
           setShowPermissionsModal(false);
           refreshPermissions();
         }}
@@ -383,7 +391,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
                   grantedCount={grantedPermsCount}
                   completedGames={completedGames}
                   onOpenGame={handleOpenChildGame}
-                  onNavigateToPermissions={() => setShowPermissionsModal(true)}
+                  onNavigateToPermissions={handleOpenPermissions}
                   onNavigateToPasatiempos={() => setActiveTab('pasatiempos')}
                   onNavigateToActivity={() => setActiveTab('actividad')}
                   onOpenFaq={() => setShowFaqModal(true)}
@@ -429,7 +437,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
                   blockedAppsCount={adultVisibleApps.length}
                   quizCompleted={completedGames.quiz}
                   quizScore={quizScore}
-                  onNavigateToPermissions={() => setShowPermissionsModal(true)}
+                  onNavigateToPermissions={handleOpenPermissions}
                   onOpenQuiz={handleOpenAdultQuiz}
                   onNavigateToSites={() => {
                     setAdultoInitialSubTab('sites');

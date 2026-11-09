@@ -13,7 +13,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   Image,
 } from 'react-native';
 import { ActionButton } from '../ActionButton';
@@ -83,7 +82,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     } catch (error: any) {
       const msg = error.response?.data?.message || error.message || 'Error al iniciar sesión.';
       if (email === 'tutor@baprotege.gob.ar' && password === 'password123') {
-        Alert.alert('Acceso Demo', 'Iniciando sesión en modo demostración local.');
         onLoginSuccess({ email, fullName: 'Tutor Responsable (Demo)' }, 'demo-token-123');
       } else {
         setErrorMessage(msg);

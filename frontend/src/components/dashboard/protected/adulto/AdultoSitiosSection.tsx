@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { CustomBlockedApp, CustomBlockedDomain } from '../../../../types';
 import { apiService } from '../../../../services/api.service';
-import { vpnServiceBridge } from '../../../../services/vpn.service';
+import { protectionService } from '../../../../services/protection.service';
 import { isValidDomainOrUrl, cleanDomainInput } from '../../../../utils/deviceColors';
 import {
   ADULTO_APP_ADDED_FEEDBACK,
@@ -159,7 +159,7 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
           sourceDeviceId: targetDeviceId,
         }
       );
-      vpnServiceBridge.updateBlocklist(5, [cleaned]);
+      protectionService.updateBlocklist(5, [cleaned]);
       setNewSiteDomain('');
       setShowAddSiteModal(false);
       onRefreshList();

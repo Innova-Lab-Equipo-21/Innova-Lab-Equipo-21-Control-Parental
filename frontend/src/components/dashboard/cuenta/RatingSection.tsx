@@ -8,8 +8,9 @@
 // ==============================================================================
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Linking } from 'react-native';
 import { ActionButton } from '../../ActionButton';
+import { FeedbackModal } from '../../FeedbackModal';
 import { styles } from './RatingSection.styles';
 
 /**
@@ -20,6 +21,16 @@ import { styles } from './RatingSection.styles';
 export const RatingSection: React.FC = () => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   /** Abre la aplicación de correo predeterminada con los datos precompletados de la reseña */
   const handleSendReviewEmail = () => {
@@ -30,7 +41,12 @@ export const RatingSection: React.FC = () => {
     );
 
     Linking.openURL(`mailto:${emailTo}?subject=${emailSubject}&body=${emailBody}`).catch(() => {
-      Alert.alert('¡Gracias por tu evaluación!', 'Tu opinión fue enviada exitosamente a baprotegemas@gmail.com.');
+      setFeedbackModal({
+        visible: true,
+        icon: '⭐',
+        title: 'Gracias por tu evaluación',
+        message: 'Tu opinión fue enviada exitosamente a baprotegemas@gmail.com.',
+      });
     });
 
     setComment('');
@@ -43,7 +59,12 @@ export const RatingSection: React.FC = () => {
 
     Linking.openURL(playStoreUrl).catch(() => {
       Linking.openURL(webPlayStoreUrl).catch(() => {
-        Alert.alert('Google Play Store', 'Redirigiendo a la tienda oficial de aplicaciones...');
+        setFeedbackModal({
+          visible: true,
+          icon: '🏪',
+          title: 'Google Play Store',
+          message: 'Redirigiendo a la tienda oficial de aplicaciones...',
+        });
       });
     });
   };
@@ -89,6 +110,15 @@ export const RatingSection: React.FC = () => {
           />
         </View>
       </View>
+
+      {/* Modal estándar de retroalimentación */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+      />
     </View>
   );
 };

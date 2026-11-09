@@ -6,4 +6,5 @@
 
 export * from './api';
 export * from './api.service';
+export * from './protection.service';
 export * from './vpn.service';

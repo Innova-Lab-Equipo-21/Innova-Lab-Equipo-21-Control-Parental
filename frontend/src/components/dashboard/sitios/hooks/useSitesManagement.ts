@@ -7,7 +7,6 @@
 // ==============================================================================
 
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import {
   BlockOriginFilter,
   CustomBlockedDomain,
@@ -26,7 +25,15 @@ interface UseSitesManagementProps {
   selectedDeviceFilter: string;
   selectedOriginFilter?: BlockOriginFilter;
   sortBy: 'date' | 'az';
-  showFeedback: (config: { icon?: string; title: string; message: string }) => void;
+  showFeedback: (config: {
+    icon?: string;
+    title: string;
+    message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
+  }) => void;
   setItemToDelete: (item: { type: 'site' | 'app'; id: string; name: string } | null) => void;
 }
 
@@ -117,11 +124,19 @@ export const useSitesManagement = ({
   // Crear nuevo sitio
   const handleAddSite = async () => {
     if (!newSiteDomain.trim() || !isValidDomainOrUrl(newSiteDomain)) {
-      Alert.alert('Dominio Inválido', 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet o https://...).');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Dominio inválido',
+        message: 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet o https://...).',
+      });
       return;
     }
     if (!newSiteApplyToAll && newSiteDeviceIds.length === 0) {
-      Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Dispositivo requerido',
+        message: 'Selecciona al menos un dispositivo o activa la regla global.',
+      });
       return;
     }
     setLoadingSite(true);
@@ -143,7 +158,11 @@ export const useSitesManagement = ({
         message: 'Dominio agregado a tu lista de bloqueo.',
       });
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo agregar el dominio.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo agregar el dominio.',
+      });
     } finally {
       setLoadingSite(false);
     }
@@ -179,10 +198,11 @@ export const useSitesManagement = ({
   const handleToggleEditSiteDevice = (deviceId: string) => {
     const wasAppliedToSelf = appliesToSelf(editingSite);
     if (deviceId === 'self' && isAutocontrolActive && wasAppliedToSelf && editSiteDeviceIds.includes('self')) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     const allIds = getAllDeviceIds();
@@ -200,20 +220,29 @@ export const useSitesManagement = ({
   const handleSaveEditSite = async () => {
     if (!editingSite) return;
     if (!editSiteDomain.trim() || !isValidDomainOrUrl(editSiteDomain)) {
-      Alert.alert('Dominio Inválido', 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet).');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Dominio inválido',
+        message: 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet).',
+      });
       return;
     }
     if (!editSiteApplyToAll && editSiteDeviceIds.length === 0) {
-      Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Dispositivo requerido',
+        message: 'Selecciona al menos un dispositivo o activa la regla global.',
+      });
       return;
     }
     const wasAppliedToSelf = appliesToSelf(editingSite);
     const willApplyToSelf = editSiteApplyToAll || editSiteDeviceIds.includes('self');
     if (isAutocontrolActive && wasAppliedToSelf && !willApplyToSelf) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     setLoadingSite(true);
@@ -232,7 +261,11 @@ export const useSitesManagement = ({
         message: 'Los cambios fueron guardados.',
       });
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo actualizar el dominio.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo actualizar el dominio.',
+      });
     } finally {
       setLoadingSite(false);
     }
@@ -241,10 +274,11 @@ export const useSitesManagement = ({
   // Toggle de activación individual
   const handleToggleSiteActive = async (site: CustomBlockedDomain) => {
     if (isAutocontrolActive && appliesToSelf(site) && site.isActive) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés deshabilitar ni pausar bloqueos aplicados a tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés deshabilitar ni pausar bloqueos aplicados a tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     try {
@@ -253,17 +287,22 @@ export const useSitesManagement = ({
       });
       onRefreshList();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo cambiar el estado del bloqueo.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo cambiar el estado del bloqueo.',
+      });
     }
   };
 
   // Iniciar eliminación de sitio
   const handleDeleteSite = (site: CustomBlockedDomain) => {
     if (isAutocontrolActive && appliesToSelf(site)) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     setItemToDelete({
@@ -300,10 +339,11 @@ export const useSitesManagement = ({
       return site && appliesToSelf(site);
     });
     if (isAutocontrolActive && affectedSelf) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés pausar bloqueos aplicados a tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés pausar bloqueos aplicados a tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     for (const id of selectedSiteIds) {
@@ -319,30 +359,27 @@ export const useSitesManagement = ({
       return site && appliesToSelf(site);
     });
     if (isAutocontrolActive && affectedSelf) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
-    Alert.alert(
-      'Eliminar sitios seleccionados',
-      `¿Deseas eliminar permanentemente los ${selectedSiteIds.length} sitios seleccionados?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar todos',
-          style: 'destructive',
-          onPress: async () => {
-            for (const id of selectedSiteIds) {
-              await apiService.deleteCustomBlockedSite(id);
-            }
-            setSelectedSiteIds([]);
-            onRefreshList();
-          },
-        },
-      ]
-    );
+    showFeedback({
+      icon: '🗑️',
+      title: 'Eliminar sitios seleccionados',
+      message: `¿Deseas eliminar permanentemente los ${selectedSiteIds.length} sitios seleccionados?`,
+      buttonText: 'Eliminar todos',
+      secondaryButtonText: 'Cancelar',
+      onConfirm: async () => {
+        for (const id of selectedSiteIds) {
+          await apiService.deleteCustomBlockedSite(id);
+        }
+        setSelectedSiteIds([]);
+        onRefreshList();
+      },
+    });
   };
 
   // Filtrado y ordenamiento de sitios

@@ -14,10 +14,10 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { PairingSection, PairingFormData, PairingSectionRef } from './PairingSection';
 import { ActionButton } from '../../ActionButton';
+import { FeedbackModal } from '../../FeedbackModal';
 import { apiService } from '../../../services/api.service';
 import { MAX_PROTECTED_DEVICES } from '../../../types';
 import { styles } from './PairingModal.styles';
@@ -39,6 +39,16 @@ export const PairingModal: React.FC<PairingModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastFormData, setLastFormData] = useState<PairingFormData | null>(null);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
   const pairingSectionRef = useRef<PairingSectionRef>(null);
 
   const handleClose = () => {
@@ -73,14 +83,24 @@ export const PairingModal: React.FC<PairingModalProps> = ({
 
     if (!dataToSave) {
       pairingSectionRef.current?.submit();
-      Alert.alert('Atención', 'Por favor completa todos los datos requeridos del protegido.');
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Atención',
+        message: 'Por favor completa todos los datos requeridos del protegido.',
+      });
       return;
     }
 
     if (!pairingCode) {
       const generatedData = pairingSectionRef.current?.submit();
       if (generatedData) {
-        Alert.alert('Código generado', 'Se generó el código de vinculación. Puedes vincular el dispositivo y presionar Guardar.');
+        setFeedbackModal({
+          visible: true,
+          icon: '📱',
+          title: 'Código generado',
+          message: 'Se generó el código de vinculación. Puedes vincular el dispositivo y presionar Guardar.',
+        });
       }
       return;
     }
@@ -101,7 +121,12 @@ export const PairingModal: React.FC<PairingModalProps> = ({
       handleClose();
       onDeviceAdded(dataToSave.protectedName);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo guardar el dispositivo.');
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo guardar el dispositivo.',
+      });
     } finally {
       setSaving(false);
     }
@@ -172,6 +197,15 @@ export const PairingModal: React.FC<PairingModalProps> = ({
           </View>
         </View>
       </View>
+
+      {/* Modal estándar de retroalimentación */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+      />
     </Modal>
   );
 };

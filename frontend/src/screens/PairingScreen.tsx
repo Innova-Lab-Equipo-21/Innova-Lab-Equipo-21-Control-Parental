@@ -13,7 +13,6 @@ import {
   Text,
   TextInput,
   SafeAreaView,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
@@ -23,6 +22,7 @@ import {
 import { Logo } from '../components/Logo';
 import { Icon } from '../components/Icon';
 import { ActionButton } from '../components/ActionButton';
+import { FeedbackModal } from '../components/FeedbackModal';
 import { apiService } from '../services/api.service';
 import { styles } from './PairingScreen.styles';
 
@@ -41,16 +41,32 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [isScanningQR, setIsScanningQR] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   const isCodeComplete = code.trim().length === 6;
 
   const handlePairing = async (pairingCodeOverride?: string) => {
     const activeCode = (pairingCodeOverride || code).trim();
     if (activeCode.length !== 6) {
-      Alert.alert(
-        'Código incompleto',
-        'Por favor ingresa o escanea un código numérico de 6 dígitos provisto por el responsable.'
-      );
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Código incompleto',
+        message: 'Por favor ingresa o escanea un código numérico de 6 dígitos provisto por el responsable.',
+      });
       return;
     }
 
@@ -83,11 +99,16 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         // FCM no disponible en este entorno; se omite silenciosamente
       }
 
-      Alert.alert(
-        '¡Vinculación exitosa!',
-        `El dispositivo ha sido vinculado correctamente en perfil ${pairedMode === 'ADULT' ? 'ADULTO' : 'MENOR'}.`
-      );
-      onPairingComplete(result.data.deviceId, result.data.deviceUuid, pairedMode);
+      setFeedbackModal({
+        visible: true,
+        icon: '✅',
+        title: 'Vinculación exitosa',
+        message: `El dispositivo ha sido vinculado correctamente en perfil ${pairedMode === 'ADULT' ? 'ADULTO' : 'MENOR'}.`,
+        onConfirm: () => {
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          onPairingComplete(result.data.deviceId, result.data.deviceUuid, pairedMode);
+        },
+      });
     } catch (error: any) {
       // Registrar token FCM del dispositivo para notificaciones push
       try {
@@ -104,11 +125,16 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
 
       // Fallback local instantáneo mientras no hay backend conectado
       const deviceUuid = 'dev-uuid-' + Math.random().toString(36).substring(2, 9);
-      Alert.alert(
-        '¡Vinculación exitosa!',
-        `Dispositivo vinculado correctamente en perfil ${pairedMode === 'ADULT' ? 'ADULTO' : 'MENOR'} (Código: ${activeCode}).`
-      );
-      onPairingComplete('dev-demo-id', deviceUuid, pairedMode);
+      setFeedbackModal({
+        visible: true,
+        icon: '✅',
+        title: 'Vinculación exitosa',
+        message: `Dispositivo vinculado correctamente en perfil ${pairedMode === 'ADULT' ? 'ADULTO' : 'MENOR'} (Código: ${activeCode}).`,
+        onConfirm: () => {
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          onPairingComplete('dev-demo-id', deviceUuid, pairedMode);
+        },
+      });
     } finally {
       setLoading(false);
     }
@@ -119,14 +145,21 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
     setTimeout(() => {
       setCode(forcedCode);
       setIsScanningQR(false);
-      Alert.alert(
-        'Código QR escaneado',
-        `Se detectó el código ${forcedCode}. Confirma para activar la protección.`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Vincular ahora', onPress: () => handlePairing(forcedCode) },
-        ]
-      );
+      setFeedbackModal({
+        visible: true,
+        icon: '📷',
+        title: 'Código QR escaneado',
+        message: `Se detectó el código ${forcedCode}. Confirma para activar la protección.`,
+        buttonText: 'Vincular ahora',
+        secondaryButtonText: 'Cancelar',
+        onConfirm: () => {
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          handlePairing(forcedCode);
+        },
+        onSecondaryPress: () => {
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+        },
+      });
     }, 1000);
   };
 
@@ -147,10 +180,12 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           handleSimulateQRScan('123456');
         } else {
-          Alert.alert(
-            'Permiso denegado',
-            'No se concedió acceso a la cámara. Puedes utilizar el ingreso por Código de 6 dígitos.'
-          );
+          setFeedbackModal({
+            visible: true,
+            icon: '⚠️',
+            title: 'Permiso denegado',
+            message: 'No se concedió acceso a la cámara. Puedes utilizar el ingreso por Código de 6 dígitos.',
+          });
         }
       } catch (err) {
         handleSimulateQRScan('123456');
@@ -332,6 +367,18 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        buttonText={feedbackModal.buttonText || 'Entendido'}
+        onConfirm={feedbackModal.onConfirm}
+        secondaryButtonText={feedbackModal.secondaryButtonText}
+        onSecondaryPress={feedbackModal.onSecondaryPress}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+      />
     </SafeAreaView>
   );
 };

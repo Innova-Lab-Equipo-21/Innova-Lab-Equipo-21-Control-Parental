@@ -2,24 +2,27 @@
 // Proyecto: BA Protege+
 // Componente: GlobalRulesSection (Reglas de protección global)
 // Archivo: src/components/dashboard/cuenta/GlobalRulesSection.tsx
-// Descripción: Sección que presenta los 5 controles globales de protección con
-//              toggles en el estándar azul de la app: Bloqueo sitios LotBA, Alertas,
-//              Antidesinstalación, Autoprotección y Permisos. Bloqueo sitios LotBA nunca se desactiva.
+// Descripción: Sección que presenta los controles globales de protección con
+//              toggles en el estándar azul de la app: Bloqueo sitios LotBA,
+//              Antidesinstalación, Autoprotección y Permisos. Bloqueo sitios LotBA
+//              nunca se desactiva y utiliza el modal estándar FeedbackModal.
 // ==============================================================================
 
-import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { ToggleSwitch } from '../../ToggleSwitch';
+import { FeedbackModal } from '../../FeedbackModal';
+import { getBotMascotImage } from '../protected/botAssets';
 import { SelfControlState } from '../../../types';
 import { styles } from './GlobalRulesSection.styles';
 
 export interface GlobalRulesSectionProps {
-  ruleAlerts: boolean;
+  ruleAlerts?: boolean;
   ruleUninstallProtection: boolean;
   rulePermissions?: boolean;
   selfControl?: SelfControlState;
   isAutoproteccionDisabled?: boolean;
-  onToggleAlerts: (val: boolean) => void;
+  onToggleAlerts?: (val: boolean) => void;
   onToggleUninstallProtection: (val: boolean) => void;
   onTogglePermissions?: (val: boolean) => void;
   onStartSelfControlFlow?: () => void;
@@ -28,16 +31,15 @@ export interface GlobalRulesSectionProps {
 }
 
 export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
-  ruleAlerts,
   ruleUninstallProtection,
   selfControl,
   isAutoproteccionDisabled = false,
-  onToggleAlerts,
   onToggleUninstallProtection,
   onStartSelfControlFlow,
-  onDisableSelfControl,
   onOpenPermissions,
 }) => {
+  const [showLotbaModal, setShowLotbaModal] = useState<boolean>(false);
+
   const isAutoproteccionActive = Boolean(
     selfControl?.active ||
     selfControl?.status === 'ACTIVE_LOCKED' ||
@@ -45,10 +47,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
   );
 
   const handleToggleLotba = () => {
-    Alert.alert(
-      'Protección obligatoria',
-      'El bloqueo de sitios de apuestas no autorizadas por LOTBA es obligatorio y no puede desactivarse por normativa oficial.'
-    );
+    setShowLotbaModal(true);
   };
 
   const handleSelfControlPress = () => {
@@ -75,27 +74,21 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
         />
       </TouchableOpacity>
 
-      {/* 2. Alertas */}
-      <View style={styles.ruleItem}>
-        <Text style={styles.ruleItemText}>🔔 Alertas</Text>
-        <ToggleSwitch
-          value={ruleAlerts}
-          onValueChange={onToggleAlerts}
-          activeColor="#007AFF"
-        />
-      </View>
-
-      {/* 3. Antidesinstalación */}
-      <View style={styles.ruleItem}>
+      {/* 2. Antidesinstalación */}
+      <TouchableOpacity
+        style={styles.ruleItem}
+        activeOpacity={0.8}
+        onPress={() => onToggleUninstallProtection(!ruleUninstallProtection)}
+      >
         <Text style={styles.ruleItemText}>🔒 Antidesinstalación</Text>
         <ToggleSwitch
           value={ruleUninstallProtection}
           onValueChange={onToggleUninstallProtection}
           activeColor="#007AFF"
         />
-      </View>
+      </TouchableOpacity>
 
-      {/* 4. Autoprotección */}
+      {/* 3. Autoprotección */}
       <TouchableOpacity
         style={styles.ruleItem}
         activeOpacity={0.8}
@@ -111,7 +104,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
         />
       </TouchableOpacity>
 
-      {/* 5. Permisos (Navegación con flecha hacia la pantalla de auditoría) */}
+      {/* 4. Permisos (Navegación con flecha hacia la pantalla de auditoría) */}
       <TouchableOpacity
         style={styles.ruleItem}
         activeOpacity={0.8}
@@ -122,6 +115,16 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
         <Text style={styles.ruleItemText}>⚙️ Permisos</Text>
         <Text style={styles.ruleArrow}>➔</Text>
       </TouchableOpacity>
+
+      {/* Modal Estándar de Retroalimentación para Protección Obligatoria LOTBA */}
+      <FeedbackModal
+        visible={showLotbaModal}
+        imageSource={getBotMascotImage('ADULT', 'pensando')}
+        title="Protección obligatoria"
+        message="El bloqueo de sitios de apuestas no autorizadas por LOTBA es obligatorio y no puede desactivarse por normativa oficial."
+        buttonText="Entendido"
+        onClose={() => setShowLotbaModal(false)}
+      />
     </View>
   );
 };

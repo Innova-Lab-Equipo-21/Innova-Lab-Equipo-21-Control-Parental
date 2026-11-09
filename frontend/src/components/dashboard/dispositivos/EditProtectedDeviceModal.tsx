@@ -14,7 +14,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Platform,
   Image,
   Share,
@@ -23,6 +22,7 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ActionButton } from '../../ActionButton';
 import { Icon } from '../../Icon';
 import { DatePickerModal } from '../../auth/DatePickerModal';
+import { FeedbackModal } from '../../FeedbackModal';
 import { colors } from '../../../theme/colors';
 import { DeviceInfo } from '../../../types';
 import { apiService } from '../../../services/api.service';
@@ -61,6 +61,16 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
   const [loading, setLoading] = useState(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   const [errors, setErrors] = useState<{
     protectedName?: string;
@@ -185,10 +195,20 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
         message,
       });
       if (result.action === Share.sharedAction) {
-        Alert.alert('Código Compartido', 'El código de vinculación ha sido enviado.');
+        setFeedbackModal({
+          visible: true,
+          icon: '✅',
+          title: 'Código compartido',
+          message: 'El código de vinculación ha sido enviado.',
+        });
       }
     } catch (error: any) {
-      Alert.alert('Código para Compartir', message);
+      setFeedbackModal({
+        visible: true,
+        icon: '📱',
+        title: 'Código para compartir',
+        message,
+      });
     }
   };
 
@@ -264,7 +284,12 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       onSaveSuccess(trimmedName);
       onClose();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudieron guardar los cambios.');
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Error al guardar',
+        message: e.message || 'No se pudieron guardar los cambios.',
+      });
     } finally {
       setLoading(false);
     }
@@ -632,6 +657,15 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
             setErrors((prev) => ({ ...prev, birthDate: undefined }));
           }
         }}
+      />
+
+      {/* Modal estándar de retroalimentación */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </Modal>
   );

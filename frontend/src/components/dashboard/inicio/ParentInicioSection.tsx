@@ -32,6 +32,7 @@ export interface ParentInicioSectionProps {
   grantedCount?: number; // 0 a 6
   onNavigateToPermissions: () => void;
   onNavigateToDevices: () => void;
+  onAddDevice?: () => void;
   onToggleSelfControl: () => void;
   onNavigateToSites: () => void;
   onNavigateToApps: () => void;
@@ -102,6 +103,7 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
   grantedCount = 6,
   onNavigateToPermissions,
   onNavigateToDevices,
+  onAddDevice,
   onNavigateToSites,
   onNavigateToApps,
   onNavigateToActivity,
@@ -358,7 +360,7 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
                 styles.deviceBadgeItem,
                 !isCompactBadgesRow && styles.deviceBadgeItemSparse,
               ]}
-              onPress={onNavigateToDevices}
+              onPress={onAddDevice || onNavigateToDevices}
               activeOpacity={0.7}
               accessibilityLabel="Añadir dispositivo"
             >

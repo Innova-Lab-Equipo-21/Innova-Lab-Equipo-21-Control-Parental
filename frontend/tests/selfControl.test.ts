@@ -5,6 +5,10 @@ import {
   SELF_CONTROL_LOCK_HOURS,
 } from '../src/types/index.js';
 import { apiService } from '../src/services/api.service.js';
+import {
+  isItemEnabledForResponsable,
+  hasActiveSitesOrAppsForResponsable,
+} from '../src/utils/responsibleFirstAccess.js';
 
 describe('Autocontrol del Tutor y Límite de 5 Dispositivos', () => {
   test('El límite máximo de dispositivos por responsable debe ser 5', () => {
@@ -113,5 +117,129 @@ describe('Autocontrol del Tutor y Límite de 5 Dispositivos', () => {
     assert.equal(isAutoproteccionDisabled(0, 1), false, 'Con 0 sitios y al menos 1 app debe estar habilitada');
     assert.equal(isAutoproteccionDisabled(2, 1), false, 'Con sitios y apps debe estar habilitada');
     assert.equal(isAutoproteccionDisabled(0, 0, true), false, 'Si ya está activa debe permitir consultar estado');
+  });
+
+  test('8- Autoprotección solo debe estar disponible si existe al menos un sitio o app habilitada para el dispositivo del Responsable ("Mi dispositivo")', () => {
+    // Caso 1: Sitio con applyToAll: false y asignado solo a dispositivo protegido (ej: casino.bet)
+    const siteOnlyProtectedDevice = {
+      id: 'site-1',
+      domain: 'casino.bet',
+      isActive: true,
+      applyToAll: false,
+      deviceIds: ['device-protected-1'],
+      createdAt: new Date().toISOString(),
+    };
+    assert.equal(
+      isItemEnabledForResponsable(siteOnlyProtectedDevice),
+      false,
+      'Un sitio asignado solo a un dispositivo protegido no debe contar para el Responsable'
+    );
+    assert.equal(
+      hasActiveSitesOrAppsForResponsable([siteOnlyProtectedDevice], []),
+      false,
+      'Con solo sitios de dispositivos protegidos, Autoprotección no debe estar disponible'
+    );
+
+    // Caso 2: Sitio con applyToAll: true (regla global)
+    const siteGlobal = {
+      id: 'site-2',
+      domain: 'apuestas.com',
+      isActive: true,
+      applyToAll: true,
+      deviceIds: ['device-protected-1'],
+      createdAt: new Date().toISOString(),
+    };
+    assert.equal(
+      isItemEnabledForResponsable(siteGlobal),
+      true,
+      'Un sitio con regla global (applyToAll: true) aplica a Mi dispositivo'
+    );
+    assert.equal(
+      hasActiveSitesOrAppsForResponsable([siteGlobal], []),
+      true,
+      'Con regla global activa, Autoprotección debe estar disponible'
+    );
+
+    // Caso 3: Sitio con applyToAll: false pero deviceIds incluye "self"
+    const siteSelf = {
+      id: 'site-3',
+      domain: 'ruleta.bet',
+      isActive: true,
+      applyToAll: false,
+      deviceIds: ['self'],
+      createdAt: new Date().toISOString(),
+    };
+    assert.equal(
+      isItemEnabledForResponsable(siteSelf),
+      true,
+      'Un sitio que incluye "self" aplica a Mi dispositivo'
+    );
+    assert.equal(
+      hasActiveSitesOrAppsForResponsable([siteSelf], []),
+      true,
+      'Con sitio en "self", Autoprotección debe estar disponible'
+    );
+
+    // Caso 4: Sitio asignado a "self" pero pausado/desactivado (isActive: false)
+    const siteSelfInactive = {
+      id: 'site-4',
+      domain: 'poker.net',
+      isActive: false,
+      applyToAll: false,
+      deviceIds: ['self'],
+      createdAt: new Date().toISOString(),
+    };
+    assert.equal(
+      isItemEnabledForResponsable(siteSelfInactive),
+      false,
+      'Un sitio inactivo no debe habilitar Autoprotección'
+    );
+    assert.equal(
+      hasActiveSitesOrAppsForResponsable([siteSelfInactive], []),
+      false,
+      'Con solo sitios inactivos, Autoprotección no debe estar disponible'
+    );
+
+    // Caso 5: App asignada solo a dispositivo protegido
+    const appOnlyProtected = {
+      id: 'app-1',
+      appName: 'Casino App',
+      packageName: 'com.casino.app',
+      isActive: true,
+      applyToAll: false,
+      deviceIds: ['device-protected-1'],
+      createdAt: new Date().toISOString(),
+    };
+    assert.equal(
+      isItemEnabledForResponsable(appOnlyProtected),
+      false,
+      'Una app asignada solo a dispositivo protegido no debe contar para el Responsable'
+    );
+    assert.equal(
+      hasActiveSitesOrAppsForResponsable([], [appOnlyProtected]),
+      false,
+      'Con solo apps de dispositivos protegidos, Autoprotección no debe estar disponible'
+    );
+
+    // Caso 6: App asignada a "self"
+    const appSelf = {
+      id: 'app-2',
+      appName: 'Bet App',
+      packageName: 'com.bet.app',
+      isActive: true,
+      applyToAll: false,
+      deviceIds: ['self'],
+      createdAt: new Date().toISOString(),
+    };
+    assert.equal(
+      isItemEnabledForResponsable(appSelf),
+      true,
+      'Una app asignada a "self" aplica a Mi dispositivo'
+    );
+    assert.equal(
+      hasActiveSitesOrAppsForResponsable([], [appSelf]),
+      true,
+      'Con app en "self", Autoprotección debe estar disponible'
+    );
   });
 });

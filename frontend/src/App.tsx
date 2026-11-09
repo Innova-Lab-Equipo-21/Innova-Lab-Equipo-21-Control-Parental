@@ -8,10 +8,12 @@
 //              3) Login (Responsable) o Emparejamiento (Protegido)
 //              4) Permisos del Dispositivo (Post-Login / Post-Emparejamiento)
 //              5) Dashboard del Responsable o Pantalla del Dispositivo Protegido
+//              Soporta persistencia de sesión para que el app no se reinicie
+//              al volver desde Ajustes de Android tras modificar permisos.
 // ==============================================================================
 
-import React, { useState } from 'react';
-import { StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StatusBar } from 'react-native';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
@@ -28,10 +30,17 @@ import {
   hasCompletedResponsibleFirstAccess,
   markResponsibleFirstAccessCompleted,
 } from './utils/responsibleFirstAccess';
+import {
+  ActiveScreenType,
+  getNavigationState,
+  saveNavigationState,
+  clearNavigationSession,
+} from './utils/navigationSession';
 
 export function App(): React.JSX.Element {
   // Splash Screen inicial animado
   const [showSplash, setShowSplash] = useState<boolean>(true);
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
 
   // 1) Onboarding inicial
   const [showOnboarding, setShowOnboarding] = useState<boolean>(true);
@@ -52,14 +61,60 @@ export function App(): React.JSX.Element {
   const [isDevicePaired, setIsDevicePaired] = useState<boolean>(false);
   const [deviceUuid, setDeviceUuid] = useState<string | null>(null);
 
+  // Pantalla activa persistida
+  const [activeScreen, setActiveScreen] = useState<ActiveScreenType>('ONBOARDING');
+
+  // Hidratar estado de sesión persistido al iniciar la aplicación
+  useEffect(() => {
+    getNavigationState().then((session) => {
+      if (session.onboardingCompleted) {
+        setShowOnboarding(false);
+      }
+      if (session.currentMode && session.currentMode !== 'UNSET') {
+        setCurrentMode(session.currentMode);
+      }
+      if (session.isParentLoggedIn && session.parentUser) {
+        setIsParentLoggedIn(true);
+        setParentUser(session.parentUser);
+        setParentToken(session.parentToken);
+      }
+      setHasGrantedPermissions(session.hasGrantedPermissions);
+      setHasSelectedResponsibleAction(session.hasSelectedResponsibleAction);
+      setResponsibleActionType(session.responsibleActionType);
+      setIsDevicePaired(session.isDevicePaired);
+      setDeviceUuid(session.deviceUuid);
+      setActiveScreen(session.activeScreen);
+
+      // Si la sesión ya estaba activa o se encontraba en Permisos, omitir Splash para reingreso fluido
+      if (
+        session.onboardingCompleted ||
+        session.isParentLoggedIn ||
+        session.activeScreen === 'PERMISSIONS'
+      ) {
+        setShowSplash(false);
+      }
+      setIsHydrated(true);
+    });
+  }, []);
+
   // Manejador de selección de modo
   const handleSelectMode = (mode: AppMode) => {
+    const nextScreen: ActiveScreenType = mode === 'PARENT' ? 'LOGIN' : 'PAIRING';
     setCurrentMode(mode);
     setIsParentLoggedIn(false);
     setIsDevicePaired(false);
     setHasGrantedPermissions(false);
     setHasSelectedResponsibleAction(false);
     setResponsibleActionType('NONE');
+    setActiveScreen(nextScreen);
+    saveNavigationState({
+      onboardingCompleted: true,
+      currentMode: mode,
+      isParentLoggedIn: false,
+      isDevicePaired: false,
+      hasGrantedPermissions: false,
+      activeScreen: nextScreen,
+    }).catch(() => {});
   };
 
   // Manejador de Login del Responsable
@@ -71,17 +126,38 @@ export function App(): React.JSX.Element {
     setResponsibleActionType('NONE');
     const alreadyCompleted = await hasCompletedResponsibleFirstAccess(user);
     setHasSelectedResponsibleAction(alreadyCompleted);
-    // Inicia solicitando permisos primero
+    setActiveScreen('PERMISSIONS');
+    await saveNavigationState({
+      onboardingCompleted: true,
+      currentMode: 'PARENT',
+      isParentLoggedIn: true,
+      parentUser: user,
+      parentToken: token,
+      hasGrantedPermissions: false,
+      hasSelectedResponsibleAction: alreadyCompleted,
+      responsibleActionType: 'NONE',
+      activeScreen: 'PERMISSIONS',
+    });
   };
 
   // Manejador de Emparejamiento del Dispositivo Protegido
   const handlePairingComplete = (_deviceId: string, uuid: string, pairedMode?: 'CHILD' | 'ADULT') => {
+    const targetMode = pairedMode || currentMode;
     setDeviceUuid(uuid);
     setIsDevicePaired(true);
     setHasGrantedPermissions(false);
     if (pairedMode) {
       setCurrentMode(pairedMode);
     }
+    setActiveScreen('PERMISSIONS');
+    saveNavigationState({
+      onboardingCompleted: true,
+      currentMode: targetMode,
+      isDevicePaired: true,
+      deviceUuid: uuid,
+      hasGrantedPermissions: false,
+      activeScreen: 'PERMISSIONS',
+    }).catch(() => {});
   };
 
   // Manejador de confirmación de permisos
@@ -94,17 +170,30 @@ export function App(): React.JSX.Element {
       }
     }
     setHasGrantedPermissions(true);
+    const nextScreen: ActiveScreenType =
+      currentMode === 'PARENT' ? 'DASHBOARD' : 'PROTECTED_DEVICE';
+    setActiveScreen(nextScreen);
+    await saveNavigationState({
+      hasGrantedPermissions: true,
+      activeScreen: nextScreen,
+    });
   };
 
   // Reiniciar flujo y volver a selección de modo
-  const handleExitMode = () => {
+  const handleExitMode = async () => {
     setCurrentMode('UNSET');
     setIsParentLoggedIn(false);
     setIsDevicePaired(false);
     setHasGrantedPermissions(false);
     setHasSelectedResponsibleAction(false);
     setResponsibleActionType('NONE');
+    setActiveScreen('WELCOME');
+    await clearNavigationSession();
   };
+
+  if (!isHydrated) {
+    return <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />;
+  }
 
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
@@ -118,14 +207,17 @@ export function App(): React.JSX.Element {
       {showOnboarding && (
         <OnboardingScreen
           initialStep={onboardingInitialStep}
-          onComplete={() => {
+          onComplete={async () => {
             setShowOnboarding(false);
             setOnboardingInitialStep(1);
+            setActiveScreen('WELCOME');
+            await saveNavigationState({ onboardingCompleted: true, activeScreen: 'WELCOME' });
           }}
-          onSelectMode={(mode) => {
+          onSelectMode={async (mode) => {
             setShowOnboarding(false);
             setOnboardingInitialStep(1);
             handleSelectMode(mode);
+            await saveNavigationState({ onboardingCompleted: true });
           }}
         />
       )}
@@ -151,27 +243,45 @@ export function App(): React.JSX.Element {
       )}
 
       {/* MODO PROTEGIDO: Emparejamiento */}
-      {!showOnboarding && (currentMode === 'CHILD' || currentMode === 'ADULT') && !isDevicePaired && (
-        <PairingScreen
-          onPairingComplete={handlePairingComplete}
-          onBack={handleExitMode}
-        />
-      )}
+      {!showOnboarding &&
+        (currentMode === 'CHILD' || currentMode === 'ADULT') &&
+        !isDevicePaired && (
+          <PairingScreen
+            onPairingComplete={handlePairingComplete}
+            onBack={handleExitMode}
+          />
+        )}
 
-      {/* 1. MODO RESPONSABLE: Pantalla de Permisos Post-Login (Se muestra primero) */}
+      {/* 1. MODO RESPONSABLE: Pantalla de Permisos Post-Login / Reingreso desde Ajustes */}
       {!showOnboarding &&
         currentMode === 'PARENT' &&
         isParentLoggedIn &&
-        !hasGrantedPermissions && (
+        (activeScreen === 'PERMISSIONS' || !hasGrantedPermissions) && (
           <PermissionsScreen
             flowSource="PARENT_LOGIN"
             userId={parentUser?.id}
-            onPermissionsComplete={handlePermissionsComplete}
-            onBack={() => {
-              setIsParentLoggedIn(false);
-              setParentUser(null);
-              setParentToken(null);
-              setLoginInitialViewMode('LOGIN');
+            onPermissionsComplete={async () => {
+              setActiveScreen('DASHBOARD');
+              await saveNavigationState({ activeScreen: 'DASHBOARD' });
+              handlePermissionsComplete();
+            }}
+            onBack={async () => {
+              if (hasGrantedPermissions || hasSelectedResponsibleAction) {
+                setActiveScreen('DASHBOARD');
+                await saveNavigationState({ activeScreen: 'DASHBOARD' });
+              } else {
+                setIsParentLoggedIn(false);
+                setParentUser(null);
+                setParentToken(null);
+                setLoginInitialViewMode('LOGIN');
+                setActiveScreen('LOGIN');
+                await saveNavigationState({
+                  isParentLoggedIn: false,
+                  parentUser: null,
+                  parentToken: null,
+                  activeScreen: 'LOGIN',
+                });
+              }
             }}
           />
         )}
@@ -181,16 +291,28 @@ export function App(): React.JSX.Element {
         currentMode === 'PARENT' &&
         isParentLoggedIn &&
         hasGrantedPermissions &&
-        !hasSelectedResponsibleAction && (
+        !hasSelectedResponsibleAction &&
+        activeScreen !== 'PERMISSIONS' && (
           <ResponsibleActionScreen
             userName={parentUser?.fullName || 'Tutor Responsable'}
             onSelectAction={async (actionType) => {
               await markResponsibleFirstAccessCompleted(parentUser);
               setResponsibleActionType(actionType);
               setHasSelectedResponsibleAction(true);
+              setActiveScreen('DASHBOARD');
+              await saveNavigationState({
+                hasSelectedResponsibleAction: true,
+                responsibleActionType: actionType,
+                activeScreen: 'DASHBOARD',
+              });
             }}
-            onBack={() => {
+            onBack={async () => {
               setHasGrantedPermissions(false);
+              setActiveScreen('PERMISSIONS');
+              await saveNavigationState({
+                hasGrantedPermissions: false,
+                activeScreen: 'PERMISSIONS',
+              });
             }}
           />
         )}
@@ -200,7 +322,8 @@ export function App(): React.JSX.Element {
         currentMode === 'PARENT' &&
         isParentLoggedIn &&
         hasGrantedPermissions &&
-        hasSelectedResponsibleAction && (
+        hasSelectedResponsibleAction &&
+        activeScreen !== 'PERMISSIONS' && (
           <ParentDashboardScreen
             initialUser={parentUser}
             initialToken={parentToken}
@@ -213,14 +336,33 @@ export function App(): React.JSX.Element {
       {!showOnboarding &&
         (currentMode === 'CHILD' || currentMode === 'ADULT') &&
         isDevicePaired &&
-        !hasGrantedPermissions && (
+        (activeScreen === 'PERMISSIONS' || !hasGrantedPermissions) && (
           <PermissionsScreen
             flowSource="DEVICE_PAIRING"
             allowDisablePermissions={false}
             protectedProfile={currentMode}
-            userId={deviceUuid || (currentMode === 'ADULT' ? 'dev-adult-default' : 'dev-local-default')}
-            onPermissionsComplete={handlePermissionsComplete}
-            onBack={() => setIsDevicePaired(false)}
+            userId={
+              deviceUuid ||
+              (currentMode === 'ADULT' ? 'dev-adult-default' : 'dev-local-default')
+            }
+            onPermissionsComplete={async () => {
+              setActiveScreen('PROTECTED_DEVICE');
+              await saveNavigationState({ activeScreen: 'PROTECTED_DEVICE' });
+              handlePermissionsComplete();
+            }}
+            onBack={async () => {
+              if (hasGrantedPermissions) {
+                setActiveScreen('PROTECTED_DEVICE');
+                await saveNavigationState({ activeScreen: 'PROTECTED_DEVICE' });
+              } else {
+                setIsDevicePaired(false);
+                setActiveScreen('PAIRING');
+                await saveNavigationState({
+                  isDevicePaired: false,
+                  activeScreen: 'PAIRING',
+                });
+              }
+            }}
           />
         )}
 
@@ -228,9 +370,13 @@ export function App(): React.JSX.Element {
       {!showOnboarding &&
         (currentMode === 'CHILD' || currentMode === 'ADULT') &&
         isDevicePaired &&
-        hasGrantedPermissions && (
+        hasGrantedPermissions &&
+        activeScreen !== 'PERMISSIONS' && (
           <ProtectedDeviceScreen
-            deviceUuid={deviceUuid || (currentMode === 'ADULT' ? 'dev-adult-default' : 'dev-local-default')}
+            deviceUuid={
+              deviceUuid ||
+              (currentMode === 'ADULT' ? 'dev-adult-default' : 'dev-local-default')
+            }
             mode={currentMode}
             onExitMode={handleExitMode}
           />

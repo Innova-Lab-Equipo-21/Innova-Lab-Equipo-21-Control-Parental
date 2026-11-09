@@ -77,7 +77,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         <Animated.View style={{ opacity: subtitleFade }}>
           <Text style={styles.subtitle}>Control Parental y Protección Digital</Text>
           <View style={styles.badgeLine}>
-            <Text style={styles.badgeText}>Gobernanza de Buenos Aires</Text>
+            <Text style={styles.badgeText}>Gobierno de Buenos Aires</Text>
           </View>
         </Animated.View>
       </Animated.View>

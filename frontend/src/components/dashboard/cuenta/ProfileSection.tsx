@@ -8,7 +8,7 @@
 // ==============================================================================
 
 import React, { useState } from 'react';
-import { View, Text, Image, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { EditResponsibleModal } from './EditResponsibleModal';
 import { FeedbackModal } from '../../FeedbackModal';
@@ -94,17 +94,22 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             isGoogleLinked: true,
           });
         }
-        Alert.alert(
-          '¡Vinculación exitosa!',
-          'Tu cuenta de BA Protege+ ha sido vinculada con Google exitosamente.',
-        );
+        showFeedback({
+          icon: '✅',
+          title: 'Vinculación exitosa',
+          message: 'Tu cuenta de BA Protege+ ha sido vinculada con Google exitosamente.',
+        });
       }
     } catch (error: any) {
       if (error?.code === statusCodes?.SIGN_IN_CANCELLED) {
         return;
       }
       const msg = error.response?.data?.message || error.message || 'Error al vincular con Google.';
-      Alert.alert('Error de vinculación', msg);
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error de vinculación',
+        message: msg,
+      });
     } finally {
       setLinkingLoading(false);
     }
@@ -153,10 +158,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 style={styles.googleLinkedButton}
                 activeOpacity={0.8}
                 onPress={() =>
-                  Alert.alert(
-                    'Cuenta vinculada',
-                    `Tu cuenta se encuentra vinculada exitosamente con Google (${email}).`,
-                  )
+                  showFeedback({
+                    icon: '✅',
+                    title: 'Cuenta vinculada',
+                    message: `Tu cuenta se encuentra vinculada exitosamente con Google (${email}).`,
+                  })
                 }
               >
                 <Text style={styles.googleLinkedButtonText}>✓ Vinculado con Google</Text>

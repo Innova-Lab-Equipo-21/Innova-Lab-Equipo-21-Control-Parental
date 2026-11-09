@@ -8,7 +8,7 @@
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import {
   BlockOriginFilter,
   CustomBlockedApp,
@@ -35,6 +35,7 @@ import { Icon } from '../../Icon';
 import {
   AUTOPROTECCION_EMPTY_LIST_MESSAGE,
   shouldShowAutoproteccionEmptyNotice,
+  countItemsForResponsable,
 } from '../../../utils/responsibleFirstAccess';
 import { styles } from './SitesAndAppsSection.styles';
 
@@ -150,7 +151,11 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         onRefreshList();
       }
     } catch (e: any) {
-      Alert.alert('Error al eliminar', e.message || 'No se pudo completar la eliminación.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error al eliminar',
+        message: e.message || 'No se pudo completar la eliminación.',
+      });
     } finally {
       setLoadingDelete(false);
     }
@@ -177,9 +182,11 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
     selfControl?.status === 'DEACTIVATION_READY'
   );
 
-  // Verificación global: habilitado si existe al menos un sitio o una app registrada en la lista
-  const totalSitesAndAppsCount = customSites.length + apps.customApps.length;
-  const isAutoproteccionDisabled = !isAutoproteccionActive && totalSitesAndAppsCount === 0;
+  // Verificación: habilitado solo si existe al menos un sitio o una app activa asignada al Responsable ("Mi dispositivo")
+  const sitesForResponsableCount = countItemsForResponsable(customSites);
+  const appsForResponsableCount = countItemsForResponsable(apps.customApps);
+  const hasSitesOrAppsForResponsable = sitesForResponsableCount + appsForResponsableCount > 0;
+  const isAutoproteccionDisabled = !isAutoproteccionActive && !hasSitesOrAppsForResponsable;
   const showEmptyAutoproteccionNotice = shouldShowAutoproteccionEmptyNotice(
     customSites.length,
     apps.customApps.length,
@@ -190,9 +197,9 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
     if (isAutoproteccionDisabled) {
       showFeedback({
         icon: '⚠️',
-        title: 'Agrega un sitio o aplicación',
+        title: 'Habilitá un sitio o aplicación',
         message:
-          'Para activar la autoprotección, primero debes agregar al menos un sitio web o aplicación a la lista de bloqueo.',
+          'Para activar la autoprotección, primero debés habilitar al menos un sitio web o aplicación para "Mi dispositivo".',
       });
       return;
     }

@@ -7,7 +7,6 @@
 // ==============================================================================
 
 import { useState, useEffect } from 'react';
-import { Alert } from 'react-native';
 import {
   BlockOriginFilter,
   CustomBlockedApp,
@@ -25,7 +24,15 @@ interface UseAppsManagementProps {
   selectedDeviceFilter: string;
   selectedOriginFilter?: BlockOriginFilter;
   sortBy: 'date' | 'az';
-  showFeedback: (config: { icon?: string; title: string; message: string }) => void;
+  showFeedback: (config: {
+    icon?: string;
+    title: string;
+    message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
+  }) => void;
   setItemToDelete: (item: { type: 'site' | 'app'; id: string; name: string } | null) => void;
 }
 
@@ -150,11 +157,19 @@ export const useAppsManagement = ({
   // Crear nueva aplicación
   const handleAddApp = async () => {
     if (!newAppName.trim()) {
-      Alert.alert('Campo Requerido', 'Ingresa el nombre de la aplicación.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Campo requerido',
+        message: 'Ingresa el nombre de la aplicación.',
+      });
       return;
     }
     if (!newAppApplyToAll && newAppDeviceIds.length === 0) {
-      Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Dispositivo requerido',
+        message: 'Selecciona al menos un dispositivo o activa la regla global.',
+      });
       return;
     }
     setLoadingApp(true);
@@ -189,7 +204,11 @@ export const useAppsManagement = ({
         message: 'La aplicación fue agregada a la lista de restricción.',
       });
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo bloquear la aplicación.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo bloquear la aplicación.',
+      });
     } finally {
       setLoadingApp(false);
     }
@@ -236,10 +255,11 @@ export const useAppsManagement = ({
   const handleToggleEditAppDevice = (deviceId: string) => {
     const wasAppliedToSelf = appliesToSelf(editingApp);
     if (deviceId === 'self' && isAutocontrolActive && wasAppliedToSelf && editAppDeviceIds.includes('self')) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     const allIds = getAllDeviceIds();
@@ -264,20 +284,29 @@ export const useAppsManagement = ({
   const handleSaveEditApp = async () => {
     if (!editingApp) return;
     if (!editAppName.trim()) {
-      Alert.alert('Campo Requerido', 'Ingresa el nombre de la aplicación.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Campo requerido',
+        message: 'Ingresa el nombre de la aplicación.',
+      });
       return;
     }
     if (!editAppApplyToAll && editAppDeviceIds.length === 0) {
-      Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Dispositivo requerido',
+        message: 'Selecciona al menos un dispositivo o activa la regla global.',
+      });
       return;
     }
     const wasAppliedToSelf = appliesToSelf(editingApp);
     const willApplyToSelf = editAppApplyToAll || editAppDeviceIds.includes('self');
     if (isAutocontrolActive && wasAppliedToSelf && !willApplyToSelf) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     setLoadingApp(true);
@@ -304,7 +333,11 @@ export const useAppsManagement = ({
         message: 'Los cambios fueron guardados.',
       });
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo actualizar la aplicación.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo actualizar la aplicación.',
+      });
     } finally {
       setLoadingApp(false);
     }
@@ -333,7 +366,11 @@ export const useAppsManagement = ({
         message: `Límite de ${timeLimitApp.appName} configurado (${limitDesc}).`,
       });
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo actualizar el límite de tiempo.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo actualizar el límite de tiempo.',
+      });
     } finally {
       setLoadingApp(false);
     }
@@ -342,10 +379,11 @@ export const useAppsManagement = ({
   // Toggle de activación individual
   const handleToggleAppActive = async (app: CustomBlockedApp) => {
     if (isAutocontrolActive && appliesToSelf(app) && app.isActive) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés deshabilitar ni pausar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés deshabilitar ni pausar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     try {
@@ -355,17 +393,22 @@ export const useAppsManagement = ({
       await loadApps();
       onRefreshList();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo cambiar el estado del bloqueo.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo cambiar el estado del bloqueo.',
+      });
     }
   };
 
   // Iniciar eliminación de app
   const handleDeleteApp = (app: CustomBlockedApp) => {
     if (isAutocontrolActive && appliesToSelf(app)) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés eliminar aplicaciones bloqueadas para tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés eliminar aplicaciones bloqueadas para tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     setItemToDelete({
@@ -403,10 +446,11 @@ export const useAppsManagement = ({
       return app && appliesToSelf(app);
     });
     if (isAutocontrolActive && affectedSelf) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés pausar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés pausar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     for (const id of selectedAppIds) {
@@ -423,31 +467,28 @@ export const useAppsManagement = ({
       return app && appliesToSelf(app);
     });
     if (isAutocontrolActive && affectedSelf) {
-      Alert.alert(
-        'Autoprotección del responsable activa',
-        'No podés eliminar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés eliminar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
-    Alert.alert(
-      'Eliminar aplicaciones seleccionadas',
-      `¿Deseas eliminar permanentemente las ${selectedAppIds.length} aplicaciones seleccionadas?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar todas',
-          style: 'destructive',
-          onPress: async () => {
-            for (const id of selectedAppIds) {
-              await apiService.deleteCustomBlockedApp(id);
-            }
-            setSelectedAppIds([]);
-            await loadApps();
-            onRefreshList();
-          },
-        },
-      ]
-    );
+    showFeedback({
+      icon: '🗑️',
+      title: 'Eliminar aplicaciones seleccionadas',
+      message: `¿Deseas eliminar permanentemente las ${selectedAppIds.length} aplicaciones seleccionadas?`,
+      buttonText: 'Eliminar todas',
+      secondaryButtonText: 'Cancelar',
+      onConfirm: async () => {
+        for (const id of selectedAppIds) {
+          await apiService.deleteCustomBlockedApp(id);
+        }
+        setSelectedAppIds([]);
+        await loadApps();
+        onRefreshList();
+      },
+    });
   };
 
   // Filtrado y ordenamiento de apps

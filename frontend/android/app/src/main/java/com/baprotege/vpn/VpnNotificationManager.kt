@@ -24,18 +24,20 @@ class VpnNotificationManager(private val context: Context) {
         const val NOTIFICATION_ID = 1001
         const val CHANNEL_ID = "ba_protege_vpn_channel"
         const val CHANNEL_NAME = "Protección Parental Activa"
+        const val ALERTS_CHANNEL_ID = "ba_protege_alerts_channel"
+        const val ALERTS_CHANNEL_NAME = "Alertas de Supervisión"
     }
 
     private val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     init {
-        createNotificationChannel()
+        ensureChannelsCreated()
     }
 
-    private fun createNotificationChannel() {
+    fun ensureChannelsCreated() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val protectionChannel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_LOW
@@ -43,7 +45,15 @@ class VpnNotificationManager(private val context: Context) {
                 description = "Notificación persistente que indica el estado activo de BA Protege+"
                 setShowBadge(false)
             }
-            notificationManager.createNotificationChannel(channel)
+            val alertsChannel = NotificationChannel(
+                ALERTS_CHANNEL_ID,
+                ALERTS_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Alertas inmediatas de bloqueos, límites y supervisión parental"
+            }
+            notificationManager.createNotificationChannel(protectionChannel)
+            notificationManager.createNotificationChannel(alertsChannel)
         }
     }
 

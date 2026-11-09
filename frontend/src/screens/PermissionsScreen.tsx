@@ -2,35 +2,49 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla de Solicitud de Permisos del Dispositivo)
 // Archivo: src/screens/PermissionsScreen.tsx
-// Descripción: Pantalla de solicitud y explicación pedagógica de los 6 permisos
-//              esenciales con selector toggle interactivo, paso a paso detallado,
-//              común para Responsable y Protegido, y CTA Volver.
+// Descripción: Pantalla principal de solicitud y explicación pedagógica de los 6
+//              permisos esenciales, modularizada con componentes específicos.
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  View,
-  Text,
   SafeAreaView,
   ScrollView,
-  TouchableOpacity,
-  Image,
-  Alert,
-  ActivityIndicator,
+  View,
+  AppState,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import { styles } from './PermissionsScreen.styles';
-import { Icon } from '../components/Icon';
-import { ToggleSwitch } from '../components/ToggleSwitch';
 import { FeedbackModal } from '../components/FeedbackModal';
-import { colors } from '../theme/colors';
-import { vpnServiceBridge } from '../services/vpn.service';
+import { protectionService } from '../services/protection.service';
 import { apiService } from '../services/api.service';
 import {
   canToggleDevicePermission,
   checkRealDevicePermissions,
+  requestAndVerifyAccessibilityPermission,
+  requestAndVerifyBatteryOptimization,
+  requestAndVerifyLocationPermission,
+  requestAndVerifyNotificationPermission,
+  requestAndVerifyUsageStatsPermission,
+  requestAndVerifyVpnPermission,
   saveDevicePermissions,
 } from '../utils/permissionChecker';
+import { saveNavigationState } from '../utils/navigationSession';
 import { getBotMascotImage } from '../components/dashboard/protected/botAssets';
+import { BotMood } from '../utils/botMascots';
+import {
+  PermissionItemState,
+  PermissionCardItem,
+  FeedbackModalState,
+  PERMISSION_DEFINITIONS,
+  PermissionsHeader,
+  PermissionsInfoBox,
+  PermissionCard,
+  PermissionsFooter,
+} from '../components/permissions';
+
+export type { PermissionItemState };
 
 interface PermissionsScreenProps {
   onPermissionsComplete: () => void;
@@ -39,26 +53,6 @@ interface PermissionsScreenProps {
   allowDisablePermissions?: boolean;
   protectedProfile?: 'CHILD' | 'ADULT';
   userId?: string;
-}
-
-export interface PermissionItemState {
-  vpn: boolean;
-  accessibility: boolean;
-  notifications: boolean;
-  batteryOptimization: boolean;
-  location: boolean;
-  usageStats: boolean;
-}
-
-interface PermissionConfig {
-  key: keyof PermissionItemState;
-  title: string;
-  subtitle: string;
-  detailedText: string;
-  steps: string[];
-  actionLabel: string;
-  onAction: () => void;
-  loadingKey: string;
 }
 
 export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
@@ -72,8 +66,33 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   const canDisablePermissions =
     allowDisablePermissions ?? flowSource === 'PARENT_LOGIN';
 
-  const [lockedPermissionAlert, setLockedPermissionAlert] =
-    useState<boolean>(false);
+  const [feedbackModal, setFeedbackModal] = useState<FeedbackModalState>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const showFeedback = (options: {
+    title: string;
+    message: string;
+    mood?: BotMood;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
+  }) => {
+    setFeedbackModal({
+      visible: true,
+      imageSource: getBotMascotImage(protectedProfile || 'ADULT', options.mood || 'feliz'),
+      title: options.title,
+      message: options.message,
+      buttonText: options.buttonText || 'Entendido',
+      secondaryButtonText: options.secondaryButtonText,
+      onConfirm: options.onConfirm,
+      onSecondaryPress: options.onSecondaryPress,
+    });
+  };
+
   // Inicialización de permisos (se sincroniza con el estado real del sistema para este usuario)
   const [permissions, setPermissions] = useState<PermissionItemState>({
     vpn: false,
@@ -83,6 +102,14 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     location: false,
     usageStats: false,
   });
+
+  const isRequestingVpnRef = useRef<boolean>(false);
+  const isRequestingAccessibilityRef = useRef<boolean>(false);
+  const isRequestingNotificationsRef = useRef<boolean>(false);
+  const isRequestingBatteryRef = useRef<boolean>(false);
+  const isRequestingLocationRef = useRef<boolean>(false);
+  const isRequestingUsageStatsRef = useRef<boolean>(false);
+  const appStateRef = useRef(AppState.currentState);
 
   // Consultar permisos reales nativos al montar
   useEffect(() => {
@@ -96,6 +123,144 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         usageStats: real.usageStats,
       });
     });
+    saveNavigationState({ activeScreen: 'PERMISSIONS' }).catch(() => {});
+  }, [userId]);
+
+  // Sincronizar estado real de permisos en el dispositivo al volver desde ajustes del sistema
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    const subscription = AppState.addEventListener('change', async (nextState) => {
+      const prevState = appStateRef.current;
+      appStateRef.current = nextState;
+
+      if (prevState !== 'active' && nextState === 'active') {
+        try {
+          const [
+            isPrepared,
+            isAccEnabled,
+            isNotifEnabled,
+            isBatteryIgnored,
+            isLocGranted,
+            isUsageStatsGranted,
+            isVpnActive,
+          ] = await Promise.all([
+            !isRequestingVpnRef.current
+              ? protectionService.isVpnPrepared()
+              : Promise.resolve(null),
+            !isRequestingAccessibilityRef.current
+              ? protectionService.isAccessibilityEnabled()
+              : Promise.resolve(null),
+            !isRequestingNotificationsRef.current
+              ? protectionService.isNotificationsEnabled()
+              : Promise.resolve(null),
+            !isRequestingBatteryRef.current
+              ? protectionService.isBatteryOptimizationIgnored()
+              : Promise.resolve(null),
+            !isRequestingLocationRef.current
+              ? protectionService.isLocationPermissionGranted()
+              : Promise.resolve(null),
+            !isRequestingUsageStatsRef.current
+              ? protectionService.isUsageStatsPermissionGranted()
+              : Promise.resolve(null),
+            protectionService.isProtectionActive().catch(() => false),
+          ]);
+
+          let feedbackToShow: {
+            title: string;
+            message: string;
+            mood: 'feliz' | 'pensando' | 'triste' | 'festejando' | 'nervioso';
+            buttonText: string;
+          } | null = null;
+
+          setPermissions((prev) => {
+            let nextVpn = prev.vpn;
+            if (isPrepared === false) {
+              nextVpn = false;
+            } else if (isVpnActive) {
+              nextVpn = true;
+            }
+
+            const nextAcc = isAccEnabled !== null ? isAccEnabled : prev.accessibility;
+            const nextNotif = isNotifEnabled !== null ? isNotifEnabled : prev.notifications;
+            const nextBattery = isBatteryIgnored !== null ? isBatteryIgnored : prev.batteryOptimization;
+            const nextUsage = isUsageStatsGranted !== null ? isUsageStatsGranted : prev.usageStats;
+            let nextLoc = prev.location;
+            if (isLocGranted === false) {
+              nextLoc = false;
+            }
+
+            if (prev.batteryOptimization && nextBattery === false) {
+              feedbackToShow = {
+                title: 'Optimización de batería desactivada',
+                message:
+                  'El permiso de optimización de batería fue deshabilitado correctamente.',
+                mood: 'feliz',
+                buttonText: 'Entendido',
+              };
+            } else if (prev.accessibility && nextAcc === false) {
+              feedbackToShow = {
+                title: 'Accesibilidad desactivada',
+                message:
+                  'El servicio de accesibilidad fue deshabilitado correctamente.',
+                mood: 'feliz',
+                buttonText: 'Entendido',
+              };
+            } else if (prev.notifications && nextNotif === false) {
+              feedbackToShow = {
+                title: 'Notificaciones desactivadas',
+                message:
+                  'Las notificaciones del sistema fueron deshabilitadas correctamente.',
+                mood: 'feliz',
+                buttonText: 'Entendido',
+              };
+            } else if (prev.usageStats && nextUsage === false) {
+              feedbackToShow = {
+                title: 'Estadísticas de uso desactivadas',
+                message:
+                  'El acceso a estadísticas de uso fue deshabilitado correctamente.',
+                mood: 'feliz',
+                buttonText: 'Entendido',
+              };
+            }
+
+            if (
+              prev.vpn === nextVpn &&
+              prev.accessibility === nextAcc &&
+              prev.notifications === nextNotif &&
+              prev.batteryOptimization === nextBattery &&
+              prev.location === nextLoc &&
+              prev.usageStats === nextUsage
+            ) {
+              return prev;
+            }
+            const next = {
+              ...prev,
+              vpn: nextVpn,
+              accessibility: nextAcc,
+              notifications: nextNotif,
+              batteryOptimization: nextBattery,
+              location: nextLoc,
+              usageStats: nextUsage,
+            };
+            saveDevicePermissions(next, userId);
+            return next;
+          });
+
+          if (feedbackToShow) {
+            showFeedback(feedbackToShow);
+          }
+        } catch {
+          // Mantener estado actual si falla la verificación nativa
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, [userId]);
 
   // Helper para actualizar y persistir el estado real de permisos
@@ -109,7 +274,6 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
 
   // Solo un card puede estar abierto a la vez (los demás se cierran automáticamente)
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
-
   const [locationAddress, setLocationAddress] = useState<string | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
@@ -124,110 +288,253 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   };
 
   const handleRequestVpn = async () => {
+    if (isRequestingVpnRef.current) {
+      return;
+    }
+
+    isRequestingVpnRef.current = true;
     setLoadingKey('vpn');
     try {
-      await vpnServiceBridge.prepareVpn();
-      updatePermission('vpn', true);
-      Alert.alert('Permiso VPN concedido', 'El servicio de filtrado local VPN ha sido autorizado.');
-    } catch (e: any) {
-      updatePermission('vpn', true);
-      Alert.alert('Permiso VPN autorizado', 'Túnel local de protección de red preparado.');
+      const result = await requestAndVerifyVpnPermission();
+
+      if (result.granted) {
+        updatePermission('vpn', true);
+        showFeedback({
+          title: 'Permiso VPN concedido',
+          message: 'El servicio de filtrado local VPN ha sido autorizado en la configuración del dispositivo.',
+          mood: 'feliz',
+        });
+      } else {
+        updatePermission('vpn', false);
+        showFeedback({
+          title: 'Permiso VPN no activado',
+          message: result.cancelled
+            ? 'Cancelaste la solicitud de conexión VPN. Para activar la protección, confirmá el permiso en el diálogo del sistema.'
+            : 'No se pudo verificar la activación del permiso VPN en la configuración del dispositivo.',
+          mood: 'nervioso',
+        });
+      }
     } finally {
+      isRequestingVpnRef.current = false;
       setLoadingKey(null);
     }
   };
 
-  const handleRequestAccessibility = () => {
+  const handleRequestAccessibility = async () => {
+    if (isRequestingAccessibilityRef.current) {
+      return;
+    }
+
+    isRequestingAccessibilityRef.current = true;
     setLoadingKey('accessibility');
-    setTimeout(() => {
-      updatePermission('accessibility', true);
+    try {
+      const result = await requestAndVerifyAccessibilityPermission();
+
+      if (result.granted) {
+        updatePermission('accessibility', true);
+        showFeedback({
+          title: 'Servicio de accesibilidad activado',
+          message: 'Se activó la protección antidesinstalación en la configuración del dispositivo.',
+          mood: 'feliz',
+        });
+      } else {
+        updatePermission('accessibility', false);
+        showFeedback({
+          title: 'Servicio de accesibilidad no activado',
+          message: 'No se detectó la activación de "BA Protege+" en Accesibilidad. En Ajustes de Accesibilidad, seleccioná "BA Protege+" y activá el servicio.',
+          mood: 'nervioso',
+        });
+      }
+    } finally {
+      isRequestingAccessibilityRef.current = false;
       setLoadingKey(null);
-      Alert.alert(
-        'Servicio de accesibilidad activado',
-        'Se activó la protección antidesinstalación. Se requerirá PIN para cerrar o desinstalar la app.',
-      );
-    }, 600);
+    }
   };
 
-  const handleRequestNotifications = () => {
-    updatePermission('notifications', true);
-    Alert.alert('Notificaciones habilitadas', 'Recibirás alertas en tiempo real y avisos de estado de supervisión.');
+  const handleRequestNotifications = async () => {
+    if (isRequestingNotificationsRef.current) {
+      return;
+    }
+
+    isRequestingNotificationsRef.current = true;
+    setLoadingKey('notifications');
+    try {
+      const result = await requestAndVerifyNotificationPermission();
+
+      if (result.granted) {
+        updatePermission('notifications', true);
+        showFeedback({
+          title: 'Notificaciones habilitadas',
+          message: 'Las notificaciones del sistema están activas. Recibirás alertas en tiempo real y avisos de supervisión.',
+          mood: 'feliz',
+        });
+      } else {
+        updatePermission('notifications', false);
+        showFeedback({
+          title: 'Notificaciones no activadas',
+          message: result.denied
+            ? 'No se otorgó el permiso de notificaciones en el dispositivo. Habilitá las notificaciones para recibir alertas de protección.'
+            : 'No se pudo verificar la activación de notificaciones en el dispositivo.',
+          mood: 'nervioso',
+        });
+      }
+    } finally {
+      isRequestingNotificationsRef.current = false;
+      setLoadingKey(null);
+    }
   };
 
-  const handleRequestBattery = () => {
+  const handleRequestBattery = async () => {
+    if (isRequestingBatteryRef.current) {
+      return;
+    }
+
+    isRequestingBatteryRef.current = true;
     setLoadingKey('battery');
-    setTimeout(() => {
-      updatePermission('batteryOptimization', true);
+    try {
+      const result = await requestAndVerifyBatteryOptimization();
+
+      if (result.granted) {
+        updatePermission('batteryOptimization', true);
+        showFeedback({
+          title: 'Exención de batería concedida',
+          message: 'La app quedó autorizada para operar ininterrumpidamente en segundo plano.',
+          mood: 'feliz',
+        });
+      } else {
+        updatePermission('batteryOptimization', false);
+        showFeedback({
+          title: 'Exención de batería no activada',
+          message: result.denied
+            ? 'No se concedió la exención de ahorro de batería. Para evitar interrupciones en la protección, permití la ejecución sin restricciones.'
+            : 'No se pudo verificar la exención de batería en la configuración del dispositivo.',
+          mood: 'nervioso',
+        });
+      }
+    } finally {
+      isRequestingBatteryRef.current = false;
       setLoadingKey(null);
-      Alert.alert('Exención de batería concedida', 'El motor continuará protegiendo ininterrumpidamente en segundo plano.');
-    }, 600);
+    }
   };
 
-  const handleRequestUsageStats = () => {
+  const handleRequestUsageStats = async () => {
+    if (isRequestingUsageStatsRef.current) {
+      return;
+    }
+    isRequestingUsageStatsRef.current = true;
     setLoadingKey('usageStats');
-    setTimeout(() => {
-      updatePermission('usageStats', true);
+
+    try {
+      const result = await requestAndVerifyUsageStatsPermission(protectionService);
+      if (result.granted) {
+        updatePermission('usageStats', true);
+        showFeedback({
+          title: 'Estadísticas de uso autorizadas',
+          message: 'Permiso concedido para supervisar tiempo de pantalla y límites diarios de aplicaciones.',
+          mood: 'feliz',
+        });
+      } else {
+        updatePermission('usageStats', false);
+        showFeedback({
+          title: 'Permiso de acceso al uso no concedido',
+          message: result.denied
+            ? 'No se activó el acceso a estadísticas de uso. Para hacer cumplir los límites de tiempo de pantalla, habilitá BA Protege+ en Ajustes.'
+            : 'No se pudo verificar el acceso a estadísticas de uso en la configuración del dispositivo.',
+          mood: 'nervioso',
+        });
+      }
+    } finally {
+      isRequestingUsageStatsRef.current = false;
       setLoadingKey(null);
-      Alert.alert('Estadísticas de uso autorizadas', 'Permiso concedido para supervisar tiempo de pantalla y límites diarios.');
-    }, 600);
+    }
   };
 
   /** Solicita permiso de ubicación GPS con geocodificación inversa o fallback por IP */
-  const handleRequestLocation = async () => {
-    setLoadingKey('location');
+  const recordLocationData = async () => {
+    let lat: number | null = null;
+    let lon: number | null = null;
+    let addressText = '';
 
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          let addressText = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
+    // 1. Intentar obtener la última ubicación nativa conocida (GPS / Red)
+    try {
+      if (protectionService && typeof protectionService.getLastKnownLocation === 'function') {
+        const nativeLoc = await protectionService.getLastKnownLocation();
+        if (nativeLoc && typeof nativeLoc.latitude === 'number') {
+          lat = nativeLoc.latitude;
+          lon = nativeLoc.longitude;
+        }
+      }
+    } catch {
+      // Continuar con navigator.geolocation si falla la lectura nativa directa
+    }
 
-          try {
-            const res = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-              { headers: { 'User-Agent': 'BAProtegeApp/1.0' } }
-            );
-            const data = await res.json();
-            if (data && data.display_name) {
-              addressText = data.display_name;
-            }
-          } catch (e) {
-            // Usa coordenadas como texto base si el geocoding externo no responde
-          }
-
-          setLocationAddress(addressText);
-          updatePermission('location', true);
-          setLoadingKey(null);
-
-          await apiService.saveUserLocation({
-            latitude,
-            longitude,
-            address: addressText,
-            source: 'GPS',
-          });
-
-          Alert.alert(
-            '📍 Ubicación GPS registrada',
-            `Dirección obtenida exitosamente por GPS:\n${addressText}`,
+    // 2. Si no hubo coordenadas nativas inmediatas, consultar navigator.geolocation
+    if (lat === null && typeof navigator !== 'undefined' && navigator.geolocation) {
+      try {
+        await new Promise<void>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              lat = pos.coords.latitude;
+              lon = pos.coords.longitude;
+              resolve();
+            },
+            () => resolve(),
+            { enableHighAccuracy: true, timeout: 6000 }
           );
-        },
-        async (error) => {
-          console.warn('GPS no disponible o denegado, activando fallback por IP', error);
-          await fallbackIpLocation();
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
+        });
+      } catch {
+        // Continuar a fallback de geolocalización
+      }
+    }
+
+    if (lat !== null && lon !== null) {
+      addressText = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+          { headers: { 'User-Agent': 'BAProtegeApp/1.0' } }
+        );
+        const data = await res.json();
+        if (data && data.display_name) {
+          addressText = data.display_name;
+        }
+      } catch {
+        // Usa coordenadas formateadas si el servicio de nombres no responde
+      }
+
+      setLocationAddress(addressText);
+      updatePermission('location', true);
+
+      await apiService.saveUserLocation({
+        latitude: lat,
+        longitude: lon,
+        address: addressText,
+        source: 'GPS',
+      });
+
+      showFeedback({
+        title: 'Ubicación GPS registrada',
+        message: `Dirección obtenida exitosamente por GPS:\n${addressText}`,
+        mood: 'feliz',
+      });
     } else {
-      await fallbackIpLocation();
+      // Coordenadas satelitales aún sin fijar, pero permiso concedido: aproximar por red/IP
+      await fallbackIpLocation(true);
     }
   };
 
-  /** Fallback: Obtiene la ubicación aproximada basada en la dirección IP pública */
-  const fallbackIpLocation = async () => {
+  /** Fallback: Obtiene la ubicación aproximada basada en la red IP (solo si el permiso fue concedido) */
+  const fallbackIpLocation = async (permissionGranted: boolean = false) => {
+    if (!permissionGranted) {
+      updatePermission('location', false);
+      setLocationAddress(null);
+      return;
+    }
+
     try {
       const res = await fetch('https://ipapi.co/json/');
       const data = await res.json();
-      const ipAddress = `${data.city || 'Buenos Aires'}, ${data.region || 'CABA'}, ${data.country_name || 'Argentina'} (Aproximada por IP)`;
+      const ipAddress = `${data.city || 'Buenos Aires'}, ${data.region || 'CABA'}, ${data.country_name || 'Argentina'} (Aproximada por red)`;
 
       setLocationAddress(ipAddress);
       updatePermission('location', true);
@@ -239,25 +546,233 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         source: 'IP',
       });
 
-      Alert.alert(
-        '📍 Ubicación obtenida por IP',
-        `El permiso GPS fue denegado o no está disponible. Se registró la ubicación aproximada por red IP:\n${ipAddress}`,
-      );
-    } catch (e) {
-      const defaultLoc = 'Buenos Aires, Argentina (Ubicación por defecto)';
+      showFeedback({
+        title: 'Ubicación registrada',
+        message: `Permiso de ubicación autorizado. Se sincronizó la posición de referencia:\n${ipAddress}`,
+        mood: 'feliz',
+      });
+    } catch {
+      const defaultLoc = 'Buenos Aires, Argentina (Ubicación de referencia)';
       setLocationAddress(defaultLoc);
       updatePermission('location', true);
 
       await apiService.saveUserLocation({ address: defaultLoc, source: 'IP' });
 
-      Alert.alert('📍 Ubicación registrada', `Ubicación registrada: ${defaultLoc}`);
+      showFeedback({
+        title: 'Ubicación registrada',
+        message: `Permiso de ubicación autorizado:\n${defaultLoc}`,
+        mood: 'feliz',
+      });
+    }
+  };
+
+  /** Solicita el permiso nativo real de ubicación GPS y valida la autorización en el dispositivo */
+  const handleRequestLocation = async () => {
+    if (isRequestingLocationRef.current) {
+      return;
+    }
+    isRequestingLocationRef.current = true;
+    setLoadingKey('location');
+
+    try {
+      const result = await requestAndVerifyLocationPermission(
+        protectionService,
+        PermissionsAndroid
+      );
+
+      if (!result.granted) {
+        updatePermission('location', false);
+        setLocationAddress(null);
+        showFeedback({
+          title: 'Permiso de ubicación no concedido',
+          message: 'Para supervisar la geolocalización y seguridad familiar, debés aceptar el permiso de ubicación en el dispositivo.',
+          mood: 'nervioso',
+        });
+        return;
+      }
+
+      // El permiso fue otorgado por el usuario. Verificar si el hardware GPS está activado.
+      if (!result.locationEnabled && typeof protectionService.isLocationEnabled === 'function') {
+        const isLocEnabled = await protectionService.isLocationEnabled();
+        if (!isLocEnabled) {
+          showFeedback({
+            title: 'Ubicación desactivada',
+            message: 'El permiso de ubicación fue concedido, pero la ubicación del dispositivo está desactivada. ¿Deseás activarla en Ajustes?',
+            mood: 'pensando',
+            buttonText: 'Abrir ajustes',
+            secondaryButtonText: 'Cancelar',
+            onConfirm: async () => {
+              setFeedbackModal((prev) => ({ ...prev, visible: false }));
+              await protectionService.openLocationSettings();
+              recordLocationData().catch(() => {});
+            },
+            onSecondaryPress: () => {
+              setFeedbackModal((prev) => ({ ...prev, visible: false }));
+              recordLocationData().catch(() => {});
+            },
+          });
+          return;
+        }
+      }
+
+      await recordLocationData();
+    } catch (error) {
+      console.warn('[PermissionsScreen] Error al solicitar permiso de ubicación:', error);
+      updatePermission('location', false);
+      setLocationAddress(null);
     } finally {
+      isRequestingLocationRef.current = false;
       setLoadingKey(null);
     }
   };
 
   const showProtectedPermissionNotice = () => {
-    setLockedPermissionAlert(true);
+    showFeedback({
+      title: 'Permiso protegido',
+      message: 'Una vez activado, este permiso no puede desactivarse desde un dispositivo protegido.',
+      mood: 'nervioso',
+    });
+  };
+
+  const handleDisablePermission = async (key: keyof PermissionItemState) => {
+    switch (key) {
+      case 'vpn': {
+        try {
+          await protectionService.stopProtection();
+        } catch (err) {
+          console.warn('[PermissionsScreen] Error al detener VPN:', err);
+        }
+        updatePermission('vpn', false);
+        showFeedback({
+          title: 'Filtrado VPN desactivado',
+          message:
+            'Se detuvo el servicio de filtrado y protección VPN en el dispositivo. Si deseás desconectar o administrar la conexión en el sistema, podés abrir Ajustes.',
+          mood: 'feliz',
+          buttonText: 'Abrir ajustes',
+          secondaryButtonText: 'Cancelar',
+          onConfirm: () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+            protectionService.openVpnSettings().catch(() => {});
+          },
+          onSecondaryPress: () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          },
+        });
+        break;
+      }
+      case 'accessibility': {
+        showFeedback({
+          title: 'Desactivar accesibilidad',
+          message:
+            'Para desactivar la protección antidesinstalación, Android requiere que apagues el servicio en los Ajustes de accesibilidad del sistema. ¿Deseás abrir Ajustes ahora?',
+          mood: 'pensando',
+          buttonText: 'Abrir ajustes',
+          secondaryButtonText: 'Cancelar',
+          onConfirm: async () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+            try {
+              await protectionService.openAccessibilitySettings();
+            } catch (err) {
+              console.warn('[PermissionsScreen] Error al abrir accesibilidad:', err);
+            }
+          },
+          onSecondaryPress: () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          },
+        });
+        break;
+      }
+      case 'notifications': {
+        showFeedback({
+          title: 'Desactivar notificaciones',
+          message:
+            'Para desactivar las alertas y notificaciones del sistema, debés deshabilitarlas en los Ajustes de la aplicación. ¿Deseás abrir Ajustes ahora?',
+          mood: 'pensando',
+          buttonText: 'Abrir ajustes',
+          secondaryButtonText: 'Cancelar',
+          onConfirm: async () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+            try {
+              await protectionService.openNotificationSettings();
+            } catch (err) {
+              console.warn('[PermissionsScreen] Error al abrir notificaciones:', err);
+            }
+          },
+          onSecondaryPress: () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          },
+        });
+        break;
+      }
+      case 'batteryOptimization': {
+        showFeedback({
+          title: 'Optimización de batería',
+          message:
+            'Para reactivar la optimización de batería (ahorro de energía de Android), podés modificarlo en los Ajustes del sistema. ¿Deseás abrir Ajustes ahora?',
+          mood: 'pensando',
+          buttonText: 'Abrir ajustes',
+          secondaryButtonText: 'Cancelar',
+          onConfirm: async () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+            try {
+              await protectionService.openBatterySettings();
+            } catch (err) {
+              console.warn('[PermissionsScreen] Error al abrir batería:', err);
+            }
+          },
+          onSecondaryPress: () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          },
+        });
+        break;
+      }
+      case 'location': {
+        updatePermission('location', false);
+        setLocationAddress(null);
+        showFeedback({
+          title: 'Ubicación desactivada',
+          message:
+            'Se desactivó el registro de ubicación en la aplicación. Si deseás revocar el permiso GPS del sistema, podés hacerlo en los Ajustes.',
+          mood: 'feliz',
+          buttonText: 'Abrir ajustes',
+          secondaryButtonText: 'Cancelar',
+          onConfirm: async () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+            try {
+              await protectionService.openLocationSettings();
+            } catch (err) {
+              console.warn('[PermissionsScreen] Error al abrir ubicación:', err);
+            }
+          },
+          onSecondaryPress: () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          },
+        });
+        break;
+      }
+      case 'usageStats': {
+        showFeedback({
+          title: 'Desactivar estadísticas de uso',
+          message:
+            'Para desactivar la supervisión del tiempo de uso de aplicaciones, Android requiere que apagues el acceso en los Ajustes del sistema. ¿Deseás abrir Ajustes ahora?',
+          mood: 'pensando',
+          buttonText: 'Abrir ajustes',
+          secondaryButtonText: 'Cancelar',
+          onConfirm: async () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+            try {
+              await protectionService.openUsageStatsSettings();
+            } catch (err) {
+              console.warn('[PermissionsScreen] Error al abrir acceso de uso:', err);
+            }
+          },
+          onSecondaryPress: () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          },
+        });
+        break;
+      }
+    }
   };
 
   const handleTogglePermission = (key: keyof PermissionItemState) => {
@@ -267,11 +782,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     }
 
     if (permissions[key]) {
-      // Desactivar permiso (exclusivo Modo Responsable)
-      updatePermission(key, false);
-      if (key === 'location') {
-        setLocationAddress(null);
-      }
+      handleDisablePermission(key);
     } else {
       // Activar permiso mediante su flujo específico
       switch (key) {
@@ -297,262 +808,73 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     }
   };
 
-  const permissionConfigs: PermissionConfig[] = [
-    {
-      key: 'vpn',
-      title: 'Servicio de filtrado VPN',
-      subtitle: 'Bloqueo de sitios de apuestas y contenido no seguro',
-      detailedText:
-        'Crea un túnel local en el dispositivo para interceptar y bloquear solicitudes a casas de apuestas clandestinas de la lista oficial LOTBA, sin enviar tu tráfico a servidores externos.',
-      steps: [
-        'Activá el interruptor del permiso.',
-        "En el diálogo del sistema 'Solicitud de conexión', confirmá tocando Aceptar.",
-        'Verificá que aparezca el ícono de llave o escudo en la barra de notificaciones superior.',
-      ],
-      actionLabel: 'Autorizar filtrado VPN',
-      onAction: handleRequestVpn,
-      loadingKey: 'vpn',
-    },
-    {
-      key: 'accessibility',
-      title: 'Servicio de accesibilidad',
-      subtitle: 'Protección antidesinstalación y cierre forzado',
-      detailedText:
-        'Protección antidesinstalación: impide que el menor o un tercero cierre forzadamente la app, la suspenda o la elimine sin autorizar previamente el PIN del tutor responsable.',
-      steps: [
-        'Activá el interruptor para abrir Ajustes de Accesibilidad.',
-        "Buscá y seleccioná 'BA Protege+' en la lista de aplicaciones instaladas.",
-        "Activá el servicio y confirmá tocando 'Permitir' en la ventana de advertencia.",
-      ],
-      actionLabel: 'Activar servicio de accesibilidad',
-      onAction: handleRequestAccessibility,
-      loadingKey: 'accessibility',
-    },
-    {
-      key: 'notifications',
-      title: 'Notificaciones del sistema',
-      subtitle: 'Alertas inmediatas y estado de supervisión',
-      detailedText:
-        'Mantiene la notificación de servicio persistente de seguridad en la barra de estado y envía alertas instantáneas de intentos de bloqueo o límites alcanzados.',
-      steps: [
-        'Activá el interruptor para habilitar las notificaciones.',
-        "En la ventana emergente de permisos de Android, seleccioná 'Permitir'.",
-        'Comprobá que las alertas del sistema no queden silenciadas.',
-      ],
-      actionLabel: 'Permitir notificaciones',
-      onAction: handleRequestNotifications,
-      loadingKey: 'notifications',
-    },
-    {
-      key: 'batteryOptimization',
-      title: 'Optimización de batería',
-      subtitle: 'Protección continua con pantalla apagada',
-      detailedText:
-        'Evita que el ahorro de energía de Android suspenda o detenga el motor de filtrado cuando el celular esté con pantalla apagada o en reposo prolongado.',
-      steps: [
-        'Activá el interruptor de exención de batería.',
-        "En el aviso del sistema '¿Ignorar optimizaciones de batería?', elegí 'Permitir' (o Sin restricciones).",
-        'La app quedará autorizada para operar ininterrumpidamente en segundo plano.',
-      ],
-      actionLabel: 'Conceder exención de batería',
-      onAction: handleRequestBattery,
-      loadingKey: 'battery',
-    },
-    {
-      key: 'location',
-      title: 'Ubicación y geolocalización',
-      subtitle: 'Registro de localización y seguridad familiar',
-      detailedText:
-        'Utiliza el sensor GPS del dispositivo para registrar la dirección exacta para el responsable. Si el permiso no es otorgado o no hay señal GPS satelital, el sistema obtiene la ubicación aproximada basada en la red IP.',
-      steps: [
-        'Activá el interruptor del permiso de ubicación.',
-        "En el diálogo del sistema, seleccioná 'Mientras la app está en uso' o 'Siempre'.",
-        'Asegurate de mantener activada la ubicación precisa del dispositivo.',
-      ],
-      actionLabel: 'Autorizar permiso de ubicación (GPS)',
-      onAction: handleRequestLocation,
-      loadingKey: 'location',
-    },
-    {
-      key: 'usageStats',
-      title: 'Estadísticas de uso de aplicaciones',
-      subtitle: 'Supervisión de tiempo en pantalla y límites',
-      detailedText:
-        'Necesario para supervisar el tiempo en primer plano de las aplicaciones y hacer cumplir los horarios y límites de tiempo diario configurados por el responsable.',
-      steps: [
-        "Activá el interruptor para abrir la sección 'Acceso de uso' en Ajustes.",
-        "Localizá y seleccioná 'BA Protege+' en la lista de aplicaciones.",
-        "Habilitá la opción 'Permitir seguimiento de uso' (o acceso a datos de uso).",
-      ],
-      actionLabel: 'Autorizar estadísticas de uso',
-      onAction: handleRequestUsageStats,
-      loadingKey: 'usageStats',
-    },
-  ];
+  const actionHandlers = useMemo(
+    () => ({
+      vpn: handleRequestVpn,
+      accessibility: handleRequestAccessibility,
+      notifications: handleRequestNotifications,
+      batteryOptimization: handleRequestBattery,
+      location: handleRequestLocation,
+      usageStats: handleRequestUsageStats,
+    }),
+    []
+  );
+
+  const permissionItems: PermissionCardItem[] = useMemo(() => {
+    return PERMISSION_DEFINITIONS.map((def) => ({
+      ...def,
+      onAction: actionHandlers[def.key],
+    }));
+  }, [actionHandlers]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* 1. Encabezado Superior Institucional con logo_baprotege_texto.png sobre fondo #EAF3FF */}
-      <View style={styles.topHeaderBar}>
-        <Image
-          source={require('../assets/logo/logo_baprotege_texto.png')}
-          style={styles.topHeaderLogo}
-          resizeMode="contain"
-          accessibilityLabel="BA Protege +"
-        />
-      </View>
-
-      {/* 2. Subheader con botón volver, ícono volver.png y título 'Permisos de aplicación' */}
-      <View style={styles.subHeaderRow}>
-        <View style={styles.subHeaderLeft}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBackToLogin}
-            activeOpacity={0.7}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityLabel="Volver a la pantalla anterior"
-          >
-            <Image
-              source={require('../assets/icons/volver.png')}
-              style={styles.backIcon}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-          <Text style={styles.screenTitle}>Permisos de aplicación</Text>
-        </View>
-      </View>
+      <PermissionsHeader onBack={handleBackToLogin} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Banner / Tarjeta de información azul institucional */}
-        <View style={styles.infoBox}>
-          <View style={styles.infoHeader}>
-            <Icon name="escudo" size={18} color={colors.primary} style={styles.infoIcon} />
-            <Text style={styles.infoTitle}>Configurá tu dispositivo</Text>
-          </View>
-          <Text style={styles.infoDescription}>
-            Activá los 6 permisos para garantizar la protección continua y supervisión del dispositivo.
-          </Text>
-        </View>
+        <PermissionsInfoBox />
 
         {/* Contenedor distribuido de tarjetas de permisos */}
         <View style={styles.cardsContainer}>
-          {permissionConfigs.map((item) => {
+          {permissionItems.map((item) => {
             const isGranted = permissions[item.key];
             const isExpanded = expandedKey === item.key;
             const isLoading = loadingKey === item.loadingKey;
 
             return (
-              <View key={item.key} style={styles.permCard}>
-                <TouchableOpacity
-                  style={styles.permCardHeader}
-                  onPress={() => toggleExpand(item.key)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.permTextColumn}>
-                    <Text style={styles.permTitle}>{item.title}</Text>
-                    <Text style={styles.permSubtitle}>{item.subtitle}</Text>
-                  </View>
-                  <View style={styles.permRightColumn}>
-                    <View style={styles.toggleWrapper}>
-                      <ToggleSwitch
-                        value={isGranted}
-                        onValueChange={() => handleTogglePermission(item.key)}
-                        disabled={
-                          isLoading || (isGranted && !canDisablePermissions)
-                        }
-                        onDisabledPress={
-                          isGranted && !canDisablePermissions
-                            ? showProtectedPermissionNotice
-                            : undefined
-                        }
-                      />
-                    </View>
-                    <Text style={styles.chevronIcon}>{isExpanded ? '∧' : '∨'}</Text>
-                  </View>
-                </TouchableOpacity>
-
-                {isExpanded && (
-                  <View style={styles.expandedSection}>
-                    <View style={styles.cardDivider} />
-                    <Text style={styles.expandedDetailedText}>{item.detailedText}</Text>
-
-                    {/* Bloque paso a paso pedagógico */}
-                    <View style={styles.stepsContainer}>
-                      <Text style={styles.stepsTitle}>Pasos para activar:</Text>
-                      {item.steps.map((step, idx) => (
-                        <View key={idx} style={styles.stepItem}>
-                          <View style={styles.stepNumberBadge}>
-                            <Text style={styles.stepNumberText}>{idx + 1}</Text>
-                          </View>
-                          <Text style={styles.stepText}>{step}</Text>
-                        </View>
-                      ))}
-                    </View>
-
-                    {item.key === 'location' && locationAddress && (
-                      <View style={styles.locationBox}>
-                        <Text style={styles.locationBoxLabel}>📍 Dirección / ubicación registrada:</Text>
-                        <Text style={styles.locationBoxValue}>{locationAddress}</Text>
-                      </View>
-                    )}
-
-                    <View style={styles.actionButtonRow}>
-                      {isGranted ? (
-                        <View style={styles.activeNotice}>
-                          <Text style={styles.activeNoticeText}>✓ Permiso concedido y en funcionamiento</Text>
-                        </View>
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.continueButton}
-                          onPress={item.onAction}
-                          disabled={isLoading}
-                          activeOpacity={0.8}
-                        >
-                          {isLoading ? (
-                            <ActivityIndicator color="#FFFFFF" size="small" />
-                          ) : (
-                            <Text style={styles.continueButtonText}>{item.actionLabel}</Text>
-                          )}
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-                )}
-              </View>
+              <PermissionCard
+                key={item.key}
+                item={item}
+                isGranted={isGranted}
+                isExpanded={isExpanded}
+                isLoading={isLoading}
+                canDisablePermissions={canDisablePermissions}
+                locationAddress={locationAddress}
+                onToggleExpand={() => toggleExpand(item.key)}
+                onTogglePermission={() => handleTogglePermission(item.key)}
+                onDisablePermission={() => handleDisablePermission(item.key)}
+                onDisabledPress={showProtectedPermissionNotice}
+              />
             );
           })}
         </View>
 
-        {/* Botones de Acción Final: Volver y Continuar en la misma línea */}
-        <View style={styles.footerSection}>
-          <TouchableOpacity
-            style={styles.backButtonSecondary}
-            onPress={handleBackToLogin}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.backButtonSecondaryText} numberOfLines={1}>
-              Volver
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={onPermissionsComplete}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.continueButtonText} numberOfLines={1}>
-              Continuar
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <PermissionsFooter
+          onBack={handleBackToLogin}
+          onContinue={onPermissionsComplete}
+        />
       </ScrollView>
 
       <FeedbackModal
-        visible={lockedPermissionAlert}
-        imageSource={getBotMascotImage(protectedProfile, 'nervioso')}
-        title="Permiso protegido"
-        message="Una vez activado, este permiso no puede desactivarse desde un dispositivo protegido."
-        onClose={() => setLockedPermissionAlert(false)}
+        visible={feedbackModal.visible}
+        imageSource={feedbackModal.imageSource}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        buttonText={feedbackModal.buttonText}
+        secondaryButtonText={feedbackModal.secondaryButtonText}
+        onConfirm={feedbackModal.onConfirm}
+        onSecondaryPress={feedbackModal.onSecondaryPress}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </SafeAreaView>
   );

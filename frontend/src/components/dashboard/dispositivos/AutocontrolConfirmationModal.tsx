@@ -12,8 +12,9 @@
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, Modal, TouchableOpacity } from 'react-native';
 import { ActionButton } from '../../ActionButton';
+import { FeedbackModal } from '../../FeedbackModal';
 import { SelfControlState } from '../../../types';
 import { styles } from './AutocontrolConfirmationModal.styles';
 
@@ -48,11 +49,13 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
 }) => {
   const [activateStep, setActivateStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
+  const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
       setActivateStep(1);
       setLoading(false);
+      setErrorFeedback(null);
     }
   }, [visible, mode]);
 
@@ -72,7 +75,7 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
     try {
       await onActivate();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo activar la autoprotección.');
+      setErrorFeedback(e.message || 'No se pudo activar la autoprotección.');
     } finally {
       setLoading(false);
     }
@@ -83,7 +86,7 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
     try {
       await onConfirmDeactivation();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo desactivar la autoprotección.');
+      setErrorFeedback(e.message || 'No se pudo desactivar la autoprotección.');
     } finally {
       setLoading(false);
     }
@@ -257,6 +260,15 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
           {renderContent()}
         </View>
       </View>
+
+      {/* Modal estándar de error */}
+      <FeedbackModal
+        visible={!!errorFeedback}
+        icon="⚠️"
+        title="Error"
+        message={errorFeedback || ''}
+        onClose={() => setErrorFeedback(null)}
+      />
     </Modal>
   );
 };

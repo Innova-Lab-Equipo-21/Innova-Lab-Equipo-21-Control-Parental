@@ -8,8 +8,9 @@
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, Modal, TouchableOpacity } from 'react-native';
 import { ActionButton } from '../../ActionButton';
+import { FeedbackModal } from '../../FeedbackModal';
 import { DeviceInfo } from '../../../types';
 import { apiService } from '../../../services/api.service';
 import { styles } from './UnbindConfirmationModal.styles';
@@ -29,10 +30,12 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
 }) => {
   const [unbindStep, setUnbindStep] = useState<1 | 2>(1);
   const [loadingUnbind, setLoadingUnbind] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
       setUnbindStep(1);
+      setErrorMessage(null);
     }
   }, [visible]);
 
@@ -48,7 +51,7 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
       onSuccess(device.deviceId);
       onClose();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'No se pudo desvincular el dispositivo.');
+      setErrorMessage(error.message || 'No se pudo desvincular el dispositivo.');
     } finally {
       setLoadingUnbind(false);
     }
@@ -142,6 +145,15 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
           )}
         </View>
       </View>
+
+      {/* Modal estándar de error */}
+      <FeedbackModal
+        visible={!!errorMessage}
+        icon="⚠️"
+        title="Error al desvincular"
+        message={errorMessage || ''}
+        onClose={() => setErrorMessage(null)}
+      />
     </Modal>
   );
 };

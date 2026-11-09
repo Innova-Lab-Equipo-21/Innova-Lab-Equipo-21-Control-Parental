@@ -13,12 +13,12 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   Image,
 } from 'react-native';
 import { apiService } from '../../../../services/api.service';
 import { BOTI_ASSETS } from '../botAssets';
+import { FeedbackModal } from '../../../FeedbackModal';
 import { styles } from './BlockModal.styles';
 
 interface BlockModalProps {
@@ -36,14 +36,27 @@ export const BlockModal: React.FC<BlockModalProps> = ({
   const [inputValue, setInputValue] = useState<string>('');
   const [category, setCategory] = useState<string>('Personalizado');
   const [loading, setLoading] = useState<boolean>(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   const handleSubmit = async () => {
     const trimmed = inputValue.trim();
     if (!trimmed) {
-      Alert.alert(
-        'Campo requerido',
-        `Por favor, ingresa el ${blockType === 'SITE' ? 'sitio web (ej: casino.com)' : 'nombre de la aplicación'}.`
-      );
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Campo requerido',
+        message: `Por favor, ingresa el ${blockType === 'SITE' ? 'sitio web (ej: casino.com)' : 'nombre de la aplicación'}.`,
+      });
       return;
     }
 
@@ -55,13 +68,23 @@ export const BlockModal: React.FC<BlockModalProps> = ({
         await apiService.addCustomBlockedSite(`${trimmed.toLowerCase().replace(/\s+/g, '')}.app`, category, true, []);
       }
 
-      Alert.alert(
-        '🔒 Bloqueo registrado exitosamente',
-        `El ${blockType === 'SITE' ? 'sitio web' : 'aplicación'} "${trimmed}" ha sido agregado a tu lista de restricciones.\n\n⚠️ RECUERDA: Únicamente tu TUTOR RESPONSABLE podrá remover este bloqueo.`,
-        [{ text: 'Entendido', onPress: () => handleCloseModal(true, trimmed) }]
-      );
+      setFeedbackModal({
+        visible: true,
+        icon: '🔒',
+        title: 'Bloqueo registrado',
+        message: `El ${blockType === 'SITE' ? 'sitio web' : 'aplicación'} "${trimmed}" ha sido agregado a tu lista de restricciones.\n\n⚠️ RECUERDA: Únicamente tu TUTOR RESPONSABLE podrá remover este bloqueo.`,
+        onConfirm: () => {
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          handleCloseModal(true, trimmed);
+        },
+      });
     } catch (e: any) {
-      Alert.alert('Error al bloquear', e.message || 'No se pudo registrar el bloqueo.');
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Error al bloquear',
+        message: e.message || 'No se pudo registrar el bloqueo.',
+      });
       setLoading(false);
     }
   };
@@ -196,6 +219,16 @@ export const BlockModal: React.FC<BlockModalProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Modal estándar de retroalimentación */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        onConfirm={feedbackModal.onConfirm}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+      />
     </Modal>
   );
 };

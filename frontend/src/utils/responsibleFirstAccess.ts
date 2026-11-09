@@ -85,6 +85,42 @@ export function shouldShowAutoproteccionEmptyNotice(
 }
 
 /**
+ * Determina si un sitio o aplicación personalizada está activa y asignada al dispositivo
+ * del Responsable ("Mi dispositivo"), ya sea por regla global (applyToAll: true) o
+ * por asignación explícita (deviceIds incluye 'self').
+ */
+export function isItemEnabledForResponsable(
+  item?: { isActive?: boolean; applyToAll?: boolean; deviceIds?: string[] } | null
+): boolean {
+  if (!item) return false;
+  if (item.isActive === false) return false;
+  return (
+    item.applyToAll === true ||
+    (Array.isArray(item.deviceIds) && item.deviceIds.includes('self'))
+  );
+}
+
+/**
+ * Cuenta cuántos elementos están activos y asignados al Responsable.
+ */
+export function countItemsForResponsable<
+  T extends { isActive?: boolean; applyToAll?: boolean; deviceIds?: string[] }
+>(items?: T[] | null): number {
+  if (!Array.isArray(items)) return 0;
+  return items.filter(isItemEnabledForResponsable).length;
+}
+
+/**
+ * Determina si el Responsable tiene al menos un sitio o aplicación activa habilitada para su dispositivo.
+ */
+export function hasActiveSitesOrAppsForResponsable(
+  customSites?: { isActive?: boolean; applyToAll?: boolean; deviceIds?: string[] }[] | null,
+  customApps?: { isActive?: boolean; applyToAll?: boolean; deviceIds?: string[] }[] | null
+): boolean {
+  return countItemsForResponsable(customSites) + countItemsForResponsable(customApps) > 0;
+}
+
+/**
  * Determina si tras activar la Autoprotección el usuario debe ser redirigido a Inicio (Home).
  */
 export function shouldRedirectToHomeAfterSelfControlActivation(

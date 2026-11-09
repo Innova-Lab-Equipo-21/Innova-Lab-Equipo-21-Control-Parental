@@ -12,9 +12,9 @@ import {
   Text,
   SafeAreaView,
   ScrollView,
-  Alert,
   Modal,
   TouchableOpacity,
+  AppState,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ActionButton } from '../components/ActionButton';
@@ -54,11 +54,15 @@ import {
 import { FaqModal } from '../components/dashboard/cuenta/FaqModal';
 import { FabWithTooltip } from '../components/FabWithTooltip';
 import { FeedbackModal } from '../components/FeedbackModal';
+import { getBotMascotImage } from '../components/dashboard/protected/botAssets';
 import { colors } from '../theme/colors';
 import { checkRealDevicePermissions } from '../utils/permissionChecker';
+import { saveNavigationState } from '../utils/navigationSession';
+import { protectionService } from '../services/protection.service';
 import {
   ResponsibleInitialAction,
   shouldRedirectToHomeAfterSelfControlActivation,
+  hasActiveSitesOrAppsForResponsable,
 } from '../utils/responsibleFirstAccess';
 import { styles } from './ParentDashboardScreen.styles';
 
@@ -68,6 +72,7 @@ interface ParentDashboardScreenProps {
   initialToken?: string | null;
   permissions?: PermissionItemState;
   initialAction?: ResponsibleInitialAction;
+  initialShowPermissionsModal?: boolean;
 }
 
 export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
@@ -76,6 +81,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   initialToken,
   permissions,
   initialAction,
+  initialShowPermissionsModal,
 }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!initialToken);
   const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
@@ -95,7 +101,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   );
 
   // Modal de Permisos del Dispositivo local del Responsable
-  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(
+    Boolean(initialShowPermissionsModal)
+  );
 
   // Modal para Vincular Nuevo Dispositivo (desde FAB +)
   const [showPairingModal, setShowPairingModal] = useState(false);
@@ -104,15 +112,29 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
     icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
   }>({
     visible: false,
     title: '',
     message: '',
   });
 
-  const showFeedback = (config: { icon?: string; title: string; message: string }) => {
+  const showFeedback = (config: {
+    icon?: string;
+    imageSource?: any;
+    title: string;
+    message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
+  }) => {
     setFeedbackModal({
       visible: true,
       ...config,
@@ -123,7 +145,6 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const [showOnboardingFlow, setShowOnboardingFlow] = useState(false);
 
   // Estados de Reglas de Control Parental
-  const [ruleAlerts, setRuleAlerts] = useState(true);
   const [ruleUninstallProtection, setRuleUninstallProtection] = useState(true);
   const [rulePermissions, setRulePermissions] = useState(
     permissions
@@ -136,6 +157,68 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
         )
       : false
   );
+
+  // Sincronizar estado real de antidesinstalación con el sistema
+  useEffect(() => {
+    const syncAntiUninstall = async () => {
+      const isA11yActive = await protectionService.isAccessibilityEnabled();
+      const isEnabledInPrefs = await protectionService.isAntiUninstallEnabled();
+      setRuleUninstallProtection(isA11yActive && isEnabledInPrefs);
+    };
+    syncAntiUninstall();
+  }, []);
+
+  // Monitorear cuando la app regresa a primer plano desde los Ajustes del sistema
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextState) => {
+      if (nextState === 'active') {
+        refreshPermissions();
+        const isA11yActive = await protectionService.isAccessibilityEnabled();
+        const isEnabledInPrefs = await protectionService.isAntiUninstallEnabled();
+        setRuleUninstallProtection(isA11yActive && isEnabledInPrefs);
+      }
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const handleToggleUninstallProtection = async (val: boolean) => {
+    if (val) {
+      const isA11yActive = await protectionService.isAccessibilityEnabled();
+      if (!isA11yActive) {
+        setRuleUninstallProtection(false);
+        showFeedback({
+          imageSource: getBotMascotImage('ADULT', 'pensando'),
+          title: 'Servicio de accesibilidad',
+          message:
+            'Para activar la protección antidesinstalación, es necesario habilitar el servicio de accesibilidad de BA Protege+ en los Ajustes del sistema. ¿Deseás abrir Ajustes ahora?',
+          buttonText: 'Abrir ajustes',
+          secondaryButtonText: 'Cancelar',
+          onConfirm: async () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+            try {
+              await protectionService.openAccessibilitySettings();
+              const activeAfterSettings = await protectionService.isAccessibilityEnabled();
+              if (activeAfterSettings) {
+                setRuleUninstallProtection(true);
+                await protectionService.setAntiUninstallEnabled(true);
+                refreshPermissions();
+              }
+            } catch (err) {
+              console.warn('[ParentDashboard] Error al abrir accesibilidad:', err);
+            }
+          },
+          onSecondaryPress: () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          },
+        });
+        return;
+      }
+    }
+    setRuleUninstallProtection(val);
+    await protectionService.setAntiUninstallEnabled(val);
+  };
 
   // Estados de Autocontrol del Responsable (Bloqueo de 24hs)
   const [selfControl, setSelfControl] = useState<SelfControlState>({
@@ -256,16 +339,17 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
       setPairingCode(fallbackCode);
       await loadDevices();
-      Alert.alert(
-        '📱 Código Generado (Modo Standalone)',
-        `Se generó el código de vinculación: ${fallbackCode}. Los datos del protegido se mantendrán guardados hasta el emparejamiento.`
-      );
+      showFeedback({
+        icon: '📱',
+        title: 'Código generado',
+        message: `Se generó el código de vinculación: ${fallbackCode}. Los datos del protegido se mantendrán guardados hasta el emparejamiento.`,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const hasSitesOrApps = customSites.length + customApps.length > 0;
+  const hasSitesOrApps = hasActiveSitesOrAppsForResponsable(customSites, customApps);
   const isSelfControlCurrentlyActive = Boolean(
     selfControl.active ||
     selfControl.status === 'ACTIVE_LOCKED' ||
@@ -290,7 +374,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       currentSc.status === 'DEACTIVATION_READY'
     );
 
-    let currentHasItems = hasSitesOrApps;
+    let currentHasItems = hasActiveSitesOrAppsForResponsable(customSites, customApps);
     if (!currentlyActive && !currentHasItems) {
       try {
         const freshList = await apiService.getCustomBlocklist();
@@ -298,7 +382,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
         const freshApps = freshList.data?.apps || [];
         setCustomSites(freshDomains);
         setCustomApps(freshApps);
-        currentHasItems = freshDomains.length + freshApps.length > 0;
+        currentHasItems = hasActiveSitesOrAppsForResponsable(freshDomains, freshApps);
       } catch {
         // Conservar conteo actual
       }
@@ -307,9 +391,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     if (!currentlyActive && !currentHasItems) {
       showFeedback({
         icon: '⚠️',
-        title: 'Agrega un sitio o aplicación',
+        title: 'Habilitá un sitio o aplicación',
         message:
-          'Para activar la autoprotección, primero debes agregar al menos un sitio web o aplicación a la lista de bloqueo.',
+          'Para activar la autoprotección, primero debés habilitar al menos un sitio web o aplicación para "Mi dispositivo".',
       });
       return;
     }
@@ -347,6 +431,11 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
   const handleDisableSelfControl = handleConfirmDeactivation;
 
+  const handleOpenPermissions = () => {
+    saveNavigationState({ activeScreen: 'PERMISSIONS' }).catch(() => {});
+    setShowPermissionsModal(true);
+  };
+
   if (!isLoggedIn) {
     return (
       <LoginScreen
@@ -363,11 +452,13 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
         flowSource="PARENT_LOGIN"
         userId={currentUser?.id}
         onPermissionsComplete={() => {
+          saveNavigationState({ activeScreen: 'DASHBOARD' }).catch(() => {});
           setShowPermissionsModal(false);
           refreshPermissions();
           loadDevices();
         }}
         onBack={() => {
+          saveNavigationState({ activeScreen: 'DASHBOARD' }).catch(() => {});
           setShowPermissionsModal(false);
           refreshPermissions();
           loadDevices();
@@ -399,8 +490,12 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             customSitesCount={customSites.filter((s) => s.isActive !== false).length}
             blockedAppsCount={customApps.filter((a) => a.isActive !== false).length}
             grantedCount={grantedPermsCount}
-            onNavigateToPermissions={() => setShowPermissionsModal(true)}
+            onNavigateToPermissions={handleOpenPermissions}
             onNavigateToDevices={() => setActiveTab('dispositivos')}
+            onAddDevice={() => {
+              setActiveTab('dispositivos');
+              setShowPairingModal(true);
+            }}
             onToggleSelfControl={handleStartSelfControlFlow}
             onNavigateToSites={() => {
               setSitesInitialSubTab('sites');
@@ -440,7 +535,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               onDisableSelfControl={handleDisableSelfControl}
               onRefreshList={loadDevices}
               onUnbindDevice={() => loadDevices()}
-              onOpenPermissions={() => setShowPermissionsModal(true)}
+              onOpenPermissions={handleOpenPermissions}
             />
           </ScrollView>
 
@@ -451,22 +546,6 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               onPress={() => setShowPairingModal(true)}
             />
           )}
-
-          {/* Modal para Vincular Nuevo Dispositivo */}
-          <PairingModal
-            visible={showPairingModal}
-            deviceCount={devices.length}
-            onClose={() => setShowPairingModal(false)}
-            onDeviceAdded={(savedName) => {
-              loadDevices();
-              setShowPairingModal(false);
-              showFeedback({
-                icon: '✅',
-                title: 'Dispositivo guardado',
-                message: `El dispositivo de ${savedName || 'nuevo protegido'} fue guardado como inactivo hasta que se complete la vinculación con el código.`,
-              });
-            }}
-          />
         </View>
       )}
 
@@ -553,24 +632,22 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               }}
             />
 
-            {/* Reglas de protección global (Bloqueo sitios LotBA, Alertas, Antidesinstalación, Autocontrol, Permisos) */}
+            {/* Reglas de protección global (Bloqueo sitios LotBA, Antidesinstalación, Autocontrol, Permisos) */}
             <GlobalRulesSection
-              ruleAlerts={ruleAlerts}
               ruleUninstallProtection={ruleUninstallProtection}
               rulePermissions={rulePermissions}
               selfControl={selfControl}
               isAutoproteccionDisabled={isAutoproteccionDisabled}
-              onToggleAlerts={setRuleAlerts}
-              onToggleUninstallProtection={setRuleUninstallProtection}
+              onToggleUninstallProtection={handleToggleUninstallProtection}
               onTogglePermissions={(val) => {
                 setRulePermissions(val);
                 if (val) {
-                  setShowPermissionsModal(true);
+                  handleOpenPermissions();
                 }
               }}
               onStartSelfControlFlow={handleStartSelfControlFlow}
               onDisableSelfControl={handleDisableSelfControl}
-              onOpenPermissions={() => setShowPermissionsModal(true)}
+              onOpenPermissions={handleOpenPermissions}
             />
 
             {/* 2. Ayuda y soporte (Tutorial y Preguntas frecuentes) */}
@@ -598,24 +675,25 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                 Eliminar tu cuenta borrará permanentemente todos tus datos y dispositivos vinculados. Esta acción no se puede deshacer.
               </Text>
               <ActionButton
-                title="🗑️ Eliminar cuenta definitivamente"
+                title="Eliminar cuenta definitivamente"
                 variant="danger"
                 onPress={() => {
-                  Alert.alert(
-                    '⚠️ Eliminar Cuenta',
-                    '¿Estás seguro de que deseas eliminar tu cuenta permanentemente? Esta acción es irreversible.',
-                    [
-                      { text: 'Cancelar', style: 'cancel' },
-                      {
-                        text: 'Eliminar',
-                        style: 'destructive',
-                        onPress: () => {
-                          setIsLoggedIn(false);
-                          onExitMode();
-                        },
-                      },
-                    ]
-                  );
+                  showFeedback({
+                    icon: '⚠️',
+                    title: 'Eliminar cuenta',
+                    message:
+                      '¿Estás seguro de que deseas eliminar tu cuenta permanentemente? Esta acción es irreversible.',
+                    buttonText: 'Eliminar',
+                    secondaryButtonText: 'Cancelar',
+                    onConfirm: () => {
+                      setFeedbackModal((prev) => ({ ...prev, visible: false }));
+                      setIsLoggedIn(false);
+                      onExitMode();
+                    },
+                    onSecondaryPress: () => {
+                      setFeedbackModal((prev) => ({ ...prev, visible: false }));
+                    },
+                  });
                 }}
               />
             </View>
@@ -635,10 +713,10 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             {/* 7. Versión de la app al final */}
             <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 24 }}>
               <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '700' }}>
-                BA Protege+ v1.0.0 (Build 2025.3)
+                BA Protege+ v1.0.0
               </Text>
               <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 2 }}>
-                Lotería de la Ciudad de Buenos Aires (LOTBA S.E.)
+                Gobierno de la Ciudad de Buenos Aires
               </Text>
             </View>
           </ScrollView>
@@ -649,6 +727,22 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       <DashboardNavbar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
+      />
+
+      {/* Modal para Vincular Nuevo Dispositivo */}
+      <PairingModal
+        visible={showPairingModal}
+        deviceCount={devices.length}
+        onClose={() => setShowPairingModal(false)}
+        onDeviceAdded={(savedName) => {
+          loadDevices();
+          setShowPairingModal(false);
+          showFeedback({
+            icon: '✅',
+            title: 'Dispositivo guardado',
+            message: `El dispositivo de ${savedName || 'nuevo protegido'} fue guardado como inactivo hasta que se complete la vinculación con el código.`,
+          });
+        }}
       />
 
       {/* Modal de Doble Confirmación y Gestión de Autocontrol */}
@@ -673,9 +767,13 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       <FeedbackModal
         visible={feedbackModal.visible}
         icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
-        buttonText="Entendido"
+        buttonText={feedbackModal.buttonText || 'Entendido'}
+        onConfirm={feedbackModal.onConfirm}
+        secondaryButtonText={feedbackModal.secondaryButtonText}
+        onSecondaryPress={feedbackModal.onSecondaryPress}
         onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </SafeAreaView>

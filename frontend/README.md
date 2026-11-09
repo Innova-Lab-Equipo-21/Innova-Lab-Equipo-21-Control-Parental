@@ -292,7 +292,8 @@ frontend/
 │   │   ├── api/                                  # Módulos API (auth, devices, blocklist, selfControl, telemetry, client)
 │   │   ├── api.service.ts                        # Fachada unificada retrocompatible
 │   │   ├── googleAuth.service.ts                 # Integración Google Sign-In
-│   │   └── vpn.service.ts                        # Puente JS <-> Kotlin ProtectionModule
+│   │   ├── protection.service.ts                 # Puente JS <-> Kotlin ProtectionModule (6 permisos y motor VPN)
+│   │   └── vpn.service.ts                        # Re-export retrocompatible a protection.service.ts
 │   ├── theme/                                    # Paleta de colores y escala tipográfica
 │   ├── types/                                    # Contratos e interfaces TypeScript globales
 │   └── utils/                                    # Lógica pura de dominio testeable en Node

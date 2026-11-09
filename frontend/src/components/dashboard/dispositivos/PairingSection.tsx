@@ -15,13 +15,13 @@ import {
   TouchableOpacity,
   Image,
   Share,
-  Alert,
   Platform,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ActionButton } from '../../ActionButton';
 import { Icon } from '../../Icon';
 import { DatePickerModal } from '../../auth/DatePickerModal';
+import { FeedbackModal } from '../../FeedbackModal';
 import { colors } from '../../../theme/colors';
 import { MAX_PROTECTED_DEVICES } from '../../../types';
 import { calculateAge } from '../../../utils/age';
@@ -73,6 +73,16 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
   // Estados de UI
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   const [errors, setErrors] = useState<{
     protectedName?: string;
@@ -247,10 +257,20 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
       });
 
       if (result.action === Share.sharedAction) {
-        Alert.alert('Código Compartido', 'El código de vinculación ha sido enviado.');
+        setFeedbackModal({
+          visible: true,
+          icon: '✅',
+          title: 'Código compartido',
+          message: 'El código de vinculación ha sido enviado.',
+        });
       }
     } catch (error: any) {
-      Alert.alert('Código para Compartir', message);
+      setFeedbackModal({
+        visible: true,
+        icon: '📱',
+        title: 'Código para compartir',
+        message,
+      });
     }
   };
 
@@ -549,6 +569,15 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
             setErrors((prev) => ({ ...prev, birthDate: undefined }));
           }
         }}
+      />
+
+      {/* Modal estándar de retroalimentación */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </View>
   );

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">BA Protege+</string>
+    <string name="accessibility_service_label">BA Protege+</string>
+    <string name="accessibility_service_description">Protección antidesinstalación y supervisión continua para impedir el cierre forzado o desinstalación de BA Protege+ sin PIN del tutor responsable.</string>
 </resources>
