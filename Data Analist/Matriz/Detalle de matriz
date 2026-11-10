@@ -1,0 +1,7 @@
+###Las 4 métricas que definimos:
+- Bloqueos totales: cuántos intentos de acceso se frenaron en el período, con la variación contra el período anterior.
+- Bloqueos por fuente: cuántos vinieron de la lista oficial de LOTBA y cuántos de la lista personalizada del adulto responsable.
+- Franja horaria de intentos: en qué horas se intenta entrar a sitios bloqueados, con la hora pico marcada.
+- Últimos intentos bloqueados: los sitios más recientes, con URL, dispositivo, hace cuánto y de qué lista vino.
+
+Arriba va un selector de dispositivo (toda la familia o uno en particular) y de período (día, semana o mes) que filtra las cuatro métricas. Todo entra en una sola pantalla, sin scroll, en modo claro.
