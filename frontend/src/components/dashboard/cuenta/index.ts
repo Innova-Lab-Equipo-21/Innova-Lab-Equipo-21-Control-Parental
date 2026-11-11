@@ -7,3 +7,4 @@ export * from './LegalSection';
 export * from './RatingSection';
 export * from './RatingModal';
 export * from './FaqModal';
+export * from './AntiUninstallCodeModal';

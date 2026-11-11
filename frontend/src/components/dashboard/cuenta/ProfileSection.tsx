@@ -197,16 +197,29 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         visible={isEditing}
         currentUser={currentUser}
         onClose={() => setIsEditing(false)}
-        onSave={(updated) => {
-          setIsEditing(false);
-          if (onUpdateUser) {
-            onUpdateUser(updated);
+        onSave={async (updated) => {
+          try {
+            const res = await apiService.updateProfile({
+              fullName: updated.fullName,
+              firstName: updated.firstName,
+              lastName: updated.lastName,
+              gender: updated.gender,
+              birthDate: updated.birthDate,
+              phone: updated.phone,
+              password: updated.password,
+            });
+            const savedUser = res?.data ? { ...updated, ...res.data } : updated;
+            if (onUpdateUser) {
+              onUpdateUser(savedUser);
+            }
+            showFeedback({
+              icon: '✅',
+              title: 'Perfil actualizado',
+              message: 'Los datos del responsable han sido actualizados exitosamente.',
+            });
+          } catch (err: any) {
+            throw err;
           }
-          showFeedback({
-            icon: '✅',
-            title: 'Perfil actualizado',
-            message: 'Los datos del responsable han sido actualizados exitosamente.',
-          });
         }}
       />
 

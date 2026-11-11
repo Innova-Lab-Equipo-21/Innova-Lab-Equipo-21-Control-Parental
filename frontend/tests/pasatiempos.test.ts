@@ -311,14 +311,15 @@ describe('Modos Protegidos (Adulto y Menor) — Pestaña Cuenta replicada de Res
       // Secciones presentes replicadas de Responsable
       assert.equal(source.includes('HelpSection'), true);
       assert.equal(source.includes('LegalSection'), true);
+      assert.equal(source.includes('GlobalRulesSection'), true);
+      assert.equal(source.includes('showAutoproteccion={false}'), true);
       assert.equal(source.includes('Cerrar sesión'), true);
       assert.equal(source.includes('BA Protege+ v1.0.0'), true);
 
       // Secciones excluidas en modos protegidos
+      assert.equal(source.toLowerCase().includes('autoprotección'), false);
       assert.equal(source.toLowerCase().includes('editar perfil'), false);
       assert.equal(source.toLowerCase().includes('vincular google'), false);
-      assert.equal(source.includes('GlobalRulesSection'), false);
-      assert.equal(source.toLowerCase().includes('reglas de protección global'), false);
       assert.equal(source.toLowerCase().includes('zona de peligro'), false);
       assert.equal(source.toLowerCase().includes('eliminar cuenta'), false);
     }

@@ -389,6 +389,125 @@ export class DeviceService {
 
     return updatedConfig;
   }
+
+  private activeAntiUninstallCodes = new Map<
+    string,
+    { code: string; expiresAt: Date; createdAt: Date; email: string }
+  >();
+
+  /**
+   * Genera y envía por correo electrónico un código de 6 dígitos al responsable
+   * para autorizar la desactivación de la protección antidesinstalación en un dispositivo protegido.
+   * Si ya existía un código anterior para este dispositivo, queda automáticamente invalidado.
+   */
+  public async requestAntiUninstallCode(input: { deviceUuid: string }) {
+    let responsableEmail = 'tutor@baprotege.gob.ar';
+    let deviceName = 'Dispositivo Protegido';
+
+    if (env.USE_MOCK_DATA) {
+      const device = mockDb.devices.find((d) => d.deviceUuid === input.deviceUuid || d.id === input.deviceUuid);
+      if (device) {
+        deviceName = device.deviceName || device.childName || deviceName;
+        const user = mockDb.users.find((u) => u.id === device.userId);
+        if (user?.email) {
+          responsableEmail = user.email;
+        }
+      }
+    } else {
+      try {
+        const device = await prisma.device.findFirst({
+          where: {
+            OR: [{ deviceUuid: input.deviceUuid }, { id: input.deviceUuid }],
+          },
+          include: { user: true },
+        });
+        if (device) {
+          deviceName = device.deviceName || device.childName || deviceName;
+          if (device.user?.email) {
+            responsableEmail = device.user.email;
+          }
+        }
+      } catch (err) {
+        // Fallback a tutor por defecto
+      }
+    }
+
+    // Generar código de 6 dígitos
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+    // Invalidar cualquier código previo almacenando el nuevo
+    this.activeAntiUninstallCodes.set(input.deviceUuid, {
+      code,
+      expiresAt,
+      createdAt: new Date(),
+      email: responsableEmail,
+    });
+
+    // Disparar correo al responsable que vinculó el dispositivo
+    const emailSubject = 'Código de seguridad para desactivar antidesinstalación - BA Protege+';
+    const emailBody = `Hola,\n\nSe ha solicitado desactivar la protección antidesinstalación en el dispositivo protegido "${deviceName}".\n\nTu código de verificación de 6 dígitos es:\n\n${code}\n\nSi no realizaste esta solicitud, no compartas este código con nadie.\n\nEquipo de BA Protege+\nLotería de la Ciudad de Buenos Aires (LOTBA S.E.)`;
+
+    await emailService.sendEmail(responsableEmail, emailSubject, emailBody);
+
+    // Ocultar email para privacidad (ej. t***r@baprotege.gob.ar)
+    const [localPart, domain] = responsableEmail.split('@');
+    const maskedLocal =
+      localPart && localPart.length > 2
+        ? `${localPart[0]}***${localPart[localPart.length - 1]}`
+        : `${localPart ? localPart[0] : 't'}***`;
+    const maskedEmail = `${maskedLocal}@${domain || 'baprotege.gob.ar'}`;
+
+    return {
+      message: 'Código de verificación enviado al correo del responsable',
+      maskedEmail,
+      expiresAt,
+      code: env.NODE_ENV !== 'production' ? code : undefined,
+    };
+  }
+
+  /**
+   * Invalida el código de desactivación activo para un dispositivo (por ejemplo, si el usuario cierra el modal).
+   */
+  public async invalidateAntiUninstallCode(input: { deviceUuid: string }) {
+    this.activeAntiUninstallCodes.delete(input.deviceUuid);
+    return { success: true, message: 'Código invalidado con éxito' };
+  }
+
+  /**
+   * Verifica el código de 6 dígitos ingresado por el usuario.
+   * Si es correcto, el código se consume e invalida inmediatamente.
+   */
+  public async verifyAntiUninstallCode(input: { deviceUuid: string; code: string }) {
+    const record = this.activeAntiUninstallCodes.get(input.deviceUuid);
+
+    if (!record) {
+      throw new AppError(
+        'No hay un código activo para este dispositivo o ya fue invalidado. Solicitá uno nuevo.',
+        400
+      );
+    }
+
+    if (new Date() > record.expiresAt) {
+      this.activeAntiUninstallCodes.delete(input.deviceUuid);
+      throw new AppError('El código de verificación ha expirado. Solicitá uno nuevo.', 400);
+    }
+
+    if (record.code !== input.code.trim()) {
+      throw new AppError(
+        'El código ingresado es incorrecto. Verificá el código enviado al correo del responsable.',
+        400
+      );
+    }
+
+    // Código válido: consumirlo para que no pueda reutilizarse
+    this.activeAntiUninstallCodes.delete(input.deviceUuid);
+
+    return {
+      success: true,
+      message: 'Código de verificación aceptado',
+    };
+  }
 }
 
 export const deviceService = new DeviceService();

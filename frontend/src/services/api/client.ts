@@ -18,7 +18,7 @@ export const safeStorage = {
       if (memoryStorage.has(key)) {
         return memoryStorage.get(key) || null;
       }
-      if (typeof window !== 'undefined') {
+      if (AsyncStorage && typeof AsyncStorage.getItem === 'function') {
         const value = await AsyncStorage.getItem(key);
         if (value !== null) {
           memoryStorage.set(key, value);
@@ -33,7 +33,7 @@ export const safeStorage = {
   async setItem(key: string, value: string): Promise<void> {
     memoryStorage.set(key, value);
     try {
-      if (typeof window !== 'undefined') {
+      if (AsyncStorage && typeof AsyncStorage.setItem === 'function') {
         await AsyncStorage.setItem(key, value);
       }
     } catch (e) {
@@ -43,7 +43,7 @@ export const safeStorage = {
   async removeItem(key: string): Promise<void> {
     memoryStorage.delete(key);
     try {
-      if (typeof window !== 'undefined') {
+      if (AsyncStorage && typeof AsyncStorage.removeItem === 'function') {
         await AsyncStorage.removeItem(key);
       }
     } catch (e) {

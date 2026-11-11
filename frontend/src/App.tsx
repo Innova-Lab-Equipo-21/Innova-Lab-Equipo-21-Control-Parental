@@ -36,6 +36,7 @@ import {
   saveNavigationState,
   clearNavigationSession,
 } from './utils/navigationSession';
+import { safeStorage } from './services/api/client';
 
 export function App(): React.JSX.Element {
   // Splash Screen inicial animado
@@ -77,6 +78,9 @@ export function App(): React.JSX.Element {
         setIsParentLoggedIn(true);
         setParentUser(session.parentUser);
         setParentToken(session.parentToken);
+        if (session.parentToken) {
+          safeStorage.setItem('@ba_protege_jwt_token', session.parentToken).catch(() => {});
+        }
       }
       setHasGrantedPermissions(session.hasGrantedPermissions);
       setHasSelectedResponsibleAction(session.hasSelectedResponsibleAction);

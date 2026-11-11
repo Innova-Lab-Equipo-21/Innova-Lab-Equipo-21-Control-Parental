@@ -144,6 +144,75 @@ export class DeviceController {
       next(error);
     }
   }
+
+  /**
+   * Solicita un código de verificación por correo al responsable para desactivar antidesinstalación.
+   * POST /api/devices/anti-uninstall/request-code
+   */
+  public async requestAntiUninstallCode(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { deviceUuid } = req.body;
+      const result = await deviceService.requestAntiUninstallCode({ deviceUuid });
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Invalida el código de verificación activo de un dispositivo.
+   * POST /api/devices/anti-uninstall/invalidate-code
+   */
+  public async invalidateAntiUninstallCode(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { deviceUuid } = req.body;
+      const result = await deviceService.invalidateAntiUninstallCode({ deviceUuid });
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verifica el código de 6 dígitos ingresado en el dispositivo protegido.
+   * POST /api/devices/anti-uninstall/verify-code
+   */
+  public async verifyAntiUninstallCode(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { deviceUuid, code } = req.body;
+      const result = await deviceService.verifyAntiUninstallCode({ deviceUuid, code });
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const deviceController = new DeviceController();

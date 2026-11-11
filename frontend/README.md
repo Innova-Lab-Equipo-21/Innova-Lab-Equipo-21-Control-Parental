@@ -211,7 +211,7 @@ Barra inferior diferenciada de 4 pestañas (`MenorNavbar.tsx`): **`Inicio` · `P
 ## 👤 Pestaña de Cuenta Unificada por Rol
 
 - **En Modo Responsable (`src/components/dashboard/cuenta/`):** Incluye `ProfileSection` (Editar perfil + Vincular Google), `GlobalRulesSection` (Bloqueo LOTBA, Alertas, Antidesinstalación, Autoprotección, Permisos), `HelpSection` (Tutorial Onboarding y FAQ), `LegalSection` (Términos, Privacidad y `RatingModal` de evaluación), **Zona de Peligro** (Eliminar cuenta) y Cerrar sesión.
-- **En Modos Protegidos Adulto y Menor (`AdultoCuentaSection.tsx` / `MenorCuentaSection.tsx`):** Replica el diseño institucional del Responsable conservando Perfil identificatorio, Permisos (solo activación), Ayuda y soporte, Información legal/evaluación, Cerrar sesión y versión oficial, **excluyendo estrictamente**: *Editar Perfil*, *Vincular Google*, *Reglas de protección global* y *Zona de Peligro*.
+- **En Modos Protegidos Adulto y Menor (`AdultoCuentaSection.tsx` / `MenorCuentaSection.tsx`):** Replica el diseño institucional del Responsable conservando Perfil identificatorio, `GlobalRulesSection` adaptado (Bloqueo obligatorio LOTBA, Antidesinstalación protegida con OTP de 6 dígitos enviado al correo del responsable y Permisos), Ayuda y soporte, Información legal/evaluación, Cerrar sesión y versión oficial, **excluyendo estrictamente**: *Autoprotección*, *Editar Perfil*, *Vincular Google* y *Zona de Peligro*.
 
 ---
 
@@ -223,6 +223,7 @@ Barra inferior diferenciada de 4 pestañas (`MenorNavbar.tsx`): **`Inicio` · `P
 4. **Réplicas Adaptadas de Home y Cuenta para Adulto y Menor**: Consistencia visual de extremo a extremo entre los 3 perfiles operativos respetando los permisos y restricciones de cada rol.
 5. **Pasatiempos con Juego de la Memoria de 12 Piezas e Inactivación Post-Victoria**: Reemplazo del antiguo rompecabezas por `MemoryGameModal.tsx` (6 pares / 12 cartas) y ordenamiento dinámico de juegos completados al final de la lista.
 6. **Metadatos de Origen + Filtro en Sitios y Apps**: Sincronización de bloqueos creados por Adulto Protegido hacia la lista del Responsable con identificador visual y filtro dedicado.
+7. **Reglas Globales y Desactivación de Antidesinstalación Protegida con OTP (`AntiUninstallCodeModal.tsx`)**: Replicación de `GlobalRulesSection` en Cuenta de Menor y Adulto sin Autoprotección. Exige un código de 6 dígitos enviado por correo electrónico al Responsable para desactivar Antidesinstalación; invalidación automática si el usuario cierra el modal y generación de nuevo código al reabrirlo.
 
 ---
 

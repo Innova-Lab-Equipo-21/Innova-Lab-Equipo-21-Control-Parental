@@ -29,6 +29,16 @@ export interface GoogleAuthPayload {
   photoUrl?: string;
 }
 
+export interface UpdateProfilePayload {
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  gender?: string;
+  birthDate?: string;
+  phone?: string;
+  password?: string;
+}
+
 export const authApi = {
   async register(data: RegisterPayload) {
     const response = await apiClient.post('/auth/register', data);
@@ -66,6 +76,17 @@ export const authApi = {
 
   async logout() {
     await safeStorage.removeItem('@ba_protege_jwt_token');
+  },
+
+  async updateProfile(data: UpdateProfilePayload) {
+    const response = await apiClient.put('/auth/profile', data);
+    return response.data;
+  },
+
+  async deleteAccount() {
+    const response = await apiClient.delete('/auth/account');
+    await safeStorage.removeItem('@ba_protege_jwt_token');
+    return response.data;
   },
 
   async registerFcmToken(fcmToken: string) {

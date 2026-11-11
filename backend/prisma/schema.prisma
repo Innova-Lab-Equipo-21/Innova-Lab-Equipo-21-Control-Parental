@@ -78,6 +78,7 @@ model User {
   id                      String    @id @default(uuid())
   email                   String    @unique
   fullName                String    @map("full_name")
+  passwordHash            String    @default("") @map("password_hash")
   gender                  Gender?
   birthDate               DateTime? @map("birth_date") @db.Date
   phone                   String?

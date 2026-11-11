@@ -17,6 +17,7 @@ import {
   Image,
   ImageSourcePropType,
   Modal,
+  AppState,
 } from 'react-native';
 import {
   MenorNavbar,
@@ -43,6 +44,7 @@ import { ActionButton } from '../components/ActionButton';
 import { FabWithTooltip } from '../components/FabWithTooltip';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { FaqModal } from '../components/dashboard/cuenta/FaqModal';
+import { AntiUninstallCodeModal } from '../components/dashboard/cuenta/AntiUninstallCodeModal';
 import { getBotMascotImage } from '../components/dashboard/protected/botAssets';
 import { OnboardingScreen } from './OnboardingScreen';
 import { PermissionsScreen, PermissionItemState } from './PermissionsScreen';
@@ -118,6 +120,29 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
     message: '',
   });
 
+  // Reglas de protección global: Antidesinstalación
+  const [ruleUninstallProtection, setRuleUninstallProtection] = useState<boolean>(true);
+  const [showAntiUninstallModal, setShowAntiUninstallModal] = useState<boolean>(false);
+  const [maskedTutorEmail, setMaskedTutorEmail] = useState<string>('t***r@baprotege.gob.ar');
+  const [antiUninstallError, setAntiUninstallError] = useState<string | null>(null);
+  const [loadingAntiUninstall, setLoadingAntiUninstall] = useState<boolean>(false);
+
+  // Modal institucional de Feedback
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    imageSource?: ImageSourcePropType;
+    title: string;
+    message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
   const refreshPermissions = useCallback(async () => {
     try {
       const real = await checkRealDevicePermissions(deviceUuid);
@@ -148,6 +173,31 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
     loadCustomBlockedList();
     refreshPermissions();
   }, [loadCustomBlockedList, refreshPermissions]);
+
+  // Sincronizar estado real de antidesinstalación con el sistema
+  useEffect(() => {
+    const syncAntiUninstall = async () => {
+      const isA11yActive = await protectionService.isAccessibilityEnabled();
+      const isEnabledInPrefs = await protectionService.isAntiUninstallEnabled();
+      setRuleUninstallProtection(isA11yActive && isEnabledInPrefs);
+    };
+    syncAntiUninstall();
+  }, []);
+
+  // Monitorear cuando la app regresa a primer plano desde los Ajustes del sistema
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextState) => {
+      if (nextState === 'active') {
+        refreshPermissions();
+        const isA11yActive = await protectionService.isAccessibilityEnabled();
+        const isEnabledInPrefs = await protectionService.isAntiUninstallEnabled();
+        setRuleUninstallProtection(isA11yActive && isEnabledInPrefs);
+      }
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, [refreshPermissions]);
 
   useEffect(() => {
     setActiveTab((prev) => normalizeProtectedTabForMode(prev, mode));
@@ -243,6 +293,99 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
         message: alertMessage,
       });
     });
+
+  // Manejo de código de 6 dígitos para desactivar antidesinstalación
+  const handleOpenAntiUninstallModal = async () => {
+    setAntiUninstallError(null);
+    setLoadingAntiUninstall(true);
+    setShowAntiUninstallModal(true);
+    try {
+      const res = await apiService.requestAntiUninstallCode(deviceUuid);
+      if (res?.maskedEmail) {
+        setMaskedTutorEmail(res.maskedEmail);
+      }
+    } catch (err: any) {
+      console.warn('Error al solicitar código:', err);
+    } finally {
+      setLoadingAntiUninstall(false);
+    }
+  };
+
+  const handleCloseAntiUninstallModal = async () => {
+    setShowAntiUninstallModal(false);
+    setAntiUninstallError(null);
+    try {
+      await apiService.invalidateAntiUninstallCode(deviceUuid);
+    } catch (err) {}
+  };
+
+  const handleConfirmAntiUninstallCode = async (enteredCode: string) => {
+    setLoadingAntiUninstall(true);
+    setAntiUninstallError(null);
+    try {
+      await apiService.verifyAntiUninstallCode(deviceUuid, enteredCode);
+      setShowAntiUninstallModal(false);
+      setRuleUninstallProtection(false);
+      await protectionService.setAntiUninstallEnabled(false);
+
+      setFeedbackModal({
+        visible: true,
+        imageSource: getBotMascotImage(mode, 'feliz'),
+        title: 'Antidesinstalación desactivada',
+        message: 'La protección antidesinstalación ha sido desactivada exitosamente en este dispositivo.',
+        buttonText: 'Entendido',
+        onConfirm: () => {
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+        },
+      });
+    } catch (err: any) {
+      setAntiUninstallError(
+        err.message || 'Código incorrecto. Verificá el correo del responsable.'
+      );
+    } finally {
+      setLoadingAntiUninstall(false);
+    }
+  };
+
+  const handleToggleUninstallProtection = async (val: boolean) => {
+    if (val) {
+      const isA11yActive = await protectionService.isAccessibilityEnabled();
+      if (!isA11yActive) {
+        setRuleUninstallProtection(false);
+        setFeedbackModal({
+          visible: true,
+          imageSource: getBotMascotImage(mode, 'pensando'),
+          title: 'Servicio de accesibilidad',
+          message:
+            'Para activar la protección antidesinstalación, es necesario habilitar el servicio de accesibilidad de BA Protege+ en los Ajustes del sistema. ¿Deseás abrir Ajustes ahora?',
+          buttonText: 'Abrir ajustes',
+          secondaryButtonText: 'Cancelar',
+          onConfirm: async () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+            try {
+              await protectionService.openAccessibilitySettings();
+              const activeAfterSettings = await protectionService.isAccessibilityEnabled();
+              if (activeAfterSettings) {
+                setRuleUninstallProtection(true);
+                await protectionService.setAntiUninstallEnabled(true);
+                refreshPermissions();
+              }
+            } catch (err) {
+              console.warn('[ProtectedDevice] Error al abrir accesibilidad:', err);
+            }
+          },
+          onSecondaryPress: () => {
+            setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          },
+        });
+        return;
+      }
+      setRuleUninstallProtection(true);
+      await protectionService.setAntiUninstallEnabled(true);
+    } else {
+      await handleOpenAntiUninstallModal();
+    }
+  };
 
   // Identificación del dispositivo protegido vinculado (Menor o Adulto)
   const matchedChildDevice =
@@ -421,6 +564,9 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
                   childName={resolvedChildName}
                   childPhone={resolvedChildPhone}
                   tutorName="Ana"
+                  ruleUninstallProtection={ruleUninstallProtection}
+                  onToggleUninstallProtection={handleToggleUninstallProtection}
+                  onOpenPermissions={handleOpenPermissions}
                   onOpenOnboarding={() => setShowOnboardingFlow(true)}
                   onExitMode={onExitMode}
                 />
@@ -485,6 +631,9 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
                   adultName={resolvedAdultName}
                   adultPhone={resolvedAdultPhone}
                   tutorName="Ana"
+                  ruleUninstallProtection={ruleUninstallProtection}
+                  onToggleUninstallProtection={handleToggleUninstallProtection}
+                  onOpenPermissions={handleOpenPermissions}
                   onOpenOnboarding={() => setShowOnboardingFlow(true)}
                   onExitMode={onExitMode}
                 />
@@ -604,6 +753,31 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
         title={pinFeedback.title}
         message={pinFeedback.message}
         onClose={() => setPinFeedback((prev) => ({ ...prev, visible: false }))}
+      />
+
+      {/* MODAL INSTITUCIONAL PARA CÓDIGO DE DESACTIVACIÓN DE ANTIDESINSTALACIÓN */}
+      <AntiUninstallCodeModal
+        visible={showAntiUninstallModal}
+        maskedEmail={maskedTutorEmail}
+        profileType={mode}
+        loading={loadingAntiUninstall}
+        errorMessage={antiUninstallError}
+        onClose={handleCloseAntiUninstallModal}
+        onConfirm={handleConfirmAntiUninstallCode}
+        onResendCode={handleOpenAntiUninstallModal}
+      />
+
+      {/* MODAL INSTITUCIONAL DE RETROALIMENTACIÓN */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        imageSource={feedbackModal.imageSource}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        buttonText={feedbackModal.buttonText}
+        secondaryButtonText={feedbackModal.secondaryButtonText}
+        onConfirm={feedbackModal.onConfirm}
+        onSecondaryPress={feedbackModal.onSecondaryPress}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </SafeAreaView>
   );

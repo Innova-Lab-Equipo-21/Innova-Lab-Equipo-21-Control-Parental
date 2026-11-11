@@ -290,6 +290,18 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   // Guardado de Perfil del Responsable desde su Card
   const handleSaveResponsible = async (updatedUser: any) => {
     try {
+      try {
+        await apiService.updateProfile({
+          fullName: updatedUser.fullName || `${updatedUser.firstName} ${updatedUser.lastName}`,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          gender: updatedUser.gender,
+          birthDate: updatedUser.birthDate,
+          phone: updatedUser.phone,
+          password: updatedUser.password,
+        });
+      } catch {}
+
       const updatedDevice = await apiService.updateSelfDevice({
         childName: updatedUser.fullName || `${updatedUser.firstName} ${updatedUser.lastName}`,
         birthDate: updatedUser.birthDate,

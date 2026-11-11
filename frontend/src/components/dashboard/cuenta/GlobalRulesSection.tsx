@@ -22,6 +22,8 @@ export interface GlobalRulesSectionProps {
   rulePermissions?: boolean;
   selfControl?: SelfControlState;
   isAutoproteccionDisabled?: boolean;
+  showAutoproteccion?: boolean;
+  profileType?: 'PARENT' | 'CHILD' | 'ADULT';
   onToggleAlerts?: (val: boolean) => void;
   onToggleUninstallProtection: (val: boolean) => void;
   onTogglePermissions?: (val: boolean) => void;
@@ -34,6 +36,8 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
   ruleUninstallProtection,
   selfControl,
   isAutoproteccionDisabled = false,
+  showAutoproteccion = true,
+  profileType = 'PARENT',
   onToggleUninstallProtection,
   onStartSelfControlFlow,
   onOpenPermissions,
@@ -88,21 +92,23 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
         />
       </TouchableOpacity>
 
-      {/* 3. Autoprotección */}
-      <TouchableOpacity
-        style={styles.ruleItem}
-        activeOpacity={0.8}
-        onPress={handleSelfControlPress}
-      >
-        <Text style={styles.ruleItemText}>⏱️ Autoprotección</Text>
-        <ToggleSwitch
-          value={isAutoproteccionActive}
-          onValueChange={handleSelfControlPress}
-          disabled={isAutoproteccionDisabled}
-          onDisabledPress={handleSelfControlPress}
-          activeColor="#007AFF"
-        />
-      </TouchableOpacity>
+      {/* 3. Autoprotección (Excluida en modos protegidos) */}
+      {showAutoproteccion && (
+        <TouchableOpacity
+          style={styles.ruleItem}
+          activeOpacity={0.8}
+          onPress={handleSelfControlPress}
+        >
+          <Text style={styles.ruleItemText}>⏱️ Autoprotección</Text>
+          <ToggleSwitch
+            value={isAutoproteccionActive}
+            onValueChange={handleSelfControlPress}
+            disabled={isAutoproteccionDisabled}
+            onDisabledPress={handleSelfControlPress}
+            activeColor="#007AFF"
+          />
+        </TouchableOpacity>
+      )}
 
       {/* 4. Permisos (Navegación con flecha hacia la pantalla de auditoría) */}
       <TouchableOpacity
@@ -119,7 +125,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
       {/* Modal Estándar de Retroalimentación para Protección Obligatoria LOTBA */}
       <FeedbackModal
         visible={showLotbaModal}
-        imageSource={getBotMascotImage('ADULT', 'pensando')}
+        imageSource={getBotMascotImage(profileType === 'CHILD' ? 'CHILD' : 'ADULT', 'pensando')}
         title="Protección obligatoria"
         message="El bloqueo de sitios de apuestas no autorizadas por LOTBA es obligatorio y no puede desactivarse por normativa oficial."
         buttonText="Entendido"

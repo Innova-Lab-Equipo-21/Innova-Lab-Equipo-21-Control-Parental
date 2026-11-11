@@ -625,8 +625,16 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             {/* 1. Perfil (Datos editables solo por RESPONSABLE y CTA Eliminar cuenta solo RESPONSABLE; Mock Beti y color azul) */}
             <ProfileSection
               currentUser={currentUser}
-              onUpdateUser={(updated) => setCurrentUser(updated)}
-              onDeleteAccount={() => {
+              onUpdateUser={(updated) => {
+                setCurrentUser(updated);
+                saveNavigationState({ parentUser: updated }).catch(() => {});
+              }}
+              onDeleteAccount={async () => {
+                try {
+                  await apiService.deleteAccount();
+                } catch (err: any) {
+                  console.warn('⚠️ Error al eliminar cuenta en backend:', err?.message);
+                }
                 setIsLoggedIn(false);
                 onExitMode();
               }}
@@ -685,8 +693,13 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                       '¿Estás seguro de que deseas eliminar tu cuenta permanentemente? Esta acción es irreversible.',
                     buttonText: 'Eliminar',
                     secondaryButtonText: 'Cancelar',
-                    onConfirm: () => {
+                    onConfirm: async () => {
                       setFeedbackModal((prev) => ({ ...prev, visible: false }));
+                      try {
+                        await apiService.deleteAccount();
+                      } catch (err: any) {
+                        console.warn('⚠️ Error al eliminar cuenta en backend:', err?.message);
+                      }
                       setIsLoggedIn(false);
                       onExitMode();
                     },

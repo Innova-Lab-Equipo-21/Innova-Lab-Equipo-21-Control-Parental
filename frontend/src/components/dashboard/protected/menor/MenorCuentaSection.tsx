@@ -3,8 +3,10 @@
 // Componente: MenorCuentaSection
 // Archivo: src/components/dashboard/protected/menor/MenorCuentaSection.tsx
 // Descripción: Pestaña Cuenta del Modo Protegido Menor replicando la vista
-//              institucional con tarjeta de perfil informativa, Ayuda y soporte,
-//              Información legal y valoración, cierre de sesión y versión.
+//              institucional con tarjeta de perfil informativa, Reglas de
+//              protección global (Bloqueo sitios LotBA, Antidesinstalación,
+//              Permisos; sin regla de autocontrol), Ayuda y soporte, Información legal,
+//              cierre de sesión y versión oficial.
 // ==============================================================================
 
 import React from 'react';
@@ -14,6 +16,7 @@ import {
   Image,
 } from 'react-native';
 import { ActionButton } from '../../../ActionButton';
+import { GlobalRulesSection } from '../../cuenta/GlobalRulesSection';
 import { HelpSection } from '../../cuenta/HelpSection';
 import { LegalSection } from '../../cuenta/LegalSection';
 import { BOTITO_ASSETS } from '../botAssets';
@@ -24,6 +27,9 @@ export interface MenorCuentaSectionProps {
   childName?: string;
   childPhone?: string;
   tutorName?: string;
+  ruleUninstallProtection?: boolean;
+  onToggleUninstallProtection?: (val: boolean) => void;
+  onOpenPermissions?: () => void;
   onOpenOnboarding: () => void;
   onExitMode: () => void;
 }
@@ -32,6 +38,9 @@ export const MenorCuentaSection: React.FC<MenorCuentaSectionProps> = ({
   childName,
   childPhone,
   tutorName = 'Ana',
+  ruleUninstallProtection = true,
+  onToggleUninstallProtection = () => {},
+  onOpenPermissions = () => {},
   onOpenOnboarding,
   onExitMode,
 }) => {
@@ -71,13 +80,22 @@ export const MenorCuentaSection: React.FC<MenorCuentaSectionProps> = ({
         </View>
       </View>
 
-      {/* 2. Ayuda y soporte (Tutorial y Preguntas frecuentes) */}
+      {/* 2. Reglas de protección global (Bloqueo sitios LotBA, Antidesinstalación, Permisos) */}
+      <GlobalRulesSection
+        ruleUninstallProtection={ruleUninstallProtection}
+        showAutoproteccion={false}
+        profileType="CHILD"
+        onToggleUninstallProtection={onToggleUninstallProtection}
+        onOpenPermissions={onOpenPermissions}
+      />
+
+      {/* 3. Ayuda y soporte (Tutorial y Preguntas frecuentes) */}
       <HelpSection onOpenOnboarding={onOpenOnboarding} />
 
-      {/* 3. Información legal y valoración (Términos, Privacidad y Evaluar la app) */}
+      {/* 4. Información legal y valoración (Términos, Privacidad y Evaluar la app) */}
       <LegalSection />
 
-      {/* 4. Cerrar sesión */}
+      {/* 5. Cerrar sesión */}
       <View style={styles.footer}>
         <ActionButton
           title="Cerrar sesión"
@@ -86,7 +104,7 @@ export const MenorCuentaSection: React.FC<MenorCuentaSectionProps> = ({
         />
       </View>
 
-      {/* 5. Versión de la app al final */}
+      {/* 6. Versión de la app al final */}
       <View style={styles.versionFooter}>
         <Text style={styles.versionTitle}>
           BA Protege+ v1.0.0 (Build 2025.3)

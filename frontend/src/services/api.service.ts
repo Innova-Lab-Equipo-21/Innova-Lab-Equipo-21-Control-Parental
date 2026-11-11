@@ -49,6 +49,8 @@ export const apiService = {
   login: authApi.login.bind(authApi),
   googleAuth: authApi.googleAuth.bind(authApi),
   googleLink: authApi.googleLink.bind(authApi),
+  updateProfile: authApi.updateProfile.bind(authApi),
+  deleteAccount: authApi.deleteAccount.bind(authApi),
   recoverPassword: authApi.recoverPassword.bind(authApi),
   logout: authApi.logout.bind(authApi),
   registerFcmToken: authApi.registerFcmToken.bind(authApi),
@@ -67,6 +69,9 @@ export const apiService = {
   auditDevicePermissions: devicesApi.auditDevicePermissions.bind(devicesApi),
   updateDevicePermissions: devicesApi.updateDevicePermissions.bind(devicesApi),
   unbindDevice: devicesApi.unbindDevice.bind(devicesApi),
+  requestAntiUninstallCode: devicesApi.requestAntiUninstallCode.bind(devicesApi),
+  invalidateAntiUninstallCode: devicesApi.invalidateAntiUninstallCode.bind(devicesApi),
+  verifyAntiUninstallCode: devicesApi.verifyAntiUninstallCode.bind(devicesApi),
 
   // --------------------------------------------------------------------------
   // Autoprotección del Tutor (Temporizador de 24hs al solicitar y pase de 24hs)
