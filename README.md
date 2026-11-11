@@ -98,6 +98,9 @@ El proyecto cuenta con un **Kit UI/UX estandarizado** basado en las especificaci
 - **Cuerpo de Texto:** Roboto Regular `14px` (Line height `20px`).
 - **Caption / Microcopy:** Roboto Regular `12px` (Line height `16px`).
 
+### 3. UX Writing
+  * **[Brandbook - BA Protege + (Guía de voz y tonos)](https://drive.google.com/file/d/18inWXJ7TpJ5TQAubSFvHRwZSo8CLxpG5/view?usp=sharing)**
+
 ---
 
 ## 🛠️ Funcionalidades del Sistema
