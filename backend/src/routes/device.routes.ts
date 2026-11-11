@@ -13,19 +13,26 @@ import { validateRequest } from '../middlewares/validation.middleware.js';
 
 const router = Router();
 
-// Esquema para generar el codigo de pareamiento
+// Esquema para generar el código: datos del menor que completa el tutor.
+// Los valores de gender y personType deben coincidir con los enums Gender y PersonType de Prisma.
 const generatePairingSchema = z.object({
   body: z.object({
-    childName: z.string () .min(1, "El nombre del menor es requerido"),
-    gender: z.string() .min(1, "El genero es requerido"),
-    personType: z.string() .min(1, "El tipo de pesona es requerido"),
-    birthDate: z.string().min(1, "La fecha de nacimiento es requerida"),
-    phone: z.string () .min(1,"El telefono es requerido"),
+    childName: z.string().trim().min(1, 'El nombre del protegido es requerido'),
+    gender: z.enum(['MASCULINO', 'FEMENINO', 'OTRO', 'NO_INFORMADO'], {
+      message: 'Género inválido',
+    }),
+    personType: z.enum(['MENOR', 'ADULTO'], { message: 'Tipo de persona inválido' }),
+    birthDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato AAAA-MM-DD')
+      .refine((v) => !Number.isNaN(Date.parse(v)), 'Fecha de nacimiento inválida')
+      .refine((v) => new Date(v) <= new Date(), 'La fecha de nacimiento no puede ser futura'),
+    phone: z.string().trim().min(1, 'El teléfono es requerido'),
   }),
 });
-// Esquema para generar el código: datos del menor que completa el tutor
+
 router.post('/pair/generate', requireAuth, validateRequest(generatePairingSchema), (req, res, next) =>
-  deviceController.generatePairingCode(req, res, next)
+  deviceController.generatePairingCode(req, res, next),
 );
 
 // Esquema de confirmación de pareamiento desde el dispositivo del menor
@@ -55,12 +62,7 @@ const updateConfigSchema = z.object({
     heartbeatIntervalSec: z.number().min(10).max(3600).optional(),
   }),
 });
-
-// Rutas de pareamiento
-router.post('/pair/generate', requireAuth, (req, res, next) =>
-  deviceController.generatePairingCode(req, res, next),
-);
-
+// Rutas de pareamiento:
 router.post('/pair/confirm', validateRequest(confirmPairingSchema), (req, res, next) =>
   deviceController.confirmPairing(req, res, next),
 );

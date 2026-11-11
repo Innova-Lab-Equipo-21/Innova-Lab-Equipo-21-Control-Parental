@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import type { Gender, PersonType } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { env } from '../config/environment.js';
 import { mockDb, MockDevice } from '../config/mock-database.js';
@@ -8,8 +9,8 @@ import { emailService } from './email.service.js';
 export interface GeneratePairingCodeInput {
   userId: string;
   childName: string;
-  gender: string;
-  personType: string;
+   gender: Gender;
+  personType: PersonType;
   birthDate: string;
   phone: string;
 }
@@ -36,16 +37,25 @@ export interface UpdateProtectionConfigInput {
 }
 
 export class DeviceService {
+   
     /**
-   * Genera el código de vinculación de 6 dígitos (sin vencimiento).
-   * Cada tutor tiene como máximo un código pendiente: generar uno nuevo reemplaza al anterior.
+   * Genera el código de vinculación de 6 dígitos (sin vencimiento) con los datos del protegido.
+   * Cada tutor tiene como máximo un código pendiente: generar uno nuevo lo reemplaza y actualiza los datos.
    */
   public async generatePairingCode(input: GeneratePairingCodeInput) {
     const MAX_DEVICES = 5;
-    // El código no vence. Fecha lejana porque la columna expires_at todavía es obligatoria.
-    const expiresAt = new Date('2999-12-31T23:59:59Z');
+    const minor = {
+      childName: input.childName,
+      gender: input.gender,
+      personType: input.personType,
+      birthDate: input.birthDate,
+      phone: input.phone,
+    };
 
     if (env.USE_MOCK_DATA) {
+      // El mock conserva una fecha lejana porque su tipo exige expiresAt; la base real ya no lo usa.
+      const expiresAt = new Date('2999-12-31T23:59:59Z');
+
       const linked = mockDb.devices.filter((d) => d.userId === input.userId && d.isActive).length;
       if (linked >= MAX_DEVICES) {
         throw new AppError(`Alcanzaste el máximo de ${MAX_DEVICES} dispositivos vinculados`, 409);
@@ -59,7 +69,7 @@ export class DeviceService {
       const existingPending = mockDb.pairings.find((p) => p.userId === input.userId && !p.isUsed);
       if (existingPending) {
         existingPending.pairingCode = code;
-        existingPending.expiresAt = expiresAt;
+        existingPending.minor = minor;
         return { pairingCode: code };
       }
 
@@ -69,13 +79,7 @@ export class DeviceService {
         deviceId: null,
         pairingCode: code,
         isUsed: false,
-                minor: {
-          childName: input.childName,
-          gender: input.gender,
-          personType: input.personType,
-          birthDate: input.birthDate,
-          phone: input.phone,
-        },
+        minor,
         expiresAt,
         createdAt: new Date(),
       });
@@ -95,6 +99,9 @@ export class DeviceService {
       code = this.randomCode();
     }
 
+    // birthDate llega como 'AAAA-MM-DD'; la columna es DATE, así que se convierte a Date.
+    const minorData = { ...minor, birthDate: new Date(input.birthDate) };
+
     const existingPending = await prisma.devicePairing.findFirst({
       where: { userId: input.userId, isUsed: false },
     });
@@ -102,13 +109,13 @@ export class DeviceService {
     if (existingPending) {
       await prisma.devicePairing.update({
         where: { id: existingPending.id },
-        data: { pairingCode: code, expiresAt },
+        data: { pairingCode: code, ...minorData },
       });
       return { pairingCode: code };
     }
 
     await prisma.devicePairing.create({
-      data: { userId: input.userId, pairingCode: code, expiresAt },
+      data: { userId: input.userId, pairingCode: code, ...minorData },
     });
 
     return { pairingCode: code };
@@ -207,14 +214,18 @@ export class DeviceService {
       where: { deviceUuid: input.deviceUuid },
     });
 
-    if (device) {
-      // Reasignar dispositivo al usuario del código
+        if (device) {
+      // Reasignar dispositivo al usuario del código, con los datos del protegido cargados por el tutor
       device = await prisma.device.update({
         where: { id: device.id },
         data: {
           userId: pairing.userId,
           deviceName: input.deviceName,
-          childName: input.childName || device.childName,
+          childName: pairing.childName ?? input.childName ?? device.childName,
+          gender: pairing.gender ?? device.gender,
+          personType: pairing.personType ?? device.personType,
+          birthDate: pairing.birthDate ?? device.birthDate,
+          phone: pairing.phone ?? device.phone,
           model: input.model || device.model,
           osVersion: input.osVersion || device.osVersion,
           appVersion: input.appVersion || device.appVersion,
@@ -223,13 +234,17 @@ export class DeviceService {
         },
       });
     } else {
-      // Crear nuevo dispositivo vinculado al responsable
+      // Crear nuevo dispositivo vinculado al responsable, copiando los datos del protegido
       device = await prisma.device.create({
         data: {
           userId: pairing.userId,
           deviceUuid: input.deviceUuid,
           deviceName: input.deviceName,
-          childName: input.childName,
+          childName: pairing.childName ?? input.childName,
+          gender: pairing.gender,
+          personType: pairing.personType,
+          birthDate: pairing.birthDate,
+          phone: pairing.phone,
           model: input.model,
           osVersion: input.osVersion,
           appVersion: input.appVersion,
