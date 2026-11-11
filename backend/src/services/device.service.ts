@@ -201,78 +201,83 @@ export class DeviceService {
       };
     }
 
-    const pairing = await prisma.devicePairing.findUnique({
-      where: { pairingCode: input.pairingCode },
-    });
-
-    if (!pairing || pairing.isUsed) {
-      throw new AppError('Código de pareamiento inválido o ya utilizado', 400);
-    }
-
-    // Buscar si el dispositivo ya existía previamente registrado con ese UUID
-    let device = await prisma.device.findUnique({
-      where: { deviceUuid: input.deviceUuid },
-    });
-
-        if (device) {
-      // Reasignar dispositivo al usuario del código, con los datos del protegido cargados por el tutor
-      device = await prisma.device.update({
-        where: { id: device.id },
-        data: {
-          userId: pairing.userId,
-          deviceName: input.deviceName,
-          childName: pairing.childName ?? input.childName ?? device.childName,
-          gender: pairing.gender ?? device.gender,
-          personType: pairing.personType ?? device.personType,
-          birthDate: pairing.birthDate ?? device.birthDate,
-          phone: pairing.phone ?? device.phone,
-          model: input.model || device.model,
-          osVersion: input.osVersion || device.osVersion,
-          appVersion: input.appVersion || device.appVersion,
-          isActive: true,
-          lastSeenAt: new Date(),
-        },
+        // Todo en una transacción: el código se marca como usado de forma atómica,
+    // así dos celulares que confirman a la vez no pueden usar el mismo código.
+    // Si algo falla después, se revierte y el código vuelve a quedar disponible.
+    const { pairing, device } = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.devicePairing.updateMany({
+        where: { pairingCode: input.pairingCode, isUsed: false },
+        data: { isUsed: true },
       });
-    } else {
-      // Crear nuevo dispositivo vinculado al responsable, copiando los datos del protegido
-      device = await prisma.device.create({
-        data: {
-          userId: pairing.userId,
-          deviceUuid: input.deviceUuid,
-          deviceName: input.deviceName,
-          childName: pairing.childName ?? input.childName,
-          gender: pairing.gender,
-          personType: pairing.personType,
-          birthDate: pairing.birthDate,
-          phone: pairing.phone,
-          model: input.model,
-          osVersion: input.osVersion,
-          appVersion: input.appVersion,
-          config: {
-            create: {
-              protectionEnabled: true,
-              blockGambling: true,
-              blockCustomList: true,
-            },
-          },
-          status: {
-            create: {
-              effectiveStatus: 'STARTING',
-              vpnActive: false,
-              permissionsOk: true,
-            },
-          },
-        },
-      });
-    }
+      if (claimed.count === 0) {
+        throw new AppError('Código de pareamiento inválido o ya utilizado', 400);
+      }
 
-    // Marcar el código como utilizado
-    await prisma.devicePairing.update({
-      where: { id: pairing.id },
-      data: {
-        isUsed: true,
-        deviceId: device.id,
-      },
+      const pairing = await tx.devicePairing.findUniqueOrThrow({
+        where: { pairingCode: input.pairingCode },
+      });
+
+      // Buscar si el dispositivo ya existía previamente registrado con ese UUID
+      const existing = await tx.device.findUnique({
+        where: { deviceUuid: input.deviceUuid },
+      });
+
+      const device = existing
+        ? // Reasignar dispositivo al usuario del código, con los datos del protegido cargados por el tutor
+          await tx.device.update({
+            where: { id: existing.id },
+            data: {
+              userId: pairing.userId,
+              deviceName: input.deviceName,
+              childName: pairing.childName ?? input.childName ?? existing.childName,
+              gender: pairing.gender ?? existing.gender,
+              personType: pairing.personType ?? existing.personType,
+              birthDate: pairing.birthDate ?? existing.birthDate,
+              phone: pairing.phone ?? existing.phone,
+              model: input.model || existing.model,
+              osVersion: input.osVersion || existing.osVersion,
+              appVersion: input.appVersion || existing.appVersion,
+              isActive: true,
+              lastSeenAt: new Date(),
+            },
+          })
+        : // Crear nuevo dispositivo vinculado al responsable, copiando los datos del protegido
+          await tx.device.create({
+            data: {
+              userId: pairing.userId,
+              deviceUuid: input.deviceUuid,
+              deviceName: input.deviceName,
+              childName: pairing.childName ?? input.childName,
+              gender: pairing.gender,
+              personType: pairing.personType,
+              birthDate: pairing.birthDate,
+              phone: pairing.phone,
+              model: input.model,
+              osVersion: input.osVersion,
+              appVersion: input.appVersion,
+              config: {
+                create: {
+                  protectionEnabled: true,
+                  blockGambling: true,
+                  blockCustomList: true,
+                },
+              },
+              status: {
+                create: {
+                  effectiveStatus: 'STARTING',
+                  vpnActive: false,
+                  permissionsOk: true,
+                },
+              },
+            },
+          });
+
+      await tx.devicePairing.update({
+        where: { id: pairing.id },
+        data: { deviceId: device.id },
+      });
+
+      return { pairing, device };
     });
 
     // Enviar mail al responsable por la vinculación
