@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BA Protege + · Prototipo Corregido MVP</title>
+    <style>
+        /* Reset y variables de diseño con Alto Contraste Cognitivo (Opción A) */
+        :root {
+            --lotba-blue: #0284c7;
+            --lotba-blue-dark: #0369a1;
+            --lotba-bg: #e0f2fe;
+            --custom-amber: #f59e0b;
+            --custom-amber-dark: #b45309;
+            --custom-bg: #fef3c7;
+            --danger-red: #dc2626;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --surface-bg: #f1f5f9;
+            --card-border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #e2e8f0;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px 12px 40px;
+        }
+
+        /* Barra superior de presentación para el equipo */
+        .presentation-header {
+            width: 100%;
+            max-width: 960px;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 18px;
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.07);
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .pres-title-block {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pres-badge {
+            background: #0284c7;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 9px;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .pres-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .pres-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .ctrl-btn {
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #334155;
+            padding: 7px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ctrl-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .ctrl-btn.active {
+            background: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+        }
+
+        .ctrl-btn.highlight-fix {
+            border-color: #0284c7;
+            color: #0369a1;
+            background: #e0f2fe;
+        }
+
+        .ctrl-btn.highlight-fix.active {
+            background: #0284c7;
+            color: #ffffff;
+        }
+
+        /* Layout principal: Teléfono + Panel de Correcciones */
+        .workspace-grid {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 24px;
+            width: 100%;
+            max-width: 960px;
+            flex-wrap: wrap;
+        }
+
+        /* Marco del Smartphone (iPhone 15 Pro Style) */
+        .phone-frame {
+            width: 100%;
+            max-width: 390px;
+            background: #ffffff;
+            border-radius: 44px;
+            border: 10px solid #0f172a;
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.28);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        /* Barra de estado celular */
+        .status-bar {
+            background: #dbeafe;
+            padding: 8px 22px 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+
+        /* Cabecera BA Protege + */
+        .brand-header {
+            background: linear-gradient(180deg, #dbeafe 0%, #eff6ff 100%);
+            padding: 8px 20px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #bfdbfe;
+        }
+
+        .brand-title {
+            color: #0369a1;
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.4px;
+        }
+
+        .sync-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #ffffff;
+            border: 1px solid #bae6fd;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #0369a1;
+        }
+
+        .sync-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        /* Sub-header de navegación */
+        .sub-header {
+            background: #ffffff;
+            padding: 12px 16px 8px;
+            display: flex;
+            align-items: center;
+             justify-content: space-between;
+            gap: 8px;
+        }
+
+        .sub-header-left {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: #334155;
+            cursor: pointer;
+            padding: 2px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        .page-subtitle {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .period-select-wrapper {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .period-select {
+            appearance: none;
+            -webkit-appearance: none;
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 5px 22px 5px 9px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #0f172a;
+            cursor: pointer;
+        }
+
+        .period-chevron {
+            position: absolute;
+            right: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #475569;
+            font-size: 9px;
+        }
+
+        /* Contenido principal */
+        .screen-content {
+            padding: 4px 14px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #ffffff;
+        }
+
+        /* Resaltado pedagógico de correcciones cuando está activo */
+        .fix-badge-overlay {
+            display: none;
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 9.5px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            width: fit-content;
+            letter-spacing: 0.2px;
+        }
+
+        .show-annotations .fix-badge-overlay {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .show-annotations .annotated-section {
+            border-color: #0284c7 !important;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.12);
+        }
+
+        /* CORRECCIÓN 1: Chips directos de dispositivos del usuario (Sin "Familia Gómez") */
+        .device-chips-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chips-scroll {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            scrollbar-width: none;
+        }
+
+        .chips-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .device-chip {
+            border: 1.5px solid #cbd5e1;
+            background: #f8fafc;
+            color: #334155;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s ease;
+        }
+
+        .device-chip.active {
+            background: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot-ok { background-color: #10b981; }
+        .dot-warn { background-color: #f59e0b; }
+        .dot-offline { background-color: #ef4444; }
+
+        /* Alerta de dispositivo sin reportar (Métrica #21 lastHeartbeatAt / #19 permissionsOk) */
+        .health-alert-banner {
+            background: var(--danger-bg);
+            border: 1px solid var(--danger-border);
+            border-radius: 10px;
+            padding: 7px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 10.5px;
+            color: #991b1b;
+        }
+
+        .health-alert-left {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        .health-tag {
+            background: #fee2e2;
+            color: #b91c1c;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9.5px;
+            white-space: nowrap;
+        }
+
+        /* Tarjetas estándar */
+        .card {
+            background: #ffffff;
+            border: 1.5px solid var(--card-border);
+            border-radius: 14px;
+            padding: 11px 13px;
+            transition: all 0.2s ease;
+        }
+
+        /* CORRECCIÓN 2: Bloqueos totales (Sin el % semanal inventado + desglose por dispositivo #22) */
+        .kpi-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .kpi-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .uptime-badge {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+        }
+
+        .kpi-main-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin: 3px 0 6px;
+        }
+
+        .kpi-number {
+            font-size: 29px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.8px;
+            line-height: 1;
+        }
+
+        .kpi-sub {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Mini ranking de bloqueos por dispositivo (Métrica #22 del MVP) */
+        .device-Share-row {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            padding-top: 6px;
+            border-top: 1px dashed #e2e8f0;
+        }
+
+        .device-mini-pill {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 3px 7px;
+            font-size: 10px;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .device-mini-pill strong {
+            color: #0f172a;
+            font-weight: 800;
+        }
+
+        /* CORRECCIÓN 3: Bloqueos por fuente con Alto Contraste Cognitivo (Azul #0284C7 vs Ámbar #F59E0B) */
+        .card-header-title {
+            font-size: 12.5px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .source-bar-container {
+            width: 100%;
+            height: 12px;
+            border-radius: 999px;
+            overflow: hidden;
+            display: flex;
+            gap: 3px; /* Separador blanco nítido para evitar empaste visual */
+            background: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .source-segment-lotba {
+            background-color: var(--lotba-blue);
+            height: 100%;
+            border-radius: 999px 2px 2px 999px;
+            transition: width 0.3s ease;
+        }
+
+        .source-segment-custom {
+            background-color: var(--custom-amber);
+            height: 100%;
+            border-radius: 2px 999px 999px 2px;
+            transition: width 0.3s ease;
+        }
+
+        .source-legend {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .swatch {
+            width: 9px;
+            height: 9px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .swatch-lotba { background: var(--lotba-blue); }
+        .swatch-custom { background: var(--custom-amber); }
+
+        .legend-lotba-txt {
+            color: var(--lotba-blue-dark);
+            font-weight: 700;
+        }
+
+        .legend-custom-txt {
+            color: var(--custom-amber-dark);
+            font-weight: 700;
+        }
+
+        .legend-bold {
+            color: var(--text-main);
+            font-weight: 800;
+        }
+
+        .legend-pct {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* CORRECCIÓN 4: Gráfico con filtro coherente de Días + Franja Horaria estilo Google Maps */
+        .chart-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 7px;
+            gap: 6px;
+        }
+
+        .chart-mode-tabs {
+            display: inline-flex;
+            background: #f1f5f9;
+            padding: 2px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .chart-tab-btn {
+            border: none;
+            background: transparent;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .chart-tab-btn.active {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+        }
+
+        .peak-pill {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 7px;
+            border-radius: 6px;
+        }
+
+        .peak-pill strong {
+            color: #78350f;
+            font-weight: 800;
+        }
+
+        /* Selector de día de la semana estilo Google Maps cuando estás en "Por Hora" */
+        .gmaps-day-selector {
+            display: flex;
+            justify-content: space-between;
+            gap: 4px;
+            margin-bottom: 8px;
+            background: #f8fafc;
+            padding: 4px;
+            border-radius: 9px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .gmaps-day-pill {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 4px 0;
+            border-radius: 6px;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .gmaps-day-pill.active {
+            background: #0284c7;
+            color: #ffffff;
+            box-shadow: 0 1px 4px rgba(2, 132, 199, 0.3);
+        }
+
+        /* Inspector interactivo de barra seleccionada */
+        .bar-inspector {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 5px 9px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10.5px;
+        }
+
+        .inspector-left {
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .inspector-right {
+            display: flex;
+            gap: 8px;
+            font-weight: 700;
+        }
+
+        /* Escenario de barras con Efecto Von Restorff (opacidad 60% en secundarias, 100% en pico/seleccionada) */
+        .bars-stage {
+            height: 112px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 16px 4px 0;
+            border-bottom: 1.5px solid #cbd5e1;
+            position: relative;
+        }
+
+        .bars-stage.hourly-stage {
+            gap: 3px;
+            padding: 16px 1px 0;
+        }
+
+        .bar-col {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            opacity: 0.62; /* Von Restorff: barras normales más suaves para que el pico salte a la vista */
+            transition: opacity 0.2s ease, transform 0.15s ease;
+        }
+
+        .bar-col:hover,
+        .bar-col.is-selected,
+        .bar-col.is-peak {
+            opacity: 1;
+        }
+
+        .bar-value-top {
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 3px;
+            line-height: 1;
+        }
+
+        .bar-col.is-peak .bar-value-top,
+        .bar-col.is-selected .bar-value-top {
+            color: #0f172a;
+            font-weight: 800;
+        }
+
+        /* Etiqueta flotante limpia en lugar del recuadro negro sucio */
+        .peak-crown {
+            position: absolute;
+            top: -2px;
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 8px;
+            font-weight: 800;
+            padding: 1.5px 4px;
+            border-radius: 4px;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+        }
+
+        .bar-stack {
+            width: 100%;
+            max-width: 30px;
+            border-radius: 5px 5px 2px 2px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 2px; /* Separador blanco de 2px entre Ámbar y Azul para legibilidad total */
+            background: transparent;
+            transition: height 0.25s ease;
+        }
+
+        .bars-stage.hourly-stage .bar-stack {
+            max-width: 13px;
+            border-radius: 3px 3px 1px 1px;
+            gap: 1.5px;
+        }
+
+        .bar-col.is-selected .bar-stack {
+            box-shadow: 0 0 0 2px #0f172a;
+            border-radius: 5px;
+        }
+
+        .bar-part-custom {
+            background-color: var(--custom-amber);
+            width: 100%;
+            border-radius: 4px 4px 1px 1px;
+            min-height: 3px;
+        }
+
+        .bar-part-lotba {
+            background-color: var(--lotba-blue);
+            width: 100%;
+            border-radius: 1px 1px 2px 2px;
+            min-height: 4px;
+        }
+
+        /* Eje X */
+        .x-axis-days {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 5px 4px 0;
+        }
+
+        .x-day-lbl {
+            flex: 1;
+            text-align: center;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #64748b;
+            cursor: pointer;
+            padding: 2px 0;
+            border-radius: 4px;
+        }
+
+        .x-day-lbl.active {
+            color: #0f172a;
+            font-weight: 800;
+            background: #e2e8f0;
+        }
+
+        .x-axis-hours {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 5px;
+            font-size: 10px;
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        /* CORRECCIÓN 5: Reemplazo de "Ver todo" por Tabs con Eventos Anti-bypass (Métricas #10 y #20) */
+        .audit-tabs-header {
+            display: flex;
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: 9px;
+            margin-bottom: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .audit-tab {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 5px 6px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            transition: all 0.15s ease;
+        }
+
+        .audit-tab.active {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+        }
+
+        .tab-counter-alert {
+            background: #dc2626;
+            color: #ffffff;
+            font-size: 9.5px;
+            font-weight: 800;
+            padding: 1px 5px;
+            border-radius: 999px;
+        }
+
+        .attempt-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6.5px 0;
+            border-bottom: 1px solid #f1f5f9;
+            gap: 8px;
+        }
+
+        .attempt-item:last-child {
+            border-bottom: none;
+            padding-bottom: 1px;
+        }
+
+        .attempt-domain {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .attempt-meta {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        /* Badges de fuente con alto contraste */
+        .badge-source {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            letter-spacing: 0.2px;
+        }
+
+        .badge-lotba {
+            background-color: var(--lotba-bg);
+            color: var(--lotba-blue-dark);
+            border: 1px solid #bae6fd;
+        }
+
+        .badge-custom {
+            background-color: var(--custom-bg);
+            color: var(--custom-amber-dark);
+            border: 1px solid #fde68a;
+        }
+
+        .badge-bypass {
+            background-color: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        /* Barra de navegación inferior */
+        .bottom-nav {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            border-top: 1px solid #e2e8f0;
+            background: #ffffff;
+            padding: 6px 6px 10px;
+            margin-top: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 5px 2px;
+            border-radius: 10px;
+            color: #64748b;
+            font-size: 9.5px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+        }
+
+        .nav-item.active {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            font-weight: 800;
+        }
+
+        .nav-icon {
+            width: 17px;
+            height: 17px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        /* Panel lateral de justificación de diseño y alcance para la reunión */
+        .corrections-panel {
+            flex: 1;
+            min-width: 300px;
+            max-width: 520px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .panel-box {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 15px 16px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+        }
+
+        .panel-box-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .correction-list {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        .correction-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #0284c7;
+            border-radius: 10px;
+            padding: 9px 11px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .correction-card.color-fix {
+            border-left-color: #f59e0b;
+        }
+
+        .correction-card strong {
+            color: #0f172a;
+            display: block;
+            margin-bottom: 2px;
+            font-size: 12.5px;
+        }
+
+        .palette-compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .palette-sample {
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barra de control superior para presentar al equipo -->
+    <header class="presentation-header">
+        <div class="pres-title-block">
+            <span class="pres-badge">Propuesta Superadora MVP</span>
+            <span class="pres-title">BA Protege + · Corrección Cognitiva, Visual y de Alcance</span>
+        </div>
+        <div class="pres-controls">
+            <button id="btnToggleAnnotations" class="ctrl-btn highlight-fix" onclick="toggleAnnotations()">
+                🔍 Resaltar 5 Correcciones en Pantalla
+            </button>
+            <button id="btnQuickHourly" class="ctrl-btn" onclick="setChartView('hourly')">
+                🕒 Ver Franja Horaria por Día (Google Maps)
+            </button>
+            <button id="btnQuickDaily" class="ctrl-btn active" onclick="setChartView('daily')">
+                📅 Ver Semana por Días (Lun - Dom)
+            </button>
+        </div>
+    </header>
+
+    <div class="workspace-grid">
+
+        <!-- MARCO DEL DISPOSITIVO MÓVIL -->
+        <div id="phoneFrame" class="phone-frame">
+
+            <!-- Status bar -->
+            <div class="status-bar">
+                <span>17:37</span>
+                <span>5G · VPN Activa 100%</span>
+            </div>
+
+            <!-- Cabecera BA Protege + con indicador de listas al día (#9 blocklist_version) -->
+            <header class="brand-header">
+                <div class="brand-title">BA<br>Protege +</div>
+                <div class="sync-pill" title="Métrica #9: blocklist_version al día">
+                    <span class="sync-dot"></span>
+                    <span>Listas LOTBA v24.11 al día</span>
+                </div>
+            </header>
+
+            <!-- Sub-cabecera Actividad del sistema + Selector de período -->
+            <div class="sub-header">
+                <div class="sub-header-left">
+                    <button class="back-btn" title="Volver">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <div>
+                        <h1 class="page-title">Actividad del sistema</h1>
+                        <p class="page-subtitle">Auditoría de bloqueos y eventos de protección</p>
+                    </div>
+                </div>
+
+                <div class="period-select-wrapper">
+                    <select id="periodSelect" class="period-select" onchange="handlePeriodChange()">
+                        <option value="week" selected>Esta semana</option>
+                        <option value="today">Hoy</option>
+                        <option value="month">Este mes</option>
+                    </select>
+                    <span class="period-chevron">▾</span>
+                </div>
+            </div>
+
+            <!-- Contenido de la pantalla -->
+            <main class="screen-content">
+
+                <!-- CORRECCIÓN 1: Chips directos de dispositivos del usuario (sin inventar "Familia Gómez") + Alerta Heartbeat (#21) -->
+                <div class="device-chips-container annotated-section">
+                    <span class="fix-badge-overlay">✓ CORRECCIÓN 1: Dispositivos por usuario (Sin "Familia Gómez") + Alerta Heartbeat (#21)</span>
+                    <div class="chips-scroll">
+                        <button class="device-chip active" data-dev="all" onclick="selectDevice('all')">
+                            <span>Todos (3)</span>
+                        </button>
+                        <button class="device-chip" data-dev="tomas" onclick="selectDevice('tomas')">
+                            <span class="status-dot dot-ok"></span>
+                            <span>Celular de Tomás</span>
+                        </button>
+                        <button class="device-chip" data-dev="lucia" onclick="selectDevice('lucia')">
+                            <span class="status-dot dot-ok"></span>
+                            <span>Tablet de Lucía</span>
+                        </button>
+                        <button class="device-chip" data-dev="mateo" onclick="selectDevice('mateo')">
+                            <span class="status-dot dot-offline"></span>
+                            <span>Celular de Mateo</span>
+                        </button>
+                    </div>
+
+                    <!-- Alerta de salud operativa (Métricas #19 permissionsOk y #21 lastHeartbeatAt) -->
+                    <div id="heartbeatBanner" class="health-alert-banner">
+                        <div class="health-alert-left">
+                            <span>⚠️ <strong>Celular de Mateo</strong> dejó de reportar hace 4 h</span>
+                        </div>
+                        <span class="health-tag">Sin señal VPN</span>
+                    </div>
+                </div>
+
+                <!-- CORRECCIÓN 2: Bloqueos totales (Sin el % semanal inventado + desglose por dispositivo #22 y Uptime #5) -->
+                <section class="card annotated-section">
+                    <span class="fix-badge-overlay">✓ CORRECCIÓN 2: Sin "% vs semana previa" (fuera del MVP) · Suma Bloqueos por equipo (#22)</span>
+                    <div class="kpi-top-row">
+                        <span class="kpi-label">Bloqueos totales (#7)</span>
+                        <span id="uptimePill" class="uptime-badge" title="Métrica #5: Continuidad de protección">🛡️ Protección activa: 98.4%</span>
+                    </div>
+                    <div class="kpi-main-row">
+                        <span id="totalNumber" class="kpi-number">1.426</span>
+                        <span class="kpi-sub">intentos frenados</span>
+                    </div>
+                    <!-- Desglose directo por dispositivo (Métrica #22) -->
+                    <div id="deviceBreakdownRow" class="device-Share-row">
+                        <span class="device-mini-pill">Tomás: <strong>890</strong> (62%)</span>
+                        <span class="device-mini-pill">Lucía: <strong>412</strong> (29%)</span>
+                        <span class="device-mini-pill">Mateo: <strong>124</strong> (9%)</span>
+                    </div>
+                </section>
+
+                <!-- CORRECCIÓN 3: Bloqueos por fuente con Alto Contraste Cognitivo (Azul #0284C7 vs Ámbar #F59E0B) -->
+                <section class="card annotated-section">
+                    <span class="fix-badge-overlay">✓ CORRECCIÓN 3: Paleta Azul + Ámbar con corte blanco de 3px (Accesibilidad visual)</span>
+                    <div class="card-header-title">Bloqueos por fuente (#18)</div>
+                    <div class="source-bar-container">
+                        <div id="barLotba" class="source-segment-lotba" style="width: 73%;"></div>
+                        <div id="barCustom" class="source-segment-custom" style="width: 27%;"></div>
+                    </div>
+                    <div class="source-legend">
+                        <div class="legend-item">
+                            <span class="swatch swatch-lotba"></span>
+                            <span class="legend-lotba-txt">Lista LOTBA</span>
+                            <span id="lotbaCount" class="legend-bold">1.045</span>
+                            <span id="lotbaPct" class="legend-pct">(73%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="swatch swatch-custom"></span>
+                            <span class="legend-custom-txt">Personalizada</span>
+                            <span id="customCount" class="legend-bold">381</span>
+                            <span id="customPct" class="legend-pct">(27%)</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CORRECCIÓN 4: Gráfico interactivo con filtro de Días y Franja Horaria por día -->
+                <section class="card annotated-section">
+                    <span class="fix-badge-overlay">✓ CORRECCIÓN 4: Permite filtrar por Día (Lun-Dom) o ver Franja Horaria de cada día</span>
+                    <div class="chart-top-bar">
+                        <div class="chart-mode-tabs">
+                            <button id="tabViewDaily" class="chart-tab-btn active" onclick="setChartView('daily')">Por día (Sem)</button>
+                            <button id="tabViewHourly" class="chart-tab-btn" onclick="setChartView('hourly')">Franja horaria</button>
+                        </div>
+                        <span id="peakIndicator" class="peak-pill">Día pico: <strong>Sáb (342)</strong></span>
+                    </div>
+
+                    <!-- Selector de día estilo Google Maps (visible en modo Franja Horaria) -->
+                    <div id="gmapsDayBar" class="gmaps-day-selector" style="display: none;">
+                        <button class="gmaps-day-pill" onclick="selectDayForHourly(0)">Lun</button>
+                        <button class="gmaps-day-pill" onclick="selectDayForHourly(1)">Mar</button>
+                        <button class="gmaps-day-pill" onclick="selectDayForHourly(2)">Mié</button>
+                        <button class="gmaps-day-pill" onclick="selectDayForHourly(3)">Jue</button>
+                        <button class="gmaps-day-pill" onclick="selectDayForHourly(4)">Vie</button>
+                        <button class="gmaps-day-pill active" onclick="selectDayForHourly(5)">Sáb</button>
+                        <button class="gmaps-day-pill" onclick="selectDayForHourly(6)">Dom</button>
+                    </div>
+
+                    <!-- Inspector dinámico al tocar cualquier barra -->
+                    <div class="bar-inspector">
+                        <span id="inspectorLabel" class="inspector-left">Sábado: 342 intentos</span>
+                        <div class="inspector-right">
+                            <span style="color: var(--lotba-blue-dark);">● <span id="inspLotba">250</span> LOTBA</span>
+                            <span style="color: var(--custom-amber-dark);">● <span id="inspCustom">92</span> Pers.</span>
+                        </div>
+                    </div>
+
+                    <!-- Escenario de barras apiladas con separación blanca y efecto Von Restorff -->
+                    <div id="barsStage" class="bars-stage">
+                        <!-- Renderizado dinámicamente -->
+                    </div>
+
+                    <!-- Eje X -->
+                    <div id="xAxisContainer"></div>
+                </section>
+
+                <!-- CORRECCIÓN 5: En lugar de un "Ver todo" que obliga a otra pantalla, pestaña con Eventos Anti-bypass (#10 y #20) -->
+                <section class="card annotated-section">
+                    <span class="fix-badge-overlay">✓ CORRECCIÓN 5: Cambia "Ver todo" por pestaña de Eventos Anti-bypass (#10 y #20)</span>
+                    <div class="audit-tabs-header">
+                        <button id="tabAuditUrls" class="audit-tab active" onclick="switchAuditTab('urls')">
+                            <span>Últimos bloqueos</span>
+                        </button>
+                        <button id="tabAuditBypass" class="audit-tab" onclick="switchAuditTab('bypass')">
+                            <span>Eventos Anti-bypass</span>
+                            <span class="tab-counter-alert">4</span>
+                        </button>
+                    </div>
+
+                    <!-- Lista 1: Sitios bloqueados recientes -->
+                    <div id="auditListUrls">
+                        <div class="attempt-item">
+                            <div>
+                                <div class="attempt-domain">ejemplo-apuestas.com</div>
+                                <div class="attempt-meta">Celular de Tomás · hace 4 min</div>
+                            </div>
+                            <span class="badge-source badge-lotba">LOTBA</span>
+                        </div>
+                        <div class="attempt-item">
+                            <div>
+                                <div class="attempt-domain">casino-demo.net</div>
+                                <div class="attempt-meta">Tablet de Lucía · hace 22 min</div>
+                            </div>
+                            <span class="badge-source badge-lotba">LOTBA</span>
+                        </div>
+                        <div class="attempt-item">
+                            <div>
+                                <div class="attempt-domain">sitio-bloqueado.com</div>
+                                <div class="attempt-meta">Celular de Tomás · hace 1 h</div>
+                            </div>
+                            <span class="badge-source badge-custom">Personalizada</span>
+                        </div>
+                    </div>
+
+                    <!-- Lista 2: Intentos de evasión / vulneración (Métricas #10 y #20 ya listas en el backend) -->
+                    <div id="auditListBypass" style="display: none;">
+                        <div class="attempt-item">
+                            <div>
+                                <div class="attempt-domain">Intento de desactivar VPN</div>
+                                <div class="attempt-meta">Celular de Tomás · Hoy 20:14 h</div>
+                            </div>
+                            <span class="badge-source badge-bypass">VPN_STOP</span>
+                        </div>
+                        <div class="attempt-item">
+                            <div>
+                                <div class="attempt-domain">Dejó de reportar (+4 h sin señal)</div>
+                                <div class="attempt-meta">Celular de Mateo · Hoy 13:30 h</div>
+                            </div>
+                            <span class="badge-source badge-bypass">HEARTBEAT</span>
+                        </div>
+                        <div class="attempt-item">
+                            <div>
+                                <div class="attempt-domain">Permiso de accesibilidad revocado</div>
+                                <div class="attempt-meta">Celular de Mateo · Ayer 22:40 h</div>
+                            </div>
+                            <span class="badge-source badge-bypass">PERM_FAIL</span>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+
+            <!-- Barra de navegación inferior -->
+            <nav class="bottom-nav">
+                <button class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.5z"/></svg>
+                    <span>Panel</span>
+                </button>
+                <button class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                    <span>Dispositivos</span>
+                </button>
+                <button class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="3.6" y1="9" x2="20.4" y2="9"/><line x1="3.6" y1="15" x2="20.4" y2="15"/><path d="M11.5 3a17 17 0 0 0 0 18M12.5 3a17 17 0 0 1 0 18"/></svg>
+                    <span>Sitios y apps</span>
+                </button>
+                <button class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    <span>Actividad</span>
+                </button>
+                <button class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/></svg>
+                    <span>Cuenta</span>
+                </button>
+            </nav>
+
+        </div>
+
+        <!-- PANEL LATERAL: RESUMEN DE LAS 5 CORRECCIONES PARA EL EQUIPO -->
+        <aside class="corrections-panel">
+            <div class="panel-box">
+                <div class="panel-box-title">
+                    <span>📋 Qué corrige este prototipo frente al diseño previo</span>
+                </div>
+
+                <div class="correction-list">
+                    <div class="correction-card color-fix">
+                        <strong>1. Contraste Cognitivo y Visual (Azul vs. Ámbar)</strong>
+                        En vez de Azul + Violeta (colores vecinos que se empastan en barras chicas), se usa <strong>Azul Institucional (<code>#0284C7</code>)</strong> para LOTBA y <strong>Ámbar (<code>#F59E0B</code>)</strong> para Lista Personalizada, separados por <code>2px</code> blancos. Además, las barras normales van al 62% de opacidad y la barra pico al 100% sin el recuadro negro sucio.
+                        <div class="palette-compare">
+                            <div class="palette-sample" style="background: #f1f5f9; color: #475569;">
+                                ❌ Antes: Azul + Violeta (Bajo contraste)
+                            </div>
+                            <div class="palette-sample" style="background: #fffbeb; color: #92400e; border-color: #fde68a;">
+                                ✅ Ahora: Azul Frío + Ámbar Cálido
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="correction-card">
+                        <strong>2. Sin "Familia Gómez" (Fiel a las tablas <code>users</code> / <code>devices</code>)</strong>
+                        Como la app es por usuario y controla pocos equipos, se eliminó el selector ficticio "Familia Gómez" y se reemplazó por <strong>chips directos por dispositivo</strong> (<code>Todos (3)</code>, <code>Tomás</code>, <code>Lucía</code>, <code>Mateo</code>) con indicador en vivo si uno dejó de reportar (Métrica #21 <code>lastHeartbeatAt</code>).
+                    </div>
+
+                    <div class="correction-card">
+                        <strong>3. Eliminada la 6ta métrica infiltrada (<code>+14% vs. semana previa</code>)</strong>
+                        Ese porcentaje obligaba a programar comparaciones históricas en backend fuera del alcance. En su lugar, se muestra el desglose directo de <strong>Bloqueos por dispositivo (#22)</strong> y la <strong>Continuidad de protección (#5)</strong>.
+                    </div>
+
+                    <div class="correction-card">
+                        <strong>4. Filtro de Días de la Semana + Franja Horaria por Día</strong>
+                        Resuelve la desconexión entre "Esta semana" y el gráfico: podés ver las <strong>7 barras de Lunes a Domingo</strong> o pasar a <strong>Franja horaria</strong> eligiendo qué día puntual de la semana (`Lun` a `Dom`) querés inspeccionar, igual que en Google Maps.
+                    </div>
+
+                    <div class="correction-card">
+                        <strong>5. Adiós al "Ver todo" sin salida → Entra Anti-bypass (#10 y #20)</strong>
+                        En vez de obligar a construir una 2da pantalla entera para "Ver todo", el bloque inferior suma una pestaña de <strong>Eventos Anti-bypass (4)</strong> que aprovecha los endpoints de seguridad que el backend ya tiene listos (intentos de apagar VPN, permisos revocados, falta de heartbeat).
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <script>
+        // Datos semanales por día (Lunes a Domingo) = 1.426 totales (1.045 LOTBA + 381 Personalizada)
+        const weeklyDaysData = [
+            { short: 'Lun', full: 'Lunes',     lotba: 105, custom: 37 }, // 142
+            { short: 'Mar', full: 'Martes',    lotba: 95,  custom: 33 }, // 128
+            { short: 'Mié', full: 'Miércoles', lotba: 120, custom: 45 }, // 165
+            { short: 'Jue', full: 'Jueves',    lotba: 112, custom: 42 }, // 154
+            { short: 'Vie', full: 'Viernes',   lotba: 162, custom: 61 }, // 223
+            { short: 'Sáb', full: 'Sábado',    lotba: 250, custom: 92, isPeak: true }, // 342 (Día Pico)
+            { short: 'Dom', full: 'Domingo',   lotba: 201, custom: 71 }  // 272
+        ];
+
+        // Perfiles por dispositivo para filtrar con 1 toque
+        const deviceProfiles = {
+            all:   { total: 1426, lotba: 1045, custom: 381, mult: 1.0,  uptime: '98.4%', showAlert: true },
+            tomas: { total: 890,  lotba: 640,  custom: 250, mult: 0.62, uptime: '99.8%', showAlert: false },
+            lucia: { total: 412,  lotba: 310,  custom: 102, mult: 0.29, uptime: '100%',  showAlert: false },
+            mateo: { total: 124,  lotba: 95,   custom: 29,  mult: 0.09, uptime: '74.2%', showAlert: true }
+        };
+
+        // Base de distribución horaria (12 bloques representativos de 2h para lectura limpia en móvil o 24h)
+        const baseHourly24 = [
+            { h: '0h',  l: 4,  c: 1 }, { h: '1h',  l: 3,  c: 1 }, { h: '2h',  l: 2,  c: 0 }, { h: '3h',  l: 1,  c: 0 },
+            { h: '4h',  l: 1,  c: 0 }, { h: '5h',  l: 2,  c: 1 }, { h: '6h',  l: 3,  c: 1 }, { h: '7h',  l: 5,  c: 2 },
+            { h: '8h',  l: 7,  c: 3 }, { h: '9h',  l: 9,  c: 3 }, { h: '10h', l: 10, c: 4 }, { h: '11h', l: 12, c: 4 },
+            { h: '12h', l: 14, c: 5 }, { h: '13h', l: 15, c: 6 }, { h: '14h', l: 16, c: 6 }, { h: '15h', l: 18, c: 7 },
+            { h: '16h', l: 21, c: 8 }, { h: '17h', l: 24, c: 9 }, { h: '18h', l: 29, c: 11 }, { h: '19h', l: 35, c: 13 },
+            { h: '20h', l: 49, c: 19, isPeak: true }, // Pico 20 a 21h
+            { h: '21h', l: 34, c: 12 }, { h: '22h', l: 18, c: 6 }, { h: '23h', l: 9,  c: 3 }
+        ];
+
+        let currentDevice = 'all';
+        let currentChartView = 'daily'; // 'daily' | 'hourly'
+        let selectedDayIndex = 5;       // Sábado por defecto
+        let selectedHourIndex = 20;     // 20h por defecto
+
+        function renderChart() {
+            const stage = document.getElementById('barsStage');
+            const xAxis = document.getElementById('xAxisContainer');
+            const gmapsDayBar = document.getElementById('gmapsDayBar');
+            const peakIndicator = document.getElementById('peakIndicator');
+            const devMult = deviceProfiles[currentDevice].mult;
+
+            if (currentChartView === 'daily') {
+                stage.classList.remove('hourly-stage');
+                gmapsDayBar.style.display = 'none';
+
+                const scaledDays = weeklyDaysData.map(d => ({
+                    ...d,
+                    lotbaVal: Math.max(1, Math.round(d.lotba * devMult)),
+                    customVal: Math.max(1, Math.round(d.custom * devMult))
+                }));
+
+                const maxTotal = Math.max(...scaledDays.map(d => d.lotbaVal + d.customVal));
+                const peakDay = scaledDays[5];
+                peakIndicator.innerHTML = `Día pico: <strong>${peakDay.short} (${peakDay.lotbaVal + peakDay.customVal})</strong>`;
+
+                stage.innerHTML = scaledDays.map((d, idx) => {
+                    const total = d.lotbaVal + d.customVal;
+                    const heightPct = Math.max(Math.round((total / maxTotal) * 78), 16);
+                    const lotbaPct = Math.round((d.lotbaVal / total) * 100);
+                    const customPct = 100 - lotbaPct;
+                    const isSelected = idx === selectedDayIndex;
+                    const isPeak = Boolean(d.isPeak);
+
+                    return `
+                        <div class="bar-col ${isPeak ? 'is-peak' : ''} ${isSelected ? 'is-selected' : ''}" onclick="inspectDayBar(${idx})">
+                            ${isPeak ? '<span class="peak-crown">PICO</span>' : ''}
+                            <span class="bar-value-top">${total}</span>
+                            <div class="bar-stack" style="height: ${heightPct}%;">
+                                <div class="bar-part-custom" style="height: ${customPct}%;"></div>
+                                <div class="bar-part-lotba" style="height: ${lotbaPct}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                xAxis.innerHTML = `
+                    <div class="x-axis-days">
+                        ${scaledDays.map((d, idx) => `
+                            <span class="x-day-lbl ${idx === selectedDayIndex ? 'active' : ''}" onclick="inspectDayBar(${idx})">
+                                ${d.short}
+                            </span>
+                        `).join('')}
+                    </div>
+                `;
+
+                const sel = scaledDays[selectedDayIndex];
+                document.getElementById('inspectorLabel').textContent = `${sel.full}: ${sel.lotbaVal + sel.customVal} intentos`;
+                document.getElementById('inspLotba').textContent = sel.lotbaVal;
+                document.getElementById('inspCustom').textContent = sel.customVal;
+
+            } else {
+                // Vista Franja Horaria filtrada por el día elegido arriba (Estilo Google Maps)
+                stage.classList.add('hourly-stage');
+                gmapsDayBar.style.display = 'flex';
+
+                const dayInfo = weeklyDaysData[selectedDayIndex];
+                const dayFactor = ((dayInfo.lotba + dayInfo.custom) / 342) * devMult;
+
+                const scaledHours = baseHourly24.map(item => ({
+                    ...item,
+                    lotbaVal: Math.max(1, Math.round(item.l * dayFactor)),
+                    customVal: Math.max(0, Math.round(item.c * dayFactor))
+                }));
+
+                const maxHourTotal = Math.max(...scaledHours.map(h => h.lotbaVal + h.customVal));
+                const peakH = scaledHours[20];
+                peakIndicator.innerHTML = `Pico ${dayInfo.short}: <strong>20 a 21 h (${peakH.lotbaVal + peakH.customVal})</strong>`;
+
+                stage.innerHTML = scaledHours.map((h, idx) => {
+                    const total = h.lotbaVal + h.customVal;
+                    const heightPct = Math.max(Math.round((total / maxHourTotal) * 84), 10);
+                    const lotbaPct = total > 0 ? Math.round((h.lotbaVal / total) * 100) : 70;
+                    const customPct = 100 - lotbaPct;
+                    const isPeak = Boolean(h.isPeak);
+                    const isSelected = idx === selectedHourIndex;
+
+                    return `
+                        <div class="bar-col ${isPeak ? 'is-peak' : ''} ${isSelected ? 'is-selected' : ''}" onclick="inspectHourBar(${idx})">
+                            ${isPeak ? '<span class="peak-crown">20h</span>' : ''}
+                            <div class="bar-stack" style="height: ${heightPct}%;">
+                                <div class="bar-part-custom" style="height: ${customPct}%;"></div>
+                                <div class="bar-part-lotba" style="height: ${lotbaPct}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                xAxis.innerHTML = `
+                    <div class="x-axis-hours">
+                        <span>0 h</span>
+                        <span>6 h</span>
+                        <span>12 h</span>
+                        <span>18 h</span>
+                        <span>23 h</span>
+                    </div>
+                `;
+
+                const selH = scaledHours[selectedHourIndex];
+                const nextH = (selectedHourIndex + 1) % 24;
+                document.getElementById('inspectorLabel').textContent = `${dayInfo.full} (${selectedHourIndex} a ${nextH} h): ${selH.lotbaVal + selH.customVal} int.`;
+                document.getElementById('inspLotba').textContent = selH.lotbaVal;
+                document.getElementById('inspCustom').textContent = selH.customVal;
+            }
+        }
+
+        function setChartView(mode) {
+            currentChartView = mode;
+            document.getElementById('tabViewDaily').classList.toggle('active', mode === 'daily');
+            document.getElementById('tabViewHourly').classList.toggle('active', mode === 'hourly');
+            document.getElementById('btnQuickDaily').classList.toggle('active', mode === 'daily');
+            document.getElementById('btnQuickHourly').classList.toggle('active', mode === 'hourly');
+            renderChart();
+        }
+
+        function inspectDayBar(idx) {
+            selectedDayIndex = idx;
+            renderChart();
+        }
+
+        function selectDayForHourly(idx) {
+            selectedDayIndex = idx;
+            const pills = document.querySelectorAll('.gmaps-day-pill');
+            pills.forEach((p, i) => p.classList.toggle('active', i === idx));
+            renderChart();
+        }
+
+        function inspectHourBar(idx) {
+            selectedHourIndex = idx;
+            renderChart();
+        }
+
+        function selectDevice(devKey) {
+            currentDevice = devKey;
+            document.querySelectorAll('.device-chip').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-dev') === devKey);
+            });
+
+            const profile = deviceProfiles[devKey];
+            document.getElementById('totalNumber').textContent = profile.total.toLocaleString('es-AR');
+            document.getElementById('lotbaCount').textContent = profile.lotba.toLocaleString('es-AR');
+            document.getElementById('customCount').textContent = profile.custom.toLocaleString('es-AR');
+            document.getElementById('uptimePill').textContent = `🛡️ Protección activa: ${profile.uptime}`;
+            document.getElementById('heartbeatBanner').style.display = profile.showAlert ? 'flex' : 'none';
+
+            const lotbaPct = Math.round((profile.lotba / profile.total) * 100);
+            const customPct = 100 - lotbaPct;
+            document.getElementById('barLotba').style.width = `${lotbaPct}%`;
+            document.getElementById('barCustom').style.width = `${customPct}%`;
+            document.getElementById('lotbaPct').textContent = `(${lotbaPct}%)`;
+            document.getElementById('customPct').textContent = `(${customPct}%)`;
+
+            renderChart();
+        }
+
+        function handlePeriodChange() {
+            const val = document.getElementById('periodSelect').value;
+            if (val === 'today') {
+                setChartView('hourly');
+            } else {
+                setChartView('daily');
+            }
+        }
+
+        function switchAuditTab(tab) {
+            const isUrls = tab === 'urls';
+            document.getElementById('tabAuditUrls').classList.toggle('active', isUrls);
+            document.getElementById('tabAuditBypass').classList.toggle('active', !isUrls);
+            document.getElementById('auditListUrls').style.display = isUrls ? 'block' : 'none';
+            document.getElementById('auditListBypass').style.display = isUrls ? 'none' : 'block';
+        }
+
+        function toggleAnnotations() {
+            const phone = document.getElementById('phoneFrame');
+            const btn = document.getElementById('btnToggleAnnotations');
+            phone.classList.toggle('show-annotations');
+            btn.classList.toggle('active');
+        }
+
+        // Inicializar al cargar
+        renderChart();
+    </script>
+</body>
+</html>
