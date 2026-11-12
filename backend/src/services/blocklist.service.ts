@@ -2,6 +2,7 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/environment.js';
 import { mockDb } from '../config/mock-database.js';
 import { AppError } from '../middlewares/error.middleware.js';
+import { normalizeDomain } from '../utils/domain.js';
 
 export interface AddCustomDomainInput {
   userId: string;
@@ -198,13 +199,12 @@ export class BlocklistService {
 
     return customList;
   }
-
   /**
    * Agrega un nuevo dominio a la lista personalizada del responsable e incrementa la versión.
    */
   public async addCustomDomain(input: AddCustomDomainInput) {
     const list = await this.getUserCustomList(input.userId);
-    const cleanDomain = input.domain.trim().toLowerCase();
+    const cleanDomain = normalizeDomain(input.domain);
 
     // Validar formato básico de dominio
     if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
