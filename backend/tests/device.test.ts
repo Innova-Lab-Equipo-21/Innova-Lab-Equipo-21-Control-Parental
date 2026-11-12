@@ -58,8 +58,8 @@ describe('Módulo de Dispositivos y Vinculación (Device API)', () => {
       },
       body: JSON.stringify({
         childName: 'Sofia',
-        gender: 'Femenino',
-        personType: 'Menor',
+        gender: 'FEMENINO',
+        personType: 'MENOR',
         birthDate: '2012-05-15',
         phone: '11 2345-6789',
       }),
