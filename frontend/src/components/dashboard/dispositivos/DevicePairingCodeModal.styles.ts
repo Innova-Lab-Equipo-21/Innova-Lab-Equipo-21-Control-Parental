@@ -48,17 +48,16 @@ export const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceHover || '#F1F5F9',
+    padding: 4,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeBtnText: {
-    fontSize: 16,
-    color: colors.textSecondary,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   codeDisplayCard: {
     marginVertical: 4,
