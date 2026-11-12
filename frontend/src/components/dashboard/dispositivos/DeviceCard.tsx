@@ -15,6 +15,7 @@ import { ToggleSwitch } from '../../ToggleSwitch';
 import { DeviceInfo, SelfControlState } from '../../../types';
 import { getDeviceHighlight } from '../../../utils/deviceColors';
 import { DevicePermissionsModal } from './DevicePermissionsModal';
+import { colors } from '../../../theme/colors';
 import { styles } from './DeviceCard.styles';
 
 interface DeviceCardProps {
@@ -76,7 +77,11 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
   const isActive =
     device.status === 'ACTIVE' ||
     (device.status as any)?.effectiveStatus === 'ACTIVE' ||
+    (device.status as string) === 'PROTECTED' ||
+    (device.status as any)?.effectiveStatus === 'PROTECTED' ||
     device.isProtected;
+
+  const isPermissionsEnabled = isSelf || isActive;
 
   // Título del dispositivo: "Nombre" (ej. "Mateo", "Cesar", "Tutor Responsable")
   const deviceTitle = isSelf
@@ -106,14 +111,23 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         </View>
 
         <View style={styles.headerRightActions}>
-          {/* Ícono de Engranaje / Permisos (al lado izquierdo de editar) */}
+          {/* Ícono de Engranaje / Permisos: habilitado solo si la vinculación está activa */}
           <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => setShowPermissionsModal(true)}
+            style={[
+              styles.iconButton,
+              !isPermissionsEnabled && styles.iconButtonDisabled,
+            ]}
+            disabled={!isPermissionsEnabled}
+            onPress={() => isPermissionsEnabled && setShowPermissionsModal(true)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel="Permisos del dispositivo"
+            accessibilityState={{ disabled: !isPermissionsEnabled }}
           >
-            <Icon name="engrenaje" size={20} />
+            <Icon
+              name="engrenaje"
+              size={20}
+              color={isPermissionsEnabled ? undefined : colors.textMuted}
+            />
           </TouchableOpacity>
 
           {/* Ícono de Edición de Datos */}

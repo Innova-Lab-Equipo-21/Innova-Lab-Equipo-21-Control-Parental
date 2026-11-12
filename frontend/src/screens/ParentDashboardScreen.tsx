@@ -43,7 +43,7 @@ import {
   AutocontrolModalMode,
 } from '../components/dashboard/dispositivos';
 import { SitesAndAppsSection } from '../components/dashboard/sitios';
-import { ActivitySection } from '../components/dashboard/actividad';
+import { AnalyticsPanel, useRealAnalyticsData } from '../components/dashboard/actividad';
 import {
   ProfileSection,
   GlobalRulesSection,
@@ -240,6 +240,14 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const [grantedPermsCount, setGrantedPermsCount] = useState<number>(6);
   const [showHomeFaqModal, setShowHomeFaqModal] = useState<boolean>(false);
   const [sitesInitialSubTab, setSitesInitialSubTab] = useState<'sites' | 'apps'>('sites');
+
+  // Métricas reales para el Panel de Analítica (Propuesta Superadora MVP)
+  const realAnalytics = useRealAnalyticsData({
+    devices,
+    customSites,
+    customApps,
+    currentUser,
+  });
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -593,24 +601,21 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
         </View>
       )}
 
-      {/* VISTA 4: ACTIVIDAD */}
+      {/* VISTA 4: ACTIVIDAD (Propuesta Superadora MVP con datos reales) */}
       {activeTab === 'actividad' && (
-        <>
-          <Header
-            title="Actividad del sistema"
-            subtitle="Auditoría de bloqueos, alertas y geolocalización"
+        <View style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
+          <AnalyticsPanel
+            devices={realAnalytics.devices}
+            weekData={realAnalytics.weekData}
+            hourlyData={realAnalytics.hourlyData}
+            blockedAttempts={realAnalytics.blockedAttempts}
+            bypassEvents={realAnalytics.bypassEvents}
+            blocklistVersion={realAnalytics.blocklistVersion}
+            allUptime={realAnalytics.allUptime}
             onBack={() => setActiveTab('inicio')}
+            scrollable={true}
           />
-          <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 85 }]}>
-            <ActivitySection
-              devices={devices}
-              customSites={customSites}
-              customApps={customApps}
-              currentUser={currentUser}
-              selfControl={selfControl}
-            />
-          </ScrollView>
-        </>
+        </View>
       )}
 
       {/* VISTA 5: CUENTA */}

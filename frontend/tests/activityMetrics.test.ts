@@ -2,13 +2,14 @@
 // Proyecto: BA Protege+
 // Componente: Tests Automatizados — Pestaña Actividad (Modo Responsable)
 // Archivo: tests/activityMetrics.test.ts
-// Descripción: Verifica los 5 bloques de métricas de Actividad:
-//              1) Filtros: Dispositivos (Todos, Mi dispositivo, Dispositivo A..)
-//                 y Período (Semana, Mes, Año, Total)
+// Descripción: Valida integralmente el módulo de Actividad (components/dashboard/actividad/):
+//              1) Filtros: Dispositivos (Todos, Mi dispositivo/Yo, Protegidos A-Z)
+//                 y Período (Hoy, Esta semana, Este mes, Año, Total)
 //              2) Bloqueos totales y variación porcentual respecto al período previo
 //              3) Bloqueos por fuente (Lista LOTBA vs. Personalizada)
 //              4) Franja horaria de intentos (24 horas + detección de hora pico)
-//              5) Últimos intentos bloqueados y persistencia local de telemetría
+//              5) Listado de bloqueos (Últimos bloqueos anonimizados y eventos Anti-bypass)
+//              6) Integridad modular del orquestador AnalyticsPanel y sus componentes
 // ==============================================================================
 
 import { test, describe } from 'node:test';
@@ -284,56 +285,49 @@ describe('Pestaña Actividad — Dataset consolidado, Telemetría y Estructura U
     await apiService.clearBlockedEvents();
   });
 
-  test('El módulo actividad/ está modularizado y contiene los 5 bloques solicitados sin Tiempo de uso', () => {
+  test('El módulo actividad/ está modularizado y contiene la suite de métricas sin Tiempo de uso', () => {
     const actividadDir = path.resolve(
       __dirname,
       '../src/components/dashboard/actividad'
     );
     const orchestratorSrc = fs.readFileSync(
-      path.join(actividadDir, 'ActivitySection.tsx'),
+      path.join(actividadDir, 'AnalyticsPanel.tsx'),
       'utf8'
     );
 
-    // Verifica que ActivitySection actúa como orquestador modular
-    assert.ok(orchestratorSrc.includes('useActivityDashboard'));
-    assert.ok(orchestratorSrc.includes('<ActivityFiltersBar'));
+    // Verifica que AnalyticsPanel actúa como orquestador modular de analítica
+    assert.ok(orchestratorSrc.includes('useAnalyticsPanel'));
+    assert.ok(orchestratorSrc.includes('<Header'));
+    assert.ok(orchestratorSrc.includes('<PeriodSelector'));
+    assert.ok(orchestratorSrc.includes('<DeviceChipsRow'));
     assert.ok(orchestratorSrc.includes('<TotalBlocksCard'));
     assert.ok(orchestratorSrc.includes('<BlocksBySourceCard'));
-    assert.ok(orchestratorSrc.includes('<HourlyAttemptsCard'));
-    assert.ok(orchestratorSrc.includes('<RecentAttemptsCard'));
-    assert.ok(orchestratorSrc.includes('<DeviceFilterSheetModal'));
-    assert.ok(orchestratorSrc.includes('<PeriodFilterSheetModal'));
-    assert.ok(orchestratorSrc.includes('<AllBlockedAttemptsModal'));
+    assert.ok(orchestratorSrc.includes('<ActivityChartCard'));
+    assert.ok(orchestratorSrc.includes('<AuditEventsCard'));
 
-    // Verifica todos los textos y bloques en los subcomponentes del módulo
+    // Verifica los componentes clave del módulo
     const moduleFiles = [
-      'ActivitySection.tsx',
-      'ActivityFiltersBar.tsx',
-      'TotalBlocksCard.tsx',
-      'BlocksBySourceCard.tsx',
-      'HourlyAttemptsCard.tsx',
-      'BlockedAttemptRow.tsx',
-      'RecentAttemptsCard.tsx',
-      'DeviceFilterSheetModal.tsx',
-      'PeriodFilterSheetModal.tsx',
-      'AllBlockedAttemptsModal.tsx',
+      'AnalyticsPanel.tsx',
+      'blocks/PeriodSelector.tsx',
+      'blocks/DeviceChipsRow.tsx',
+      'blocks/TotalBlocksCard.tsx',
+      'blocks/BlocksBySourceCard.tsx',
+      'blocks/ActivityChartCard.tsx',
+      'blocks/AuditEventsCard.tsx',
     ];
     const combinedSource = moduleFiles
       .map((file) => fs.readFileSync(path.join(actividadDir, file), 'utf8'))
       .join('\n');
 
-    assert.equal(combinedSource.includes('Filtrar por dispositivo'), true);
-    assert.equal(combinedSource.includes('Seleccionar período'), true);
     assert.equal(combinedSource.includes('Bloqueos totales'), true);
-    assert.equal(combinedSource.includes('Intentos de acceso frenados'), true);
     assert.equal(combinedSource.includes('Bloqueos por fuente'), true);
     assert.equal(combinedSource.includes('Lista LOTBA'), true);
     assert.equal(combinedSource.includes('Personalizada'), true);
-    assert.equal(combinedSource.includes('Franja horaria de intentos'), true);
-    assert.equal(combinedSource.includes('Últimos intentos bloqueados'), true);
-    assert.equal(combinedSource.includes('Ver todo'), true);
+    assert.equal(combinedSource.includes('Listado de bloqueos'), true);
+    assert.equal(combinedSource.includes('Últimos bloqueos'), true);
+    assert.equal(combinedSource.includes('Eventos Anti-bypass'), true);
 
-    // Verifica que las pestañas antiguas de Tiempo de uso de pantalla fueron reemplazadas
+    // Verifica que las pestañas antiguas de Tiempo de uso de pantalla fueron excluidas
     assert.equal(combinedSource.includes('Tiempo total de pantalla hoy'), false);
   });
 });

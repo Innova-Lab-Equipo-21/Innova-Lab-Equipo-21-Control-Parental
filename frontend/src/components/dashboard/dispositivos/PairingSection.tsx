@@ -50,10 +50,10 @@ export interface PairingSectionRef {
 }
 
 interface PairingSectionProps {
-  pairingCode: string | null;
+  pairingCode?: string | null;
   deviceCount: number;
-  loading: boolean;
-  onGenerateCode: (data?: PairingFormData) => void;
+  loading?: boolean;
+  onGenerateCode?: (data?: PairingFormData) => void;
 }
 
 export const PairingSection = React.forwardRef<PairingSectionRef, PairingSectionProps>(({

@@ -61,6 +61,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconButtonDisabled: {
+    opacity: 0.35,
+  },
   deviceFooterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

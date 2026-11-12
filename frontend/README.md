@@ -7,15 +7,17 @@ Componente: Frontend Mobile Android (React Native + Kotlin)
 Archivo: frontend/README.md
 Descripción: Documentación técnica completa, guía de instalación, Kit UI/UX,
              Flujo de Acceso Inteligente (Primer Acceso del Responsable),
-             Panel Ejecutivo Modular de Actividad (5 Bloques + 3 Modales),
+             Panel Ejecutivo de Actividad con Datos Reales y Alto Contraste
+             Cognitivo (LOTBA Azul vs. Personalizada Ámbar), Persistencia de
+             Período (Hoy por defecto), Destaque de Hoy en Gráficos,
              Identificación de Origen (Adulto Protegido -> Responsable),
              Dashboards Diferenciados para Protegido Adulto y Menor (Pasatiempos
              con Quiz, Sopa de Letras y Memoria de 12 piezas), Mascotas Boti y
-             Botito con Sentimientos Dinámicos y Suite de 116 Pruebas.
+             Botito con Sentimientos Dinámicos y Suite de 142 Pruebas.
 ==============================================================================
 -->
 
-Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **Kit UI/UX del Sistema de Diseño oficial**, **Flujo Ordenado de Acceso con detección de Primer Ingreso del Responsable (`responsibleFirstAccess.ts`)**, pantalla de **Selección de Modo optimizada sin scroll**, arquitectura de **Autenticación Modular (`src/components/auth/`)** con **Modales Bottom Sheet Legales (`TermsModal` / `PrivacyModal`)** y selector de fecha (`DatePickerModal`), **Ingreso con Google (`logo_google.png`)**, **Gestión y Auditoría de 6 Permisos Android (`PermissionsScreen.tsx`)** con activación unidireccional en modos protegidos, **Navegación de 5 Pestañas en Modo Responsable (`DashboardNavbar.tsx`)**, **Panel Ejecutivo Modular de Actividad (`src/components/dashboard/actividad/`)** con 5 bloques de métricas y histograma de 24h, **Trazabilidad de Origen de Bloqueos entre Adulto Protegido y Responsable**, **Dashboards Diferenciados de 4 Módulos para Protegido Adulto y Protegido Menor** (con pestaña **Pasatiempos**: *Quiz*, *Sopa de letras* y *Juego de la memoria de 12 piezas*), **Sistema de Mascotas Emocionales (`Beti`, `Boti` y `Botito`)**, **Autoprotección del Responsable con bloqueo obligatorio de 24hs**, gestión de **hasta 5 dispositivos vinculados**, módulos nativos en **Kotlin 2.x** para filtrado local `VpnService`, **Capa de Servicios API Modularizada (`src/services/api/`)** y **Suite Automatizada de 116 Tests (27 suites)**.
+Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **Kit UI/UX del Sistema de Diseño oficial**, **Flujo Ordenado de Acceso con detección de Primer Ingreso del Responsable (`responsibleFirstAccess.ts`)**, pantalla de **Selección de Modo optimizada sin scroll**, arquitectura de **Autenticación Modular (`src/components/auth/`)** con **Modales Bottom Sheet Legales (`TermsModal` / `PrivacyModal`)** y selector de fecha (`DatePickerModal`), **Ingreso con Google (`logo_google.png`)**, **Gestión y Auditoría de 6 Permisos Android (`PermissionsScreen.tsx`)** con activación unidireccional en modos protegidos, **Navegación de 5 Pestañas en Modo Responsable (`DashboardNavbar.tsx`)**, **Panel Ejecutivo de Actividad con Datos Reales (`src/components/dashboard/actividad/`)** con visualización de alto contraste cognitivo, persistencia de período en `AsyncStorage`, destaque dinámico del día de hoy y anonimización de dominios LOTBA, **Trazabilidad de Origen de Bloqueos entre Adulto Protegido y Responsable**, **Dashboards Diferenciados de 4 Módulos para Protegido Adulto y Protegido Menor** (con pestaña **Pasatiempos**: *Quiz*, *Sopa de letras* y *Juego de la memoria de 12 piezas*), **Sistema de Mascotas Emocionales (`Beti`, `Boti` y `Botito`)**, **Autoprotección del Responsable con bloqueo obligatorio de 24hs**, gestión de **hasta 5 dispositivos vinculados** (con deshabilitación del engranaje de configuración mientras el dispositivo esté inactivo), módulos nativos en **Kotlin 2.x** para filtrado local `VpnService`, **Capa de Servicios API Modularizada (`src/services/api/`)** y **Suite Automatizada de 142 Tests (31 suites)**.
 
 ---
 
@@ -25,7 +27,7 @@ Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **K
 2. [Flujo Ordenado de Acceso y "Elegir protección"](#-flujo-ordenado-de-acceso-y-elegir-protección)
 3. [Reglas de Negocio Implementadas](#-reglas-de-negocio-implementadas)
 4. [Sistema de Diseño, Mascotas Emocionales y Kit UI/UX](#-sistema-de-diseño-mascotas-emocionales-y-kit-uiux)
-5. [Home y Panel Ejecutivo Modular de Actividad (Modo Responsable)](#-home-y-panel-ejecutivo-modular-de-actividad-modo-responsable)
+5. [Home y Panel Ejecutivo de Actividad (Modo Responsable)](#-home-y-panel-ejecutivo-de-actividad-modo-responsable)
 6. [Gestión de Sitios y Apps + Trazabilidad de Origen](#-gestión-de-sitios-y-apps--trazabilidad-de-origen)
 7. [Dashboards Diferenciados: Modo Protegido Adulto vs. Modo Menor](#-dashboards-diferenciados-modo-protegido-adulto-vs-modo-menor)
 8. [Pestaña de Cuenta Unificada por Rol](#-pestaña-de-cuenta-unificada-por-rol)
@@ -46,11 +48,12 @@ Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **K
 - **Servicios en Primer Plano:** `NotificationManager` con canal persistente de seguridad
 - **Puente Nativo:** `ProtectionModule` (`ReactContextBaseJavaModule`)
 - **Capa de Servicios API:** Modularizada en `src/services/api/` (`auth`, `devices`, `blocklist`, `selfControl`, `telemetry`) con fachada unificada `apiService` y soporte híbrido online/offline (`safeStorage`)
-- **Testing Automatizado:** Node Test Runner + `tsx` (`116 tests` distribuidos en `27 suites` y `15` archivos de prueba)
+- **Persistencia Local:** `@react-native-async-storage/async-storage` para sesiones, preferencias y períodos de analítica
+- **Testing Automatizado:** Node Test Runner + `tsx` (`142 tests` distribuidos en `31 suites` y `18` archivos de prueba)
 
 ---
 
-## 🔄 Flujo Ordenado de Acceso y "Elegir protección"
+## 🔄 Flujo Ordenado de Acceso y "Elegir proteção"
 
 La aplicación estructura su navegación desde `src/App.tsx` adaptándose al perfil elegido y recordando si el Responsable ya realizó su configuración inicial:
 
@@ -109,8 +112,9 @@ La aplicación estructura su navegación desde `src/App.tsx` adaptándose al per
    - Se presenta únicamente la primera vez que cada usuario Responsable accede a la app (persistido por correo normalizado o ID). En inicios de sesión posteriores pasa directamente a **Inicio (Home)**.
    - **Vincular dispositivo:** abre el modal `"Vincular nuevo dispositivo"` (`PairingModal.tsx`) y, una vez guardado el dispositivo, redirige directo a **Inicio (Home)**.
    - **Configurar este dispositivo:** dirige a **Sitios y apps**, que inicia con lista vacía (`0` sitios y `0` apps) mostrando un aviso claro de que primero debe agregarse al menos un sitio o app con el botón `+` para habilitar **Autoprotección**. Al activar **Autoprotección**, redirige automáticamente a **Inicio (Home)**.
-2. **Límite de Dispositivos Protegidos:**
+2. **Límite y Estado de Dispositivos Protegidos:**
    - Un Responsable puede vincular hasta **5 dispositivos protegidos** (`MAX_PROTECTED_DEVICES = 5`). Al alcanzar el tope, el botón `+` de adición se oculta automáticamente.
+   - **Control de Configuración en Dispositivos Inactivos:** El ícono de engranaje en [`DeviceCard.tsx`](src/components/dashboard/dispositivos/DeviceCard.tsx) solo está activo cuando la vinculación está activa. Mientras el dispositivo permanezca inactivo (pendiente de ingresar código), el ícono se presenta visualmente atenuado (opacidad al 35%) y sin interactividad.
 3. **Autoprotección / Autocontrol del Responsable con Compromiso de 24 Horas:**
    - Doble confirmación guiada (`AutocontrolConfirmationModal.tsx`).
    - **Requisito mínimo:** Deshabilitada mientras existan `0` sitios y `0` apps en la lista personalizada; se habilita al registrar al menos un elemento.
@@ -128,10 +132,13 @@ La aplicación estructura su navegación desde `src/App.tsx` adaptándose al per
 
 ## 🎨 Sistema de Diseño, Mascotas Emocionales y Kit UI/UX
 
-### 1. Tokens de Color Oficiales (`src/theme/colors.ts`)
-- **Primary (`#007AFF`):** Acciones principales, encabezados institucionales, enlaces y serie LOTBA.
+### 1. Tokens de Color Oficiales (`src/theme/colors.ts` & `palette.ts`)
+- **Primary (`#007AFF`):** Acciones principales, encabezados institucionales y enlaces del sistema.
 - **Header Institucional (`#EAF3FF`) & Active Tab (`#E5F1FF`):** Cabecera superior con `logo_baprotege_texto.png` y destaque de pestaña activa en barras de navegación.
-- **Custom Source Indigo (`#6366F1` / `#EEF2FF`):** Identificación visual de bloqueos provenientes de lista personalizada en métricas de Actividad.
+- **Alto Contraste Cognitivo en Actividad (`analyticsPalette`):**
+  - **Fuente LOTBA (Azul institucional `#0284C7`):** Bloqueos preestablecidos de la lista oficial.
+  - **Fuente Personalizada (Ámbar cálido `#F59E0B`):** Bloqueos específicos configurados por el tutor o adulto protegido.
+  - **Separador blanco accesible:** Corte de 3px entre segmentos para garantizar accesibilidad cognitiva y visual según WCAG AAA.
 - **Secondary / Success (`#28A745`):** Protección activa, permisos concedidos y juegos completados.
 - **Warning (`#D97706` / `#FEF3C7`):** Avisos de permisos pendientes (`DISPOSITIVO NO PROTEGIDO`) y requisitos previos de autoprotección.
 - **Danger (`#DC3545`):** Bloqueos críticos, alertas para menores y acciones destructivas.
@@ -151,7 +158,7 @@ Cada rol cuenta con su propio asistente visual y expresiones emocionales adaptad
 
 ---
 
-## 📊 Home y Panel Ejecutivo Modular de Actividad (Modo Responsable)
+## 📊 Home y Panel Ejecutivo de Actividad (Modo Responsable)
 
 ### 1. Home Compacta del Responsable (`ParentInicioSection.tsx`)
 Diseñada para visualizar el estado general sin necesidad de scroll:
@@ -161,14 +168,18 @@ Diseñada para visualizar el estado general sin necesidad de scroll:
 - **Cards simétricos de Sitios y Apps bloqueados** con acceso directo a cada sub-pestaña.
 - **Gráfico histórico compacto** de intentos interceptados + enlace a **Preguntas frecuentes**.
 
-### 2. Pestaña Actividad Modularizada (`src/components/dashboard/actividad/`)
-Arquitectura limpia orquestada por `ActivitySection.tsx` + `useActivityDashboard.ts` y motor matemático en `src/utils/activityMetrics.ts`:
-1. **`ActivityFiltersBar.tsx`:** Selector de **Dispositivo** (`Todos`, `Mi dispositivo` y dispositivos vinculados ordenados A-Z) y selector de **Período** (`Semana`, `Mes`, `Año`, `Total`).
-2. **`TotalBlocksCard.tsx`:** KPI de **Bloqueos totales** con separador de miles y badge de variación porcentual respecto al período equivalente anterior (*ej. `+14% vs. semana previa`*).
-3. **`BlocksBySourceCard.tsx`:** Barra proporcional al 100% y desglose entre **Lista LOTBA** y **Personalizada**.
-4. **`HourlyAttemptsCard.tsx`:** Histograma apilado de **24 horas (`0 h` a `23 h`)** con detección automática de hora pico e inspección interactiva tocando cualquier barra horaria.
-5. **`RecentAttemptsCard.tsx` + `BlockedAttemptRow.tsx`:** Lista de **Últimos intentos bloqueados** ordenada del más reciente al más antiguo con dominio, dispositivo, tiempo relativo y píldora de fuente.
-6. **Modales Bottom Sheet Desacoplados:** `DeviceFilterSheetModal.tsx`, `PeriodFilterSheetModal.tsx` y `AllBlockedAttemptsModal.tsx` (*"Ver todo"*).
+### 2. Panel Ejecutivo de Actividad con Datos Reales (`src/components/dashboard/actividad/`)
+Arquitectura desacoplada y modular orquestada por [`AnalyticsPanel.tsx`](src/components/dashboard/actividad/AnalyticsPanel.tsx) con soporte para datos de demostración o datos reales en vivo a través de [`useRealAnalyticsData.ts`](src/components/dashboard/actividad/useRealAnalyticsData.ts):
+1. **Cabecera Institucional Estilizada:** Con botón volver y selector desplegable de período (`PeriodSelector.tsx`).
+2. **Filtro de Período con Persistencia:** Inicia siempre en **Hoy** (`today`) en el primer acceso y persiste las elecciones del usuario en `AsyncStorage` (`@ba_protege_actividad_period`). Opciones ordenadas según diseño oficial: *Hoy*, *Esta semana*, *Este mes*.
+3. **Fila de Dispositivos Protegidos:** Chips horizontales (`DeviceChipsRow.tsx`) con dot de estado de salud, filtro por dispositivo individual o agregado general (`Todos`), con etiqueta `"Yo"` para el tutor.
+4. **Alerta de Conectividad (Heartbeat):** Banner inteligente (`HeartbeatBanner.tsx`) que advierte cuando un dispositivo vinculado dejó de reportar o tiene vinculación pendiente.
+5. **Bloqueos Totales y Desglose:** Tarjeta ejecutiva (`TotalBlocksCard.tsx`) con el total de intentos frenados, porcentaje de continuidad de protección (uptime) y distribución porcentual por dispositivo.
+6. **Bloqueos por Fuente y Gráfico Integrado:** Tarjeta unificada (`BlocksBySourceCard.tsx` + `ActivityChartCard.tsx`) que detalla la proporción entre **Lista LOTBA** y **Personalizada** e integra directamente el gráfico interactivo apilado (`StackedBarChart.tsx`):
+   - **Alternancia entre "Por día (Sem)" y "Franja horaria":** Mediante pestañas segmentadas.
+   - **Destaque Continuo del Día de Hoy:** La barra correspondiente al día de hoy en la vista semanal cuenta con corona superior **HOY**, borde institucional azul (`stackToday`), opacidad plena y destaque en el eje X. En la vista horaria, la barra de la hora actual recibe la corona **HOY** y el selector de días de la semana marca visualmente la jornada presente.
+   - **Inspector Sin Abreviaciones Ambiguas:** Muestra detalle de intentos por franja (ej. `Jueves (5 a 6 h): 9 intentos`) excluyendo la sigla `"int."`.
+7. **Listado de Bloqueos y Auditoría de Seguridad:** Pestañas de auditoría (`AuditEventsCard.tsx`) para consultar los últimos bloqueos y los eventos anti-bypass. Los dominios provenientes de la lista oficial de LOTBA se **anonimizan** automáticamente (ej. `apuestas-***.bet`) para preservar el secreto legal de la nómina.
 
 ---
 
@@ -217,112 +228,57 @@ Barra inferior diferenciada de 4 pestañas (`MenorNavbar.tsx`): **`Inicio` · `P
 
 ## ✨ Actualizaciones Recientes y Avances Técnicos
 
-1. **Optimización de "Elegir protección" (`ResponsibleActionScreen.tsx` + `responsibleFirstAccess.ts`)**: Aparición única en el primer acceso del Responsable, apertura directa de `PairingModal` con redirección a Home al guardar, inicio en lista vacía para `Sitios y apps` con aviso contextual de Autoprotección y redirección automática a Home tras activarla.
-2. **Modularización Completa de `ActivitySection` (`src/components/dashboard/actividad/`)**: Descomposición del panel ejecutivo en `useActivityDashboard`, 5 componentes de tarjetas (`ActivityFiltersBar`, `TotalBlocksCard`, `BlocksBySourceCard`, `HourlyAttemptsCard`, `RecentAttemptsCard` + `BlockedAttemptRow`) y 3 modales Bottom Sheet independientes.
-3. **Mascotas Emocionales `Boti` y `Botito` (`botMascots.ts` + `botAssets.ts`)**: Integración de 8 ilustraciones PNG dedicadas (`feliz`, `pensando`, `nervioso`, `triste`) asignadas contextualmente en pantallas, juegos y `FeedbackModal.tsx`.
-4. **Réplicas Adaptadas de Home y Cuenta para Adulto y Menor**: Consistencia visual de extremo a extremo entre los 3 perfiles operativos respetando los permisos y restricciones de cada rol.
-5. **Pasatiempos con Juego de la Memoria de 12 Piezas e Inactivación Post-Victoria**: Reemplazo del antiguo rompecabezas por `MemoryGameModal.tsx` (6 pares / 12 cartas) y ordenamiento dinámico de juegos completados al final de la lista.
-6. **Metadatos de Origen + Filtro en Sitios y Apps**: Sincronización de bloqueos creados por Adulto Protegido hacia la lista del Responsable con identificador visual y filtro dedicado.
-7. **Reglas Globales y Desactivación de Antidesinstalación Protegida con OTP (`AntiUninstallCodeModal.tsx`)**: Replicación de `GlobalRulesSection` en Cuenta de Menor y Adulto sin Autoprotección. Exige un código de 6 dígitos enviado por correo electrónico al Responsable para desactivar Antidesinstalación; invalidación automática si el usuario cierra el modal y generación de nuevo código al reabrirlo.
+1. **Nuevo Módulo de Actividad (`src/components/dashboard/actividad/`)**: Integración completa de la Propuesta Superadora de analítica con Alto Contraste Cognitivo (Azul LOTBA vs. Ámbar Personalizada), arquitectura modular (`atomic/`, `blocks/`, `hooks/`), anonimización de URLs de LOTBA, y orquestación con datos reales vía `useRealAnalyticsData.ts`.
+2. **Persistencia de Filtro de Período y Destaque de «Hoy»**: Apertura inicial obligatoria en **Hoy** con persistencia en `AsyncStorage` (`@ba_protege_actividad_period`). Destaque visual continuo de la barra de hoy (corona `HOY`, borde institucional y opacidad plena) en las vistas diaria y horaria, eliminando la sigla ambigua `"int."`.
+3. **Protección de Configuración en Dispositivos Inactivos (`DeviceCard.tsx`)**: Deshabilitación condicional del ícono de engranaje (opacidad 35%, no clickeable) mientras la vinculación no haya sido completada por el dispositivo protegido.
+4. **Mascotas Emocionales `Boti` y `Botito` (`botMascots.ts` + `botAssets.ts`)**: 8 ilustraciones PNG dedicadas (`feliz`, `pensando`, `nervioso`, `triste`) asignadas contextualmente en pantallas, juegos y modales.
+5. **Réplicas Adaptadas de Home y Cuenta para Adulto y Menor**: Consistencia visual de extremo a extremo entre los 3 perfiles operativos respetando permisos y restricciones por rol.
+6. **Pasatiempos con Juego de la Memoria de 12 Piezas e Inactivación Post-Victoria**: Reemplazo del antiguo rompecabezas por `MemoryGameModal.tsx` (6 pares / 12 cartas) y ordenamiento dinámico de juegos completados al final de la lista.
+7. **Metadatos de Origen + Filtro en Sitios y Apps**: Sincronización de bloqueos creados por Adulto Protegido hacia la lista del Responsable con identificador visual y filtro dedicado.
+8. **Reglas Globales y Desactivación de Antidesinstalación Protegida con OTP (`AntiUninstallCodeModal.tsx`)**: Código de 6 dígitos con correo enmascarado del responsable para desactivar Antidesinstalación, con invalidación automática al cerrar.
+9. **Crecimiento de la Suite de Pruebas**: Expansión a **142 tests automatizados en 31 suites**, garantizando cobertura integral en métricas, persistencia, flujos de vinculación, permisos y reglas de seguridad.
 
 ---
 
 ## 📁 Estructura del Proyecto
 
+A continuación se detalla la arquitectura modular del frontend organizada por dominios de responsabilidad:
+
 ```text
 frontend/
-├── android/                                      # Proyecto nativo Android (Gradle, Kotlin, VpnService)
+├── android/                                      # Proyecto nativo Android (Gradle, Kotlin, VpnService, ProtectionModule)
 ├── src/
 │   ├── assets/                                   # Recursos gráficos oficiales
-│   │   ├── icons/
-│   │   │   ├── bot/                              # Mascotas oficiales por perfil y sentimiento
-│   │   │   │   ├── beti.png                      # Mascota del Tutor Responsable
-│   │   │   │   ├── adulto/                       # Boti (feliz, pensando, nervioso, triste)
-│   │   │   │   └── menor/                        # Botito (feliz, pensando, nervioso, triste)
-│   │   │   ├── navbar/                           # Íconos de barra de navegación inferior
-│   │   │   └── *.png                             # Íconos UI (escudo, engrenaje, volver, alerta, etc.)
-│   │   └── logo/                                 # Logos institucionales (logo_ba, logo_baprotege_texto, Google)
-│   ├── components/
-│   │   ├── auth/                                 # Login, Registro (+18), Recuperación, Ayuda y Modales Legales
-│   │   ├── dashboard/
-│   │   │   ├── inicio/                           # Home compacta del Responsable (ParentInicioSection)
-│   │   │   ├── dispositivos/                     # Tarjetas de dispositivos, PairingModal, Autocontrol 24h y Auditoría
-│   │   │   ├── sitios/                           # SitiosTab, AppsTab, Modales CRUD, Filtro de Origen y Hooks
-│   │   │   │   └── hooks/                        # useSitesManagement.ts y useAppsManagement.ts
-│   │   │   ├── actividad/                        # Panel Ejecutivo Modular de Actividad (5 bloques + 3 modales)
-│   │   │   │   ├── hooks/useActivityDashboard.ts # Estado, carga de telemetría y derivación de métricas
-│   │   │   │   ├── ActivitySection.tsx           # Orquestador modular de Actividad
-│   │   │   │   ├── ActivityFiltersBar.tsx        # Bloque 1: Selector de Dispositivo y Período
-│   │   │   │   ├── TotalBlocksCard.tsx           # Bloque 2: KPI Bloqueos totales y variación %
-│   │   │   │   ├── BlocksBySourceCard.tsx        # Bloque 3: Lista LOTBA vs. Personalizada
-│   │   │   │   ├── HourlyAttemptsCard.tsx        # Bloque 4: Histograma apilado 24h + hora pico
-│   │   │   │   ├── RecentAttemptsCard.tsx        # Bloque 5: Últimos intentos bloqueados
-│   │   │   │   ├── BlockedAttemptRow.tsx         # Fila reutilizable de intento bloqueado
-│   │   │   │   ├── DeviceFilterSheetModal.tsx    # Bottom Sheet de filtro por dispositivo
-│   │   │   │   ├── PeriodFilterSheetModal.tsx    # Bottom Sheet de selección de período
-│   │   │   │   └── AllBlockedAttemptsModal.tsx   # Bottom Sheet "Ver todo" (historial completo)
-│   │   │   ├── cuenta/                           # Perfil, Reglas globales, FAQ, Legal y RatingModal
-│   │   │   ├── protected/                        # Dashboards diferenciados para dispositivos protegidos
-│   │   │   │   ├── botAssets.ts                  # Mapa tipado de imágenes PNG para Boti y Botito
-│   │   │   │   ├── adulto/                       # Navbar, Inicio, Sitios (buscar/ordenar/agregar), Actividad y Cuenta
-│   │   │   │   ├── menor/                        # Navbar, Inicio dinámico, Pasatiempos, Actividad y Cuenta
-│   │   │   │   └── juegos/                       # QuizModal, WordSearchModal y MemoryGameModal (12 piezas)
-│   │   │   ├── DashboardNavbar.tsx               # Navbar de 5 pestañas del Responsable (#E5F1FF)
-│   │   │   └── SeccionDesplegable.tsx            # Contenedor acordeón reutilizable
-│   │   ├── ActionButton.tsx                      # Botón institucional con variantes
-│   │   ├── Badge.tsx                             # Insignias semánticas de estado
-│   │   ├── FabWithTooltip.tsx                    # FAB (+) con bocadillo auto-ocultable de 3s
-│   │   ├── FeedbackModal.tsx                     # Modal unificado con soporte de mascotas emocionales
-│   │   ├── Header.tsx                            # Cabecera #EAF3FF con botón Volver estandarizado
-│   │   ├── Icon.tsx                              # Sistema unificado de íconos PNG
-│   │   ├── PinKeyboard.tsx                       # Teclado numérico de PIN parental
-│   │   ├── SplashScreen.tsx                      # Pantalla inicial animada
-│   │   └── ToggleSwitch.tsx                      # Switch animado con soporte de estado deshabilitado
-│   ├── data/
-│   │   └── tutorialVideos.ts                     # Guiones y metadatos del Wizard de Onboarding
-│   ├── screens/                                  # Orquestadores de pantallas principales
-│   │   ├── OnboardingScreen.tsx                  # Paso 1: Wizard de 3 pasos + video optativo
-│   │   ├── WelcomeScreen.tsx                     # Paso 2: Selección Responsable vs. Protegido
-│   │   ├── LoginScreen.tsx                       # Paso 3A: Autenticación del Responsable
-│   │   ├── PairingScreen.tsx                     # Paso 3B: Vinculación por código o QR
-│   │   ├── PermissionsScreen.tsx                 # Paso 4: 6 Permisos del dispositivo Android
-│   │   ├── ResponsibleActionScreen.tsx           # Paso 4.1: "Elegir protección" (solo 1er acceso)
-│   │   ├── ParentDashboardScreen.tsx             # Paso 5A: Dashboard de 5 pestañas del Responsable
-│   │   └── ProtectedDeviceScreen.tsx             # Paso 5B: Dashboard Adulto o Menor Protegido
-│   ├── services/
-│   │   ├── api/                                  # Módulos API (auth, devices, blocklist, selfControl, telemetry, client)
-│   │   ├── api.service.ts                        # Fachada unificada retrocompatible
-│   │   ├── googleAuth.service.ts                 # Integración Google Sign-In
-│   │   ├── protection.service.ts                 # Puente JS <-> Kotlin ProtectionModule (6 permisos y motor VPN)
-│   │   └── vpn.service.ts                        # Re-export retrocompatible a protection.service.ts
-│   ├── theme/                                    # Paleta de colores y escala tipográfica
-│   ├── types/                                    # Contratos e interfaces TypeScript globales
-│   └── utils/                                    # Lógica pura de dominio testeable en Node
-│       ├── activityMetrics.ts                    # Motor de cálculo de métricas, series 24h y períodos
-│       ├── adultoSitios.ts                       # Búsqueda, ordenamiento y etiquetas de origen Adulto Protegido
-│       ├── age.ts                                # Validación de mayoría de edad (+18)
-│       ├── authValidation.ts                     # Validación de credenciales y formularios
-│       ├── botMascots.ts                         # Selección contextual de sentimientos para Boti y Botito
-│       ├── deviceColors.ts                       # Paleta persistente de colores por dispositivo
-│       ├── pasatiempos.ts                        # Juegos, rotación en Inicio, Sopa de letras y Memoria (12 piezas)
-│       ├── permissionChecker.ts                  # Verificación de los 6 permisos Android
-│       └── responsibleFirstAccess.ts             # Persistencia de primer acceso y reglas de Autoprotección
-└── tests/                                        # Suite de 116 pruebas unitarias (27 suites / 15 archivos)
-    ├── activityMetrics.test.ts
-    ├── adultoSitios.test.ts
-    ├── ageValidation.test.ts
-    ├── botMascots.test.ts
-    ├── customApps.test.ts
-    ├── customBlocklist.test.ts
-    ├── dashboardNavbarAndPairing.test.ts
-    ├── onboarding.test.ts
-    ├── pasatiempos.test.ts
-    ├── permissions.test.ts
-    ├── responsibleFirstAccess.test.ts
-    ├── selfControl.test.ts
-    ├── theme.test.ts
-    ├── types.test.ts
-    └── uikit.test.ts
+│   │   ├── icons/                                # Íconos vectoriales y PNG (UI, navbar, escudo, engrenaje, etc.)
+│   │   │   └── bot/                              # Mascotas oficiales: Beti (Tutor), Boti (Adulto) y Botito (Menor)
+│   │   └── logo/                                 # Logotipos institucionales (BA, BA Protege+, Google)
+│   ├── components/                               # Componentes visuales desacoplados
+│   │   ├── auth/                                 # Módulos de autenticación, términos y date picker
+│   │   ├── dashboard/                            # Vistas y paneles principales del sistema
+│   │   │   ├── inicio/                           # Home compacta del Tutor Responsable
+│   │   │   ├── dispositivos/                     # Gestión y tarjetas de dispositivos (PairingModal, Autocontrol)
+│   │   │   ├── sitios/                           # Administración de sitios y apps (bloqueos y filtros de origen)
+│   │   │   ├── actividad/                        # Panel de Analítica y Actividad (Propuesta Superadora MVP)
+│   │   │   │   ├── atomic/                       # Primitivas gráficas (StackedBarChart, PillChip, SegmentedTabs)
+│   │   │   │   ├── blocks/                       # Bloques de alto nivel (KPIs, desglose, auditoría, selector de período)
+│   │   │   │   ├── hooks/                        # Lógica de analítica y persistencia (useAnalyticsPanel)
+│   │   │   │   └── useRealAnalyticsData.ts       # Mapeo de eventos reales y telemetría hacia el modelo visual
+│   │   │   ├── cuenta/                           # Ajustes del responsable (perfil, reglas globales, soporte, legal)
+│   │   │   └── protected/                        # Dashboards dedicados para dispositivos vinculados
+│   │   │       ├── adulto/                       # Dashboard adaptado para Modo Adulto Protegido
+│   │   │       ├── menor/                        # Dashboard lúdico para Modo Menor Protegido
+│   │   │       └── juegos/                       # Juegos educativos (Quiz, Sopa de Letras, Memoria 12 piezas)
+│   │   └── [UI Común]                            # Botones, cabecera #EAF3FF, switches, badges y modales reutilizables
+│   ├── data/                                     # Contenidos estáticos y guiones de tutoriales de onboarding
+│   ├── screens/                                  # Pantallas y orquestadores principales del ciclo de vida
+│   ├── services/                                 # Capa de integración y servicios de backend
+│   │   ├── api/                                  # Módulos de API tipados (auth, devices, blocklist, telemetry, client)
+│   │   ├── api.service.ts                        # Fachada unificada de comunicación con el backend
+│   │   └── protection.service.ts                 # Puente JS hacia el módulo nativo Android (VPN y permisos)
+│   ├── theme/                                    # Tokens de diseño global (paleta de colores, tipografía, bordes)
+│   ├── types/                                    # Contratos e interfaces TypeScript del dominio
+│   └── utils/                                    # Lógica pura de negocio y funciones de utilidad
+└── tests/                                        # Suite de 142 tests automatizados (31 suites en 18 archivos)
 ```
 
 ---
@@ -340,7 +296,7 @@ npm install
 npm run lint
 ```
 
-### 3. Ejecutar la Suite Completa de Tests Automatizados (`116 tests / 27 suites`)
+### 3. Ejecutar la Suite Completa de Tests Automatizados (`142 tests / 31 suites`)
 ```bash
 npm test
 ```
