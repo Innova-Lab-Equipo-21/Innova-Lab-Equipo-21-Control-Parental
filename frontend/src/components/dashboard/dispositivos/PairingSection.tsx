@@ -212,7 +212,7 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
       deviceModel: deviceModel.trim() || undefined,
     };
 
-    onGenerateCode(payload);
+    onGenerateCode?.(payload);
     return payload;
   };
 
@@ -489,74 +489,6 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
           />
         </View>
       </View>
-
-      {/* MUESTRA DE CÓDIGO, QR Y ACCIONES POR ÍCONOS */}
-      {pairingCode ? (
-        <View style={styles.codeDisplayCard}>
-          <View style={styles.codeDisplay}>
-            <Text style={styles.protectedSummaryText}>
-              Vinculando a: {protectedName.trim() || 'Nuevo protegido'} ({protectedType || 'Pendiente'})
-            </Text>
-            <Text style={styles.codeNumber}>{pairingCode}</Text>
-          </View>
-
-          <View style={styles.qrCodeBox}>
-            <Text style={styles.qrTitle}>Código QR de vinculación</Text>
-            <Text style={styles.qrSubtitle}>
-              Apunta la cámara del celular de {protectedName.trim() || 'del protegido'} aquí para vincular
-            </Text>
-
-            <View style={styles.qrImageContainer}>
-              <Image
-                source={{
-                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${pairingCode}&color=007AFF&bgcolor=FFFFFF`,
-                }}
-                style={styles.qrImage}
-                resizeMode="contain"
-              />
-            </View>
-
-            {/* ACCIONES ESPECÍFICAS CON ÍCONOS: Generar nuevo código y Compartir código */}
-            <View style={styles.codeActionsRow}>
-              <TouchableOpacity
-                style={styles.actionIconButton}
-                onPress={handleValidationAndGenerate}
-                disabled={loading}
-                activeOpacity={0.7}
-                accessibilityLabel="Generar nuevo código"
-              >
-                <View style={styles.actionIconCircle}>
-                  <Icon name="recargar" size={22} color={colors.primary} />
-                </View>
-                <Text style={styles.actionIconLabel}>Generar nuevo código</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionIconButton}
-                onPress={handleShareCode}
-                activeOpacity={0.7}
-                accessibilityLabel="Compartir código"
-              >
-                <View style={styles.actionIconCircle}>
-                  <Icon name="compartir" size={22} color={colors.primary} />
-                </View>
-                <Text style={styles.actionIconLabel}>Compartir código</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      ) : null}
-
-      {/* CTA: Generar código (visible cuando aún no se ha generado el código) */}
-      {!pairingCode && (
-        <ActionButton
-          title="Generar código"
-          variant="primary"
-          onPress={handleValidationAndGenerate}
-          loading={loading}
-          disabled={deviceCount >= MAX_PROTECTED_DEVICES}
-        />
-      )}
 
       {/* Modal de Selección de Calendario */}
       <DatePickerModal

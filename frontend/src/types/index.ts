@@ -68,6 +68,8 @@ export interface DeviceInfo {
   createdAt?: string;
   pairedAt?: string;
   colorIndex?: number;
+  pairingCode?: string;
+  pairingExpiresAt?: string;
 }
 
 /**

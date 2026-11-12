@@ -30,6 +30,16 @@ enum Gender {
 }
 
 // ------------------------------------------------------------------------------
+// Enum de Tipo de Protegido (Menor o Adulto)
+// ------------------------------------------------------------------------------
+enum PersonType {
+  MENOR
+  ADULTO
+
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
 // Enum de Estados Efectivos de Protección
 // ------------------------------------------------------------------------------
 enum ProtectionStatus {
@@ -103,18 +113,22 @@ model User {
 // Modelo: Dispositivo Protegido
 // ------------------------------------------------------------------------------
 model Device {
-  id         String    @id @default(uuid())
-  userId     String    @map("user_id")
-  deviceName String    @map("device_name")
-  deviceUuid String    @unique @map("device_uuid")
-  childName  String?   @map("child_name")
+  id         String      @id @default(uuid())
+  userId     String      @map("user_id")
+  deviceName String      @map("device_name")
+  deviceUuid String      @unique @map("device_uuid")
+  childName  String?     @map("child_name")
+  birthDate  DateTime?   @map("birth_date") @db.Date
+  gender     Gender?
+  personType PersonType? @map("person_type")
+  phone      String?
   model      String?
-  osVersion  String?   @map("os_version")
-  appVersion String?   @map("app_version")
-  isActive   Boolean   @default(true) @map("is_active")
-  lastSeenAt DateTime? @map("last_seen_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  osVersion  String?     @map("os_version")
+  appVersion String?     @map("app_version")
+  isActive   Boolean     @default(true) @map("is_active")
+  lastSeenAt DateTime?   @map("last_seen_at")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
 
   user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   status         DeviceStatus?
@@ -131,13 +145,18 @@ model Device {
 // Modelo: Códigos de Pareamiento
 // ------------------------------------------------------------------------------
 model DevicePairing {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  deviceId    String?  @map("device_id")
-  pairingCode String   @unique @map("pairing_code")
-  isUsed      Boolean  @default(false) @map("is_used")
-  expiresAt   DateTime @map("expires_at")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id          String      @id @default(uuid())
+  userId      String      @map("user_id")
+  deviceId    String?     @map("device_id")
+  childName   String?     @map("child_name")
+  birthDate   DateTime?   @map("birth_date") @db.Date
+  gender      Gender?
+  personType  PersonType? @map("person_type")
+  phone       String?
+  pairingCode String      @unique @map("pairing_code")
+  isUsed      Boolean     @default(false) @map("is_used")
+  expiresAt   DateTime    @map("expires_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)

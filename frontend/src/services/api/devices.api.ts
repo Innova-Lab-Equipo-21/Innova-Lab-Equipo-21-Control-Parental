@@ -16,7 +16,7 @@ export const devicesApi = {
     try {
       const devicesRes = await this.listDevices();
       const currentCount = devicesRes.data?.length || 0;
-      if (currentCount >= MAX_PROTECTED_DEVICES) {
+      if (currentCount >= MAX_PROTECTED_DEVICES && !data?.deviceId) {
         throw new Error(
           `Límite alcanzado: Un responsable solo puede vincular un máximo de ${MAX_PROTECTED_DEVICES} dispositivos.`
         );
@@ -31,9 +31,39 @@ export const devicesApi = {
 
     try {
       const response = await apiClient.post('/devices/pair/generate', data || {});
-      return response.data;
+      const pairData = response.data?.data;
+      const code = pairData?.pairingCode || pairData?.code;
+      if (code && data?.deviceId) {
+        try {
+          const raw = await safeStorage.getItem('@ba_protege_devices_list');
+          if (raw) {
+            const list: DeviceInfo[] = JSON.parse(raw);
+            const updated = list.map((d) =>
+              d.deviceId === data.deviceId || d.deviceUuid === data.deviceId
+                ? { ...d, pairingCode: code }
+                : d
+            );
+            await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updated));
+          }
+        } catch (_) {}
+      }
+      return { success: true, data: { code, ...pairData } };
     } catch (err) {
       const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
+      if (data?.deviceId) {
+        try {
+          const raw = await safeStorage.getItem('@ba_protege_devices_list');
+          if (raw) {
+            const list: DeviceInfo[] = JSON.parse(raw);
+            const updated = list.map((d) =>
+              d.deviceId === data.deviceId || d.deviceUuid === data.deviceId
+                ? { ...d, pairingCode: fallbackCode }
+                : d
+            );
+            await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updated));
+          }
+        } catch (_) {}
+      }
       return { success: true, data: { code: fallbackCode } };
     }
   },
@@ -212,7 +242,55 @@ export const devicesApi = {
     try {
       const response = await apiClient.get('/devices');
       if (response.data?.data && Array.isArray(response.data.data)) {
-        backendDevices = response.data.data;
+        backendDevices = response.data.data.map((bd: any) => {
+          let bDateFormatted = '';
+          if (bd.birthDate) {
+            try {
+              const dt = new Date(bd.birthDate);
+              const day = dt.getUTCDate().toString().padStart(2, '0');
+              const month = (dt.getUTCMonth() + 1).toString().padStart(2, '0');
+              const year = dt.getUTCFullYear();
+              bDateFormatted = `${day}/${month}/${year}`;
+            } catch (_) {}
+          }
+          const profType: 'Menor' | 'Adulto' = bd.personType === 'ADULTO' ? 'Adulto' : 'Menor';
+          let genderFormatted = 'No informado';
+          if (bd.gender) {
+            const rawG = bd.gender.toUpperCase();
+            if (rawG === 'MASCULINO') genderFormatted = 'Masculino';
+            else if (rawG === 'FEMENINO') genderFormatted = 'Femenino';
+            else if (rawG === 'OTRO') genderFormatted = 'Otro';
+          }
+          return {
+            deviceId: bd.id,
+            deviceUuid: bd.deviceUuid,
+            deviceName: bd.deviceName || bd.childName || 'Protegido',
+            childName: bd.childName || bd.deviceName || 'Protegido',
+            isProtected: bd.status?.vpnActive ?? false,
+            status: bd.status?.effectiveStatus || 'INACTIVE',
+            lastHeartbeat:
+              bd.status?.effectiveStatus === 'INACTIVE'
+                ? 'Pendiente de vinculación'
+                : 'En línea',
+            blockedCount: bd._count?.blockedEvents || 0,
+            blocklistVersion: bd.status?.blocklistVersion || 4,
+            phone: bd.phone || '',
+            birthDate: bDateFormatted,
+            gender: genderFormatted,
+            profileType: profType,
+            deviceModel: bd.model || 'Android',
+            pairingCode: bd.pairingCode || undefined,
+            permissions: {
+              vpn: bd.status?.vpnActive ?? false,
+              accessibility: bd.status?.permissionsOk ?? false,
+              notifications: true,
+              batteryOptimization: true,
+              location: true,
+              usageStats: true,
+              grantedCount: bd.status?.permissionsOk ? 6 : 1,
+            },
+          } as DeviceInfo;
+        });
       }
     } catch (e) {
       // Usar almacenamiento local / demo
@@ -232,7 +310,20 @@ export const devicesApi = {
     // Combinar dispositivos del backend con dispositivos creados en el emulador (sin duplicados por ID)
     const combinedMap = new Map<string, DeviceInfo>();
     backendDevices.forEach((d) => combinedMap.set(d.deviceId || d.deviceUuid, d));
-    localDevices.forEach((d) => combinedMap.set(d.deviceId || d.deviceUuid, d));
+    localDevices.forEach((d) => {
+      const key = d.deviceId || d.deviceUuid;
+      if (combinedMap.has(key)) {
+        // Mantener pairingCode y propiedades locales si el backend no las tiene
+        const existing = combinedMap.get(key)!;
+        combinedMap.set(key, {
+          ...existing,
+          ...d,
+          pairingCode: existing.pairingCode || d.pairingCode,
+        });
+      } else {
+        combinedMap.set(key, d);
+      }
+    });
 
     let finalDevices = Array.from(combinedMap.values());
 
@@ -257,6 +348,7 @@ export const devicesApi = {
           status: keepInactive ? 'INACTIVE' : (d.status || existing.status),
           isProtected: keepInactive ? false : (d.isProtected ?? existing.isProtected),
           lastHeartbeat: keepInactive ? 'Pendiente de vinculación' : (d.lastHeartbeat || existing.lastHeartbeat),
+          pairingCode: existing.pairingCode || d.pairingCode,
         });
       }
     });
@@ -307,6 +399,18 @@ export const devicesApi = {
       const updatedSelf = await this.updateSelfDevice(data);
       return { success: true, data: updatedSelf };
     }
+
+    // Intentar sincronizar con el backend
+    try {
+      await apiClient.put(`/devices/${deviceId}`, {
+        childName: data.childName || data.deviceName,
+        birthDate: data.birthDate,
+        gender: data.gender,
+        profileType: data.profileType,
+        phone: data.phone,
+        deviceModel: data.deviceModel,
+      });
+    } catch (_) {}
 
     const res = await this.listDevices();
     let updatedDevice: DeviceInfo | null = null;
@@ -360,6 +464,7 @@ export const devicesApi = {
         status: data.status || existing.status || 'INACTIVE',
         isProtected: data.isProtected ?? existing.isProtected ?? false,
         lastHeartbeat: data.lastHeartbeat || existing.lastHeartbeat || 'Pendiente de vinculación',
+        pairingCode: data.pairingCode || existing.pairingCode,
       };
       const updatedList = [...res.data];
       updatedList[existingIndex] = updatedDevice;
@@ -381,19 +486,44 @@ export const devicesApi = {
       assignedColorIndex = res.data.length % 5;
     }
 
+    // Intentar persistir formalmente en PostgreSQL y generar código
+    let backendCreated: any = null;
+    let backendPairingCode: string | null = null;
+    try {
+      const response = await apiClient.post('/devices', {
+        childName: data.childName || data.deviceName,
+        birthDate: data.birthDate,
+        gender: data.gender,
+        profileType: data.profileType || 'Menor',
+        phone: data.phone,
+        deviceModel: data.deviceModel || 'Android',
+      });
+      if (response.data?.data) {
+        backendCreated = response.data.data.device;
+        backendPairingCode = response.data.data.pairingCode;
+      }
+    } catch (_) {}
+
+    const assignedCode =
+      backendPairingCode ||
+      data.pairingCode ||
+      Math.floor(100000 + Math.random() * 900000).toString();
+
     const nextIndex = res.data.length;
-    const newId = `dev-${Date.now()}`;
+    const newId = backendCreated?.id || `dev-${Date.now()}`;
+    const newUuid = backendCreated?.deviceUuid || `uuid-${newId}`;
+
     const newDevice: DeviceInfo = {
       deviceId: newId,
-      deviceUuid: `uuid-${newId}`,
+      deviceUuid: newUuid,
       deviceName:
         data.childName ||
         data.deviceName ||
         `Protegido ${nextIndex + 1}`,
       childName: data.childName || `Protegido ${nextIndex + 1}`,
-      isProtected: data.isProtected ?? false,
-      status: data.status || 'INACTIVE',
-      lastHeartbeat: data.lastHeartbeat || 'Pendiente de vinculación',
+      isProtected: false,
+      status: 'INACTIVE',
+      lastHeartbeat: 'Pendiente de vinculación',
       blockedCount: 0,
       blocklistVersion: 4,
       phone: data.phone || '',
@@ -403,6 +533,7 @@ export const devicesApi = {
       deviceModel: data.deviceModel || 'Android',
       createdAt: new Date().toLocaleDateString('es-AR'),
       colorIndex: typeof data.colorIndex === 'number' ? data.colorIndex : assignedColorIndex,
+      pairingCode: assignedCode,
       permissions: data.permissions || {
         vpn: false,
         accessibility: false,

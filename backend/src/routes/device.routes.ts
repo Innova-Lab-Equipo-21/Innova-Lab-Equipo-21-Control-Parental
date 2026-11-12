@@ -87,8 +87,18 @@ router.post(
 // Rutas de gestión de dispositivos (exclusivas del responsable autenticado)
 router.get('/', requireAuth, (req, res, next) => deviceController.listDevices(req, res, next));
 
+router.post('/', requireAuth, (req, res, next) => deviceController.createDevice(req, res, next));
+
 router.get('/:id', requireAuth, (req, res, next) =>
   deviceController.getDeviceDetail(req, res, next),
+);
+
+router.put('/:id', requireAuth, (req, res, next) =>
+  deviceController.updateDevice(req, res, next),
+);
+
+router.post('/:id/pair/generate', requireAuth, (req, res, next) =>
+  deviceController.generatePairingCode(req, res, next),
 );
 
 router.patch('/:id/config', requireAuth, validateRequest(updateConfigSchema), (req, res, next) =>

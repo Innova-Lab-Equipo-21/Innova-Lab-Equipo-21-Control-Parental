@@ -12,8 +12,58 @@ import { AppError } from '../middlewares/error.middleware.js';
 
 export class DeviceController {
   /**
-   * Genera un código de pareamiento temporal (exclusivo para responsables autenticados).
-   * POST /api/devices/pair/generate
+   * Registra un nuevo dispositivo protegido y genera automáticamente su código de vinculación.
+   * POST /api/devices
+   */
+  public async createDevice(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) throw new AppError('Usuario no autenticado', 401);
+
+      const result = await deviceService.createDevice(userId, req.body);
+
+      res.status(201).json({
+        success: true,
+        message: 'Dispositivo registrado y código de vinculación generado con éxito',
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Actualiza los datos de un dispositivo protegido ya registrado.
+   * PUT /api/devices/:id
+   */
+  public async updateDevice(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) throw new AppError('Usuario no autenticado', 401);
+
+      const result = await deviceService.updateDevice(userId, req.params.id, req.body);
+
+      res.status(200).json({
+        success: true,
+        message: 'Dispositivo actualizado exitosamente',
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Genera o regenera un código de pareamiento (exclusivo para responsables autenticados).
+   * POST /api/devices/pair/generate o POST /api/devices/:id/pair/generate
    */
   public async generatePairingCode(
     req: AuthenticatedRequest,
@@ -24,7 +74,8 @@ export class DeviceController {
       const userId = req.user?.userId;
       if (!userId) throw new AppError('Usuario no autenticado', 401);
 
-      const result = await deviceService.generatePairingCode({ userId });
+      const deviceId = req.params?.id || req.body?.deviceId;
+      const result = await deviceService.generatePairingCode({ userId, deviceId });
 
       res.status(200).json({
         success: true,
