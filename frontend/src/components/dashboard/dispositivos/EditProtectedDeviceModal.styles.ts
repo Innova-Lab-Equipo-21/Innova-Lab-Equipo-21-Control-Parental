@@ -307,4 +307,32 @@ export const styles = StyleSheet.create({
     color: colors.primaryDark,
     textAlign: 'center',
   },
+  linkedCard: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#10B981',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  linkedCardIcon: {
+    fontSize: 22,
+    marginRight: 12,
+  },
+  linkedCardContent: {
+    flex: 1,
+  },
+  linkedCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#065F46',
+    marginBottom: 2,
+  },
+  linkedCardText: {
+    fontSize: 12,
+    color: '#047857',
+    lineHeight: 16,
+  },
 });

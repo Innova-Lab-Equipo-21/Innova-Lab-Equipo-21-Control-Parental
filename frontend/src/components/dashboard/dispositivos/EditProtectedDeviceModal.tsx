@@ -585,7 +585,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
             </View>
 
             {/* Sección: Vinculación de dispositivo recuperada de la base de datos */}
-            {(device?.status === 'INACTIVE' || !device?.isProtected) && (
+            {(device?.status === 'INACTIVE' || !device?.isProtected) ? (
               <View style={styles.pairingSectionContainer}>
                 <View style={styles.pairingDivider} />
                 <Text style={styles.pairingSectionTitle}>Vinculación de dispositivo</Text>
@@ -655,6 +655,20 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
                         <Text style={styles.actionIconLabel}>Compartir código</Text>
                       </TouchableOpacity>
                     </View>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.pairingSectionContainer}>
+                <View style={styles.pairingDivider} />
+                <Text style={styles.pairingSectionTitle}>Vinculación de dispositivo</Text>
+                <View style={styles.linkedCard}>
+                  <Text style={styles.linkedCardIcon}>✅</Text>
+                  <View style={styles.linkedCardContent}>
+                    <Text style={styles.linkedCardTitle}>Dispositivo vinculado y protegido</Text>
+                    <Text style={styles.linkedCardText}>
+                      Este dispositivo completó exitosamente la vinculación y se encuentra activo bajo las reglas de protección.
+                    </Text>
                   </View>
                 </View>
               </View>
