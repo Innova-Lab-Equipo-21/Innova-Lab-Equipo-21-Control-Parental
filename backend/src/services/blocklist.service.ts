@@ -3,6 +3,7 @@ import { env } from '../config/environment.js';
 import { mockDb } from '../config/mock-database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { normalizeDomain } from '../utils/domain.js';
+import crypto from 'crypto';
 
 export interface AddCustomDomainInput {
   userId: string;
@@ -223,7 +224,7 @@ export class BlocklistService {
         throw new AppError('El dominio ya se encuentra en la lista personalizada', 409);
       }
       const newDom = {
-        id: `dom-${Date.now()}`,
+        id: `dom-${crypto.randomUUID()}`,
         blocklistId: list.id,
         domain: cleanDomain,
         category: input.category || 'CUSTOM',
