@@ -76,23 +76,29 @@ export class BlocklistService {
    * Obtiene todas las reglas de bloqueo consolidadas aplicables a un dispositivo (LOTBA + Personalizadas del Responsable).
    */
   public async getEffectiveBlocklistForDevice(deviceUuid: string) {
-    if (env.USE_MOCK_DATA) {
+        if (env.USE_MOCK_DATA) {
       const device = mockDb.devices.find((d) => d.deviceUuid === deviceUuid);
       const lotbaList = await this.getOfficialLotbaList();
       const domains: string[] = lotbaList.domains.map((d) => d.domain);
 
+      let customVersion = 1;
       if (device && device.config.blockCustomList && device.userId) {
         const custom = mockDb.blocklists.find((b) => b.userId === device.userId && b.type === 'CUSTOM');
         if (custom) {
-          domains.push(...custom.domains.map((d) => d.domain));
+          customVersion = custom.version;
+          // Igual que en la base real: los dominios desactivados por el tutor no se aplican
+          domains.push(
+            ...(custom.domains as any[]).filter((d) => d.isActive !== false).map((d) => d.domain),
+          );
         }
       }
 
       const uniqueDomains = Array.from(new Set(domains));
       return {
-        version: lotbaList.version,
+        // Misma fórmula que la base real, para que el dispositivo detecte cambios en la lista personal
+        version: lotbaList.version * 1000 + customVersion,
         lotbaVersion: lotbaList.version,
-        customVersion: 1,
+        customVersion,
         domains: uniqueDomains,
         totalCount: uniqueDomains.length,
       };
@@ -276,7 +282,7 @@ export class BlocklistService {
 
     let cleanDomain: string | undefined;
     if (input.domain !== undefined) {
-      cleanDomain = input.domain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+           cleanDomain = normalizeDomain(input.domain);
       if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
         throw new AppError('Formato de dominio no válido (ejemplo: sitio.com)', 400);
       }
