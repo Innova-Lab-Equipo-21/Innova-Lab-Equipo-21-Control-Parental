@@ -11,6 +11,7 @@ import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../src/app.js';
 import type { Server } from 'node:http';
+import { blocklistService } from '../src/services/blocklist.service.js';
 
 describe('Módulo de Listas de Bloqueo (Blocklist API)', () => {
   let server: Server;
@@ -137,5 +138,91 @@ describe('Módulo de Listas de Bloqueo (Blocklist API)', () => {
       }),
     });
     assert.equal(res.status, 400);
+  });
+    async function postDomain(domain: string) {
+    return fetch(`${baseUrl}/api/blocklist/custom/domains`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({ domain }),
+    });
+  }
+
+  async function putDomain(id: string, body: Record<string, unknown>) {
+    return fetch(`${baseUrl}/api/blocklist/custom/domains/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify(body),
+    });
+  }
+
+  test('POST con una dirección copiada del navegador guarda solo el dominio limpio', async () => {
+    const ts = Date.now();
+    const res = await postDomain(`https://www.Sitio-Prueba-${ts}.com/ruta?x=1`);
+    assert.equal(res.status, 201);
+    const data = await res.json();
+    assert.equal(data.data.domain, `sitio-prueba-${ts}.com`);
+  });
+
+  test('POST de un dominio repetido debe retornar 409, aunque se escriba distinto', async () => {
+    const ts = Date.now();
+    const first = await postDomain(`repetido-${ts}.com`);
+    assert.equal(first.status, 201);
+
+    const dup = await postDomain(`HTTPS://WWW.repetido-${ts}.com/otra-ruta`);
+    assert.equal(dup.status, 409);
+  });
+
+  test('PUT normaliza el nuevo dominio y rechaza duplicados con 409', async () => {
+    const ts = Date.now();
+    const editable = await (await postDomain(`editable-${ts}.com`)).json();
+    await postDomain(`ocupado-${ts}.com`);
+
+    const renamed = await putDomain(editable.data.id, { domain: `https://www.renombrado-${ts}.com/x` });
+    assert.equal(renamed.status, 200);
+    assert.equal((await renamed.json()).data.domain, `renombrado-${ts}.com`);
+
+    const dup = await putDomain(editable.data.id, { domain: `ocupado-${ts}.com` });
+    assert.equal(dup.status, 409);
+  });
+
+  test('un dominio desactivado no se aplica al dispositivo del tutor', async () => {
+    const ts = Date.now();
+    const activo = `activo-${ts}.com`;
+    const desactivado = `desactivado-${ts}.com`;
+
+    await postDomain(activo);
+    const off = await (await postDomain(desactivado)).json();
+    const putRes = await putDomain(off.data.id, { isActive: false });
+    assert.equal(putRes.status, 200);
+
+    // Vincular un dispositivo a este tutor
+    const gen = await fetch(`${baseUrl}/api/devices/pair/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({
+        childName: 'Sofia',
+        gender: 'FEMENINO',
+        personType: 'MENOR',
+        birthDate: '2012-05-15',
+        phone: '1123456789',
+      }),
+    });
+    const genData = await gen.json();
+
+    const deviceUuid = `dev-blocklist-${ts}`;
+    const confirm = await fetch(`${baseUrl}/api/devices/pair/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pairingCode: genData.data.pairingCode,
+        deviceUuid,
+        deviceName: 'Celular de Sofia',
+      }),
+    });
+    assert.equal(confirm.status, 200);
+
+    const effective = await blocklistService.getEffectiveBlocklistForDevice(deviceUuid);
+    assert.ok(effective.domains.includes(activo), 'El dominio activo debe aplicarse');
+    assert.ok(!effective.domains.includes(desactivado), 'El dominio desactivado no debe aplicarse');
   });
 });
