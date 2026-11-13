@@ -433,6 +433,9 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
         onClose={() => setShowAddSiteModal(false)}
         domain={newSiteDomain}
         onDomainChange={setNewSiteDomain}
+        onSelectSuggestion={(sug) => {
+          setNewSiteDomain(sug.domain);
+        }}
         loading={loadingSite}
         onSave={handleAddSite}
       />

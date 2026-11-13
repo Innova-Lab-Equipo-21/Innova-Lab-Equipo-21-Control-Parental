@@ -184,6 +184,24 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   }, []);
 
   const handleToggleUninstallProtection = async (val: boolean) => {
+    // Si la autoprotección está activa, NO se permite desactivar la antidesinstalación
+    const isAutoproteccionActive = Boolean(
+      selfControl.active ||
+      selfControl.status === 'ACTIVE_LOCKED' ||
+      selfControl.status === 'DEACTIVATION_PENDING' ||
+      selfControl.status === 'DEACTIVATION_READY'
+    );
+
+    if (isAutoproteccionActive && !val) {
+      showFeedback({
+        imageSource: getBotMascotImage('ADULT', 'nervioso'),
+        title: 'Antidesinstalación protegida',
+        message: 'La protección antidesinstalación no puede desactivarse mientras la Autoprotección de 24 horas esté activa.',
+        buttonText: 'Entendido',
+      });
+      return;
+    }
+
     if (val) {
       const isA11yActive = await protectionService.isAccessibilityEnabled();
       if (!isA11yActive) {
@@ -424,6 +442,11 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const handleFinalSelfControlActivation = async () => {
     const res = await apiService.enableSelfControl();
     setSelfControl(res);
+    // Al activar la Autoprotección, la antidesinstalación también es activada automáticamente
+    setRuleUninstallProtection(true);
+    try {
+      await protectionService.setAntiUninstallEnabled(true);
+    } catch (_) {}
     setShowSelfControlModal(false);
     if (shouldRedirectToHomeAfterSelfControlActivation(activeTab, redirectHomeOnSelfControl)) {
       setRedirectHomeOnSelfControl(false);

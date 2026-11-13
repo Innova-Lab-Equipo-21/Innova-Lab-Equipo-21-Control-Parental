@@ -3,11 +3,11 @@
 // Componente: AdultoAddSiteModal (Modal Bottom Sheet para Bloquear Sitio Web)
 // Archivo: src/components/dashboard/protected/adulto/AdultoAddSiteModal.tsx
 // Descripción: Modal Bottom Sheet en Modo Protegido Adulto para agregar un sitio
-//              web a la lista de bloqueo, advirtiendo explícitamente que solo el
-//              responsable podrá desactivarlo o eliminarlo.
+//              web a la lista de bloqueo (con sugerencias rápidas Top 15 Argentina),
+//              advirtiendo explícitamente que solo el responsable podrá desactivarlo o eliminarlo.
 // ==============================================================================
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,9 @@ import {
 import { ActionButton } from '../../../ActionButton';
 import { colors } from '../../../../theme/colors';
 import { isValidDomainOrUrl, cleanDomainInput } from '../../../../utils/deviceColors';
+import { validateDomainInputDetailed, getDomainAutocompleteSuggestions } from '../../../../utils/domainValidation';
 import { ADULTO_SITE_MODAL_WARNING } from '../../../../utils/adultoSitios';
+import { top15ArgentinaSites } from '../../sitios/AddSiteModal';
 import { BOTI_ASSETS } from '../botAssets';
 import { styles } from './AdultoAddSiteModal.styles';
 
@@ -29,6 +31,7 @@ export interface AdultoAddSiteModalProps {
   onClose: () => void;
   domain: string;
   onDomainChange: (text: string) => void;
+  onSelectSuggestion?: (sug: { name: string; domain: string; category: string; icon?: string }) => void;
   loading: boolean;
   onSave: () => void;
 }
@@ -38,12 +41,29 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
   onClose,
   domain,
   onDomainChange,
+  onSelectSuggestion,
   loading,
   onSave,
 }) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setShowDropdown(false);
+    }
+  }, [visible]);
+
   const hasInput = domain.trim().length > 0;
-  const isDomainValid = isValidDomainOrUrl(domain);
+  const validation = validateDomainInputDetailed(domain);
+  const isDomainValid = validation.isValid;
   const normalizedDomain = hasInput ? cleanDomainInput(domain) : '';
+  const autocompleteItems = getDomainAutocompleteSuggestions(domain, top15ArgentinaSites);
+
+  const selectedDropdownSite = top15ArgentinaSites.find(
+    (item) =>
+      item.domain.toLowerCase().trim() === normalizedDomain.toLowerCase().trim() ||
+      item.name.toLowerCase().trim() === domain.toLowerCase().trim()
+  );
 
   return (
     <Modal
@@ -69,7 +89,7 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Ingresá el dominio o dirección web que deseás restringir en este dispositivo.
+            Seleccioná o ingresá el sitio web que deseás restringir en este dispositivo.
           </Text>
 
           <ScrollView
@@ -78,6 +98,79 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 12 }}
           >
+            {/* Sugerencias rápidas (Top 15 Argentina) */}
+            <Text style={styles.inputLabel}>Sugerencias rápidas:</Text>
+            <TouchableOpacity
+              style={styles.dropdownSelector}
+              onPress={() => setShowDropdown((prev) => !prev)}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Text style={{ fontSize: 16 }}>{selectedDropdownSite?.icon || '🌐'}</Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: selectedDropdownSite ? colors.textPrimary : colors.textSecondary,
+                    fontWeight: selectedDropdownSite ? '600' : '400',
+                  }}
+                  numberOfLines={1}
+                >
+                  {selectedDropdownSite
+                    ? `${selectedDropdownSite.name} (${selectedDropdownSite.category})`
+                    : 'Seleccionar sitio de la lista (Top 15 Argentina)...'}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: colors.primary, fontWeight: 'bold' }}>
+                {showDropdown ? '▲' : '▼'}
+              </Text>
+            </TouchableOpacity>
+
+            {showDropdown && (
+              <View style={styles.dropdownMenu}>
+                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator>
+                  {top15ArgentinaSites.map((item) => {
+                    const isCurrent =
+                      normalizedDomain.toLowerCase().trim() === item.domain.toLowerCase().trim() ||
+                      domain.toLowerCase().trim() === item.name.toLowerCase().trim();
+                    return (
+                      <TouchableOpacity
+                        key={item.domain}
+                        style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
+                        onPress={() => {
+                          onDomainChange(item.domain);
+                          onSelectSuggestion?.(item);
+                          setShowDropdown(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={{ fontSize: 15 }}>{item.icon}</Text>
+                          <View>
+                            <Text
+                              style={[
+                                styles.dropdownItemText,
+                                isCurrent && styles.dropdownItemTextActive,
+                              ]}
+                            >
+                              {item.name}
+                            </Text>
+                            <Text style={styles.dropdownItemSubtext}>
+                              {item.domain} • {item.category}
+                            </Text>
+                          </View>
+                        </View>
+                        {isCurrent && (
+                          <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
+                            ✓
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
             <Text style={styles.inputLabel}>Dominio o URL del sitio:</Text>
             <TextInput
               style={[
@@ -93,13 +186,50 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
               autoCorrect={false}
             />
 
+            {/* Chips de Autocompletado Inteligente en Tiempo Real */}
+            {hasInput && autocompleteItems.length > 0 && (
+              <View style={styles.autocompleteContainer}>
+                <Text style={styles.autocompleteTitle}>💡 Autocompletar sitio sugerido:</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 6 }}
+                >
+                  {autocompleteItems.map((item) => (
+                    <TouchableOpacity
+                      key={item.domain}
+                      style={styles.autocompleteChip}
+                      onPress={() => {
+                        onDomainChange(item.domain);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.autocompleteChipIcon}>{item.icon || '🌐'}</Text>
+                      <Text style={styles.autocompleteChipText}>{item.domain}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Verificación de Errores y Retroalimentación en Tiempo Real */}
             {hasInput && (
               <View style={isDomainValid ? styles.domainFeedbackValid : styles.domainFeedbackInvalid}>
                 <Text style={isDomainValid ? styles.domainFeedbackTextValid : styles.domainFeedbackTextInvalid}>
                   {isDomainValid
                     ? `✓ Sitio válido (se bloqueará: ${normalizedDomain})`
-                    : '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
+                    : validation.message || '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
                 </Text>
+                {!isDomainValid && validation.suggestedCorrection && (
+                  <TouchableOpacity
+                    style={styles.suggestionActionBtn}
+                    onPress={() => onDomainChange(validation.suggestedCorrection!)}
+                  >
+                    <Text style={styles.suggestionActionBtnText}>
+                      Completar como {validation.suggestedCorrection}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
 

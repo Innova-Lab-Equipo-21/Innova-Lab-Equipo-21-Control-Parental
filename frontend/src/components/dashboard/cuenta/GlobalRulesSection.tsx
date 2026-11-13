@@ -43,6 +43,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
   onOpenPermissions,
 }) => {
   const [showLotbaModal, setShowLotbaModal] = useState<boolean>(false);
+  const [showAntiUninstallLockedModal, setShowAntiUninstallLockedModal] = useState<boolean>(false);
 
   const isAutoproteccionActive = Boolean(
     selfControl?.active ||
@@ -78,16 +79,34 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
         />
       </TouchableOpacity>
 
-      {/* 2. Antidesinstalación */}
+      {/* 2. Antidesinstalación (Bloqueada en ON cuando Autoprotección está activa) */}
       <TouchableOpacity
         style={styles.ruleItem}
         activeOpacity={0.8}
-        onPress={() => onToggleUninstallProtection(!ruleUninstallProtection)}
+        onPress={() => {
+          if (isAutoproteccionActive) {
+            setShowAntiUninstallLockedModal(true);
+          } else {
+            onToggleUninstallProtection(!ruleUninstallProtection);
+          }
+        }}
       >
         <Text style={styles.ruleItemText}>🔒 Antidesinstalación</Text>
         <ToggleSwitch
-          value={ruleUninstallProtection}
-          onValueChange={onToggleUninstallProtection}
+          value={isAutoproteccionActive ? true : ruleUninstallProtection}
+          onValueChange={(val) => {
+            if (isAutoproteccionActive) {
+              setShowAntiUninstallLockedModal(true);
+            } else {
+              onToggleUninstallProtection(val);
+            }
+          }}
+          disabled={isAutoproteccionActive}
+          onDisabledPress={() => {
+            if (isAutoproteccionActive) {
+              setShowAntiUninstallLockedModal(true);
+            }
+          }}
           activeColor="#007AFF"
         />
       </TouchableOpacity>
@@ -130,6 +149,16 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
         message="El bloqueo de sitios de apuestas no autorizadas por LOTBA es obligatorio y no puede desactivarse por normativa oficial."
         buttonText="Entendido"
         onClose={() => setShowLotbaModal(false)}
+      />
+
+      {/* Modal Estándar de Retroalimentación cuando Antidesinstalación está Bloqueada por Autoprotección */}
+      <FeedbackModal
+        visible={showAntiUninstallLockedModal}
+        imageSource={getBotMascotImage(profileType === 'CHILD' ? 'CHILD' : 'ADULT', 'nervioso')}
+        title="Antidesinstalación protegida"
+        message="La protección antidesinstalación no puede desactivarse mientras la Autoprotección de 24 horas esté activa."
+        buttonText="Entendido"
+        onClose={() => setShowAntiUninstallLockedModal(false)}
       />
     </View>
   );

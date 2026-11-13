@@ -3,9 +3,9 @@
 // Componente: Tests Automatizados — Reglas Globales y Desactivación de Antidesinstalación
 // Archivo: tests/antiUninstallProtected.test.ts
 // Descripción: Suite de tests que valida la replicación de Reglas de protección global
-//              en Cuenta de Menor y Adulto, exclusión de Autoprotección, y el flujo
-//              estricto de seguridad para desactivar Antidesinstalación mediante código
-//              OTP de 6 dígitos enviado al correo del responsable que vinculó el dispositivo.
+//              en Cuenta de Menor y Adulto, exclusión de Autoprotección, acoplamiento
+//              obligatorio de Antidesinstalación cuando Autoprotección está activa, y el flujo
+//              estricto de seguridad para desactivar Antidesinstalación mediante código OTP.
 // ==============================================================================
 
 import { test, describe } from 'node:test';
@@ -34,6 +34,10 @@ describe('Reglas de protección global en Modos Protegidos (Menor y Adulto)', ()
   const protectedScreenPath = path.resolve(
     __dirname,
     '../src/screens/ProtectedDeviceScreen.tsx'
+  );
+  const parentDashboardPath = path.resolve(
+    __dirname,
+    '../src/screens/ParentDashboardScreen.tsx'
   );
 
   test('MenorCuentaSection y AdultoCuentaSection replican GlobalRulesSection con showAutoproteccion={false}', () => {
@@ -66,6 +70,35 @@ describe('Reglas de protección global en Modos Protegidos (Menor y Adulto)', ()
 
     // Antidesinstalación debe estar disponible
     assert.equal(rulesSource.includes('Antidesinstalación'), true);
+  });
+
+  test('GlobalRulesSection bloquea la desactivación de Antidesinstalación cuando Autoprotección está activa', () => {
+    const rulesSource = fs.readFileSync(globalRulesPath, 'utf8');
+
+    // Muestra valor true forzado si isAutoproteccionActive es true
+    assert.equal(rulesSource.includes('value={isAutoproteccionActive ? true : ruleUninstallProtection}'), true);
+
+    // Deshabilita el switch de Antidesinstalación si isAutoproteccionActive es true
+    assert.equal(rulesSource.includes('disabled={isAutoproteccionActive}'), true);
+
+    // Muestra el modal de aviso de Antidesinstalación protegida
+    assert.equal(rulesSource.includes('Antidesinstalación protegida'), true);
+    assert.equal(
+      rulesSource.includes('La protección antidesinstalación no puede desactivarse mientras la Autoprotección de 24 horas esté activa.'),
+      true
+    );
+  });
+
+  test('ParentDashboardScreen activa automáticamente Antidesinstalación al habilitar Autoprotección y rechaza su desactivación', () => {
+    const parentSource = fs.readFileSync(parentDashboardPath, 'utf8');
+
+    // 1. Al activar autoprotección, activa automáticamente antidesinstalación
+    assert.equal(parentSource.includes('setRuleUninstallProtection(true)'), true);
+    assert.equal(parentSource.includes('protectionService.setAntiUninstallEnabled(true)'), true);
+
+    // 2. Al intentar desactivar antidesinstalación con autoprotección activa, lo rechaza e informa
+    assert.equal(parentSource.includes('if (isAutoproteccionActive && !val)'), true);
+    assert.equal(parentSource.includes('Antidesinstalación protegida'), true);
   });
 
   test('ProtectedDeviceScreen integra AntiUninstallCodeModal y controla la desactivación protegida', () => {

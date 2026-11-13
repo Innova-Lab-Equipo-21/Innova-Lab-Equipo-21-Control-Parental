@@ -294,8 +294,8 @@ export const blocklistApi = {
     if (data.isActive !== undefined) item.isActive = data.isActive;
     if (data.applyToAll !== undefined) item.applyToAll = data.applyToAll;
     if (data.deviceIds !== undefined) item.deviceIds = data.deviceIds;
-    if (data.dailyLimitMinutes !== undefined) item.dailyLimitMinutes = data.dailyLimitMinutes;
-    if (data.deviceLimits !== undefined) item.deviceLimits = data.deviceLimits;
+    if ('dailyLimitMinutes' in data) item.dailyLimitMinutes = data.dailyLimitMinutes;
+    if ('deviceLimits' in data) item.deviceLimits = data.deviceLimits;
 
     list.version += 1;
     await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));

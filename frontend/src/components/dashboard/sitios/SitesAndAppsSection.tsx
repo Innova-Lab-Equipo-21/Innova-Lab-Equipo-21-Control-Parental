@@ -389,6 +389,10 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         onClose={() => sites.setShowAddSiteModal(false)}
         domain={sites.newSiteDomain}
         onDomainChange={sites.handleNewSiteDomainChange}
+        onSelectSuggestion={(sug) => {
+          sites.handleNewSiteDomainChange(sug.domain);
+          sites.setNewSiteCategory(sug.category);
+        }}
         category={sites.newSiteCategory}
         onCategoryChange={sites.setNewSiteCategory}
         applyToAll={sites.newSiteApplyToAll}
