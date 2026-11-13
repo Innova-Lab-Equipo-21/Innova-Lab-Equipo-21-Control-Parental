@@ -90,19 +90,33 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   } | null>(null);
   const [loadingDelete, setLoadingDelete] = useState(false);
 
-  // Modal estándar de retroalimentación / éxito
+  // Modal estándar de retroalimentación / éxito / confirmación
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
     icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
   }>({
     visible: false,
     title: '',
     message: '',
   });
 
-  const showFeedback = (config: { icon?: string; title: string; message: string }) => {
+  const showFeedback = (config: {
+    icon?: string;
+    imageSource?: any;
+    title: string;
+    message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
+  }) => {
     setFeedbackModal({
       visible: true,
       ...config,
@@ -509,12 +523,29 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         onConfirm={handleConfirmDelete}
       />
 
-      {/* Modal estándar de retroalimentación / éxito */}
+      {/* Modal estándar de retroalimentación / éxito / confirmación masiva */}
       <FeedbackModal
         visible={feedbackModal.visible}
         icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
+        buttonText={feedbackModal.buttonText}
+        secondaryButtonText={feedbackModal.secondaryButtonText}
+        onConfirm={async () => {
+          const action = feedbackModal.onConfirm;
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          if (action) {
+            await action();
+          }
+        }}
+        onSecondaryPress={() => {
+          const secondaryAction = feedbackModal.onSecondaryPress;
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          if (secondaryAction) {
+            secondaryAction();
+          }
+        }}
         onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </View>
