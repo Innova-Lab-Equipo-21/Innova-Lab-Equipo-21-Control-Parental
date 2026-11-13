@@ -36,6 +36,7 @@ import {
   saveNavigationState,
   clearNavigationSession,
 } from './utils/navigationSession';
+import { checkRealDevicePermissions } from './utils/permissionChecker';
 import { safeStorage } from './services/api/client';
 
 export function App(): React.JSX.Element {
@@ -67,7 +68,7 @@ export function App(): React.JSX.Element {
 
   // Hidratar estado de sesión persistido al iniciar la aplicación
   useEffect(() => {
-    getNavigationState().then((session) => {
+    getNavigationState().then(async (session) => {
       if (session.onboardingCompleted) {
         setShowOnboarding(false);
       }
@@ -82,12 +83,24 @@ export function App(): React.JSX.Element {
           safeStorage.setItem('@ba_protege_jwt_token', session.parentToken).catch(() => {});
         }
       }
-      setHasGrantedPermissions(session.hasGrantedPermissions);
+
+      // Auditar permisos reales en el hardware
+      const userIdForCheck = session.parentUser?.id || session.deviceUuid;
+      const real = await checkRealDevicePermissions(userIdForCheck);
+      const allGranted = real.grantedCount === 6;
+      setHasGrantedPermissions(allGranted);
+
       setHasSelectedResponsibleAction(session.hasSelectedResponsibleAction);
       setResponsibleActionType(session.responsibleActionType);
       setIsDevicePaired(session.isDevicePaired);
       setDeviceUuid(session.deviceUuid);
-      setActiveScreen(session.activeScreen);
+
+      // Si todos los permisos están concedidos, no forzar la pantalla de Permisos
+      let effectiveScreen = session.activeScreen;
+      if (allGranted && effectiveScreen === 'PERMISSIONS') {
+        effectiveScreen = session.currentMode === 'PARENT' ? 'DASHBOARD' : 'PROTECTED_DEVICE';
+      }
+      setActiveScreen(effectiveScreen);
 
       // Si la sesión ya estaba activa o se encontraba en Permisos, omitir Splash para reingreso fluido
       if (
@@ -126,42 +139,59 @@ export function App(): React.JSX.Element {
     setParentUser(user);
     setParentToken(token);
     setIsParentLoggedIn(true);
-    setHasGrantedPermissions(false);
     setResponsibleActionType('NONE');
     const alreadyCompleted = await hasCompletedResponsibleFirstAccess(user);
     setHasSelectedResponsibleAction(alreadyCompleted);
-    setActiveScreen('PERMISSIONS');
+
+    // Verificar si ya tiene todos los 6 permisos habilitados
+    const realPerms = await checkRealDevicePermissions(user?.id);
+    const allGranted = realPerms.grantedCount === 6;
+    setHasGrantedPermissions(allGranted);
+
+    // Si faltan permisos, se muestra por primera vez la pantalla de permisos. Si están todos, pasa al inicio.
+    const targetScreen: ActiveScreenType = allGranted
+      ? (alreadyCompleted ? 'DASHBOARD' : 'RESPONSIBLE_ACTION')
+      : 'PERMISSIONS';
+
+    setActiveScreen(targetScreen);
     await saveNavigationState({
       onboardingCompleted: true,
       currentMode: 'PARENT',
       isParentLoggedIn: true,
       parentUser: user,
       parentToken: token,
-      hasGrantedPermissions: false,
+      hasGrantedPermissions: allGranted,
       hasSelectedResponsibleAction: alreadyCompleted,
       responsibleActionType: 'NONE',
-      activeScreen: 'PERMISSIONS',
+      activeScreen: targetScreen,
     });
   };
 
   // Manejador de Emparejamiento del Dispositivo Protegido
-  const handlePairingComplete = (_deviceId: string, uuid: string, pairedMode?: 'CHILD' | 'ADULT') => {
+  const handlePairingComplete = async (_deviceId: string, uuid: string, pairedMode?: 'CHILD' | 'ADULT') => {
     const targetMode = pairedMode || currentMode;
     setDeviceUuid(uuid);
     setIsDevicePaired(true);
-    setHasGrantedPermissions(false);
     if (pairedMode) {
       setCurrentMode(pairedMode);
     }
-    setActiveScreen('PERMISSIONS');
-    saveNavigationState({
+
+    // Verificar si ya tiene todos los 6 permisos habilitados
+    const realPerms = await checkRealDevicePermissions(uuid);
+    const allGranted = realPerms.grantedCount === 6;
+    setHasGrantedPermissions(allGranted);
+
+    // Si faltan permisos, se muestra por primera vez la pantalla de permisos. Si están todos, pasa a la pantalla del protegido.
+    const targetScreen: ActiveScreenType = allGranted ? 'PROTECTED_DEVICE' : 'PERMISSIONS';
+    setActiveScreen(targetScreen);
+    await saveNavigationState({
       onboardingCompleted: true,
       currentMode: targetMode,
       isDevicePaired: true,
       deviceUuid: uuid,
-      hasGrantedPermissions: false,
-      activeScreen: 'PERMISSIONS',
-    }).catch(() => {});
+      hasGrantedPermissions: allGranted,
+      activeScreen: targetScreen,
+    });
   };
 
   // Manejador de confirmación de permisos

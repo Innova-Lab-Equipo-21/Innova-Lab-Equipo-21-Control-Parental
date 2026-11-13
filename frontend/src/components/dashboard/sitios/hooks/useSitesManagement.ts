@@ -35,6 +35,7 @@ interface UseSitesManagementProps {
     onSecondaryPress?: () => void;
   }) => void;
   setItemToDelete: (item: { type: 'site' | 'app'; id: string; name: string } | null) => void;
+  onExitSelectionMode?: () => void;
 }
 
 export const useSitesManagement = ({
@@ -47,6 +48,7 @@ export const useSitesManagement = ({
   sortBy,
   showFeedback,
   setItemToDelete,
+  onExitSelectionMode,
 }: UseSitesManagementProps) => {
   // Selección múltiple para acciones masivas
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
