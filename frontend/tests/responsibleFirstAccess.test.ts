@@ -10,6 +10,7 @@ import {
   resetResponsibleFirstAccess,
   shouldRedirectToHomeAfterSelfControlActivation,
   shouldShowAutoproteccionEmptyNotice,
+  shouldShowResponsibleActionScreen,
 } from '../src/utils/responsibleFirstAccess.js';
 import { safeStorage } from '../src/services/api/client.js';
 import { apiService } from '../src/services/api.service.js';
@@ -38,6 +39,33 @@ describe('Pantalla "Elegir protección" y flujo inicial del Responsable', () => 
       getResponsibleFirstAccessKey(user),
       getResponsibleFirstAccessKey(anotherUser)
     );
+  });
+
+  test('ELEGIR PROTECCIÓN: Aparece solamente cuando el Responsable no tenga ningún dispositivo registrado', async () => {
+    // 1. Con 0 dispositivos registrados y sin haber seleccionado acción previa -> Debe mostrarse
+    assert.equal(shouldShowResponsibleActionScreen(false, 0), true);
+
+    // 2. Con 1 o más dispositivos registrados -> NUNCA debe mostrarse
+    assert.equal(shouldShowResponsibleActionScreen(false, 1), false);
+    assert.equal(shouldShowResponsibleActionScreen(false, 3), false);
+    assert.equal(shouldShowResponsibleActionScreen(true, 1), false);
+
+    // 3. Si ya seleccionó acción con 0 dispositivos -> No debe mostrarse
+    assert.equal(shouldShowResponsibleActionScreen(true, 0), false);
+
+    // 4. hasCompletedResponsibleFirstAccess retorna true si registeredDevicesCount > 0
+    const userWithoutLocalFlag = { id: 'u-no-flag', email: 'no.flag@baprotege.gob.ar' };
+    await resetResponsibleFirstAccess(userWithoutLocalFlag);
+    assert.equal(await hasCompletedResponsibleFirstAccess(userWithoutLocalFlag, 0), false);
+    assert.equal(await hasCompletedResponsibleFirstAccess(userWithoutLocalFlag, 1), true);
+
+    // 5. Si existen dispositivos en almacenamiento local (@ba_protege_devices_list) -> retorna true
+    await safeStorage.setItem(
+      '@ba_protege_devices_list',
+      JSON.stringify([{ deviceId: 'dev-1', deviceName: 'Hijo 1' }])
+    );
+    assert.equal(await hasCompletedResponsibleFirstAccess(userWithoutLocalFlag), true);
+    await safeStorage.removeItem('@ba_protege_devices_list');
   });
 
   test('LISTA INICIAL VACÍA: La lista personalizada inicia vacía y muestra el aviso de Autoprotección', async () => {

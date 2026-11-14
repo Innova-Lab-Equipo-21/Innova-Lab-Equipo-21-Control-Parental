@@ -12,7 +12,7 @@ import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'reac
 import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
-import { DeviceInfo } from '../../../types';
+import { CustomBlockedDomain, DeviceInfo } from '../../../types';
 import { getDeviceHighlight, isValidDomainOrUrl, cleanDomainInput } from '../../../utils/deviceColors';
 import { validateDomainInputDetailed, getDomainAutocompleteSuggestions } from '../../../utils/domainValidation';
 import { styles } from './AddSiteModal.styles';
@@ -52,6 +52,7 @@ interface AddSiteModalProps {
   deviceIds: string[];
   devices: DeviceInfo[];
   onToggleDevice: (deviceId: string) => void;
+  existingSites?: CustomBlockedDomain[];
   loading: boolean;
   onSave: () => void;
 }
@@ -69,6 +70,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
   deviceIds,
   devices,
   onToggleDevice,
+  existingSites,
   loading,
   onSave,
 }) => {
@@ -85,6 +87,14 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
   const isDomainValid = validation.isValid;
   const normalizedDomain = hasInput ? cleanDomainInput(domain) : '';
   const autocompleteItems = getDomainAutocompleteSuggestions(domain, top15ArgentinaSites);
+
+  const isDuplicate =
+    hasInput &&
+    Boolean(
+      existingSites?.some(
+        (site) => cleanDomainInput(site.domain) === normalizedDomain
+      )
+    );
 
   // Sitio seleccionado en el dropdown
   const selectedDropdownSite = top15ArgentinaSites.find(
@@ -252,13 +262,28 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
 
             {/* Verificación de Errores y Retroalimentación en Tiempo Real */}
             {hasInput && (
-              <View style={isDomainValid ? styles.domainFeedbackValid : styles.domainFeedbackInvalid}>
-                <Text style={isDomainValid ? styles.domainFeedbackTextValid : styles.domainFeedbackTextInvalid}>
-                  {isDomainValid
+              <View
+                style={
+                  !isDuplicate && isDomainValid
+                    ? styles.domainFeedbackValid
+                    : styles.domainFeedbackInvalid
+                }
+              >
+                <Text
+                  style={
+                    !isDuplicate && isDomainValid
+                      ? styles.domainFeedbackTextValid
+                      : styles.domainFeedbackTextInvalid
+                  }
+                >
+                  {isDuplicate
+                    ? '⚠️ Este sitio web ya está en tu lista de bloqueo.'
+                    : isDomainValid
                     ? `✓ Sitio válido (se bloqueará: ${normalizedDomain})`
-                    : validation.message || '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
+                    : validation.message ||
+                      '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
                 </Text>
-                {!isDomainValid && validation.suggestedCorrection && (
+                {!isDuplicate && !isDomainValid && validation.suggestedCorrection && (
                   <TouchableOpacity
                     style={styles.suggestionActionBtn}
                     onPress={() => onDomainChange(validation.suggestedCorrection!)}
@@ -379,6 +404,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
                 title="Guardar"
                 variant="primary"
                 loading={loading}
+                disabled={!hasInput || !isDomainValid || isDuplicate || (!applyToAll && deviceIds.length === 0)}
                 onPress={onSave}
               />
             </View>

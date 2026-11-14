@@ -76,4 +76,30 @@ describe('Flujo de Vinculación de Dispositivos (Pairing & Edit Workflow)', () =
     const finalList = await apiService.listDevices();
     assert.ok(!finalList.data.some((d) => d.childName?.startsWith('ProtegidoTest_')));
   });
+
+  test('6. Actualización instantánea: addDevice persiste inmediatamente en @ba_protege_devices_list para actualización rápida de Inicio y Dispositivos', async () => {
+    const instantName = `InstantDevice_${Date.now()}`;
+    const res = await apiService.addDevice({
+      childName: instantName,
+      birthDate: '10/10/2012',
+      profileType: 'Menor',
+      gender: 'Femenino',
+      phone: '11 9999-8888',
+      deviceModel: 'Motorola Moto G',
+      status: 'INACTIVE',
+      isProtected: false,
+    });
+
+    assert.ok(res.success);
+    // Verificar que safeStorage contiene el nuevo dispositivo sin esperar ninguna llamada externa
+    const raw = await safeStorage.getItem('@ba_protege_devices_list');
+    assert.ok(raw, 'El almacenamiento local debe contener la lista');
+    const parsed = JSON.parse(raw);
+    const found = parsed.find((d: any) => d.childName === instantName);
+    assert.ok(found, 'El nuevo dispositivo debe estar inmediatamente disponible en la caché local');
+
+    // Limpieza
+    const filtered = parsed.filter((d: any) => d.childName !== instantName);
+    await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(filtered));
+  });
 });

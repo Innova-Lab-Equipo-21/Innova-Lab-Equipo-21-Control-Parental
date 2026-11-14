@@ -51,6 +51,10 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
       .then((res) => {
         if (mounted && Array.isArray(res.data)) {
           setDeviceCount(res.data.length);
+          // Si el Responsable ya cuenta con algún dispositivo registrado, omitir "Elegir protección"
+          if (res.data.length > 0) {
+            onSelectAction('SUPERVISE');
+          }
         }
       })
       .catch(() => {});
@@ -58,7 +62,7 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [onSelectAction]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -171,6 +175,9 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
         visible={showPairingModal}
         deviceCount={deviceCount}
         onClose={() => setShowPairingModal(false)}
+        onDeviceCreated={(newDev) => {
+          setDeviceCount((prev) => prev + 1);
+        }}
         onDeviceAdded={(savedName) => {
           setShowPairingModal(false);
           onSelectAction('SUPERVISE', savedName);

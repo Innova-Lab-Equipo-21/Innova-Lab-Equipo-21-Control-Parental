@@ -6,7 +6,7 @@
 //              creación de cuenta y recuperación de contraseña.
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   SafeAreaView,
@@ -30,6 +30,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   initialViewMode = 'REGISTER',
 }) => {
   const [viewMode, setViewMode] = useState<AuthViewMode>(initialViewMode);
+
+  useEffect(() => {
+    setViewMode(initialViewMode);
+  }, [initialViewMode]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

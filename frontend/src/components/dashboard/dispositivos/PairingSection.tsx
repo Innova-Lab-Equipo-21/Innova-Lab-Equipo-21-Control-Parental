@@ -29,6 +29,8 @@ import {
   formatBirthDate,
   formatPhone,
   validateLettersOnly,
+  validateDeviceName,
+  MAX_DEVICE_NAME_LENGTH,
 } from '../../../utils/authValidation';
 import { styles } from './PairingSection.styles';
 
@@ -157,13 +159,9 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
     } = {};
 
     // 1. Validación de Nombre del Protegido
-    const trimmedName = protectedName.trim();
-    if (!trimmedName) {
-      newErrors.protectedName = 'El nombre del protegido es obligatorio.';
-    } else if (trimmedName.length < 2) {
-      newErrors.protectedName = 'El nombre debe tener al menos 2 caracteres.';
-    } else if (!validateLettersOnly(trimmedName)) {
-      newErrors.protectedName = 'El nombre solo debe contener letras y espacios.';
+    const nameError = validateDeviceName(protectedName);
+    if (nameError) {
+      newErrors.protectedName = nameError;
     }
 
     // 2. Validación de Género (Obligatorio)
@@ -294,9 +292,15 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
             ]}
             value={protectedName}
             selectTextOnFocus={true}
+            maxLength={45}
             onChangeText={(text) => {
               setProtectedName(text);
-              if (errors.protectedName) {
+              if (text.trim().length > MAX_DEVICE_NAME_LENGTH) {
+                setErrors((prev) => ({
+                  ...prev,
+                  protectedName: `El nombre no puede superar los ${MAX_DEVICE_NAME_LENGTH} caracteres (actual: ${text.trim().length}).`,
+                }));
+              } else if (errors.protectedName) {
                 setErrors((prev) => ({ ...prev, protectedName: undefined }));
               }
             }}

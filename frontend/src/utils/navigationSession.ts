@@ -33,6 +33,7 @@ export interface AppNavigationState {
   isDevicePaired: boolean;
   deviceUuid: string | null;
   activeScreen: ActiveScreenType;
+  hasCreatedResponsibleAccount?: boolean;
 }
 
 const NAV_SESSION_KEY = '@ba_protege_nav_session';
@@ -51,6 +52,7 @@ const defaultState: AppNavigationState = {
   isDevicePaired: false,
   deviceUuid: null,
   activeScreen: 'ONBOARDING',
+  hasCreatedResponsibleAccount: false,
 };
 
 export async function saveNavigationState(state: Partial<AppNavigationState>): Promise<void> {

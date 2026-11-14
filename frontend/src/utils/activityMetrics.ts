@@ -16,6 +16,7 @@ import {
   CustomBlockedDomain,
   DeviceInfo,
 } from '../types';
+import { getDeviceFirstName } from './authValidation';
 
 export type ActivityPeriod = 'week' | 'month' | 'year' | 'total';
 
@@ -265,8 +266,8 @@ export function formatRelativeAttemptTime(
 /**
  * Construye las opciones del selector de Dispositivos:
  * - Todos (con el conteo total de dispositivos monitoreados)
- * - Mi dispositivo (dispositivo del responsable)
- * - Dispositivos protegidos vinculados ordenados alfabéticamente (A-Z)
+ * - Yo (dispositivo del responsable, siempre de primero)
+ * - Dispositivos protegidos vinculados ordenados alfabéticamente (A-Z) con solo el primer nombre
  */
 export function buildDeviceFilterOptions(
   devices: DeviceInfo[] = [],
@@ -274,11 +275,21 @@ export function buildDeviceFilterOptions(
 ): ActivityDeviceFilterOption[] {
   const protectedDevices = devices
     .filter((d) => d.deviceId !== 'self' && d.profileType !== 'Responsable')
-    .sort((a, b) => {
-      const nameA = (a.childName || a.deviceName || '').toLowerCase();
-      const nameB = (b.childName || b.deviceName || '').toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+    .map((dev, idx) => {
+      const id = dev.deviceId || dev.deviceUuid || `dev-${idx}`;
+      const rawName = dev.childName || dev.deviceName || `Dispositivo ${idx + 1}`;
+      const label = getDeviceFirstName(rawName);
+      const roleLabel =
+        dev.profileType === 'Adulto' ? 'Protegido adulto' : 'Protegido menor';
+      return {
+        id,
+        label,
+        subtitle: roleLabel,
+        isSelf: false,
+        isAll: false,
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
 
   const totalCount = protectedDevices.length + (includeSelf ? 1 : 0);
   const options: ActivityDeviceFilterOption[] = [
@@ -295,7 +306,7 @@ export function buildDeviceFilterOptions(
   if (includeSelf) {
     options.push({
       id: 'self',
-      label: 'Mi dispositivo',
+      label: 'Yo',
       subtitle: 'Dispositivo del responsable',
       isSelf: true,
       isAll: false,
@@ -303,21 +314,7 @@ export function buildDeviceFilterOptions(
     });
   }
 
-  protectedDevices.forEach((dev, idx) => {
-    const id = dev.deviceId || dev.deviceUuid || `dev-${idx}`;
-    const label = dev.childName || dev.deviceName || `Dispositivo ${idx + 1}`;
-    const roleLabel =
-      dev.profileType === 'Adulto' ? 'Protegido adulto' : 'Protegido menor';
-    options.push({
-      id,
-      label,
-      subtitle: roleLabel,
-      isSelf: false,
-      isAll: false,
-      colorIndex: dev.colorIndex ?? idx,
-    });
-  });
-
+  options.push(...protectedDevices);
   return options;
 }
 

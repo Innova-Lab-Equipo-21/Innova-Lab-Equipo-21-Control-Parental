@@ -16,6 +16,8 @@ export { BrandHeader } from './blocks/BrandHeader';
 export { PanelHeader } from './blocks/PanelHeader';
 export { PeriodSelector } from './blocks/PeriodSelector';
 export type { PeriodOption } from './blocks/PeriodSelector';
+export { DeviceSelector } from './blocks/DeviceSelector';
+export type { DeviceSelectorOption, DeviceSelectorProps } from './blocks/DeviceSelector';
 export { DeviceChipsRow } from './blocks/DeviceChipsRow';
 export type { DeviceChipOption } from './blocks/DeviceChipsRow';
 export { HeartbeatBanner } from './blocks/HeartbeatBanner';

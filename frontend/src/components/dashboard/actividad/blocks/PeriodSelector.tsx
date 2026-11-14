@@ -76,6 +76,9 @@ export const PeriodSelector: React.FC<PeriodSelectorProps> = ({
                       >
                         {opt.label}
                       </Text>
+                      {active && (
+                        <Text style={[styles.menuItemTextActive, { fontSize: 13 }]}>✓</Text>
+                      )}
                     </TouchableOpacity>
                   );
                 })}

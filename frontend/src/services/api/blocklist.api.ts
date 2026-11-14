@@ -104,6 +104,13 @@ export const blocklistApi = {
       throw new Error('Formato de dominio no válido (ejemplo: sitio.com)');
     }
 
+    // Verificar si el dominio ya existe en la lista para evitar duplicados
+    const currentListRes = await this.getCustomBlocklist();
+    const existingList = currentListRes?.data?.domains || [];
+    if (existingList.some((d) => d.domain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '') === cleanDomain)) {
+      throw new Error('El sitio web ya se encuentra en tu lista de bloqueo');
+    }
+
     const originFields: Partial<CustomBlockedDomain> = {
       ...(originMeta?.createdBy ? { createdBy: originMeta.createdBy } : {}),
       ...(originMeta?.createdByName ? { createdByName: originMeta.createdByName } : {}),
@@ -243,6 +250,18 @@ export const blocklistApi = {
     const listRes = await this.getCustomBlocklist();
     const list = listRes.data;
     if (!list.apps) list.apps = [];
+
+    const trimmedName = appName.trim().toLowerCase();
+    const normalizedPkg = packageName?.trim().toLowerCase();
+    if (
+      list.apps.some(
+        (a) =>
+          a.appName.trim().toLowerCase() === trimmedName ||
+          (Boolean(normalizedPkg) && Boolean(a.packageName) && a.packageName.trim().toLowerCase() === normalizedPkg)
+      )
+    ) {
+      throw new Error('La aplicación ya se encuentra en tu lista de restricción');
+    }
 
     const originFields: Partial<CustomBlockedApp> = {
       ...(originMeta?.createdBy ? { createdBy: originMeta.createdBy } : {}),

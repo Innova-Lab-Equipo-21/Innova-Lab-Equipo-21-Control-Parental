@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { ActionButton } from '../../../ActionButton';
 import { colors } from '../../../../theme/colors';
+import { CustomBlockedApp } from '../../../../types';
 import { top15PlayStoreApps } from '../../sitios/AddAppModal';
 import { ADULTO_APP_MODAL_WARNING } from '../../../../utils/adultoSitios';
 import { BOTI_ASSETS } from '../botAssets';
@@ -30,6 +31,7 @@ export interface AdultoAddAppModalProps {
   appName: string;
   onAppNameChange: (text: string) => void;
   onSelectSuggestion: (sug: { name: string; pkg: string; category: string }) => void;
+  existingApps?: CustomBlockedApp[];
   loading: boolean;
   onSave: () => void;
 }
@@ -40,6 +42,7 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
   appName,
   onAppNameChange,
   onSelectSuggestion,
+  existingApps,
   loading,
   onSave,
 }) => {
@@ -50,6 +53,15 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
       setShowDropdown(false);
     }
   }, [visible]);
+
+  const hasInput = appName.trim().length > 0;
+  const isDuplicate =
+    hasInput &&
+    Boolean(
+      existingApps?.some(
+        (app) => app.appName.trim().toLowerCase() === appName.trim().toLowerCase()
+      )
+    );
 
   const selectedDropdownApp = top15PlayStoreApps.find(
     (item) => item.name.toLowerCase().trim() === appName.toLowerCase().trim()
@@ -166,6 +178,14 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
               onChangeText={onAppNameChange}
             />
 
+            {hasInput && isDuplicate && (
+              <View style={styles.appFeedbackInvalid}>
+                <Text style={styles.appFeedbackTextInvalid}>
+                  ⚠️ Esta aplicación ya se encuentra en tu lista de bloqueo.
+                </Text>
+              </View>
+            )}
+
             <View style={styles.warningNoticeBox}>
               <Image
                 source={BOTI_ASSETS.nervioso}
@@ -192,6 +212,7 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
                 title="Guardar"
                 variant="primary"
                 loading={loading}
+                disabled={!hasInput || isDuplicate}
                 onPress={onSave}
               />
             </View>

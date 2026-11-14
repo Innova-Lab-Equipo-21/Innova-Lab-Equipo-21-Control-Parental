@@ -49,6 +49,7 @@ export interface SitesAndAppsSectionProps {
   hideInternalFab?: boolean;
   onSetAddHandler?: (handler: () => void) => void;
   initialSubTab?: 'sites' | 'apps';
+  onSubTabChange?: (subTab: 'sites' | 'apps') => void;
 }
 
 export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
@@ -61,6 +62,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   hideInternalFab = false,
   onSetAddHandler,
   initialSubTab = 'sites',
+  onSubTabChange,
 }) => {
   // Navegación de Sub-pestañas
   const [activeSubTab, setActiveSubTab] = useState<'sites' | 'apps'>(initialSubTab);
@@ -68,8 +70,9 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   useEffect(() => {
     if (initialSubTab) {
       setActiveSubTab(initialSubTab);
+      onSubTabChange?.(initialSubTab);
     }
-  }, [initialSubTab]);
+  }, [initialSubTab, onSubTabChange]);
 
   // Menú de opciones de 3 puntos (⋮) y herramientas
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -259,7 +262,10 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         <View style={styles.subTabContainer}>
           <TouchableOpacity
             style={[styles.sectionTabBtn, activeSubTab === 'sites' && styles.sectionTabBtnActive]}
-            onPress={() => setActiveSubTab('sites')}
+            onPress={() => {
+              setActiveSubTab('sites');
+              onSubTabChange?.('sites');
+            }}
           >
             <Text style={[styles.sectionTabText, activeSubTab === 'sites' && styles.sectionTabTextActive]}>
               🌐 Sitios web
@@ -268,7 +274,10 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
 
           <TouchableOpacity
             style={[styles.sectionTabBtn, activeSubTab === 'apps' && styles.sectionTabBtnActive]}
-            onPress={() => setActiveSubTab('apps')}
+            onPress={() => {
+              setActiveSubTab('apps');
+              onSubTabChange?.('apps');
+            }}
           >
             <Text style={[styles.sectionTabText, activeSubTab === 'apps' && styles.sectionTabTextActive]}>
               📱 Aplicaciones
@@ -414,6 +423,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         deviceIds={sites.newSiteDeviceIds}
         devices={devices}
         onToggleDevice={sites.handleToggleNewSiteDevice}
+        existingSites={customSites}
         loading={sites.loadingSite}
         onSave={sites.handleAddSite}
       />
@@ -455,6 +465,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         onDailyLimitChange={apps.setNewAppDailyLimit}
         deviceLimits={apps.newAppDeviceLimits}
         onDeviceLimitChange={apps.handleNewAppDeviceLimitChange}
+        existingApps={apps.customApps}
         loading={apps.loadingApp}
         onSave={apps.handleAddApp}
       />

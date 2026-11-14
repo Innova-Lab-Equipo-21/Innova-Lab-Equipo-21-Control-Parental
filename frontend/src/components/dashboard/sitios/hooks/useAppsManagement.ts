@@ -103,6 +103,13 @@ export const useAppsManagement = ({
     loadApps();
   }, [selectedDeviceFilter]);
 
+  // Sincronización reactiva cuando initialApps se actualiza desde el contenedor principal
+  useEffect(() => {
+    if (initialApps && initialApps.length > 0) {
+      setCustomApps(initialApps);
+    }
+  }, [initialApps]);
+
   // Apertura del modal de creación
   const handleOpenAddApp = () => {
     setNewAppName('');
@@ -164,6 +171,23 @@ export const useAppsManagement = ({
       });
       return;
     }
+
+    const trimmedName = newAppName.trim().toLowerCase();
+    const pkg = newAppPackage.trim() || `com.${newAppName.toLowerCase().replace(/\s+/g, '')}.app`;
+    const isDuplicate = customApps.some(
+      (app) =>
+        app.appName.trim().toLowerCase() === trimmedName ||
+        (Boolean(pkg) && Boolean(app.packageName) && app.packageName.trim().toLowerCase() === pkg.toLowerCase())
+    );
+    if (isDuplicate) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Aplicación ya restringida',
+        message: 'Esta aplicación ya está en tu lista de restricción.',
+      });
+      return;
+    }
+
     if (!newAppApplyToAll && newAppDeviceIds.length === 0) {
       showFeedback({
         icon: '⚠️',
@@ -291,6 +315,24 @@ export const useAppsManagement = ({
       });
       return;
     }
+
+    const trimmedName = editAppName.trim().toLowerCase();
+    const pkg = editAppPackage.trim() || `com.${editAppName.toLowerCase().replace(/\s+/g, '')}.app`;
+    const isDuplicate = customApps.some(
+      (app) =>
+        app.id !== editingApp.id &&
+        (app.appName.trim().toLowerCase() === trimmedName ||
+          (Boolean(pkg) && Boolean(app.packageName) && app.packageName.trim().toLowerCase() === pkg.toLowerCase()))
+    );
+    if (isDuplicate) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Aplicación ya restringida',
+        message: 'Ya existe otra aplicación restringida con este nombre o paquete.',
+      });
+      return;
+    }
+
     if (!editAppApplyToAll && editAppDeviceIds.length === 0) {
       showFeedback({
         icon: '⚠️',

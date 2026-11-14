@@ -7,7 +7,7 @@
 //              Badges de ordenamiento y switch de la app para Selección Múltiple (limpio, sin fondo ni ícono).
 // ==============================================================================
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import {
 import { BlockOriginFilter, DeviceInfo } from '../../../types';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { Icon } from '../../Icon';
+import { getDeviceFirstName } from '../../../utils/authValidation';
 import { styles } from './SitesAppsOptionsMenuModal.styles';
 
 /**
@@ -85,12 +86,40 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
   onToggleDeviceFilter,
 }) => {
   const inputRef = useRef<TextInput>(null);
+  const [isDeviceDropdownOpen, setIsDeviceDropdownOpen] = useState(false);
 
   /** Cierra el teclado virtual y desenfoca el campo de búsqueda */
   const handleDismissKeyboard = () => {
     Keyboard.dismiss();
     inputRef.current?.blur();
   };
+
+  /**
+   * Opciones de dispositivo para el dropdown:
+   * 1. 'Todos'
+   * 2. 'Yo' (dispositivo del responsable, siempre de primero entre dispositivos)
+   * 3. Dispositivos protegidos ordenados alfabéticamente (A-Z) con solo el primer nombre.
+   */
+  const deviceOptions = useMemo(() => {
+    const list: Array<{ id: string; label: string }> = [
+      { id: 'all', label: 'Todos' },
+      { id: 'self', label: 'Yo' },
+    ];
+
+    const protectedList = devices
+      .filter((d) => d.deviceId !== 'self' && d.profileType !== 'Responsable')
+      .map((d) => ({
+        id: d.deviceId,
+        label: getDeviceFirstName(d.childName || d.deviceName || 'Protegido'),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
+
+    return [...list, ...protectedList];
+  }, [devices]);
+
+  const selectedDevice =
+    deviceOptions.find((o) => o.id === selectedDeviceFilter) ||
+    deviceOptions[0];
 
   return (
     <Modal
@@ -159,78 +188,75 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                   )}
                 </View>
 
-                {/* 2. FILTRAR POR DISPOSITIVO (Sin emojis) */}
-                <Text style={styles.sheetSectionTitle}>FILTRAR POR DISPOSITIVO</Text>
-                <View style={styles.badgeRow}>
-                  {/* Badge: Todos */}
-                  <TouchableOpacity
-                    style={[
-                      styles.filterBadge,
-                      selectedDeviceFilter === 'all' && styles.filterBadgeActive,
-                    ]}
-                    onPress={() => {
-                      handleDismissKeyboard();
-                      if (onSelectDeviceFilter) onSelectDeviceFilter('all');
-                      if (onToggleDeviceFilter) onToggleDeviceFilter();
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.filterBadgeText,
-                        selectedDeviceFilter === 'all' && styles.filterBadgeTextActive,
-                      ]}
-                    >
-                      Todos
-                    </Text>
-                  </TouchableOpacity>
+                {/* 2. FILTRAR POR DISPOSITIVO (Dropdown en estilo de la app) */}
+                <Text style={styles.sheetSectionTitle}>Filtrar por dispositivo</Text>
+                <TouchableOpacity
+                  style={styles.dropdownContainer}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    handleDismissKeyboard();
+                    setIsDeviceDropdownOpen(true);
+                  }}
+                >
+                  <Text style={styles.dropdownValueText}>
+                    {selectedDevice?.label ?? 'Todos'}
+                  </Text>
+                  <Text style={styles.dropdownChevron}>▾</Text>
+                </TouchableOpacity>
 
-                  {/* Badge: Mi dispositivo */}
-                  <TouchableOpacity
-                    style={[
-                      styles.filterBadge,
-                      selectedDeviceFilter === 'self' && styles.filterBadgeActive,
-                    ]}
-                    onPress={() => {
-                      handleDismissKeyboard();
-                      if (onSelectDeviceFilter) onSelectDeviceFilter('self');
-                      if (onToggleDeviceFilter) onToggleDeviceFilter();
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.filterBadgeText,
-                        selectedDeviceFilter === 'self' && styles.filterBadgeTextActive,
-                      ]}
-                    >
-                      Mi dispositivo
-                    </Text>
-                  </TouchableOpacity>
+                {/* Modal Dropdown para selección de Dispositivo */}
+                <Modal
+                  visible={isDeviceDropdownOpen}
+                  transparent={true}
+                  animationType="fade"
+                  onRequestClose={() => setIsDeviceDropdownOpen(false)}
+                >
+                  <TouchableWithoutFeedback onPress={() => setIsDeviceDropdownOpen(false)}>
+                    <View style={styles.dropdownModalOverlay}>
+                      <TouchableWithoutFeedback>
+                        <View style={styles.dropdownMenuCard}>
+                          <Text style={styles.dropdownMenuHeader}>
+                            Filtrar por dispositivo
+                          </Text>
+                          <ScrollView showsVerticalScrollIndicator={false}>
+                            {deviceOptions.map((opt) => {
+                              const isSelected = selectedDeviceFilter === opt.id;
+                              return (
+                                <TouchableOpacity
+                                  key={opt.id}
+                                  style={[
+                                    styles.dropdownItem,
+                                    isSelected && styles.dropdownItemActive,
+                                  ]}
+                                  onPress={() => {
+                                    setIsDeviceDropdownOpen(false);
+                                    if (onSelectDeviceFilter) onSelectDeviceFilter(opt.id);
+                                    if (onToggleDeviceFilter) onToggleDeviceFilter();
+                                  }}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.dropdownItemText,
+                                      isSelected && styles.dropdownItemTextActive,
+                                    ]}
+                                  >
+                                    {opt.label}
+                                  </Text>
+                                  {isSelected && (
+                                    <Text style={styles.dropdownCheckmark}>✓</Text>
+                                  )}
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      </TouchableWithoutFeedback>
+                    </View>
+                  </TouchableWithoutFeedback>
+                </Modal>
 
-                  {/* Badges por cada dispositivo individual del tutor */}
-                  {devices.map((device) => {
-                    const isSelected = selectedDeviceFilter === device.deviceId;
-                    const labelName = device.childName || device.deviceName;
-
-                    return (
-                      <TouchableOpacity
-                        key={device.deviceId}
-                        style={[styles.filterBadge, isSelected && styles.filterBadgeActive]}
-                        onPress={() => {
-                          handleDismissKeyboard();
-                          if (onSelectDeviceFilter) onSelectDeviceFilter(device.deviceId);
-                          if (onToggleDeviceFilter) onToggleDeviceFilter();
-                        }}
-                      >
-                        <Text style={[styles.filterBadgeText, isSelected && styles.filterBadgeTextActive]}>
-                          {labelName}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                {/* 3. FILTRAR POR ORIGEN (Sin emojis) */}
-                <Text style={styles.sheetSectionTitle}>FILTRAR POR ORIGEN</Text>
+                {/* 3. FILTRAR POR ORIGEN (Sentence case) */}
+                <Text style={styles.sheetSectionTitle}>Filtrar por origen</Text>
                 <View style={styles.badgeRow}>
                   <TouchableOpacity
                     style={[
@@ -293,8 +319,8 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                   </TouchableOpacity>
                 </View>
 
-                {/* 4. CRITERIO DE ORDENACIÓN (Sin emojis) */}
-                <Text style={styles.sheetSectionTitle}>ORDENAR LISTA</Text>
+                {/* 4. CRITERIO DE ORDENACIÓN (Sentence case) */}
+                <Text style={styles.sheetSectionTitle}>Ordenar lista</Text>
                 <View style={styles.badgeRow}>
                   {/* Badge: Por fecha */}
                   <TouchableOpacity
@@ -339,8 +365,8 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                   </TouchableOpacity>
                 </View>
 
-                {/* 4. ACCIÓN EN LOTE (Fila limpia con ToggleSwitch) */}
-                <Text style={styles.sheetSectionTitle}>ACCIÓN EN LOTE</Text>
+                {/* 5. ACCIÓN EN LOTE (Sentence case) */}
+                <Text style={styles.sheetSectionTitle}>Acción en lote</Text>
                 <View style={styles.batchRow}>
                   <Text style={styles.batchTitle}>Selección múltiple</Text>
                   <ToggleSwitch

@@ -38,6 +38,7 @@ import {
 } from './utils/navigationSession';
 import { checkRealDevicePermissions } from './utils/permissionChecker';
 import { safeStorage } from './services/api/client';
+import { apiService } from './services/api.service';
 
 export function App(): React.JSX.Element {
   // Splash Screen inicial animado
@@ -56,6 +57,7 @@ export function App(): React.JSX.Element {
   const [parentUser, setParentUser] = useState<any>(null);
   const [parentToken, setParentToken] = useState<string | null>(null);
   const [loginInitialViewMode, setLoginInitialViewMode] = useState<AuthViewMode>('REGISTER');
+  const [hasCreatedResponsibleAccount, setHasCreatedResponsibleAccount] = useState<boolean>(false);
   const [hasGrantedPermissions, setHasGrantedPermissions] = useState<boolean>(false);
   const [hasSelectedResponsibleAction, setHasSelectedResponsibleAction] = useState<boolean>(false);
   const [responsibleActionType, setResponsibleActionType] = useState<ResponsibleInitialAction>('NONE');
@@ -69,12 +71,33 @@ export function App(): React.JSX.Element {
   // Hidratar estado de sesión persistido al iniciar la aplicación
   useEffect(() => {
     getNavigationState().then(async (session) => {
+      // Verificar si ya se registró una cuenta de Responsable en este dispositivo
+      const accountCreatedRaw = await safeStorage.getItem('@ba_protege_responsible_account_created');
+      const modeLockedRaw = await safeStorage.getItem('@ba_protege_mode_locked');
+      const accountCreated =
+        accountCreatedRaw === 'true' ||
+        session.hasCreatedResponsibleAccount ||
+        !!session.parentUser;
+      setHasCreatedResponsibleAccount(accountCreated);
+
+      const effectiveMode: AppMode =
+        (modeLockedRaw as AppMode) ||
+        (session.currentMode && session.currentMode !== 'UNSET'
+          ? session.currentMode
+          : 'UNSET');
+
+      if (effectiveMode && effectiveMode !== 'UNSET') {
+        setCurrentMode(effectiveMode);
+      }
+
       if (session.onboardingCompleted) {
         setShowOnboarding(false);
       }
-      if (session.currentMode && session.currentMode !== 'UNSET') {
-        setCurrentMode(session.currentMode);
+
+      if (effectiveMode === 'PARENT' && !session.isParentLoggedIn) {
+        setLoginInitialViewMode(accountCreated ? 'LOGIN' : 'REGISTER');
       }
+
       if (session.isParentLoggedIn && session.parentUser) {
         setIsParentLoggedIn(true);
         setParentUser(session.parentUser);
@@ -90,7 +113,26 @@ export function App(): React.JSX.Element {
       const allGranted = real.grantedCount === 6;
       setHasGrantedPermissions(allGranted);
 
-      setHasSelectedResponsibleAction(session.hasSelectedResponsibleAction);
+      // Verificar si el Responsable ya completó acción o si ya tiene dispositivos registrados
+      let effectiveSelectedAction = session.hasSelectedResponsibleAction;
+      if (session.isParentLoggedIn) {
+        if (!effectiveSelectedAction) {
+          const alreadyCompleted = await hasCompletedResponsibleFirstAccess(session.parentUser);
+          if (alreadyCompleted) {
+            effectiveSelectedAction = true;
+          } else {
+            try {
+              const devicesRes = await apiService.listDevices();
+              if (Array.isArray(devicesRes?.data) && devicesRes.data.length > 0) {
+                effectiveSelectedAction = true;
+                await markResponsibleFirstAccessCompleted(session.parentUser);
+              }
+            } catch (_) {}
+          }
+        }
+      }
+
+      setHasSelectedResponsibleAction(effectiveSelectedAction);
       setResponsibleActionType(session.responsibleActionType);
       setIsDevicePaired(session.isDevicePaired);
       setDeviceUuid(session.deviceUuid);
@@ -99,6 +141,9 @@ export function App(): React.JSX.Element {
       let effectiveScreen = session.activeScreen;
       if (allGranted && effectiveScreen === 'PERMISSIONS') {
         effectiveScreen = session.currentMode === 'PARENT' ? 'DASHBOARD' : 'PROTECTED_DEVICE';
+      }
+      if (effectiveScreen === 'RESPONSIBLE_ACTION' && effectiveSelectedAction) {
+        effectiveScreen = 'DASHBOARD';
       }
       setActiveScreen(effectiveScreen);
 
@@ -115,23 +160,43 @@ export function App(): React.JSX.Element {
   }, []);
 
   // Manejador de selección de modo
-  const handleSelectMode = (mode: AppMode) => {
-    const nextScreen: ActiveScreenType = mode === 'PARENT' ? 'LOGIN' : 'PAIRING';
+  const handleSelectMode = async (mode: AppMode) => {
     setCurrentMode(mode);
     setIsParentLoggedIn(false);
     setIsDevicePaired(false);
     setHasGrantedPermissions(false);
     setHasSelectedResponsibleAction(false);
     setResponsibleActionType('NONE');
-    setActiveScreen(nextScreen);
-    saveNavigationState({
-      onboardingCompleted: true,
-      currentMode: mode,
-      isParentLoggedIn: false,
-      isDevicePaired: false,
-      hasGrantedPermissions: false,
-      activeScreen: nextScreen,
-    }).catch(() => {});
+
+    if (mode === 'PARENT') {
+      await safeStorage.setItem('@ba_protege_mode_locked', 'PARENT');
+      const accountCreatedRaw = await safeStorage.getItem('@ba_protege_responsible_account_created');
+      const accountCreated = accountCreatedRaw === 'true';
+      setHasCreatedResponsibleAccount(accountCreated);
+      const initialView: AuthViewMode = accountCreated ? 'LOGIN' : 'REGISTER';
+      setLoginInitialViewMode(initialView);
+      setActiveScreen('LOGIN');
+      await saveNavigationState({
+        onboardingCompleted: true,
+        currentMode: 'PARENT',
+        isParentLoggedIn: false,
+        isDevicePaired: false,
+        hasGrantedPermissions: false,
+        activeScreen: 'LOGIN',
+        hasCreatedResponsibleAccount: accountCreated,
+      });
+    } else {
+      const nextScreen: ActiveScreenType = 'PAIRING';
+      setActiveScreen(nextScreen);
+      await saveNavigationState({
+        onboardingCompleted: true,
+        currentMode: mode,
+        isParentLoggedIn: false,
+        isDevicePaired: false,
+        hasGrantedPermissions: false,
+        activeScreen: nextScreen,
+      });
+    }
   };
 
   // Manejador de Login del Responsable
@@ -140,7 +205,20 @@ export function App(): React.JSX.Element {
     setParentToken(token);
     setIsParentLoggedIn(true);
     setResponsibleActionType('NONE');
-    const alreadyCompleted = await hasCompletedResponsibleFirstAccess(user);
+    setHasCreatedResponsibleAccount(true);
+    await safeStorage.setItem('@ba_protege_responsible_account_created', 'true');
+    await safeStorage.setItem('@ba_protege_mode_locked', 'PARENT');
+
+    let alreadyCompleted = await hasCompletedResponsibleFirstAccess(user);
+    if (!alreadyCompleted) {
+      try {
+        const devicesRes = await apiService.listDevices();
+        if (Array.isArray(devicesRes?.data) && devicesRes.data.length > 0) {
+          alreadyCompleted = true;
+          await markResponsibleFirstAccessCompleted(user);
+        }
+      } catch (_) {}
+    }
     setHasSelectedResponsibleAction(alreadyCompleted);
 
     // Verificar si ya tiene todos los 6 permisos habilitados
@@ -163,7 +241,35 @@ export function App(): React.JSX.Element {
       hasGrantedPermissions: allGranted,
       hasSelectedResponsibleAction: alreadyCompleted,
       responsibleActionType: 'NONE',
+      hasCreatedResponsibleAccount: true,
       activeScreen: targetScreen,
+    });
+  };
+
+  // Manejador de Cerrar sesión del Responsable
+  const handleParentLogout = async () => {
+    setIsParentLoggedIn(false);
+    setParentUser(null);
+    setParentToken(null);
+    setHasGrantedPermissions(false);
+    setHasSelectedResponsibleAction(false);
+    setResponsibleActionType('NONE');
+    setLoginInitialViewMode('LOGIN');
+    setActiveScreen('LOGIN');
+    setHasCreatedResponsibleAccount(true);
+    await safeStorage.setItem('@ba_protege_responsible_account_created', 'true');
+    await safeStorage.setItem('@ba_protege_mode_locked', 'PARENT');
+    await safeStorage.removeItem('@ba_protege_jwt_token');
+    await saveNavigationState({
+      currentMode: 'PARENT',
+      isParentLoggedIn: false,
+      parentUser: null,
+      parentToken: null,
+      hasGrantedPermissions: false,
+      hasSelectedResponsibleAction: false,
+      responsibleActionType: 'NONE',
+      hasCreatedResponsibleAccount: true,
+      activeScreen: 'LOGIN',
     });
   };
 
@@ -197,7 +303,16 @@ export function App(): React.JSX.Element {
   // Manejador de confirmación de permisos
   const handlePermissionsComplete = async () => {
     if (currentMode === 'PARENT') {
-      const alreadyCompleted = await hasCompletedResponsibleFirstAccess(parentUser);
+      let alreadyCompleted = await hasCompletedResponsibleFirstAccess(parentUser);
+      if (!alreadyCompleted) {
+        try {
+          const devicesRes = await apiService.listDevices();
+          if (Array.isArray(devicesRes?.data) && devicesRes.data.length > 0) {
+            alreadyCompleted = true;
+            await markResponsibleFirstAccessCompleted(parentUser);
+          }
+        } catch (_) {}
+      }
       if (alreadyCompleted) {
         setResponsibleActionType('NONE');
         setHasSelectedResponsibleAction(true);
@@ -272,7 +387,7 @@ export function App(): React.JSX.Element {
         <LoginScreen
           initialViewMode={loginInitialViewMode}
           onLoginSuccess={handleLoginSuccess}
-          onBack={handleExitMode}
+          onBack={hasCreatedResponsibleAccount ? undefined : handleExitMode}
         />
       )}
 
@@ -363,6 +478,7 @@ export function App(): React.JSX.Element {
             initialToken={parentToken}
             initialAction={responsibleActionType}
             onExitMode={handleExitMode}
+            onLogout={handleParentLogout}
           />
         )}
 

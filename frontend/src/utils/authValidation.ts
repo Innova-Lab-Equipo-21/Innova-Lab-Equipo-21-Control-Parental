@@ -41,6 +41,55 @@ export const formatPhone = (text: string): string => {
   return formatted;
 };
 
+/** Longitud máxima permitida para el nombre de un dispositivo o protegido */
+export const MAX_DEVICE_NAME_LENGTH = 30;
+
+/**
+ * Extrae solo el primer nombre de un dispositivo o persona protegida.
+ * - Si es 'Mi dispositivo' o 'self', lo transforma en 'Yo'.
+ * - Elimina prefijos comunes de hardware como "Celular de ", "Tablet de ", "Dispositivo de ".
+ * - Extrae el primer nombre del texto resultante.
+ * Ejemplos:
+ * - "Maria Guadalupe Hernandéz" -> "Maria"
+ * - "Celular de Tomás" -> "Tomás"
+ * - "Tablet de Lucía" -> "Lucía"
+ * - "Mi dispositivo" -> "Yo"
+ */
+export const getDeviceFirstName = (fullName: string): string => {
+  if (!fullName) return '';
+  const trimmed = fullName.trim();
+  if (trimmed === 'Mi dispositivo' || trimmed === 'self') return 'Yo';
+  const cleaned = trimmed
+    .replace(/^(Celular|Tablet|Teléfono)\s+de\s+/i, '')
+    .trim();
+  if (/^Dispositivo\s+[A-Za-z0-9]/i.test(cleaned)) {
+    return cleaned;
+  }
+  const first = cleaned.split(/\s+/)[0];
+  return first || trimmed;
+};
+
+/**
+ * Valida la longitud y caracteres del nombre de un dispositivo protegido.
+ * Retorna el mensaje de error correspondiente si supera el límite o si es inválido, o null si es válido.
+ */
+export const validateDeviceName = (name: string): string | null => {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return 'El nombre del protegido es obligatorio.';
+  }
+  if (trimmed.length < 2) {
+    return 'El nombre debe tener al menos 2 caracteres.';
+  }
+  if (trimmed.length > MAX_DEVICE_NAME_LENGTH) {
+    return `El nombre no puede superar los ${MAX_DEVICE_NAME_LENGTH} caracteres (actual: ${trimmed.length}).`;
+  }
+  if (!validateLettersOnly(trimmed)) {
+    return 'El nombre solo debe contener letras y espacios.';
+  }
+  return null;
+};
+
 /** Valida que el texto solo contenga letras y espacios */
 export const validateLettersOnly = (text: string): boolean => {
   const lettersRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;

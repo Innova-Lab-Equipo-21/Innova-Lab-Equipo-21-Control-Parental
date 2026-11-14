@@ -11,65 +11,70 @@ import { analyticsPalette as palette } from '../palette';
 
 export const styles = StyleSheet.create({
   wrapper: {
-    flexShrink: 0,
+    flex: 1,
     position: 'relative',
   },
 
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-between',
     backgroundColor: palette.offWhite,
     borderWidth: 1.5,
     borderColor: palette.cardBorder,
-    borderRadius: 8,
-    paddingVertical: 5,
-    paddingHorizontal: 9,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minHeight: 40,
   },
 
   triggerText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: palette.textMain,
   },
 
   chevron: {
-    fontSize: 9,
+    fontSize: 10,
     color: palette.textSubtle,
+    marginLeft: 6,
   },
 
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.25)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 135,
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
 
   menu: {
-    marginTop: 8,
-    marginRight: 12,
-    minWidth: 150,
+    width: '100%',
+    maxWidth: 280,
     backgroundColor: palette.white,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: palette.cardBorder,
-    padding: 4,
+    padding: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.15,
     shadowRadius: 10,
-    elevation: 4,
+    elevation: 6,
   },
 
   menuItem: {
-    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 7,
+    borderRadius: 8,
+    marginVertical: 2,
   },
 
   menuItemActive: {
-    backgroundColor: palette.surfaceBg,
+    backgroundColor: '#E5F1FF',
   },
 
   menuItemText: {
@@ -79,7 +84,7 @@ export const styles = StyleSheet.create({
   },
 
   menuItemTextActive: {
-    color: palette.textMain,
+    color: '#0369a1',
     fontWeight: '800',
   },
 });

@@ -145,9 +145,24 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
       return;
     }
 
+    const cleaned = cleanDomainInput(newSiteDomain);
+    const isDuplicate = customSites.some(
+      (existing) =>
+        isItemVisibleForAdultoDevice(existing, sourceDeviceId) &&
+        cleanDomainInput(existing.domain) === cleaned
+    );
+    if (isDuplicate) {
+      setFeedbackModal({
+        visible: true,
+        imageSource: BOTI_ASSETS.triste,
+        title: 'Sitio ya bloqueado',
+        message: 'Este sitio web ya se encuentra en tu lista de bloqueo.',
+      });
+      return;
+    }
+
     setLoadingSite(true);
     try {
-      const cleaned = cleanDomainInput(newSiteDomain);
       await apiService.addCustomBlockedSite(
         cleaned,
         'Personalizado',
@@ -193,13 +208,18 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
       return;
     }
 
-    if (
-      customApps.some(
-        (existing) =>
-          isItemVisibleForAdultoDevice(existing, sourceDeviceId) &&
-          existing.appName.trim().toLowerCase() === trimmedName.toLowerCase()
-      )
-    ) {
+    const pkg =
+      newAppPackage.trim() ||
+      `com.${trimmedName.toLowerCase().replace(/\s+/g, '')}.app`;
+
+    const isDuplicate = customApps.some(
+      (existing) =>
+        isItemVisibleForAdultoDevice(existing, sourceDeviceId) &&
+        (existing.appName.trim().toLowerCase() === trimmedName.toLowerCase() ||
+          (Boolean(pkg) && Boolean(existing.packageName) && existing.packageName.trim().toLowerCase() === pkg.toLowerCase()))
+    );
+
+    if (isDuplicate) {
       setFeedbackModal({
         visible: true,
         imageSource: BOTI_ASSETS.triste,
@@ -436,6 +456,7 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
         onSelectSuggestion={(sug) => {
           setNewSiteDomain(sug.domain);
         }}
+        existingSites={customSites.filter((s) => isItemVisibleForAdultoDevice(s, sourceDeviceId))}
         loading={loadingSite}
         onSave={handleAddSite}
       />
@@ -457,6 +478,7 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
           setNewAppPackage(sug.pkg);
           setNewAppCategory(sug.category);
         }}
+        existingApps={customApps.filter((a) => isItemVisibleForAdultoDevice(a, sourceDeviceId))}
         loading={loadingApp}
         onSave={handleAddApp}
       />

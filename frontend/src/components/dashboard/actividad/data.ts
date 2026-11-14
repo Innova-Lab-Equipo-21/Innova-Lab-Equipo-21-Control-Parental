@@ -102,13 +102,13 @@ export const DEMO_HOURLY_DATA: HourBlock[] = [
 export const DEMO_BLOCKED_ATTEMPTS: AttemptEvent[] = [
   {
     id: 'a1',
-    title: 'ejemplo-apuestas.com',
+    title: 'Sitio no autorizado',
     meta: 'Celular de Tomás · hace 4 min',
     source: 'lotba',
   },
   {
     id: 'a2',
-    title: 'casino-demo.net',
+    title: 'Sitio no autorizado',
     meta: 'Tablet de Lucía · hace 22 min',
     source: 'lotba',
   },

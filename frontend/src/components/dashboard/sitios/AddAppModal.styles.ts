@@ -131,6 +131,19 @@ export const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: 8,
   },
+  appFeedbackInvalid: {
+    marginTop: 4,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: colors.statusDangerBg,
+    borderRadius: 6,
+  },
+  appFeedbackTextInvalid: {
+    fontSize: 11,
+    color: '#842029',
+    fontWeight: '500',
+  },
   deviceSelectionContainer: {
     marginTop: 16,
     marginBottom: 8,

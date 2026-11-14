@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDeviceFirstName } from '../../../../utils/authValidation';
 import {
   AnalyticsDevice,
   AnalyticsPeriod,
@@ -147,15 +148,43 @@ export function useAnalyticsPanel({
     [devices, selectedDeviceId]
   );
 
-  const deviceOptions = useMemo(
-    () =>
-      devices.map((d) => ({
-        id: d.id,
-        label: d.label,
-        status: d.status,
-      })),
-    [devices]
-  );
+  const deviceOptions = useMemo(() => {
+    // 1. "Yo" siempre de primero entre los dispositivos individuales
+    const selfDevice = devices.find(
+      (d) => d.id === 'self' || d.label === 'Yo' || d.label === 'Mi dispositivo'
+    );
+
+    // 2. Dispositivos protegidos ordenados alfabéticamente (A-Z) mostrando solo el primer nombre
+    const protectedDevices = devices
+      .filter(
+        (d) => d.id !== 'self' && d.label !== 'Yo' && d.label !== 'Mi dispositivo'
+      )
+      .map((d) => {
+        const firstName = getDeviceFirstName(d.label);
+        return {
+          ...d,
+          label: firstName,
+          shortLabel: firstName,
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
+
+    const sortedList: AnalyticsDevice[] = [];
+    if (selfDevice) {
+      sortedList.push({
+        ...selfDevice,
+        label: 'Yo',
+        shortLabel: 'Yo',
+      });
+    }
+    sortedList.push(...protectedDevices);
+
+    return sortedList.map((d) => ({
+      id: d.id,
+      label: d.label,
+      status: d.status,
+    }));
+  }, [devices]);
 
   // ---- Métricas del dispositivo (o del equipo en "Todos") ----
   const mult = activeDevice?.mult ?? 1;

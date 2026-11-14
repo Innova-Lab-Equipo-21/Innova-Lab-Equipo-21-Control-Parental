@@ -382,11 +382,11 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
         {/* Card 1: Sitios Bloqueados */}
         <View style={styles.metricCard}>
           <Text style={styles.metricLabelLeft}>
-            {customSitesCount > 1 ? 'Sitios' : 'Sitio'}
+            {customSitesCount === 1 ? 'Sitio' : 'Sitios'}
           </Text>
           <Text style={styles.metricNumber}>{customSitesCount}</Text>
           <Text style={styles.metricSubLabelLeft}>
-            {customSitesCount > 1 ? 'bloqueados' : 'bloqueado'}
+            {customSitesCount === 1 ? 'bloqueado' : 'bloqueados'}
           </Text>
           <TouchableOpacity
             style={styles.cardEditBtn}
@@ -401,11 +401,11 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
         {/* Card 2: Apps Bloqueadas */}
         <View style={styles.metricCard}>
           <Text style={styles.metricLabelRight}>
-            {blockedAppsCount > 1 ? 'Apps' : 'App'}
+            {blockedAppsCount === 1 ? 'App' : 'Aplicaciones'}
           </Text>
           <Text style={styles.metricNumber}>{blockedAppsCount}</Text>
           <Text style={styles.metricSubLabelRight}>
-            {blockedAppsCount > 1 ? 'bloqueadas' : 'bloqueada'}
+            {blockedAppsCount === 1 ? 'bloqueada' : 'bloqueadas'}
           </Text>
           <TouchableOpacity
             style={styles.cardEditBtn}

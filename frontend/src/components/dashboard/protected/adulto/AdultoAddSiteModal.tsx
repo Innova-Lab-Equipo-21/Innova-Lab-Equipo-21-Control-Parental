@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { ActionButton } from '../../../ActionButton';
 import { colors } from '../../../../theme/colors';
+import { CustomBlockedDomain } from '../../../../types';
 import { isValidDomainOrUrl, cleanDomainInput } from '../../../../utils/deviceColors';
 import { validateDomainInputDetailed, getDomainAutocompleteSuggestions } from '../../../../utils/domainValidation';
 import { ADULTO_SITE_MODAL_WARNING } from '../../../../utils/adultoSitios';
@@ -32,6 +33,7 @@ export interface AdultoAddSiteModalProps {
   domain: string;
   onDomainChange: (text: string) => void;
   onSelectSuggestion?: (sug: { name: string; domain: string; category: string; icon?: string }) => void;
+  existingSites?: CustomBlockedDomain[];
   loading: boolean;
   onSave: () => void;
 }
@@ -42,6 +44,7 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
   domain,
   onDomainChange,
   onSelectSuggestion,
+  existingSites,
   loading,
   onSave,
 }) => {
@@ -58,6 +61,14 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
   const isDomainValid = validation.isValid;
   const normalizedDomain = hasInput ? cleanDomainInput(domain) : '';
   const autocompleteItems = getDomainAutocompleteSuggestions(domain, top15ArgentinaSites);
+
+  const isDuplicate =
+    hasInput &&
+    Boolean(
+      existingSites?.some(
+        (item) => cleanDomainInput(item.domain) === normalizedDomain
+      )
+    );
 
   const selectedDropdownSite = top15ArgentinaSites.find(
     (item) =>
@@ -214,13 +225,28 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
 
             {/* Verificación de Errores y Retroalimentación en Tiempo Real */}
             {hasInput && (
-              <View style={isDomainValid ? styles.domainFeedbackValid : styles.domainFeedbackInvalid}>
-                <Text style={isDomainValid ? styles.domainFeedbackTextValid : styles.domainFeedbackTextInvalid}>
-                  {isDomainValid
+              <View
+                style={
+                  !isDuplicate && isDomainValid
+                    ? styles.domainFeedbackValid
+                    : styles.domainFeedbackInvalid
+                }
+              >
+                <Text
+                  style={
+                    !isDuplicate && isDomainValid
+                      ? styles.domainFeedbackTextValid
+                      : styles.domainFeedbackTextInvalid
+                  }
+                >
+                  {isDuplicate
+                    ? '⚠️ Este sitio web ya se encuentra en tu lista de bloqueo.'
+                    : isDomainValid
                     ? `✓ Sitio válido (se bloqueará: ${normalizedDomain})`
-                    : validation.message || '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
+                    : validation.message ||
+                      '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
                 </Text>
-                {!isDomainValid && validation.suggestedCorrection && (
+                {!isDuplicate && !isDomainValid && validation.suggestedCorrection && (
                   <TouchableOpacity
                     style={styles.suggestionActionBtn}
                     onPress={() => onDomainChange(validation.suggestedCorrection!)}
@@ -259,6 +285,7 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
                 title="Guardar"
                 variant="primary"
                 loading={loading}
+                disabled={!hasInput || !isDomainValid || isDuplicate}
                 onPress={onSave}
               />
             </View>

@@ -14,6 +14,7 @@ import {
   DeviceInfo,
 } from '../../../types';
 import { apiService } from '../../../services/api.service';
+import { getDeviceFirstName } from '../../../utils/authValidation';
 import {
   BlockedAttemptRecord,
   buildActivityDataset,
@@ -188,8 +189,8 @@ export function useRealAnalyticsData({
     // Dispositivos protegidos (Menores y Adultos)
     devices.forEach((dev, idx) => {
       const devId = dev.deviceId || dev.deviceUuid || `dev-${idx}`;
-      const name = dev.childName || dev.deviceName || `Dispositivo ${idx + 1}`;
-      const shortName = name.split(' ')[0];
+      const rawName = dev.childName || dev.deviceName || `Dispositivo ${idx + 1}`;
+      const firstName = getDeviceFirstName(rawName);
 
       const devEvents = dataset.filter((e) => e.deviceId === devId);
       const devLotba = devEvents
@@ -205,8 +206,8 @@ export function useRealAnalyticsData({
 
       result.push({
         id: devId,
-        label: name,
-        shortLabel: shortName,
+        label: firstName,
+        shortLabel: firstName,
         status: isInactive ? 'offline' : isOnline ? 'online' : 'warning',
         total: devTotal,
         lotba: devLotba,
@@ -214,7 +215,7 @@ export function useRealAnalyticsData({
         uptime: isInactive ? '0%' : '99.5%',
         showAlert: isInactive,
         alertText: isInactive
-          ? `${name} aún no completó la vinculación con el código`
+          ? `${firstName} aún no completó la vinculación con el código`
           : undefined,
         alertTag: isInactive ? 'Inactivo' : undefined,
         mult: Number((devTotal / totalAll).toFixed(2)) || 0.1,
@@ -286,13 +287,13 @@ export function useRealAnalyticsData({
     return metrics.allFilteredAttempts.slice(0, 15).map((att) => {
       const isLotba = att.sourceListType !== 'CUSTOM';
       const displayDomain = isLotba
-        ? anonymizeLotbaDomain(att.attemptedDomain)
+        ? 'Sitio no autorizado'
         : att.attemptedDomain;
 
       return {
         id: att.id,
         title: displayDomain,
-        meta: `${att.deviceName} · ${att.relativeTime}`,
+        meta: `${getDeviceFirstName(att.deviceName)} · ${att.relativeTime}`,
         source: isLotba ? 'lotba' : 'custom',
         badgeLabel: att.sourceLabel,
         deviceId: att.deviceId,

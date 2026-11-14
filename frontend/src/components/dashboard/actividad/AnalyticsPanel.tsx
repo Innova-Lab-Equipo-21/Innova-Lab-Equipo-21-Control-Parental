@@ -13,6 +13,7 @@ import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { Header } from '../../Header';
 import { PeriodOption, PeriodSelector } from './blocks/PeriodSelector';
+import { DeviceSelector } from './blocks/DeviceSelector';
 import { DeviceChipsRow } from './blocks/DeviceChipsRow';
 import { HeartbeatBanner } from './blocks/HeartbeatBanner';
 import { TotalBlocksCard } from './blocks/TotalBlocksCard';
@@ -77,22 +78,27 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
         title="Actividad del sistema"
         subtitle="Auditoría de bloqueos y eventos de protección"
         onBack={onBack}
-        rightElement={
-          <PeriodSelector
-            options={PERIOD_OPTIONS}
-            value={panel.period}
-            onChange={(value) => panel.changePeriod(value as AnalyticsPeriod)}
-          />
-        }
       />
 
       <View style={styles.body}>
-        <DeviceChipsRow
-          options={panel.deviceOptions}
-          selectedId={panel.selectedDeviceId}
-          onSelect={panel.setSelectedDeviceId}
-          allLabel={`Todos (${devices.length})`}
-        />
+        {/* Fila de Dropdowns en la misma línea: Dispositivos y Período */}
+        <View style={styles.dropdownsRow}>
+          <View style={styles.dropdownColDevice}>
+            <DeviceSelector
+              options={panel.deviceOptions}
+              selectedId={panel.selectedDeviceId}
+              onSelect={panel.setSelectedDeviceId}
+              allLabel={`Todos (${devices.length})`}
+            />
+          </View>
+          <View style={styles.dropdownColPeriod}>
+            <PeriodSelector
+              options={PERIOD_OPTIONS}
+              value={panel.period}
+              onChange={(value) => panel.changePeriod(value as AnalyticsPeriod)}
+            />
+          </View>
+        </View>
 
         {panel.showAlert ? (
           <HeartbeatBanner text={panel.alertText ?? ''} tag={panel.alertTag} />

@@ -59,6 +59,7 @@ import { colors } from '../theme/colors';
 import { checkRealDevicePermissions } from '../utils/permissionChecker';
 import { saveNavigationState } from '../utils/navigationSession';
 import { protectionService } from '../services/protection.service';
+import { safeStorage } from '../services/api/client';
 import {
   ResponsibleInitialAction,
   shouldRedirectToHomeAfterSelfControlActivation,
@@ -68,6 +69,7 @@ import { styles } from './ParentDashboardScreen.styles';
 
 interface ParentDashboardScreenProps {
   onExitMode: () => void;
+  onLogout?: () => void;
   initialUser?: any;
   initialToken?: string | null;
   permissions?: PermissionItemState;
@@ -77,6 +79,7 @@ interface ParentDashboardScreenProps {
 
 export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   onExitMode,
+  onLogout,
   initialUser,
   initialToken,
   permissions,
@@ -258,6 +261,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const [grantedPermsCount, setGrantedPermsCount] = useState<number>(6);
   const [showHomeFaqModal, setShowHomeFaqModal] = useState<boolean>(false);
   const [sitesInitialSubTab, setSitesInitialSubTab] = useState<'sites' | 'apps'>('sites');
+  const [currentSitiosSubTab, setCurrentSitiosSubTab] = useState<'sites' | 'apps'>('sites');
 
   // Métricas reales para el Panel de Analítica (Propuesta Superadora MVP)
   const realAnalytics = useRealAnalyticsData({
@@ -328,8 +332,19 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
   const loadDevices = async () => {
     try {
+      // 1. Cargar inmediatamente desde almacenamiento local para respuesta visual instantánea (0ms)
+      const raw = await safeStorage.getItem('@ba_protege_devices_list');
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (Array.isArray(cached) && cached.length > 0) {
+          setDevices(cached);
+        }
+      }
+      // 2. Sincronizar con la API en segundo plano
       const res = await apiService.listDevices();
-      setDevices(res.data || []);
+      if (Array.isArray(res.data)) {
+        setDevices(res.data);
+      }
     } catch (e) {
       console.warn('No se pudo conectar a la API, usando datos en caché:', e);
     }
@@ -530,10 +545,12 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             onToggleSelfControl={handleStartSelfControlFlow}
             onNavigateToSites={() => {
               setSitesInitialSubTab('sites');
+              setCurrentSitiosSubTab('sites');
               setActiveTab('sitios');
             }}
             onNavigateToApps={() => {
               setSitesInitialSubTab('apps');
+              setCurrentSitiosSubTab('apps');
               setActiveTab('sitios');
             }}
             onNavigateToActivity={() => setActiveTab('actividad')}
@@ -584,8 +601,12 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       {activeTab === 'sitios' && (
         <View style={{ flex: 1, position: 'relative' }}>
           <Header
-            title="Gestión de sitios y apps"
-            subtitle="Filtro oficial LOTBA, dominios y aplicaciones"
+            title={currentSitiosSubTab === 'apps' ? 'Aplicaciones' : 'Gestión de sitios y apps'}
+            subtitle={
+              currentSitiosSubTab === 'apps'
+                ? 'Límites de uso y aplicaciones móviles restringidas'
+                : 'Filtro oficial LOTBA, dominios y aplicaciones'
+            }
             onBack={() => setActiveTab('inicio')}
           />
           <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 85 }]}>
@@ -606,6 +627,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               onStartSelfControlFlow={handleStartSelfControlFlow}
               hideInternalFab={true}
               initialSubTab={sitesInitialSubTab}
+              onSubTabChange={setCurrentSitiosSubTab}
               onSetAddHandler={(handler) => {
                 siteAddHandlerRef.current = handler;
               }}
@@ -746,7 +768,11 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                 variant="secondary"
                 onPress={() => {
                   setIsLoggedIn(false);
-                  onExitMode();
+                  if (onLogout) {
+                    onLogout();
+                  } else {
+                    onExitMode();
+                  }
                 }}
               />
             </View>
@@ -775,6 +801,19 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
         visible={showPairingModal}
         deviceCount={devices.length}
         onClose={() => setShowPairingModal(false)}
+        onDeviceCreated={(newDev) => {
+          // Actualización instantánea en memoria para Inicio y Dispositivos sin esperar el cierre del modal
+          setDevices((prev) => {
+            const exists = prev.some(
+              (d) =>
+                (d.deviceId && d.deviceId === newDev.deviceId) ||
+                (d.deviceUuid && d.deviceUuid === newDev.deviceUuid)
+            );
+            if (exists) return prev;
+            return [...prev, newDev];
+          });
+          loadDevices();
+        }}
         onDeviceAdded={(savedName) => {
           loadDevices();
           setShowPairingModal(false);

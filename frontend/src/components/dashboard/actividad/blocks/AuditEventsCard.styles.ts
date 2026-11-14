@@ -14,8 +14,76 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
+  filtersWrap: {
+    backgroundColor: palette.offWhite,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 10,
+    gap: 6,
+  },
+
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  filterLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: palette.textSubtle,
+    width: 52,
+  },
+
+  chipGroup: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    flex: 1,
+  },
+
+  filterChip: {
+    paddingVertical: 3.5,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: palette.white,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+  },
+
+  filterChipActive: {
+    backgroundColor: '#E5F1FF',
+    borderColor: '#0284c7',
+  },
+
+  filterChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: palette.textSubtle,
+  },
+
+  filterChipTextActive: {
+    color: '#0369a1',
+    fontWeight: '800',
+  },
+
   list: {
     flexDirection: 'column',
+  },
+
+  emptyContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  emptyText: {
+    fontSize: 12,
+    color: palette.textMuted,
+    fontStyle: 'italic',
   },
 
   attemptItem: {

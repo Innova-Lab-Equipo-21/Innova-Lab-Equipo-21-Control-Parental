@@ -27,6 +27,7 @@ import { PrivacyModal } from './PrivacyModal';
 import { FeedbackModal } from '../FeedbackModal';
 import { colors } from '../../theme/colors';
 import { apiService } from '../../services/api.service';
+import { safeStorage } from '../../services/api/client';
 import { calculateAge } from '../../utils/age';
 import {
   formatBirthDate,
@@ -273,6 +274,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       } catch (fcmError) {
         // FCM no disponible en este entorno; se omite silenciosamente
       }
+
+      await safeStorage.setItem('@ba_protege_responsible_account_created', 'true');
+      await safeStorage.setItem('@ba_protege_mode_locked', 'PARENT');
 
       setFeedbackModal({
         visible: true,

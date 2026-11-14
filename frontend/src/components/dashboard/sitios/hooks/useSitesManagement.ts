@@ -14,7 +14,7 @@ import {
   SelfControlState,
 } from '../../../../types';
 import { apiService } from '../../../../services/api.service';
-import { isValidDomainOrUrl } from '../../../../utils/deviceColors';
+import { isValidDomainOrUrl, cleanDomainInput } from '../../../../utils/deviceColors';
 import { matchesBlockOriginFilter } from '../../../../utils/adultoSitios';
 
 interface UseSitesManagementProps {
@@ -133,6 +133,20 @@ export const useSitesManagement = ({
       });
       return;
     }
+
+    const cleaned = cleanDomainInput(newSiteDomain);
+    const isDuplicate = customSites.some(
+      (site) => cleanDomainInput(site.domain) === cleaned
+    );
+    if (isDuplicate) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Sitio ya bloqueado',
+        message: 'Este sitio web ya está en tu lista de bloqueo.',
+      });
+      return;
+    }
+
     if (!newSiteApplyToAll && newSiteDeviceIds.length === 0) {
       showFeedback({
         icon: '⚠️',
@@ -229,6 +243,20 @@ export const useSitesManagement = ({
       });
       return;
     }
+
+    const cleaned = cleanDomainInput(editSiteDomain);
+    const isDuplicate = customSites.some(
+      (site) => site.id !== editingSite.id && cleanDomainInput(site.domain) === cleaned
+    );
+    if (isDuplicate) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Sitio ya bloqueado',
+        message: 'Ya existe otro sitio web bloqueado con este dominio.',
+      });
+      return;
+    }
+
     if (!editSiteApplyToAll && editSiteDeviceIds.length === 0) {
       showFeedback({
         icon: '⚠️',

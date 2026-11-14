@@ -29,18 +29,52 @@ export function getResponsibleFirstAccessKey(
 }
 
 /**
- * Verifica si el usuario Responsable ya completó la pantalla inicial "Elegir protección".
+ * Verifica si el usuario Responsable ya completó la pantalla inicial "Elegir protección",
+ * o si ya cuenta con dispositivos registrados (en cuyo caso "Elegir protección" no debe aparecer).
  */
 export async function hasCompletedResponsibleFirstAccess(
-  user?: { id?: string; email?: string } | null
+  user?: { id?: string; email?: string } | null,
+  registeredDevicesCount?: number
 ): Promise<boolean> {
+  // Si ya tiene al menos 1 dispositivo registrado, no debe mostrarse "Elegir protección"
+  if (typeof registeredDevicesCount === 'number' && registeredDevicesCount > 0) {
+    return true;
+  }
+
   try {
     const key = getResponsibleFirstAccessKey(user);
     const stored = await safeStorage.getItem(key);
-    return stored === 'true';
+    if (stored === 'true') {
+      return true;
+    }
+
+    // Si existen dispositivos registrados en el almacenamiento local, no mostrar "Elegir protección"
+    const localDevsRaw = await safeStorage.getItem('@ba_protege_devices_list');
+    if (localDevsRaw) {
+      const parsed = JSON.parse(localDevsRaw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return true;
+      }
+    }
+
+    return false;
   } catch {
     return false;
   }
+}
+
+/**
+ * Determina si debe mostrarse la pantalla "Elegir protección".
+ * Garantiza que "Elegir protección" aparezca solamente cuando el Responsable no tenga ningún dispositivo registrado.
+ */
+export function shouldShowResponsibleActionScreen(
+  hasSelectedAction: boolean,
+  deviceCount: number
+): boolean {
+  if (deviceCount > 0) {
+    return false;
+  }
+  return !hasSelectedAction;
 }
 
 /**

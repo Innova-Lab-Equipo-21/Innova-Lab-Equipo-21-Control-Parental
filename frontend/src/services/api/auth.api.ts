@@ -105,29 +105,11 @@ export const authApi = {
       }
       return response.data;
     } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
       if (!error.response || error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
-        console.warn('⚠️ Network Error detectado al iniciar sesión. Activando modo local de respaldo.');
-        const mockUser = {
-          id: `usr-local-${Date.now()}`,
-          email: data.email,
-          fullName: 'Tutor Responsable',
-          firstName: 'Tutor',
-          lastName: 'Responsable',
-          gender: 'No informado',
-          birthDate: '10/05/1988',
-          phone: '',
-          isActive: true,
-        };
-        const mockToken = `mock-jwt-token-${Date.now()}`;
-        await safeStorage.setItem('@ba_protege_jwt_token', mockToken);
-        return {
-          success: true,
-          message: 'Sesión iniciada exitosamente.',
-          data: {
-            user: mockUser,
-            token: mockToken,
-          },
-        };
+        throw new Error('No se pudo conectar con el servidor. Por favor verifica tu conexión a Internet.');
       }
       throw error;
     }

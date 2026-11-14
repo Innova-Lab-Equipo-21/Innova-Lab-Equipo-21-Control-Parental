@@ -28,6 +28,7 @@ interface PairingModalProps {
   deviceCount: number;
   onClose: () => void;
   onDeviceAdded: (deviceName?: string) => void;
+  onDeviceCreated?: (device: DeviceInfo) => void;
 }
 
 export const PairingModal: React.FC<PairingModalProps> = ({
@@ -35,6 +36,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
   deviceCount,
   onClose,
   onDeviceAdded,
+  onDeviceCreated,
 }) => {
   const [saving, setSaving] = useState(false);
   const [createdDevice, setCreatedDevice] = useState<DeviceInfo | null>(null);
@@ -86,6 +88,8 @@ export const PairingModal: React.FC<PairingModalProps> = ({
 
       const savedDevice = res.data;
       setCreatedDevice(savedDevice);
+      // Notificar inmediatamente para actualización instantánea (0ms) en Inicio y Dispositivos
+      onDeviceCreated?.(savedDevice);
       setShowCodeModal(true);
     } catch (e: any) {
       setFeedbackModal({

@@ -25,4 +25,19 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 4,
   },
+
+  dropdownsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginVertical: 2,
+  },
+
+  dropdownColDevice: {
+    flex: 1.15,
+  },
+
+  dropdownColPeriod: {
+    flex: 0.85,
+  },
 });

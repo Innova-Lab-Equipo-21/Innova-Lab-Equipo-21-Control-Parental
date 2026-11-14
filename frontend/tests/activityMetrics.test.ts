@@ -46,7 +46,7 @@ describe('Pestaña Actividad — Filtros de Dispositivos y Período', () => {
     );
   });
 
-  test('Construye las opciones de dispositivos con Todos, Mi dispositivo y dispositivos vinculados ordenados A-Z', () => {
+  test('Construye las opciones de dispositivos con Todos, Yo y dispositivos vinculados ordenados A-Z', () => {
     const sampleDevices: DeviceInfo[] = [
       {
         deviceId: 'dev-b',
@@ -75,7 +75,7 @@ describe('Pestaña Actividad — Filtros de Dispositivos y Período', () => {
     const options = buildDeviceFilterOptions(sampleDevices, true);
     assert.deepEqual(
       options.map((o) => o.label),
-      ['Todos', 'Mi dispositivo', 'Dispositivo A', 'Dispositivo B']
+      ['Todos', 'Yo', 'Dispositivo A', 'Dispositivo B']
     );
     assert.equal(options[0].subtitle, '3 dispositivos');
   });
@@ -299,7 +299,10 @@ describe('Pestaña Actividad — Dataset consolidado, Telemetría y Estructura U
     assert.ok(orchestratorSrc.includes('useAnalyticsPanel'));
     assert.ok(orchestratorSrc.includes('<Header'));
     assert.ok(orchestratorSrc.includes('<PeriodSelector'));
-    assert.ok(orchestratorSrc.includes('<DeviceChipsRow'));
+    assert.ok(
+      orchestratorSrc.includes('<DeviceSelector') ||
+        orchestratorSrc.includes('<DeviceChipsRow')
+    );
     assert.ok(orchestratorSrc.includes('<TotalBlocksCard'));
     assert.ok(orchestratorSrc.includes('<BlocksBySourceCard'));
     assert.ok(orchestratorSrc.includes('<ActivityChartCard'));

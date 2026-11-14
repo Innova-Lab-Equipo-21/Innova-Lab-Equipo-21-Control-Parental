@@ -34,6 +34,21 @@ describe('CRUD de Sitios Bloqueados Personalizados (Modo Responsable)', () => {
     assert.equal(res.data.domain, 'casino-clandestino-test.com');
   });
 
+  test('CREATE: Debe rechazar la adición de sitios repetidos / duplicados', async () => {
+    const domain = `sitio-repetido-${Date.now()}.bet`;
+    await apiService.addCustomBlockedSite(domain, 'Apuestas');
+
+    await assert.rejects(
+      async () => {
+        // Intentar agregar exactamente el mismo dominio o con www./https
+        await apiService.addCustomBlockedSite(`https://www.${domain}/otro-path`, 'Apuestas');
+      },
+      (err: any) => {
+        return err instanceof Error && /ya se encuentra en tu lista de bloqueo/i.test(err.message);
+      }
+    );
+  });
+
   test('CREATE: Debe rechazar formatos de dominio inválidos', async () => {
     await assert.rejects(
       async () => {

@@ -5,7 +5,7 @@
 // Descripción: Pantalla alineada con OnboardingScreen en posición de logo, títulos y márgenes.
 // ==============================================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Logo } from '../components/Logo';
 import { Icon } from '../components/Icon';
+import { FeedbackModal } from '../components/FeedbackModal';
 import { colors } from '../theme/colors';
 import { AppMode } from '../types';
 import { styles } from './WelcomeScreen.styles';
@@ -28,6 +29,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onSelectMode,
   onOpenOnboarding,
 }) => {
+  const [showResponsibleAlertModal, setShowResponsibleAlertModal] = useState<boolean>(false);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -77,7 +80,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
           <TouchableOpacity
             style={styles.actionBtn}
-            onPress={() => onSelectMode('PARENT')}
+            onPress={() => setShowResponsibleAlertModal(true)}
             activeOpacity={0.85}
           >
             <Text style={styles.actionBtnText}>Empezar</Text>
@@ -108,6 +111,22 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal estándar de alerta sobre decisión de Modo Responsable */}
+      <FeedbackModal
+        visible={showResponsibleAlertModal}
+        icon="⚠️"
+        title="Modo responsable"
+        message="Al elegir este modo y completar tu registro, este dispositivo quedará configurado permanentemente como Responsable y no podrá cambiarse a Modo protegido desde la aplicación.&#10;&#10;Si en el futuro deseas cambiar el modo de este dispositivo, deberás borrar los datos de la aplicación en los Ajustes del sistema."
+        buttonText="Continuar"
+        secondaryButtonText="Cancelar"
+        onConfirm={() => {
+          setShowResponsibleAlertModal(false);
+          onSelectMode('PARENT');
+        }}
+        onSecondaryPress={() => setShowResponsibleAlertModal(false)}
+        onClose={() => setShowResponsibleAlertModal(false)}
+      />
     </SafeAreaView>
   );
 };
