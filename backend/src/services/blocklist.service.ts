@@ -2,6 +2,8 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/environment.js';
 import { mockDb } from '../config/mock-database.js';
 import { AppError } from '../middlewares/error.middleware.js';
+import { normalizeDomain } from '../utils/domain.js';
+import crypto from 'crypto';
 
 export interface AddCustomDomainInput {
   userId: string;
@@ -75,23 +77,29 @@ export class BlocklistService {
    * Obtiene todas las reglas de bloqueo consolidadas aplicables a un dispositivo (LOTBA + Personalizadas del Responsable).
    */
   public async getEffectiveBlocklistForDevice(deviceUuid: string) {
-    if (env.USE_MOCK_DATA) {
+        if (env.USE_MOCK_DATA) {
       const device = mockDb.devices.find((d) => d.deviceUuid === deviceUuid);
       const lotbaList = await this.getOfficialLotbaList();
       const domains: string[] = lotbaList.domains.map((d) => d.domain);
 
+      let customVersion = 1;
       if (device && device.config.blockCustomList && device.userId) {
         const custom = mockDb.blocklists.find((b) => b.userId === device.userId && b.type === 'CUSTOM');
         if (custom) {
-          domains.push(...custom.domains.map((d) => d.domain));
+          customVersion = custom.version;
+          // Igual que en la base real: los dominios desactivados por el tutor no se aplican
+          domains.push(
+            ...(custom.domains as any[]).filter((d) => d.isActive !== false).map((d) => d.domain),
+          );
         }
       }
 
       const uniqueDomains = Array.from(new Set(domains));
       return {
-        version: lotbaList.version,
+        // Misma fórmula que la base real, para que el dispositivo detecte cambios en la lista personal
+        version: lotbaList.version * 1000 + customVersion,
         lotbaVersion: lotbaList.version,
-        customVersion: 1,
+        customVersion,
         domains: uniqueDomains,
         totalCount: uniqueDomains.length,
       };
@@ -198,13 +206,12 @@ export class BlocklistService {
 
     return customList;
   }
-
   /**
    * Agrega un nuevo dominio a la lista personalizada del responsable e incrementa la versión.
    */
   public async addCustomDomain(input: AddCustomDomainInput) {
     const list = await this.getUserCustomList(input.userId);
-    const cleanDomain = input.domain.trim().toLowerCase();
+    const cleanDomain = normalizeDomain(input.domain);
 
     // Validar formato básico de dominio
     if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
@@ -217,7 +224,7 @@ export class BlocklistService {
         throw new AppError('El dominio ya se encuentra en la lista personalizada', 409);
       }
       const newDom = {
-        id: `dom-${Date.now()}`,
+        id: `dom-${crypto.randomUUID()}`,
         blocklistId: list.id,
         domain: cleanDomain,
         category: input.category || 'CUSTOM',
@@ -276,7 +283,7 @@ export class BlocklistService {
 
     let cleanDomain: string | undefined;
     if (input.domain !== undefined) {
-      cleanDomain = input.domain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+           cleanDomain = normalizeDomain(input.domain);
       if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
         throw new AppError('Formato de dominio no válido (ejemplo: sitio.com)', 400);
       }
