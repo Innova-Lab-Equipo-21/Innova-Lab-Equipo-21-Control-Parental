@@ -32,6 +32,7 @@ import { FabWithTooltip } from '../../FabWithTooltip';
 import { useSitesManagement } from './hooks/useSitesManagement';
 import { useAppsManagement } from './hooks/useAppsManagement';
 import { Icon } from '../../Icon';
+import { protectionService } from '../../../services/protection.service';
 import {
   AUTOPROTECCION_EMPTY_LIST_MESSAGE,
   shouldShowAutoproteccionEmptyNotice,
@@ -84,6 +85,12 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   const [selectedDeviceFilter, setSelectedDeviceFilter] = useState<string>('all');
   const [selectedOriginFilter, setSelectedOriginFilter] = useState<BlockOriginFilter>('all');
   const [sortBy, setSortBy] = useState<'date' | 'az'>('date');
+  const [isA11yActive, setIsA11yActive] = useState<boolean>(true);
+
+  useEffect(() => {
+    protectionService.isAccessibilityEnabled().then(setIsA11yActive);
+    protectionService.syncProtectionRulesWithNative('self', 'PARENT');
+  }, []);
 
   // Modal estándar de confirmación de eliminación
   const [itemToDelete, setItemToDelete] = useState<{
@@ -227,6 +234,29 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Aviso si el servicio de accesibilidad está inactivo en el dispositivo */}
+      {!isA11yActive && (
+        <TouchableOpacity
+          style={styles.a11yNoticeCard}
+          activeOpacity={0.8}
+          onPress={async () => {
+            await protectionService.openAccessibilitySettings();
+            const active = await protectionService.isAccessibilityEnabled();
+            setIsA11yActive(active);
+          }}
+        >
+          <Icon
+            name="alerta"
+            size={18}
+            color="#B45309"
+            style={styles.a11yNoticeIcon}
+          />
+          <Text style={styles.a11yNoticeText}>
+            El servicio de accesibilidad está desactivado. Tocá acá para activarlo en Ajustes y aplicar los bloqueos en este dispositivo.
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {/* Opción de Autoprotección en Sitios y Apps (Texto al lado del toggle azul oficial) */}
       <TouchableOpacity
         style={styles.autoprotectionRow}

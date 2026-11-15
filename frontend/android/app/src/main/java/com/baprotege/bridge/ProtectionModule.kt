@@ -698,10 +698,20 @@ class ProtectionModule(private val reactContext: ReactApplicationContext) :
     fun updateBlocklist(version: Int, domainsArray: ReadableArray, promise: Promise) {
         try {
             val domainList = mutableListOf<String>()
+            val jsonDomains = org.json.JSONArray()
             for (i in 0 until domainsArray.size()) {
-                domainList.add(domainsArray.getString(i))
+                val d = domainsArray.getString(i)
+                if (!d.isNullOrBlank()) {
+                    val clean = d.lowercase().trim()
+                    domainList.add(clean)
+                    jsonDomains.put(clean)
+                }
             }
             filterEngine.updateBlocklist(version, domainList)
+
+            val prefs = reactContext.getSharedPreferences("ba_protege_settings_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("key_blocked_domains_custom", jsonDomains.toString()).apply()
+            ProtectionAccessibilityService.reloadRules(reactContext)
 
             val result = Arguments.createMap().apply {
                 putInt("version", filterEngine.getBlocklistVersion())
@@ -710,6 +720,188 @@ class ProtectionModule(private val reactContext: ReactApplicationContext) :
             promise.resolve(result)
         } catch (e: Exception) {
             promise.reject("E_UPDATE_LIST", "Error al actualizar lista de dominios: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Actualiza la lista de aplicaciones bloqueadas en SharedPreferences y recarga el servicio de accesibilidad.
+     */
+    @ReactMethod
+    fun updateBlockedApps(appsArray: ReadableArray, promise: Promise) {
+        try {
+            val jsonArray = org.json.JSONArray()
+            for (i in 0 until appsArray.size()) {
+                if (appsArray.getType(i) == ReadableType.Map) {
+                    val map = appsArray.getMap(i) ?: continue
+                    val obj = org.json.JSONObject().apply {
+                        put("appName", map.getString("appName") ?: "")
+                        put("packageName", map.getString("packageName") ?: "")
+                        if (map.hasKey("dailyLimitMinutes") && !map.isNull("dailyLimitMinutes")) {
+                            put("dailyLimitMinutes", map.getInt("dailyLimitMinutes"))
+                        }
+                        if (map.hasKey("webDomains") && !map.isNull("webDomains")) {
+                            val wArr = map.getArray("webDomains")
+                            val wJson = org.json.JSONArray()
+                            if (wArr != null) {
+                                for (j in 0 until wArr.size()) {
+                                    val w = wArr.getString(j)
+                                    if (!w.isNullOrBlank()) wJson.put(w.lowercase().trim())
+                                }
+                            }
+                            put("webDomains", wJson)
+                        }
+                    }
+                    jsonArray.put(obj)
+                } else if (appsArray.getType(i) == ReadableType.String) {
+                    val s = appsArray.getString(i)
+                    if (!s.isNullOrBlank()) {
+                        jsonArray.put(s)
+                    }
+                }
+            }
+
+            val prefs = reactContext.getSharedPreferences("ba_protege_settings_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("key_blocked_apps_json", jsonArray.toString()).apply()
+
+            ProtectionAccessibilityService.reloadRules(reactContext)
+
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("E_UPDATE_APPS", "Error actualizando apps bloqueadas: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Sincroniza atómicamente dominios bloqueados y apps bloqueadas con los servicios nativos de Android,
+     * diferenciando dominios personalizados del usuario de los dominios oficiales de LOTBA.
+     */
+    @ReactMethod
+    fun syncProtectionRules(
+        domainsArray: ReadableArray,
+        appsArray: ReadableArray,
+        lotbaDomainsArray: ReadableArray?,
+        promise: Promise
+    ) {
+        try {
+            // 1. Guardar dominios personalizados
+            val customDomainList = mutableListOf<String>()
+            val jsonCustomDomains = org.json.JSONArray()
+            for (i in 0 until domainsArray.size()) {
+                val d = domainsArray.getString(i)
+                if (!d.isNullOrBlank()) {
+                    val clean = d.lowercase().trim()
+                    customDomainList.add(clean)
+                    jsonCustomDomains.put(clean)
+                }
+            }
+
+            // 2. Guardar dominios oficiales LOTBA
+            val lotbaDomainList = mutableListOf<String>()
+            val jsonLotbaDomains = org.json.JSONArray()
+            if (lotbaDomainsArray != null) {
+                for (i in 0 until lotbaDomainsArray.size()) {
+                    val d = lotbaDomainsArray.getString(i)
+                    if (!d.isNullOrBlank()) {
+                        val clean = d.lowercase().trim()
+                        lotbaDomainList.add(clean)
+                        jsonLotbaDomains.put(clean)
+                    }
+                }
+            }
+
+            // Actualizar LotbaFilterEngine con el consolidado total para VPN/DNS
+            val allDomains = (customDomainList + lotbaDomainList).distinct()
+            filterEngine.updateBlocklist(filterEngine.getBlocklistVersion() + 1, allDomains)
+
+            val prefs = reactContext.getSharedPreferences("ba_protege_settings_prefs", Context.MODE_PRIVATE)
+            prefs.edit()
+                .putString("key_blocked_domains_custom", jsonCustomDomains.toString())
+                .putString("key_blocked_domains_lotba", jsonLotbaDomains.toString())
+                .apply()
+
+            // 3. Actualizar aplicaciones con límites de tiempo y mapeo web
+            val jsonApps = org.json.JSONArray()
+            for (i in 0 until appsArray.size()) {
+                if (appsArray.getType(i) == ReadableType.Map) {
+                    val map = appsArray.getMap(i) ?: continue
+                    val obj = org.json.JSONObject().apply {
+                        put("appName", map.getString("appName") ?: "")
+                        put("packageName", map.getString("packageName") ?: "")
+                        if (map.hasKey("dailyLimitMinutes") && !map.isNull("dailyLimitMinutes")) {
+                            put("dailyLimitMinutes", map.getInt("dailyLimitMinutes"))
+                        }
+                        if (map.hasKey("webDomains") && !map.isNull("webDomains")) {
+                            val wArr = map.getArray("webDomains")
+                            val wJson = org.json.JSONArray()
+                            if (wArr != null) {
+                                for (j in 0 until wArr.size()) {
+                                    val w = wArr.getString(j)
+                                    if (!w.isNullOrBlank()) wJson.put(w.lowercase().trim())
+                                }
+                            }
+                            put("webDomains", wJson)
+                        }
+                    }
+                    jsonApps.put(obj)
+                } else if (appsArray.getType(i) == ReadableType.String) {
+                    val s = appsArray.getString(i)
+                    if (!s.isNullOrBlank()) {
+                        jsonApps.put(s)
+                    }
+                }
+            }
+            prefs.edit().putString("key_blocked_apps_json", jsonApps.toString()).apply()
+
+            // 4. Recargar reglas en el servicio de accesibilidad
+            ProtectionAccessibilityService.reloadRules(reactContext)
+
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("E_SYNC_RULES", "Error sincronizando reglas: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Establece el perfil de usuario actual ("PARENT", "ADULT" o "CHILD")
+     * para que la pantalla completa de bloqueo (BlockedScreenActivity) y los servicios
+     * nativos utilicen la mascota (Boti/Botito) y los mensajes empáticos correspondientes.
+     */
+    @ReactMethod
+    fun setUserMode(userMode: String, promise: Promise) {
+        try {
+            val cleanMode = userMode.uppercase().trim()
+            val prefs = reactContext.getSharedPreferences("ba_protege_settings_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("key_user_mode", cleanMode).apply()
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("E_SET_USER_MODE", "Error guardando modo de usuario: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Obtiene los eventos recientes de bloqueo capturados nativamente por el servicio de accesibilidad.
+     */
+    @ReactMethod
+    fun getRecentBlockEvents(promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("ba_protege_settings_prefs", Context.MODE_PRIVATE)
+            val jsonStr = prefs.getString("key_recent_block_events", "[]") ?: "[]"
+            val array = org.json.JSONArray(jsonStr)
+            val result = Arguments.createArray()
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                val map = Arguments.createMap().apply {
+                    putString("type", obj.optString("type"))
+                    putString("target", obj.optString("target"))
+                    putDouble("timestamp", obj.optLong("timestamp").toDouble())
+                }
+                result.pushMap(map)
+            }
+            // Limpiar eventos leídos
+            prefs.edit().putString("key_recent_block_events", "[]").apply()
+            promise.resolve(result)
+        } catch (e: Exception) {
+            promise.resolve(Arguments.createArray())
         }
     }
 

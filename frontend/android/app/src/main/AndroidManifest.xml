@@ -60,6 +60,12 @@ Descripción: Manifiesto de Android con permisos de VpnService, arranque automá
             </intent-filter>
         </activity>
 
+        <!-- Pantalla Completa de Bloqueo Empático (Boti / Botito) -->
+        <activity
+            android:name="com.baprotege.BlockedScreenActivity"
+            android:exported="false"
+            android:launchMode="singleInstance" />
+
         <!-- Servicio Nativo VPN para filtrado local y bloqueo de dominios LOTBA -->
         <service
             android:name=".vpn.ProtectionVpnService"

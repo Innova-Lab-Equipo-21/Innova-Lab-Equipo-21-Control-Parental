@@ -61,20 +61,20 @@ export const PairingModal: React.FC<PairingModalProps> = ({
   };
 
   const handleSave = async () => {
-    const dataToSave: PairingFormData | null = pairingSectionRef.current?.submit() ?? null;
-
-    if (!dataToSave) {
-      setFeedbackModal({
-        visible: true,
-        icon: '⚠️',
-        title: 'Atención',
-        message: 'Por favor completa todos los datos requeridos del protegido.',
-      });
-      return;
-    }
-
-    setSaving(true);
     try {
+      const dataToSave: PairingFormData | null = pairingSectionRef.current?.submit() ?? null;
+
+      if (!dataToSave) {
+        setFeedbackModal({
+          visible: true,
+          icon: '⚠️',
+          title: 'Atención',
+          message: 'Por favor completa todos los datos requeridos del protegido.',
+        });
+        return;
+      }
+
+      setSaving(true);
       const res = await apiService.addDevice({
         childName: dataToSave.protectedName,
         birthDate: dataToSave.birthDate,
@@ -182,6 +182,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
           icon={feedbackModal.icon}
           title={feedbackModal.title}
           message={feedbackModal.message}
+          asOverlay={true}
           onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
         />
       </Modal>

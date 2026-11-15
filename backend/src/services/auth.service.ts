@@ -215,16 +215,34 @@ export class AuthService {
       if (env.USE_MOCK_DATA) {
         userProfile = mockDb.users.find((u) => u.id === data.localId || u.email === cleanEmail);
       } else {
-        userProfile = await prisma.user.findUnique({
-          where: { id: data.localId },
-          select: { id: true, email: true, fullName: true, createdAt: true },
-        });
+        try {
+          userProfile = await prisma.user.findUnique({
+            where: { id: data.localId },
+            select: { id: true, email: true, fullName: true, createdAt: true },
+          });
+
+          // Si el usuario existe en Firebase pero aún no en la tabla users de DB, lo creamos/sincronizamos
+          if (!userProfile) {
+            userProfile = await prisma.user.create({
+              data: {
+                id: data.localId,
+                email: cleanEmail,
+                fullName: data.displayName || 'Responsable',
+                isActive: true,
+              },
+              select: { id: true, email: true, fullName: true, createdAt: true },
+            });
+          }
+        } catch (dbErr: any) {
+          console.warn('[AuthService] Advertencia al sincronizar usuario con base de datos:', dbErr.message);
+        }
       }
 
       return {
         user: userProfile || {
           id: data.localId,
           email: data.email,
+          fullName: data.displayName || 'Responsable',
         },
         token: data.idToken, // ID Token de Firebase para ser usado en el header Authorization
         refreshToken: data.refreshToken,

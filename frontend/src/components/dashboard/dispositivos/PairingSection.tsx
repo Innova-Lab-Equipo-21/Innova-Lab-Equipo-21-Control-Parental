@@ -201,6 +201,7 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
       return null;
     }
 
+    const trimmedName = protectedName.trim();
     const payload: PairingFormData = {
       protectedName: trimmedName,
       genero: genero as GenderOption,
@@ -513,6 +514,7 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
         icon={feedbackModal.icon}
         title={feedbackModal.title}
         message={feedbackModal.message}
+        asOverlay={true}
         onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </View>

@@ -48,6 +48,27 @@ export const styles = StyleSheet.create({
     color: '#92400E',
     lineHeight: 17,
   },
+  a11yNoticeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  a11yNoticeIcon: {
+    marginRight: 8,
+  },
+  a11yNoticeText: {
+    flex: 1,
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#92400E',
+    lineHeight: 17,
+  },
   sectionTabRow: {
     flexDirection: 'row',
     alignItems: 'center',

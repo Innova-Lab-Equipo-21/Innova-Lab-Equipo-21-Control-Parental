@@ -302,6 +302,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       return;
     }
 
+    const trimmedName = protectedName.trim();
     setLoading(true);
     try {
       await apiService.updateDevice(device.deviceId, {
@@ -719,6 +720,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
         icon={feedbackModal.icon}
         title={feedbackModal.title}
         message={feedbackModal.message}
+        asOverlay={true}
         onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </Modal>

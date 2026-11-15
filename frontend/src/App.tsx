@@ -38,6 +38,7 @@ import {
 } from './utils/navigationSession';
 import { checkRealDevicePermissions } from './utils/permissionChecker';
 import { safeStorage } from './services/api/client';
+import { protectionService } from './services/protection.service';
 import { apiService } from './services/api.service';
 
 export function App(): React.JSX.Element {
@@ -88,6 +89,7 @@ export function App(): React.JSX.Element {
 
       if (effectiveMode && effectiveMode !== 'UNSET') {
         setCurrentMode(effectiveMode);
+        protectionService.setUserMode(effectiveMode).catch(() => {});
       }
 
       if (session.onboardingCompleted) {
@@ -162,6 +164,9 @@ export function App(): React.JSX.Element {
   // Manejador de selección de modo
   const handleSelectMode = async (mode: AppMode) => {
     setCurrentMode(mode);
+    if (mode !== 'UNSET') {
+      protectionService.setUserMode(mode).catch(() => {});
+    }
     setIsParentLoggedIn(false);
     setIsDevicePaired(false);
     setHasGrantedPermissions(false);

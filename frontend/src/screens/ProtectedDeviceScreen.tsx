@@ -163,10 +163,12 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
       if (devRes?.data && Array.isArray(devRes.data)) {
         setPairedDevices(devRes.data);
       }
+      // Sincronizar con los servicios nativos de Android para este dispositivo
+      await protectionService.syncProtectionRulesWithNative(deviceUuid || 'self', mode);
     } catch (e) {
       // Mantener estado actual ante error de red
     }
-  }, []);
+  }, [deviceUuid]);
 
   useEffect(() => {
     checkVpnStatus();

@@ -364,6 +364,8 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       const res = await apiService.getCustomBlocklist();
       setCustomSites(res.data?.domains || []);
       setCustomApps(res.data?.apps || []);
+      // Sincronizar inmediatamente con los servicios nativos de Android
+      await protectionService.syncProtectionRulesWithNative('self', 'PARENT');
     } catch (e) {
       console.warn('Error al cargar sitios personalizados:', e);
     }
@@ -614,7 +616,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             <View style={styles.infoBanner}>
               <Text style={styles.infoBannerTitle}>🌐 Lista oficial LOTBA activa</Text>
               <Text style={styles.infoBannerText}>
-                Se bloquean automáticamente más de 450 plataformas de apuestas clandestinas e ilegales en navegadores y apps.
+                Se bloquean automáticamente plataformas de apuestas clandestinas e ilegales en navegadores y apps.
               </Text>
             </View>
 

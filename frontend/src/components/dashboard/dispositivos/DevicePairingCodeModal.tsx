@@ -229,6 +229,7 @@ export const DevicePairingCodeModal: React.FC<DevicePairingCodeModalProps> = ({
         icon={feedbackModal.icon}
         title={feedbackModal.title}
         message={feedbackModal.message}
+        asOverlay={true}
         onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </Modal>

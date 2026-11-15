@@ -60,7 +60,7 @@ class VpnNotificationManager(private val context: Context) {
     /**
      * Construye la notificación persistente requerida para Foreground Service de Android.
      */
-    fun buildProtectionNotification(isProtected: Boolean, domainCount: Int): Notification {
+    fun buildProtectionNotification(isProtected: Boolean, domainCount: Int = 0): Notification {
         val launchIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -74,9 +74,9 @@ class VpnNotificationManager(private val context: Context) {
 
         val title = if (isProtected) "🛡️ BA Protege+ Activo" else "⚠️ Protección Pausada"
         val text = if (isProtected) {
-            "Dispositivo protegido con $domainCount reglas de LOTBA"
+            "Navegación segura y protección activa"
         } else {
-            "El servicio de filtrado no está activo"
+            "El servicio de protección no está activo"
         }
 
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

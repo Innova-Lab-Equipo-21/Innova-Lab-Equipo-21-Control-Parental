@@ -317,7 +317,7 @@ export const useAppsManagement = ({
     }
 
     const trimmedName = editAppName.trim().toLowerCase();
-    const pkg = editAppPackage.trim() || `com.${editAppName.toLowerCase().replace(/\s+/g, '')}.app`;
+    const pkg = (editingApp.packageName || '').trim() || `com.${editAppName.toLowerCase().replace(/\s+/g, '')}.app`;
     const isDuplicate = customApps.some(
       (app) =>
         app.id !== editingApp.id &&

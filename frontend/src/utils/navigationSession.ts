@@ -18,6 +18,7 @@ export type ActiveScreenType =
   | 'PAIRING'
   | 'PERMISSIONS'
   | 'ACTION_CHOICE'
+  | 'RESPONSIBLE_ACTION'
   | 'DASHBOARD'
   | 'PROTECTED_DEVICE';
 
