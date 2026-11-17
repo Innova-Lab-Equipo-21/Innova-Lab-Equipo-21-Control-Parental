@@ -43,9 +43,19 @@ describe('Módulo de Telemetría y Seguridad (Telemetry API)', () => {
     const token = regData.data.token;
 
     const pairGenRes = await fetch(`${baseUrl}/api/devices/pair/generate`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+       method: 'POST',
+       headers: { 
+        'Content-Type': 'application/json', 
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+       childName: 'Sofia',
+      gender: 'Femenino',
+      personType: 'Menor',
+      birthDate: '2012-05-15',
+     phone: '11 2345-6789',
+  })
+});
     const pairGenData = await pairGenRes.json();
 
     await fetch(`${baseUrl}/api/devices/pair/confirm`, {

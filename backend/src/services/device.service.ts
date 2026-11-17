@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import type { Gender, PersonType } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { env } from '../config/environment.js';
 import { mockDb, MockDevice } from '../config/mock-database.js';
@@ -7,6 +8,11 @@ import { emailService } from './email.service.js';
 
 export interface GeneratePairingCodeInput {
   userId: string;
+  childName: string;
+   gender: Gender;
+  personType: PersonType;
+  birthDate: string;
+  phone: string;
 }
 
 export interface ConfirmPairingInput {
@@ -31,26 +37,40 @@ export interface UpdateProtectionConfigInput {
 }
 
 export class DeviceService {
-  /**
-   * Genera un código de pareamiento temporal de 6 dígitos para que el responsable vincule un dispositivo.
+   
+    /**
+   * Genera el código de vinculación de 6 dígitos (sin vencimiento) con los datos del protegido.
+   * Cada tutor tiene como máximo un código pendiente: generar uno nuevo lo reemplaza y actualiza los datos.
    */
   public async generatePairingCode(input: GeneratePairingCodeInput) {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    // Código nunca expira (100 años en el futuro)
-    const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+    const MAX_DEVICES = 5;
+    const minor = {
+      childName: input.childName,
+      gender: input.gender,
+      personType: input.personType,
+      birthDate: input.birthDate,
+      phone: input.phone,
+    };
 
     if (env.USE_MOCK_DATA) {
-      let existingPending = mockDb.pairings.find(
-        (p) => p.userId === input.userId && !p.isUsed
-      );
+      // El mock conserva una fecha lejana porque su tipo exige expiresAt; la base real ya no lo usa.
+      const expiresAt = new Date('2999-12-31T23:59:59Z');
 
+      const linked = mockDb.devices.filter((d) => d.userId === input.userId && d.isActive).length;
+      if (linked >= MAX_DEVICES) {
+        throw new AppError(`Alcanzaste el máximo de ${MAX_DEVICES} dispositivos vinculados`, 409);
+      }
+
+      let code = this.randomCode();
+      while (mockDb.pairings.some((p) => p.pairingCode === code)) {
+        code = this.randomCode();
+      }
+
+      const existingPending = mockDb.pairings.find((p) => p.userId === input.userId && !p.isUsed);
       if (existingPending) {
         existingPending.pairingCode = code;
-        existingPending.expiresAt = expiresAt;
-        return {
-          pairingCode: code,
-          expiresAt,
-        };
+        existingPending.minor = minor;
+        return { pairingCode: code };
       }
 
       mockDb.pairings.push({
@@ -59,49 +79,50 @@ export class DeviceService {
         deviceId: null,
         pairingCode: code,
         isUsed: false,
+        minor,
         expiresAt,
         createdAt: new Date(),
       });
 
-      return {
-        pairingCode: code,
-        expiresAt,
-      };
+      return { pairingCode: code };
     }
 
+    const linked = await prisma.device.count({
+      where: { userId: input.userId, isActive: true },
+    });
+    if (linked >= MAX_DEVICES) {
+      throw new AppError(`Alcanzaste el máximo de ${MAX_DEVICES} dispositivos vinculados`, 409);
+    }
+
+    let code = this.randomCode();
+    while (await prisma.devicePairing.findUnique({ where: { pairingCode: code } })) {
+      code = this.randomCode();
+    }
+
+    // birthDate llega como 'AAAA-MM-DD'; la columna es DATE, así que se convierte a Date.
+    const minorData = { ...minor, birthDate: new Date(input.birthDate) };
+
     const existingPending = await prisma.devicePairing.findFirst({
-      where: {
-        userId: input.userId,
-        isUsed: false,
-      },
+      where: { userId: input.userId, isUsed: false },
     });
 
     if (existingPending) {
-      const updated = await prisma.devicePairing.update({
+      await prisma.devicePairing.update({
         where: { id: existingPending.id },
-        data: {
-          pairingCode: code,
-          expiresAt,
-        },
+        data: { pairingCode: code, ...minorData },
       });
-      return {
-        pairingCode: updated.pairingCode,
-        expiresAt: updated.expiresAt,
-      };
+      return { pairingCode: code };
     }
 
-    const pairing = await prisma.devicePairing.create({
-      data: {
-        userId: input.userId,
-        pairingCode: code,
-        expiresAt,
-      },
+    await prisma.devicePairing.create({
+      data: { userId: input.userId, pairingCode: code, ...minorData },
     });
 
-    return {
-      pairingCode: pairing.pairingCode,
-      expiresAt: pairing.expiresAt,
-    };
+    return { pairingCode: code };
+  }
+
+  private randomCode(): string {
+    return crypto.randomInt(100000, 1000000).toString();
   }
 
   /**
@@ -120,7 +141,11 @@ export class DeviceService {
       if (device) {
         device.userId = pairing.userId;
         device.deviceName = input.deviceName;
-        device.childName = input.childName || device.childName;
+                device.childName = pairing.minor?.childName || input.childName || device.childName;
+        device.gender = pairing.minor?.gender ?? device.gender;
+        device.personType = pairing.minor?.personType ?? device.personType;
+        device.birthDate = pairing.minor?.birthDate ?? device.birthDate;
+        device.phone = pairing.minor?.phone ?? device.phone;
         device.model = input.model || device.model;
         device.osVersion = input.osVersion || device.osVersion;
         device.appVersion = input.appVersion || device.appVersion;
@@ -132,7 +157,11 @@ export class DeviceService {
           userId: pairing.userId,
           deviceUuid: input.deviceUuid,
           deviceName: input.deviceName,
-          childName: input.childName || 'Menor Protegido',
+                    childName: pairing.minor?.childName || input.childName || 'Menor Protegido',
+          gender: pairing.minor?.gender,
+          personType: pairing.minor?.personType,
+          birthDate: pairing.minor?.birthDate,
+          phone: pairing.minor?.phone,
           model: input.model || 'Android Device',
           osVersion: input.osVersion || 'Android 14',
           appVersion: input.appVersion || '1.0.0',
@@ -172,74 +201,83 @@ export class DeviceService {
       };
     }
 
-    const pairing = await prisma.devicePairing.findUnique({
-      where: { pairingCode: input.pairingCode },
-    });
-
-    if (!pairing || pairing.isUsed) {
-      throw new AppError('Código de pareamiento inválido o ya utilizado', 400);
-    }
-
-    if (new Date() > pairing.expiresAt) {
-      throw new AppError('El código de pareamiento ha expirado', 400);
-    }
-
-    // Buscar si el dispositivo ya existía previamente registrado con ese UUID
-    let device = await prisma.device.findUnique({
-      where: { deviceUuid: input.deviceUuid },
-    });
-
-    if (device) {
-      // Reasignar dispositivo al usuario del código
-      device = await prisma.device.update({
-        where: { id: device.id },
-        data: {
-          userId: pairing.userId,
-          deviceName: input.deviceName,
-          childName: input.childName || device.childName,
-          model: input.model || device.model,
-          osVersion: input.osVersion || device.osVersion,
-          appVersion: input.appVersion || device.appVersion,
-          isActive: true,
-          lastSeenAt: new Date(),
-        },
+        // Todo en una transacción: el código se marca como usado de forma atómica,
+    // así dos celulares que confirman a la vez no pueden usar el mismo código.
+    // Si algo falla después, se revierte y el código vuelve a quedar disponible.
+    const { pairing, device } = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.devicePairing.updateMany({
+        where: { pairingCode: input.pairingCode, isUsed: false },
+        data: { isUsed: true },
       });
-    } else {
-      // Crear nuevo dispositivo vinculado al responsable
-      device = await prisma.device.create({
-        data: {
-          userId: pairing.userId,
-          deviceUuid: input.deviceUuid,
-          deviceName: input.deviceName,
-          childName: input.childName,
-          model: input.model,
-          osVersion: input.osVersion,
-          appVersion: input.appVersion,
-          config: {
-            create: {
-              protectionEnabled: true,
-              blockGambling: true,
-              blockCustomList: true,
-            },
-          },
-          status: {
-            create: {
-              effectiveStatus: 'STARTING',
-              vpnActive: false,
-              permissionsOk: true,
-            },
-          },
-        },
-      });
-    }
+      if (claimed.count === 0) {
+        throw new AppError('Código de pareamiento inválido o ya utilizado', 400);
+      }
 
-    // Marcar el código como utilizado
-    await prisma.devicePairing.update({
-      where: { id: pairing.id },
-      data: {
-        isUsed: true,
-        deviceId: device.id,
-      },
+      const pairing = await tx.devicePairing.findUniqueOrThrow({
+        where: { pairingCode: input.pairingCode },
+      });
+
+      // Buscar si el dispositivo ya existía previamente registrado con ese UUID
+      const existing = await tx.device.findUnique({
+        where: { deviceUuid: input.deviceUuid },
+      });
+
+      const device = existing
+        ? // Reasignar dispositivo al usuario del código, con los datos del protegido cargados por el tutor
+          await tx.device.update({
+            where: { id: existing.id },
+            data: {
+              userId: pairing.userId,
+              deviceName: input.deviceName,
+              childName: pairing.childName ?? input.childName ?? existing.childName,
+              gender: pairing.gender ?? existing.gender,
+              personType: pairing.personType ?? existing.personType,
+              birthDate: pairing.birthDate ?? existing.birthDate,
+              phone: pairing.phone ?? existing.phone,
+              model: input.model || existing.model,
+              osVersion: input.osVersion || existing.osVersion,
+              appVersion: input.appVersion || existing.appVersion,
+              isActive: true,
+              lastSeenAt: new Date(),
+            },
+          })
+        : // Crear nuevo dispositivo vinculado al responsable, copiando los datos del protegido
+          await tx.device.create({
+            data: {
+              userId: pairing.userId,
+              deviceUuid: input.deviceUuid,
+              deviceName: input.deviceName,
+              childName: pairing.childName ?? input.childName,
+              gender: pairing.gender,
+              personType: pairing.personType,
+              birthDate: pairing.birthDate,
+              phone: pairing.phone,
+              model: input.model,
+              osVersion: input.osVersion,
+              appVersion: input.appVersion,
+              config: {
+                create: {
+                  protectionEnabled: true,
+                  blockGambling: true,
+                  blockCustomList: true,
+                },
+              },
+              status: {
+                create: {
+                  effectiveStatus: 'STARTING',
+                  vpnActive: false,
+                  permissionsOk: true,
+                },
+              },
+            },
+          });
+
+      await tx.devicePairing.update({
+        where: { id: pairing.id },
+        data: { deviceId: device.id },
+      });
+
+      return { pairing, device };
     });
 
     // Enviar mail al responsable por la vinculación
