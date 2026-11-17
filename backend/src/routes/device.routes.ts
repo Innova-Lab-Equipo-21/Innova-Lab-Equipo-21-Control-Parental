@@ -6,7 +6,7 @@
 // ==============================================================================
 
 import { Router } from 'express';
-import  z from 'zod';
+import z from 'zod';
 import { deviceController } from '../controllers/device.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
@@ -31,8 +31,11 @@ const generatePairingSchema = z.object({
   }),
 });
 
-router.post('/pair/generate', requireAuth, validateRequest(generatePairingSchema), (req, res, next) =>
-  deviceController.generatePairingCode(req, res, next),
+router.post(
+  '/pair/generate',
+  requireAuth,
+  validateRequest(generatePairingSchema),
+  (req, res, next) => deviceController.generatePairingCode(req, res, next),
 );
 
 // Esquema de confirmación de pareamiento desde el dispositivo del menor
@@ -62,16 +65,63 @@ const updateConfigSchema = z.object({
     heartbeatIntervalSec: z.number().min(10).max(3600).optional(),
   }),
 });
-// Rutas de pareamiento:
+
+// Esquema para solicitud de código de desactivación de antidesinstalación
+const antiUninstallRequestSchema = z.object({
+  body: z.object({
+    deviceUuid: z.string().min(1, 'El UUID del dispositivo es requerido'),
+  }),
+});
+
+// Esquema para verificación de código de 6 dígitos
+const antiUninstallVerifySchema = z.object({
+  body: z.object({
+    deviceUuid: z.string().min(1, 'El UUID del dispositivo es requerido'),
+    code: z.string().length(6, 'El código debe tener exactamente 6 dígitos'),
+  }),
+});
+
+// Rutas de pareamiento
+router.post('/pair/generate', requireAuth, (req, res, next) =>
+  deviceController.generatePairingCode(req, res, next),
+);
+
 router.post('/pair/confirm', validateRequest(confirmPairingSchema), (req, res, next) =>
   deviceController.confirmPairing(req, res, next),
+);
+
+// Rutas de desactivación protegida de antidesinstalación (código de 6 dígitos enviado por email al tutor)
+router.post(
+  '/anti-uninstall/request-code',
+  validateRequest(antiUninstallRequestSchema),
+  (req, res, next) => deviceController.requestAntiUninstallCode(req, res, next),
+);
+
+router.post(
+  '/anti-uninstall/invalidate-code',
+  validateRequest(antiUninstallRequestSchema),
+  (req, res, next) => deviceController.invalidateAntiUninstallCode(req, res, next),
+);
+
+router.post(
+  '/anti-uninstall/verify-code',
+  validateRequest(antiUninstallVerifySchema),
+  (req, res, next) => deviceController.verifyAntiUninstallCode(req, res, next),
 );
 
 // Rutas de gestión de dispositivos (exclusivas del responsable autenticado)
 router.get('/', requireAuth, (req, res, next) => deviceController.listDevices(req, res, next));
 
+router.post('/', requireAuth, (req, res, next) => deviceController.createDevice(req, res, next));
+
 router.get('/:id', requireAuth, (req, res, next) =>
   deviceController.getDeviceDetail(req, res, next),
+);
+
+router.put('/:id', requireAuth, (req, res, next) => deviceController.updateDevice(req, res, next));
+
+router.post('/:id/pair/generate', requireAuth, (req, res, next) =>
+  deviceController.generatePairingCode(req, res, next),
 );
 
 router.patch('/:id/config', requireAuth, validateRequest(updateConfigSchema), (req, res, next) =>

@@ -2,6 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: PinKeyboard (Teclado PIN UI Kit)
 // Archivo: src/components/PinKeyboard.tsx
+// Descripción: Teclado numérico personalizado en cuadrícula (grid) para el ingreso
+//              de PIN de seguridad del tutor, con botones de borrado y limpieza.
 // ==============================================================================
 
 import React from 'react';
@@ -9,12 +11,24 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 
+/**
+ * Propiedades del componente PinKeyboard.
+ *
+ * @property onKeyPress - Callback invocado al presionar un dígito del '0' al '9'.
+ * @property onDelete - Callback invocado al presionar la tecla de retroceso/borrar dígito (⌫).
+ * @property onClear - Callback opcional invocado al presionar la tecla 'Limpiar'.
+ */
 interface PinKeyboardProps {
   onKeyPress: (key: string) => void;
   onDelete: () => void;
   onClear?: () => void;
 }
 
+/**
+ * Componente que renderiza un teclado numérico táctil de 4x3.
+ * Diseñado específicamente para pantallas de autenticación por PIN de 4 a 6 dígitos,
+ * pantallas de desbloqueo y confirmaciones de seguridad del tutor.
+ */
 export const PinKeyboard: React.FC<PinKeyboardProps> = ({
   onKeyPress,
   onDelete,
@@ -27,6 +41,7 @@ export const PinKeyboard: React.FC<PinKeyboardProps> = ({
     ['clear', '0', 'delete'],
   ];
 
+  /** Procesa la pulsación de una tecla según su función (número, borrar o limpiar) */
   const handlePress = (key: string) => {
     if (key === 'delete') {
       onDelete();

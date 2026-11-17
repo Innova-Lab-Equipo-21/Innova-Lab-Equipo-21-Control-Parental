@@ -33,6 +33,7 @@ describe('Módulo de Autenticación (Auth API)', () => {
 
   const testEmail = `tutor_test_${Date.now()}@baprotege.gob.ar`;
   const testPassword = 'PasswordSegura2026!';
+  let userAuthToken = '';
 
   test('POST /api/auth/register debe rechazar datos inválidos con código 422', async () => {
     const res = await fetch(`${baseUrl}/api/auth/register`, {
@@ -89,6 +90,7 @@ describe('Módulo de Autenticación (Auth API)', () => {
     const data = await res.json();
     assert.equal(data.success, true);
     assert.ok(data.data.token, 'Debe devolver un token JWT');
+    userAuthToken = data.data.token;
     assert.equal(data.data.user.email, testEmail.toLowerCase());
   });
 
@@ -174,5 +176,43 @@ describe('Módulo de Autenticación (Auth API)', () => {
     assert.ok(data.data.token);
     assert.equal(data.data.user.email, googleEmail);
     assert.equal(data.data.user.fullName, 'Usuario Google Test');
+  });
+
+  test('PUT /api/auth/profile debe actualizar perfil y persistir cambios', async () => {
+    assert.ok(userAuthToken, 'Debe existir userAuthToken');
+    const res = await fetch(`${baseUrl}/api/auth/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${userAuthToken}`,
+      },
+      body: JSON.stringify({
+        fullName: 'Mariana Gomez Actualizada',
+        phone: '1198765432',
+        gender: 'Femenino',
+        birthDate: '20/10/1988',
+      }),
+    });
+
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.equal(data.data.fullName, 'Mariana Gomez Actualizada');
+    assert.equal(data.data.phone, '1198765432');
+  });
+
+  test('DELETE /api/auth/account debe eliminar la cuenta definitivamente', async () => {
+    assert.ok(userAuthToken, 'Debe existir userAuthToken');
+    const res = await fetch(`${baseUrl}/api/auth/account`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${userAuthToken}`,
+      },
+    });
+
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.match(data.message, /eliminad/i);
   });
 });

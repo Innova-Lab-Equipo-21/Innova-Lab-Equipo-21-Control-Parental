@@ -2,7 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: SelfControlSection Styles
 // Archivo: src/components/dashboard/dispositivos/SelfControlSection.styles.ts
-// Descripción: Estilos visuales para la sección de Autocontrol del Responsable.
+// Descripción: Estilos visuales para la sección de Autoprotección del Responsable.
 // ==============================================================================
 
 import { StyleSheet } from 'react-native';

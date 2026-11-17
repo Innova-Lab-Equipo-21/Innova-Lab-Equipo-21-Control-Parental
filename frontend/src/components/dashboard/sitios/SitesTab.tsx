@@ -12,7 +12,11 @@ import { Badge } from '../../Badge';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { Icon } from '../../Icon';
 import { colors } from '../../../theme/colors';
-import { CustomBlockedDomain } from '../../../types';
+import { BlockOriginFilter, CustomBlockedDomain, DeviceInfo } from '../../../types';
+import {
+  formatBlockCardDeviceScope,
+  getProtectedAdultOriginLabel,
+} from '../../../utils/adultoSitios';
 import { styles } from './SitesTab.styles';
 
 interface SitesTabProps {
@@ -22,6 +26,8 @@ interface SitesTabProps {
   onHideSearch?: () => void;
   isSelectionMode?: boolean;
   sitesList: CustomBlockedDomain[];
+  devices?: DeviceInfo[];
+  originFilter?: BlockOriginFilter;
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
   onSelectAll: () => void;
@@ -40,6 +46,8 @@ export const SitesTab: React.FC<SitesTabProps> = ({
   onHideSearch,
   isSelectionMode = false,
   sitesList,
+  devices = [],
+  originFilter = 'all',
   selectedIds,
   onToggleSelect,
   onSelectAll,
@@ -120,12 +128,15 @@ export const SitesTab: React.FC<SitesTabProps> = ({
       {sitesList.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyText}>
-            No tienes sitios personalizados bloqueados. Agrega dominios con el botón + flotante.
+            {originFilter === 'adulto_protegido'
+              ? 'No hay sitios web agregados por adultos protegidos.'
+              : 'No tienes sitios personalizados bloqueados. Agrega dominios con el botón + flotante.'}
           </Text>
         </View>
       ) : (
         sitesList.map((site) => {
           const isSelected = selectedIds.includes(site.id);
+          const originLabel = getProtectedAdultOriginLabel(site);
 
           return (
             <TouchableOpacity
@@ -167,12 +178,19 @@ export const SitesTab: React.FC<SitesTabProps> = ({
                 </View>
               </View>
 
+              {originLabel && (
+                <View style={styles.originBadge}>
+                  <Icon name="usuario" size={13} color={colors.primaryDark} />
+                  <Text style={styles.originBadgeText} numberOfLines={1}>
+                    {originLabel}
+                  </Text>
+                </View>
+              )}
+
               {/* Fila inferior: Dispositivos aplicados a la izquierda y Acciones (editar, eliminar) a la derecha */}
               <View style={styles.cardFooterRow}>
                 <Text style={styles.deviceIndicatorText} numberOfLines={1}>
-                  {site.applyToAll
-                    ? 'Todos los dispositivos'
-                    : `${site.deviceIds?.length || 0} ${site.deviceIds?.length === 1 ? 'dispositivo' : 'dispositivos'}`}
+                  {formatBlockCardDeviceScope(site, devices)}
                 </Text>
 
                 <View style={styles.compactActionsRow}>

@@ -3,30 +3,56 @@
 // Componente: AddSiteModal (Modal Bottom Sheet para Bloquear Nuevo Sitio Web)
 // Archivo: src/components/dashboard/sitios/AddSiteModal.tsx
 // Descripción: Modal Bottom Sheet para ingresar y bloquear un nuevo dominio web,
-//              con validación en tiempo real y asignación personalizada de dispositivos.
+//              con selector de sugerencias rápidas (Top 15 sitios Argentina),
+//              validación en tiempo real y asignación personalizada de dispositivos.
 // ==============================================================================
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
-import { DeviceInfo } from '../../../types';
+import { CustomBlockedDomain, DeviceInfo } from '../../../types';
 import { getDeviceHighlight, isValidDomainOrUrl, cleanDomainInput } from '../../../utils/deviceColors';
+import { validateDomainInputDetailed, getDomainAutocompleteSuggestions } from '../../../utils/domainValidation';
 import { styles } from './AddSiteModal.styles';
+
+// Lista de los 15 sitios web más visitados de Argentina
+export const top15ArgentinaSites = [
+  { name: 'Instagram', domain: 'instagram.com', category: 'Redes sociales', icon: '📷' },
+  { name: 'TikTok', domain: 'tiktok.com', category: 'Redes sociales', icon: '📱' },
+  { name: 'Facebook', domain: 'facebook.com', category: 'Redes sociales', icon: '👥' },
+  { name: 'X (Twitter)', domain: 'x.com', category: 'Redes sociales', icon: '🌐' },
+  { name: 'YouTube', domain: 'youtube.com', category: 'Entretenimiento', icon: '▶️' },
+  { name: 'Netflix', domain: 'netflix.com', category: 'Entretenimiento', icon: '🎬' },
+  { name: 'Twitch', domain: 'twitch.tv', category: 'Entretenimiento', icon: '🎮' },
+  { name: 'Spotify', domain: 'spotify.com', category: 'Música', icon: '🎵' },
+  { name: 'Roblox', domain: 'roblox.com', category: 'Juegos', icon: '🕹️' },
+  { name: 'Bet365', domain: 'bet365.com', category: 'Apuestas', icon: '🎲' },
+  { name: 'bplay', domain: 'bplay.bet.ar', category: 'Apuestas', icon: '🎰' },
+  { name: 'Mercado Libre', domain: 'mercadolibre.com.ar', category: 'Compras', icon: '🛍️' },
+  { name: 'Infobae', domain: 'infobae.com', category: 'Noticias', icon: '📰' },
+  { name: 'Olē', domain: 'ole.com.ar', category: 'Deportes', icon: '⚽' },
+  { name: 'Promiedos', domain: 'promiedos.com.ar', category: 'Deportes', icon: '🏆' },
+];
+
+export const popularSiteCatalog = top15ArgentinaSites;
 
 interface AddSiteModalProps {
   visible: boolean;
   onClose: () => void;
   domain: string;
   onDomainChange: (text: string) => void;
-  category: string;
-  onCategoryChange: (cat: string) => void;
+  quickSuggestions?: Array<{ name: string; domain: string; category: string; icon?: string }>;
+  onSelectSuggestion?: (sug: { name: string; domain: string; category: string; icon?: string }) => void;
+  category?: string;
+  onCategoryChange?: (cat: string) => void;
   applyToAll: boolean;
   onApplyToAllChange: (val: boolean) => void;
   deviceIds: string[];
   devices: DeviceInfo[];
   onToggleDevice: (deviceId: string) => void;
+  existingSites?: CustomBlockedDomain[];
   loading: boolean;
   onSave: () => void;
 }
@@ -36,6 +62,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
   onClose,
   domain,
   onDomainChange,
+  onSelectSuggestion,
   category,
   onCategoryChange,
   applyToAll,
@@ -43,12 +70,38 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
   deviceIds,
   devices,
   onToggleDevice,
+  existingSites,
   loading,
   onSave,
 }) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setShowDropdown(false);
+    }
+  }, [visible]);
+
   const hasInput = domain.trim().length > 0;
-  const isDomainValid = isValidDomainOrUrl(domain);
+  const validation = validateDomainInputDetailed(domain);
+  const isDomainValid = validation.isValid;
   const normalizedDomain = hasInput ? cleanDomainInput(domain) : '';
+  const autocompleteItems = getDomainAutocompleteSuggestions(domain, top15ArgentinaSites);
+
+  const isDuplicate =
+    hasInput &&
+    Boolean(
+      existingSites?.some(
+        (site) => cleanDomainInput(site.domain) === normalizedDomain
+      )
+    );
+
+  // Sitio seleccionado en el dropdown
+  const selectedDropdownSite = top15ArgentinaSites.find(
+    (item) =>
+      item.domain.toLowerCase().trim() === normalizedDomain.toLowerCase().trim() ||
+      item.name.toLowerCase().trim() === domain.toLowerCase().trim()
+  );
 
   const selfHighlight = getDeviceHighlight('self');
 
@@ -78,7 +131,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Ingresá el dominio o dirección web que deseás restringir en los dispositivos de tu familia.
+            Seleccioná o ingresá el dominio o dirección web que deseás restringir en los dispositivos de tu familia.
           </Text>
 
           <ScrollView
@@ -87,6 +140,82 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 16 }}
           >
+            {/* Dropdown de los 15 sitios web más visitados de Argentina */}
+            <Text style={styles.inputLabel}>Sugerencias rápidas:</Text>
+            <TouchableOpacity
+              style={styles.dropdownSelector}
+              onPress={() => setShowDropdown((prev) => !prev)}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Text style={{ fontSize: 16 }}>{selectedDropdownSite?.icon || '🌐'}</Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: selectedDropdownSite ? colors.textPrimary : colors.textSecondary,
+                    fontWeight: selectedDropdownSite ? '600' : '400',
+                  }}
+                  numberOfLines={1}
+                >
+                  {selectedDropdownSite
+                    ? `${selectedDropdownSite.name} (${selectedDropdownSite.category})`
+                    : 'Seleccionar sitio de la lista (Top 15 Argentina)...'}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: colors.primary, fontWeight: 'bold' }}>
+                {showDropdown ? '▲' : '▼'}
+              </Text>
+            </TouchableOpacity>
+
+            {showDropdown && (
+              <View style={styles.dropdownMenu}>
+                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator>
+                  {top15ArgentinaSites.map((item) => {
+                    const isCurrent =
+                      normalizedDomain.toLowerCase().trim() === item.domain.toLowerCase().trim() ||
+                      domain.toLowerCase().trim() === item.name.toLowerCase().trim();
+                    return (
+                      <TouchableOpacity
+                        key={item.domain}
+                        style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
+                        onPress={() => {
+                          onDomainChange(item.domain);
+                          if (onCategoryChange) {
+                            onCategoryChange(item.category);
+                          }
+                          onSelectSuggestion?.(item);
+                          setShowDropdown(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={{ fontSize: 15 }}>{item.icon}</Text>
+                          <View>
+                            <Text
+                              style={[
+                                styles.dropdownItemText,
+                                isCurrent && styles.dropdownItemTextActive,
+                              ]}
+                            >
+                              {item.name}
+                            </Text>
+                            <Text style={styles.dropdownItemSubtext}>
+                              {item.domain} • {item.category}
+                            </Text>
+                          </View>
+                        </View>
+                        {isCurrent && (
+                          <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
+                            ✓
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
             <Text style={styles.inputLabel}>Dominio o URL del sitio:</Text>
             <TextInput
               style={[
@@ -102,14 +231,68 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
               autoCorrect={false}
             />
 
-            {/* Verificación de Sitio Válido en Tiempo Real */}
+            {/* Chips de Autocompletado Inteligente en Tiempo Real */}
+            {hasInput && autocompleteItems.length > 0 && (
+              <View style={styles.autocompleteContainer}>
+                <Text style={styles.autocompleteTitle}>💡 Autocompletar sitio sugerido:</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 6 }}
+                >
+                  {autocompleteItems.map((item) => (
+                    <TouchableOpacity
+                      key={item.domain}
+                      style={styles.autocompleteChip}
+                      onPress={() => {
+                        onDomainChange(item.domain);
+                        if (item.category && onCategoryChange) {
+                          onCategoryChange(item.category);
+                        }
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.autocompleteChipIcon}>{item.icon || '🌐'}</Text>
+                      <Text style={styles.autocompleteChipText}>{item.domain}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Verificación de Errores y Retroalimentación en Tiempo Real */}
             {hasInput && (
-              <View style={isDomainValid ? styles.domainFeedbackValid : styles.domainFeedbackInvalid}>
-                <Text style={isDomainValid ? styles.domainFeedbackTextValid : styles.domainFeedbackTextInvalid}>
-                  {isDomainValid
+              <View
+                style={
+                  !isDuplicate && isDomainValid
+                    ? styles.domainFeedbackValid
+                    : styles.domainFeedbackInvalid
+                }
+              >
+                <Text
+                  style={
+                    !isDuplicate && isDomainValid
+                      ? styles.domainFeedbackTextValid
+                      : styles.domainFeedbackTextInvalid
+                  }
+                >
+                  {isDuplicate
+                    ? '⚠️ Este sitio web ya está en tu lista de bloqueo.'
+                    : isDomainValid
                     ? `✓ Sitio válido (se bloqueará: ${normalizedDomain})`
-                    : '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
+                    : validation.message ||
+                      '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
                 </Text>
+                {!isDuplicate && !isDomainValid && validation.suggestedCorrection && (
+                  <TouchableOpacity
+                    style={styles.suggestionActionBtn}
+                    onPress={() => onDomainChange(validation.suggestedCorrection!)}
+                  >
+                    <Text style={styles.suggestionActionBtnText}>
+                      Completar como {validation.suggestedCorrection}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
 
@@ -122,7 +305,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
             >
               {!hasInput && (
                 <Text style={styles.deviceSelectionDisabledHint}>
-                  Ingresá primero el dominio o URL del sitio para seleccionar los dispositivos.
+                  Ingresá o seleccioná primero el dominio o URL del sitio para seleccionar los dispositivos.
                 </Text>
               )}
 
@@ -221,6 +404,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
                 title="Guardar"
                 variant="primary"
                 loading={loading}
+                disabled={!hasInput || !isDomainValid || isDuplicate || (!applyToAll && deviceIds.length === 0)}
                 onPress={onSave}
               />
             </View>
@@ -230,3 +414,4 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
     </Modal>
   );
 };
+

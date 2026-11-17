@@ -24,18 +24,20 @@ class VpnNotificationManager(private val context: Context) {
         const val NOTIFICATION_ID = 1001
         const val CHANNEL_ID = "ba_protege_vpn_channel"
         const val CHANNEL_NAME = "Protección Parental Activa"
+        const val ALERTS_CHANNEL_ID = "ba_protege_alerts_channel"
+        const val ALERTS_CHANNEL_NAME = "Alertas de Supervisión"
     }
 
     private val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     init {
-        createNotificationChannel()
+        ensureChannelsCreated()
     }
 
-    private fun createNotificationChannel() {
+    fun ensureChannelsCreated() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val protectionChannel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_LOW
@@ -43,14 +45,22 @@ class VpnNotificationManager(private val context: Context) {
                 description = "Notificación persistente que indica el estado activo de BA Protege+"
                 setShowBadge(false)
             }
-            notificationManager.createNotificationChannel(channel)
+            val alertsChannel = NotificationChannel(
+                ALERTS_CHANNEL_ID,
+                ALERTS_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Alertas inmediatas de bloqueos, límites y supervisión parental"
+            }
+            notificationManager.createNotificationChannel(protectionChannel)
+            notificationManager.createNotificationChannel(alertsChannel)
         }
     }
 
     /**
      * Construye la notificación persistente requerida para Foreground Service de Android.
      */
-    fun buildProtectionNotification(isProtected: Boolean, domainCount: Int): Notification {
+    fun buildProtectionNotification(isProtected: Boolean, domainCount: Int = 0): Notification {
         val launchIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -64,9 +74,9 @@ class VpnNotificationManager(private val context: Context) {
 
         val title = if (isProtected) "🛡️ BA Protege+ Activo" else "⚠️ Protección Pausada"
         val text = if (isProtected) {
-            "Dispositivo protegido con $domainCount reglas de LOTBA"
+            "Navegación segura y protección activa"
         } else {
-            "El servicio de filtrado no está activo"
+            "El servicio de protección no está activo"
         }
 
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

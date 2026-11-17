@@ -14,12 +14,12 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
-  Alert,
   Linking,
   ScrollView,
 } from 'react-native';
 import { legalStyles } from '../../auth/LegalModal.styles';
 import { ActionButton } from '../../ActionButton';
+import { FeedbackModal } from '../../FeedbackModal';
 import { styles as ratingStyles } from './RatingSection.styles';
 
 export interface RatingModalProps {
@@ -33,6 +33,16 @@ export const RatingModal: React.FC<RatingModalProps> = ({
 }) => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   const handleSendReviewEmail = () => {
     const emailTo = 'baprotegemas@gmail.com';
@@ -42,7 +52,12 @@ export const RatingModal: React.FC<RatingModalProps> = ({
     );
 
     Linking.openURL(`mailto:${emailTo}?subject=${emailSubject}&body=${emailBody}`).catch(() => {
-      Alert.alert('¡Gracias por tu evaluación!', 'Tu opinión fue enviada exitosamente a baprotegemas@gmail.com.');
+      setFeedbackModal({
+        visible: true,
+        icon: '⭐',
+        title: 'Gracias por tu evaluación',
+        message: 'Tu opinión fue enviada exitosamente a baprotegemas@gmail.com.',
+      });
     });
 
     setComment('');
@@ -54,7 +69,12 @@ export const RatingModal: React.FC<RatingModalProps> = ({
 
     Linking.openURL(playStoreUrl).catch(() => {
       Linking.openURL(webPlayStoreUrl).catch(() => {
-        Alert.alert('Google Play Store', 'Redirigiendo a la tienda oficial de aplicaciones...');
+        setFeedbackModal({
+          visible: true,
+          icon: '🏪',
+          title: 'Google Play Store',
+          message: 'Redirigiendo a la tienda oficial de aplicaciones...',
+        });
       });
     });
   };
@@ -143,6 +163,15 @@ export const RatingModal: React.FC<RatingModalProps> = ({
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
+
+      {/* Modal estándar de retroalimentación */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+      />
     </Modal>
   );
 };

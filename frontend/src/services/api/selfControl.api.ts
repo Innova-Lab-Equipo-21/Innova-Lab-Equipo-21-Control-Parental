@@ -1,8 +1,8 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: Autocontrol y Autoprotección del Tutor (SelfControl API)
+// Componente: Autoprotección del Tutor (SelfControl API)
 // Archivo: src/services/api/selfControl.api.ts
-// Descripción: Máquina de estados de Autocontrol del Responsable:
+// Descripción: Máquina de estados de Autoprotección del Responsable:
 //              - Estado inicial: desactivado (INACTIVE)
 //              - Al activar (con doble confirmación): cuenta tiempo de 24h para
 //                desactivación manteniendo la función activada (ACTIVE_LOCKED).
@@ -19,7 +19,7 @@ import { apiClient, safeStorage, timestampProvider } from './client';
 
 export const selfControlApi = {
   // --------------------------------------------------------------------------
-  // Limpiar todo el estado de Autocontrol (Reinicio al estado inicial desactivado)
+  // Limpiar todo el estado de Autoprotección (Reinicio al estado inicial desactivado)
   // --------------------------------------------------------------------------
   async resetSelfControl(): Promise<SelfControlState> {
     await safeStorage.setItem('@ba_protege_self_control_active', 'false');
@@ -49,7 +49,7 @@ export const selfControlApi = {
   },
 
   // --------------------------------------------------------------------------
-  // Activación de Autocontrol: inicia el cronómetro de 24 horas para desactivación
+  // Activación de Autoprotección: inicia el cronómetro de 24 horas para desactivación
   // --------------------------------------------------------------------------
   async enableSelfControl(): Promise<SelfControlState> {
     const now = await timestampProvider.now();
@@ -74,7 +74,7 @@ export const selfControlApi = {
   },
 
   // --------------------------------------------------------------------------
-  // Desactivación de Autocontrol: solo permitida tras cumplirse las 24 horas
+  // Desactivación de Autoprotección: solo permitida tras cumplirse las 24 horas
   // --------------------------------------------------------------------------
   async disableSelfControl(): Promise<SelfControlState> {
     const status = await this.getSelfControlStatus();
@@ -101,7 +101,7 @@ export const selfControlApi = {
   },
 
   // --------------------------------------------------------------------------
-  // Consulta del estado actual de Autocontrol
+  // Consulta del estado actual de Autoprotección
   // --------------------------------------------------------------------------
   async getSelfControlStatus(): Promise<SelfControlState> {
     const now = await timestampProvider.now();

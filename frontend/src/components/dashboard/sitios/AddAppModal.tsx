@@ -11,7 +11,7 @@ import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'reac
 import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { colors } from '../../../theme/colors';
-import { DeviceInfo } from '../../../types';
+import { CustomBlockedApp, DeviceInfo } from '../../../types';
 import { getDeviceHighlight } from '../../../utils/deviceColors';
 import { styles } from './AddAppModal.styles';
 
@@ -54,6 +54,7 @@ interface AddAppModalProps {
   onDailyLimitChange?: (mins?: number) => void;
   deviceLimits?: Record<string, number | undefined>;
   onDeviceLimitChange?: (deviceId: string, mins?: number) => void;
+  existingApps?: CustomBlockedApp[];
   loading: boolean;
   onSave: () => void;
 }
@@ -73,6 +74,7 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
   onToggleDevice,
   deviceLimits = {},
   onDeviceLimitChange,
+  existingApps,
   loading,
   onSave,
 }) => {
@@ -130,6 +132,13 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
   };
 
   const hasInput = appName.trim().length > 0;
+  const isDuplicate =
+    hasInput &&
+    Boolean(
+      existingApps?.some(
+        (app) => app.appName.trim().toLowerCase() === appName.trim().toLowerCase()
+      )
+    );
 
   const renderDeviceCard = (
     deviceId: string,
@@ -466,6 +475,14 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
               onChangeText={onAppNameChange}
             />
 
+            {hasInput && isDuplicate && (
+              <View style={styles.appFeedbackInvalid}>
+                <Text style={styles.appFeedbackTextInvalid}>
+                  ⚠️ Esta aplicación ya se encuentra en tu lista de restricción.
+                </Text>
+              </View>
+            )}
+
             <View
               style={[
                 styles.deviceSelectionContainer,
@@ -526,6 +543,7 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
                 title="Guardar"
                 variant="primary"
                 loading={loading}
+                disabled={!hasInput || isDuplicate || (!applyToAll && deviceIds.length === 0)}
                 onPress={onSave}
               />
             </View>

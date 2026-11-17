@@ -15,6 +15,7 @@ import { ToggleSwitch } from '../../ToggleSwitch';
 import { DeviceInfo, SelfControlState } from '../../../types';
 import { getDeviceHighlight } from '../../../utils/deviceColors';
 import { DevicePermissionsModal } from './DevicePermissionsModal';
+import { colors } from '../../../theme/colors';
 import { styles } from './DeviceCard.styles';
 
 interface DeviceCardProps {
@@ -30,6 +31,7 @@ interface DeviceCardProps {
   onAuditPermissions?: (dev: DeviceInfo) => void;
   isAuditing?: boolean;
   selfControl?: SelfControlState;
+  isAutoproteccionDisabled?: boolean;
   onStartSelfControlFlow?: () => void;
   onDisableSelfControl?: () => void;
   onPressSelfControl?: () => void;
@@ -43,6 +45,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
   onEdit,
   onUnbind,
   selfControl,
+  isAutoproteccionDisabled = false,
   onStartSelfControlFlow,
   onDisableSelfControl,
   onPressSelfControl,
@@ -74,7 +77,11 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
   const isActive =
     device.status === 'ACTIVE' ||
     (device.status as any)?.effectiveStatus === 'ACTIVE' ||
+    (device.status as string) === 'PROTECTED' ||
+    (device.status as any)?.effectiveStatus === 'PROTECTED' ||
     device.isProtected;
+
+  const isPermissionsEnabled = isSelf || isActive;
 
   // Título del dispositivo: "Nombre" (ej. "Mateo", "Cesar", "Tutor Responsable")
   const deviceTitle = isSelf
@@ -104,14 +111,23 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         </View>
 
         <View style={styles.headerRightActions}>
-          {/* Ícono de Engranaje / Permisos (al lado izquierdo de editar) */}
+          {/* Ícono de Engranaje / Permisos: habilitado solo si la vinculación está activa */}
           <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => setShowPermissionsModal(true)}
+            style={[
+              styles.iconButton,
+              !isPermissionsEnabled && styles.iconButtonDisabled,
+            ]}
+            disabled={!isPermissionsEnabled}
+            onPress={() => isPermissionsEnabled && setShowPermissionsModal(true)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel="Permisos del dispositivo"
+            accessibilityState={{ disabled: !isPermissionsEnabled }}
           >
-            <Icon name="engrenaje" size={20} />
+            <Icon
+              name="engrenaje"
+              size={20}
+              color={isPermissionsEnabled ? undefined : colors.textMuted}
+            />
           </TouchableOpacity>
 
           {/* Ícono de Edición de Datos */}
@@ -138,7 +154,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         </View>
       </View>
 
-      {/* Línea inferior: Badge Vinculado/Inactivo a la izquierda (solo protegidos), y Autocontrol con Toggle a la derecha (solo responsable) */}
+      {/* Línea inferior: Badge Vinculado/Inactivo a la izquierda (solo protegidos), y Autoprotección con Toggle a la derecha (solo responsable) */}
       <View style={styles.deviceFooterRow}>
         {!isSelf ? (
           <Badge
@@ -155,10 +171,12 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
             activeOpacity={0.8}
             onPress={handleSelfControlPress}
           >
-            <Text style={styles.autoprotectionLabel}>Autocontrol</Text>
+            <Text style={styles.autoprotectionLabel}>Autoprotección</Text>
             <ToggleSwitch
               value={isAutocontrolActive}
               onValueChange={handleSelfControlPress}
+              disabled={isAutoproteccionDisabled}
+              onDisabledPress={handleSelfControlPress}
               activeColor="#007AFF"
             />
           </TouchableOpacity>

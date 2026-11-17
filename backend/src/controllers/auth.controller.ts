@@ -186,6 +186,70 @@ export class AuthController {
       next(error);
     }
   }
+
+  /**
+   * Actualización del perfil del responsable.
+   * PUT /api/auth/profile
+   */
+  public async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado',
+        } satisfies ApiResponse);
+        return;
+      }
+
+      const { fullName, firstName, lastName, gender, birthDate, phone, password } = req.body;
+      const updatedUser = await authService.updateProfile(userId, {
+        fullName,
+        firstName,
+        lastName,
+        gender,
+        birthDate,
+        phone,
+        password,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Perfil actualizado exitosamente',
+        data: updatedUser,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Eliminación definitiva de la cuenta del responsable.
+   * DELETE /api/auth/account
+   */
+  public async deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado',
+        } satisfies ApiResponse);
+        return;
+      }
+
+      const result = await authService.deleteAccount(userId);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const authController = new AuthController();

@@ -25,7 +25,7 @@ export interface MockDevice {
   deviceUuid: string;
   deviceName: string;
   childName: string;
-    gender?: string;
+  gender?: string;
   personType?: string;
   birthDate?: string;
   phone?: string;
@@ -92,7 +92,7 @@ export interface MockPairing {
   userId: string;
   deviceId: string | null;
   pairingCode: string;
-    minor?: {
+  minor?: {
     childName: string;
     gender: string;
     personType: string;
@@ -248,16 +248,66 @@ class MockDatabase {
       type: 'OFFICIAL_LOTBA',
       version: 4,
       domains: [
-        { id: 'dom-1', domain: 'apuestas-online-ilegal.bet', category: 'GAMBLING', createdAt: new Date() },
-        { id: 'dom-2', domain: 'casino-sin-licencia.com', category: 'GAMBLING', createdAt: new Date() },
-        { id: 'dom-3', domain: 'juegos-azar-clandestino.net', category: 'GAMBLING', createdAt: new Date() },
-        { id: 'dom-4', domain: 'slot-virtual-no-autorizado.xyz', category: 'GAMBLING', createdAt: new Date() },
-        { id: 'dom-5', domain: 'ruleta-online-clandestina.bet', category: 'GAMBLING', createdAt: new Date() },
-        { id: 'dom-6', domain: 'poker-ilegal-argentina.com', category: 'GAMBLING', createdAt: new Date() },
-        { id: 'dom-7', domain: 'gana-facil-apuestas.top', category: 'GAMBLING', createdAt: new Date() },
-        { id: 'dom-8', domain: 'casino-directo-vip.site', category: 'GAMBLING', createdAt: new Date() },
-        { id: 'dom-9', domain: 'tragamonedas-prohibido.club', category: 'GAMBLING', createdAt: new Date() },
-        { id: 'dom-10', domain: 'apuestas-deportivas-no-oficial.io', category: 'GAMBLING', createdAt: new Date() },
+        {
+          id: 'dom-1',
+          domain: 'apuestas-online-ilegal.bet',
+          category: 'GAMBLING',
+          createdAt: new Date(),
+        },
+        {
+          id: 'dom-2',
+          domain: 'casino-sin-licencia.com',
+          category: 'GAMBLING',
+          createdAt: new Date(),
+        },
+        {
+          id: 'dom-3',
+          domain: 'juegos-azar-clandestino.net',
+          category: 'GAMBLING',
+          createdAt: new Date(),
+        },
+        {
+          id: 'dom-4',
+          domain: 'slot-virtual-no-autorizado.xyz',
+          category: 'GAMBLING',
+          createdAt: new Date(),
+        },
+        {
+          id: 'dom-5',
+          domain: 'ruleta-online-clandestina.bet',
+          category: 'GAMBLING',
+          createdAt: new Date(),
+        },
+        {
+          id: 'dom-6',
+          domain: 'poker-ilegal-argentina.com',
+          category: 'GAMBLING',
+          createdAt: new Date(),
+        },
+        {
+          id: 'dom-7',
+          domain: 'gana-facil-apuestas.top',
+          category: 'GAMBLING',
+          createdAt: new Date(),
+        },
+        {
+          id: 'dom-8',
+          domain: 'casino-directo-vip.site',
+          category: 'GAMBLING',
+          createdAt: new Date(),
+        },
+        {
+          id: 'dom-9',
+          domain: 'tragamonedas-prohibido.club',
+          category: 'GAMBLING',
+          createdAt: new Date(),
+        },
+        {
+          id: 'dom-10',
+          domain: 'apuestas-deportivas-no-oficial.io',
+          category: 'GAMBLING',
+          createdAt: new Date(),
+        },
       ],
     });
 
@@ -270,8 +320,18 @@ class MockDatabase {
       type: 'CUSTOM',
       version: 2,
       domains: [
-        { id: 'custom-dom-1', domain: 'juegos-violentos-online.com', category: 'CUSTOM', createdAt: new Date() },
-        { id: 'custom-dom-2', domain: 'red-social-no-supervisada.net', category: 'CUSTOM', createdAt: new Date() },
+        {
+          id: 'custom-dom-1',
+          domain: 'juegos-violentos-online.com',
+          category: 'CUSTOM',
+          createdAt: new Date(),
+        },
+        {
+          id: 'custom-dom-2',
+          domain: 'red-social-no-supervisada.net',
+          category: 'CUSTOM',
+          createdAt: new Date(),
+        },
       ],
     });
 
@@ -313,7 +373,8 @@ class MockDatabase {
         id: 'sec-2',
         deviceId: dev1Id,
         eventType: 'DEVICE_REBOOT',
-        description: 'Dispositivo reiniciado. Protección reanudada automáticamente por BootReceiver.',
+        description:
+          'Dispositivo reiniciado. Protección reanudada automáticamente por BootReceiver.',
         occurredAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
       },
     );

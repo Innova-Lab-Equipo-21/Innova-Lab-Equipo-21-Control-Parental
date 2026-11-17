@@ -14,7 +14,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   Image,
   Platform,
 } from 'react-native';
@@ -25,8 +24,10 @@ import { styles } from './RegisterForm.styles';
 import { DatePickerModal } from './DatePickerModal';
 import { TermsModal } from './TermsModal';
 import { PrivacyModal } from './PrivacyModal';
+import { FeedbackModal } from '../FeedbackModal';
 import { colors } from '../../theme/colors';
 import { apiService } from '../../services/api.service';
+import { safeStorage } from '../../services/api/client';
 import { calculateAge } from '../../utils/age';
 import {
   formatBirthDate,
@@ -85,6 +86,17 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   const handleCheckAgeAndValidate = (dateStr: string) => {
     const age = calculateAge(dateStr);
@@ -102,11 +114,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         ...prev,
         fechaNacimiento: errorMsg,
       }));
-      Alert.alert(
-        'Registro no verificado',
-        'Solo personas adultas (+18) pueden registrarse en el Modo Responsable. Tu registro no podrá ser confirmado.',
-        [{ text: 'Entendido', style: 'default' }]
-      );
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Registro no verificado',
+        message:
+          'Solo personas adultas (+18) pueden registrarse en el Modo Responsable. Tu registro no podrá ser confirmado.',
+      });
       return false;
     }
     setFieldErrors((prev) => ({ ...prev, fechaNacimiento: '' }));
@@ -218,10 +232,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     // Verificar si hay errores o si es menor de edad
     const age = calculateAge(fechaNacimiento);
     if (age !== null && age < 18) {
-      Alert.alert(
-        'Registro no verificado',
-        'Solo personas adultas (+18) pueden registrarse en el Modo Responsable. Tu registro no podrá ser confirmado.'
-      );
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Registro no verificado',
+        message:
+          'Solo personas adultas (+18) pueden registrarse en el Modo Responsable. Tu registro no podrá ser confirmado.',
+      });
       setErrorMessage('Tu registro no puede ser confirmado debido a requerimientos de edad (+18).');
       return;
     }
@@ -258,14 +275,23 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         // FCM no disponible en este entorno; se omite silenciosamente
       }
 
-      Alert.alert(
-        '¡Cuenta Creada Exitosamente!',
-        `Bienvenido/a, ${fullName}. Tu cuenta ha sido activada en BA Protege+.`,
-      );
+      await safeStorage.setItem('@ba_protege_responsible_account_created', 'true');
+      await safeStorage.setItem('@ba_protege_mode_locked', 'PARENT');
 
-      if (res.data?.token) {
-        onLoginSuccess(res.data.user, res.data.token);
-      } else {
+      setFeedbackModal({
+        visible: true,
+        icon: '🎉',
+        title: '¡Cuenta creada exitosamente!',
+        message: `Bienvenido/a, ${fullName}. Tu cuenta ha sido activada en BA Protege+.`,
+        onConfirm: () => {
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          if (res.data?.token) {
+            onLoginSuccess(res.data.user, res.data.token);
+          }
+        },
+      });
+
+      if (!res.data?.token) {
         const loginRes = await apiService.login({
           email: registerEmail.trim(),
           password: registerPassword,
@@ -861,6 +887,16 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       <PrivacyModal
         visible={showPrivacyModal}
         onClose={() => setShowPrivacyModal(false)}
+      />
+
+      {/* Modal estándar de retroalimentación */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        onConfirm={feedbackModal.onConfirm}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </View>
   );

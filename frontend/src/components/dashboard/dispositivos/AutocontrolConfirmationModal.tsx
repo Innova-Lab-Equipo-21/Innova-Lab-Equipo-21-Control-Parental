@@ -1,8 +1,8 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: AutocontrolConfirmationModal (Modal de Gestión y Doble Confirmación de Autocontrol)
+// Componente: AutocontrolConfirmationModal (Modal de Gestión y Doble Confirmación de Autoprotección)
 // Archivo: src/components/dashboard/dispositivos/AutocontrolConfirmationModal.tsx
-// Descripción: Modal unificado para el flujo de Autocontrol del Responsable:
+// Descripción: Modal unificado para el flujo de Autoprotección del Responsable:
 //              - Doble confirmación para activación (Paso 1 y Paso 2).
 //              - Aviso durante las 24 horas de protección obligatoria (desactivación no permitida).
 //              - Confirmación de desactivación una vez cumplidas las 24 horas.
@@ -12,8 +12,9 @@
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, Modal, TouchableOpacity } from 'react-native';
 import { ActionButton } from '../../ActionButton';
+import { FeedbackModal } from '../../FeedbackModal';
 import { SelfControlState } from '../../../types';
 import { styles } from './AutocontrolConfirmationModal.styles';
 
@@ -48,11 +49,13 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
 }) => {
   const [activateStep, setActivateStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
+  const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
       setActivateStep(1);
       setLoading(false);
+      setErrorFeedback(null);
     }
   }, [visible, mode]);
 
@@ -72,7 +75,7 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
     try {
       await onActivate();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo activar el autocontrol.');
+      setErrorFeedback(e.message || 'No se pudo activar la autoprotección.');
     } finally {
       setLoading(false);
     }
@@ -83,7 +86,7 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
     try {
       await onConfirmDeactivation();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo desactivar el autocontrol.');
+      setErrorFeedback(e.message || 'No se pudo desactivar la autoprotección.');
     } finally {
       setLoading(false);
     }
@@ -96,9 +99,9 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
           return (
             <View>
               <Text style={styles.modalEmoji}>🛡️</Text>
-              <Text style={styles.modalTitle}>Confirmación 1 de 2: Autocontrol</Text>
+              <Text style={styles.modalTitle}>Confirmación 1 de 2: Autoprotección</Text>
               <Text style={styles.modalBody}>
-                La función de autocontrol bloquea deshabilitar, editar o eliminar sitios y aplicaciones en tu propio dispositivo.
+                La función de autoprotección bloquea deshabilitar, editar o eliminar sitios y aplicaciones en tu propio dispositivo.
               </Text>
               <View style={styles.warningBox}>
                 <Text style={styles.warningBoxText}>
@@ -129,9 +132,9 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
         return (
           <View>
             <Text style={styles.modalEmoji}>⚠️</Text>
-            <Text style={styles.modalTitle}>Confirmación 2 de 2: Activar autocontrol</Text>
+            <Text style={styles.modalTitle}>Confirmación 2 de 2: Activar autoprotección</Text>
             <Text style={styles.modalBody}>
-              ¿Confirmas activar el autocontrol en tu celular? No podrás desproteger sitios o apps bloqueadas en este dispositivo.
+              ¿Confirmas activar la autoprotección en tu celular? No podrás desproteger sitios o apps bloqueadas en este dispositivo.
             </Text>
             <View style={styles.warningBox}>
               <Text style={styles.warningBoxText}>
@@ -170,9 +173,9 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
         return (
           <View>
             <Text style={styles.modalEmoji}>⏳</Text>
-            <Text style={styles.modalTitle}>Autocontrol activo (bloqueado)</Text>
+            <Text style={styles.modalTitle}>Autoprotección activa (bloqueada)</Text>
             <Text style={styles.modalBody}>
-              La función de autocontrol está activa. Restan {timeText} de protección obligatoria antes de poder desactivarla.
+              La función de autoprotección está activa. Restan {timeText} de protección obligatoria antes de poder desactivarla.
             </Text>
             <View style={styles.warningBox}>
               <Text style={styles.warningBoxText}>
@@ -199,9 +202,9 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
         return (
           <View>
             <Text style={styles.modalEmoji}>🔓</Text>
-            <Text style={styles.modalTitle}>Desactivar autocontrol</Text>
+            <Text style={styles.modalTitle}>Desactivar autoprotección</Text>
             <Text style={styles.modalBody}>
-              Pasaron las 24 horas requeridas de protección obligatoria. ¿Deseas desactivar la función de autocontrol ahora?
+              Pasaron las 24 horas requeridas de protección obligatoria. ¿Deseas desactivar la función de autoprotección ahora?
             </Text>
             <View style={styles.warningBox}>
               <Text style={styles.warningBoxText}>
@@ -257,6 +260,15 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
           {renderContent()}
         </View>
       </View>
+
+      {/* Modal estándar de error */}
+      <FeedbackModal
+        visible={!!errorFeedback}
+        icon="⚠️"
+        title="Error"
+        message={errorFeedback || ''}
+        onClose={() => setErrorFeedback(null)}
+      />
     </Modal>
   );
 };

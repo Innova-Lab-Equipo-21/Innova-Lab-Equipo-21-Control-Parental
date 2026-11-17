@@ -5,9 +5,8 @@
 // Descripción: Home institucional del modo Responsable compacta (sin scroll)
 //              compuesta por las 5 secciones ajustadas a especificación y referencia:
 //              1) Card dinámico de protección con escudo y engrenaje.png
-//              2) Card de dispositivos en 2 secciones (Mi dispositivo con toggle +
-//                 Dispositivos protegidos con badges y botón @dispositivos.png)
-//              3) Dos cards métricas: Sitios y Apps con colores del app y botón circular (+)
+//              2) Card de dispositivos protegidos (badges ordenados A-Z con "Yo" al final si está autoprotegido + CTA + condicional)
+//              3) Cards de Sitios y Apps bloqueados con CTA Editar (Estilo imagen de referencia)
 //              4) Gráfico histórico compacto de intentos interceptados con CTA a Actividad
 //              5) Enlace central a Preguntas frecuentes (FAQ)
 // ==============================================================================
@@ -18,10 +17,10 @@ import {
   Text,
   TouchableOpacity,
   Image,
-  Switch,
   LayoutChangeEvent,
 } from 'react-native';
-import { DeviceInfo, SelfControlState } from '../../../types';
+import { DeviceInfo, SelfControlState, MAX_PROTECTED_DEVICES } from '../../../types';
+import { getDeviceHighlight } from '../../../utils/deviceColors';
 import { styles } from './ParentInicioSection.styles';
 
 export interface ParentInicioSectionProps {
@@ -33,6 +32,7 @@ export interface ParentInicioSectionProps {
   grantedCount?: number; // 0 a 6
   onNavigateToPermissions: () => void;
   onNavigateToDevices: () => void;
+  onAddDevice?: () => void;
   onToggleSelfControl: () => void;
   onNavigateToSites: () => void;
   onNavigateToApps: () => void;
@@ -94,16 +94,6 @@ const ChartPolyline: React.FC<ChartPolylineProps> = ({
   );
 };
 
-const DEVICE_COLORS = ['#FACC15', '#D946EF', '#F97316', '#007AFF', '#8B5CF6'];
-
-const DEFAULT_DEMO_DEVICES = [
-  { id: 'demo-1', name: 'Ana', color: '#FACC15' },
-  { id: 'demo-2', name: 'Mateo', color: '#D946EF' },
-  { id: 'demo-3', name: 'Sofía', color: '#F97316' },
-  { id: 'demo-4', name: 'Juan', color: '#007AFF' },
-  { id: 'demo-5', name: 'Agustín', color: '#8B5CF6' },
-];
-
 export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
   currentUser,
   devices,
@@ -113,7 +103,7 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
   grantedCount = 6,
   onNavigateToPermissions,
   onNavigateToDevices,
-  onToggleSelfControl,
+  onAddDevice,
   onNavigateToSites,
   onNavigateToApps,
   onNavigateToActivity,
@@ -144,23 +134,63 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
   const pendingCount = Math.max(0, 6 - grantedCount);
 
   // Lista de dispositivos protegidos (excluyendo el propio del tutor)
-  const protectedList = devices.filter((d) => d.profileType !== 'Responsable');
-  const displayDevices =
-    protectedList.length > 0
-      ? protectedList.slice(0, 5).map((d, idx) => ({
-          id: d.deviceId || d.deviceUuid || `dev-${idx}`,
-          name: d.childName || d.deviceName || `Disp. ${idx + 1}`,
-          color: DEVICE_COLORS[idx % DEVICE_COLORS.length],
-        }))
-      : DEFAULT_DEMO_DEVICES;
+  const protectedList = devices.filter((d) => d.profileType !== 'Responsable' && d.deviceId !== 'self');
+
+  // Ordenamiento alfabético A-Z de dispositivos protegidos
+  const sortedProtected = [...protectedList].sort((a, b) => {
+    const nameA = (a.childName || a.deviceName || '').toLowerCase();
+    const nameB = (b.childName || b.deviceName || '').toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+
+  let displayDevices = sortedProtected
+    .slice(0, MAX_PROTECTED_DEVICES)
+    .map((d, idx) => {
+      const id = d.deviceId || d.deviceUuid || `dev-${idx}`;
+      const highlight = getDeviceHighlight(
+        id,
+        d.childName,
+        d.deviceName,
+        d.colorIndex ?? idx
+      );
+      return {
+        id,
+        name: d.childName || d.deviceName || `Disp. ${idx + 1}`,
+        color: highlight.color,
+        isSelf: false,
+      };
+    });
+
+  // Cuando el responsable está autoprotegido, se añade su badge ("Yo") al FINAL de la lista
+  const isSelfProtected = Boolean(
+    selfControl?.active ||
+    selfControl?.status === 'ACTIVE_LOCKED' ||
+    selfControl?.status === 'DEACTIVATION_PENDING'
+  );
+
+  if (isSelfProtected) {
+    displayDevices = [
+      ...displayDevices,
+      {
+        id: 'self-protected-badge',
+        name: 'Yo',
+        color: '#007AFF',
+        isSelf: true,
+      },
+    ];
+  }
 
   const isDeviceActive = (d: DeviceInfo) =>
-    d.status === 'ACTIVE' || (d.status as any)?.effectiveStatus === 'ACTIVE' || d.isProtected;
+    d.status === 'ACTIVE' ||
+    (d.status as any)?.effectiveStatus === 'ACTIVE' ||
+    (Boolean(d.isProtected) && d.status !== 'INACTIVE');
 
-  const countVinculados =
-    protectedList.length > 0 ? protectedList.filter(isDeviceActive).length : displayDevices.length;
-  const countInactivos =
-    protectedList.length > 0 ? protectedList.filter((d) => !isDeviceActive(d)).length : 0;
+  const countVinculados = protectedList.filter(isDeviceActive).length;
+  const countInactivos = protectedList.filter((d) => !isDeviceActive(d)).length;
+
+  const canAddMoreDevices = protectedList.length < MAX_PROTECTED_DEVICES;
+  const totalBadgeItems = displayDevices.length + (canAddMoreDevices ? 1 : 0);
+  const isCompactBadgesRow = totalBadgeItems >= 5;
 
   // Curvas matemáticas del gráfico compacto
   const W = chartWidth > 0 ? chartWidth : 320;
@@ -213,7 +243,7 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
 
       {/* ---------------------------------------------------------------------- */}
       {/* SECCIÓN 1: CARD DINÁMICO DE ESTADO (ESTILO FOTO DE REFERENCIA)         */}
-      {/* Borde azul, fondo azul claro, escudo, texto en mayúscula y engrenaje  */}
+      {/* Borde redondeado azul, fondo azul claro, escudo, textos y engrenaje  */}
       {/* ---------------------------------------------------------------------- */}
       <View
         style={[
@@ -269,31 +299,11 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
       </View>
 
       {/* ---------------------------------------------------------------------- */}
-      {/* SECCIÓN 2: CARD DE DISPOSITIVOS EN 2 SUB-SECCIONES                     */}
-      {/* 1: Mi dispositivo: Autocontrol (con toggle)                            */}
-      {/* 2: Dispositivos protegidos: total protegidos e inactivos + ícono       */}
+      {/* SECCIÓN 2: CARD DE DISPOSITIVOS PROTEGIDOS                             */}
+      {/* Dispositivos protegidos (badges) + CTA (+) condicional                 */}
       {/* ---------------------------------------------------------------------- */}
       <View style={styles.devicesCard}>
-        {/* Subsección 1: Mi dispositivo */}
-        <View style={styles.selfControlRow}>
-          <View style={styles.selfControlLabelRow}>
-            <Text style={styles.selfControlTitle}>Mi dispositivo:</Text>
-          </View>
-
-          <View style={styles.selfControlRight}>
-            <Text style={styles.selfControlSubtitle}>Autocontrol</Text>
-            <Switch
-              value={selfControl.active}
-              onValueChange={onToggleSelfControl}
-              trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-              thumbColor={selfControl.active ? '#0072CE' : '#FFFFFF'}
-            />
-          </View>
-        </View>
-
-        <View style={styles.dividerLine} />
-
-        {/* Subsección 2: Dispositivos protegidos */}
+        {/* Encabezado: Dispositivos protegidos */}
         <View style={styles.devicesHeaderRow}>
           <Text style={styles.devicesHeaderTitle}>Dispositivos protegidos:</Text>
 
@@ -306,19 +316,23 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
             <Text style={styles.devicesCountSummary}>
               {countVinculados} {countVinculados === 1 ? 'protegido' : 'protegidos'} • {countInactivos} {countInactivos === 1 ? 'inactivo' : 'inactivos'}
             </Text>
-            <Image
-              source={require('../../../assets/icons/navbar/dispositivos.png')}
-              style={styles.devicesCtaIcon}
-            />
           </TouchableOpacity>
         </View>
 
-        {/* Fila de Avatares Circulares de Dispositivos (cada badge lleva a Dispositivos) */}
-        <View style={styles.devicesRow}>
+        {/* Fila de Avatares Circulares de Dispositivos (Ordenados A-Z, con 'Yo' al final si está autoprotegido) + CTA (+) si < 5 */}
+        <View
+          style={[
+            styles.devicesRow,
+            !isCompactBadgesRow && styles.devicesRowSparse,
+          ]}
+        >
           {displayDevices.map((dev) => (
             <TouchableOpacity
               key={dev.id}
-              style={styles.deviceBadgeItem}
+              style={[
+                styles.deviceBadgeItem,
+                !isCompactBadgesRow && styles.deviceBadgeItemSparse,
+              ]}
               onPress={onNavigateToDevices}
               activeOpacity={0.7}
               accessibilityLabel={`Ver dispositivo ${dev.name}`}
@@ -338,57 +352,69 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
               </Text>
             </TouchableOpacity>
           ))}
+
+          {/* CTA (+) para añadir dispositivo (Solo visible si aún no se alcanzó el límite de 5 protegidos) */}
+          {canAddMoreDevices && (
+            <TouchableOpacity
+              style={[
+                styles.deviceBadgeItem,
+                !isCompactBadgesRow && styles.deviceBadgeItemSparse,
+              ]}
+              onPress={onAddDevice || onNavigateToDevices}
+              activeOpacity={0.7}
+              accessibilityLabel="Añadir dispositivo"
+            >
+              <View style={[styles.deviceBadgeCircle, styles.addDeviceBadgeCircle]}>
+                <Text style={styles.addDeviceBadgePlus}>+</Text>
+              </View>
+              <Text style={styles.deviceBadgeName} numberOfLines={1}>
+                Nuevo dispositivo
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* ---------------------------------------------------------------------- */}
-      {/* SECCIÓN 3: DOS CARDS (SITIOS Y APPS CON COLORES DEL APP Y BOTÓN (+))  */}
+      {/* SECCIÓN 3: CARDS DE SITIOS Y APPS BLOQUEADOS CON CTA EDITAR           */}
       {/* ---------------------------------------------------------------------- */}
       <View style={styles.metricsRow}>
-        {/* Card: Sitios */}
+        {/* Card 1: Sitios Bloqueados */}
         <View style={styles.metricCard}>
-          <View style={styles.metricHeaderRow}>
-            <Text style={styles.metricLabel}>Sitios</Text>
-          </View>
-
-          <View style={styles.metricBodyRow}>
-            <View style={styles.metricNumberCol}>
-              <Text style={styles.metricNumber}>{customSitesCount}</Text>
-              <Text style={styles.metricSubLabel}>bloqueados</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.circularAddBtn}
-              onPress={onNavigateToSites}
-              activeOpacity={0.8}
-              accessibilityLabel="Gestionar sitios"
-            >
-              <Text style={styles.circularAddBtnText}>+</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.metricLabelLeft}>
+            {customSitesCount === 1 ? 'Sitio' : 'Sitios'}
+          </Text>
+          <Text style={styles.metricNumber}>{customSitesCount}</Text>
+          <Text style={styles.metricSubLabelLeft}>
+            {customSitesCount === 1 ? 'bloqueado' : 'bloqueados'}
+          </Text>
+          <TouchableOpacity
+            style={styles.cardEditBtn}
+            onPress={onNavigateToSites}
+            activeOpacity={0.8}
+            accessibilityLabel="Editar sitios bloqueados"
+          >
+            <Text style={styles.cardEditBtnText}>Editar</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Card: Apps */}
+        {/* Card 2: Apps Bloqueadas */}
         <View style={styles.metricCard}>
-          <View style={styles.metricHeaderRow}>
-            <Text style={styles.metricLabel}>Apps</Text>
-          </View>
-
-          <View style={styles.metricBodyRow}>
-            <View style={styles.metricNumberCol}>
-              <Text style={styles.metricNumber}>{blockedAppsCount}</Text>
-              <Text style={styles.metricSubLabel}>bloqueadas</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.circularAddBtn}
-              onPress={onNavigateToApps}
-              activeOpacity={0.8}
-              accessibilityLabel="Gestionar apps"
-            >
-              <Text style={styles.circularAddBtnText}>+</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.metricLabelRight}>
+            {blockedAppsCount === 1 ? 'App' : 'Aplicaciones'}
+          </Text>
+          <Text style={styles.metricNumber}>{blockedAppsCount}</Text>
+          <Text style={styles.metricSubLabelRight}>
+            {blockedAppsCount === 1 ? 'bloqueada' : 'bloqueadas'}
+          </Text>
+          <TouchableOpacity
+            style={styles.cardEditBtn}
+            onPress={onNavigateToApps}
+            activeOpacity={0.8}
+            accessibilityLabel="Editar aplicaciones bloqueadas"
+          >
+            <Text style={styles.cardEditBtnText}>Editar</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -411,9 +437,23 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
           }}
         >
           <View style={styles.chartBaseline} />
-          <ChartPolyline points={magentaPoints} color="#D946EF" strokeWidth={2} />
-          <ChartPolyline points={yellowPoints} color="#FACC15" strokeWidth={2} />
-          <ChartPolyline points={bluePoints} color="#007AFF" strokeWidth={2} />
+          {displayDevices.length > 0 ? (
+            <>
+              {displayDevices[2] && (
+                <ChartPolyline points={magentaPoints} color={displayDevices[2].color} strokeWidth={2} />
+              )}
+              {displayDevices[1] && (
+                <ChartPolyline points={yellowPoints} color={displayDevices[1].color} strokeWidth={2} />
+              )}
+              {displayDevices[0] && (
+                <ChartPolyline points={bluePoints} color={displayDevices[0].color} strokeWidth={2} />
+              )}
+            </>
+          ) : (
+            <View style={styles.chartEmptyContainer}>
+              <Text style={styles.chartEmptyText}>Sin intentos registrados</Text>
+            </View>
+          )}
         </View>
 
         {/* Fechas en el Eje X */}
@@ -426,14 +466,18 @@ export const ParentInicioSection: React.FC<ParentInicioSectionProps> = ({
         {/* Pie del Gráfico con Leyenda y Botón Ver más */}
         <View style={styles.chartFooter}>
           <View style={styles.legendBadgesRow}>
-            {displayDevices.map((dev) => (
-              <View key={`leg-${dev.id}`} style={styles.legendItem}>
-                <View
-                  style={[styles.legendDot, { backgroundColor: dev.color }]}
-                />
-                <Text style={styles.legendText}>{dev.name}</Text>
-              </View>
-            ))}
+            {displayDevices.length > 0 ? (
+              displayDevices.map((dev) => (
+                <View key={`leg-${dev.id}`} style={styles.legendItem}>
+                  <View
+                    style={[styles.legendDot, { backgroundColor: dev.color }]}
+                  />
+                  <Text style={styles.legendText}>{dev.name}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.legendEmptyText}>Sin dispositivos vinculados</Text>
+            )}
           </View>
 
           <TouchableOpacity

@@ -3,14 +3,21 @@
 // Componente: SitesAndAppsSection (Gestión de Sitios Web y Apps Bloqueadas)
 // Archivo: src/components/dashboard/sitios/SitesAndAppsSection.tsx
 // Descripción: Orquestador modular de listas personalizadas de dominios web y
-//              aplicaciones móviles con menú de opciones de 3 puntos (⋮),
+//              aplicaciones móviles con opción de Autoprotección (toggle azul),
 //              filtrado por dispositivo, ordenamiento dinámico y acciones masivas.
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { CustomBlockedDomain, DeviceInfo, SelfControlState } from '../../../types';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  BlockOriginFilter,
+  CustomBlockedApp,
+  CustomBlockedDomain,
+  DeviceInfo,
+  SelfControlState,
+} from '../../../types';
 import { apiService } from '../../../services/api.service';
+import { ToggleSwitch } from '../../ToggleSwitch';
 import { SitesTab } from './SitesTab';
 import { AppsTab } from './AppsTab';
 import { AddSiteModal } from './AddSiteModal';
@@ -24,26 +31,39 @@ import { FeedbackModal } from '../../FeedbackModal';
 import { FabWithTooltip } from '../../FabWithTooltip';
 import { useSitesManagement } from './hooks/useSitesManagement';
 import { useAppsManagement } from './hooks/useAppsManagement';
+import { Icon } from '../../Icon';
+import { protectionService } from '../../../services/protection.service';
+import {
+  AUTOPROTECCION_EMPTY_LIST_MESSAGE,
+  shouldShowAutoproteccionEmptyNotice,
+  countItemsForResponsable,
+} from '../../../utils/responsibleFirstAccess';
 import { styles } from './SitesAndAppsSection.styles';
 
 export interface SitesAndAppsSectionProps {
   customSites: CustomBlockedDomain[];
+  customApps?: CustomBlockedApp[];
   devices: DeviceInfo[];
   onRefreshList: () => void;
   selfControl?: SelfControlState;
+  onStartSelfControlFlow?: () => void;
   hideInternalFab?: boolean;
   onSetAddHandler?: (handler: () => void) => void;
   initialSubTab?: 'sites' | 'apps';
+  onSubTabChange?: (subTab: 'sites' | 'apps') => void;
 }
 
 export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   customSites,
+  customApps = [],
   devices,
   onRefreshList,
   selfControl,
+  onStartSelfControlFlow,
   hideInternalFab = false,
   onSetAddHandler,
   initialSubTab = 'sites',
+  onSubTabChange,
 }) => {
   // Navegación de Sub-pestañas
   const [activeSubTab, setActiveSubTab] = useState<'sites' | 'apps'>(initialSubTab);
@@ -51,8 +71,9 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   useEffect(() => {
     if (initialSubTab) {
       setActiveSubTab(initialSubTab);
+      onSubTabChange?.(initialSubTab);
     }
-  }, [initialSubTab]);
+  }, [initialSubTab, onSubTabChange]);
 
   // Menú de opciones de 3 puntos (⋮) y herramientas
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -62,7 +83,14 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
 
   // Filtros y ordenamiento
   const [selectedDeviceFilter, setSelectedDeviceFilter] = useState<string>('all');
+  const [selectedOriginFilter, setSelectedOriginFilter] = useState<BlockOriginFilter>('all');
   const [sortBy, setSortBy] = useState<'date' | 'az'>('date');
+  const [isA11yActive, setIsA11yActive] = useState<boolean>(true);
+
+  useEffect(() => {
+    protectionService.isAccessibilityEnabled().then(setIsA11yActive);
+    protectionService.syncProtectionRulesWithNative('self', 'PARENT');
+  }, []);
 
   // Modal estándar de confirmación de eliminación
   const [itemToDelete, setItemToDelete] = useState<{
@@ -72,19 +100,33 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   } | null>(null);
   const [loadingDelete, setLoadingDelete] = useState(false);
 
-  // Modal estándar de retroalimentación / éxito
+  // Modal estándar de retroalimentación / éxito / confirmación
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
     icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
   }>({
     visible: false,
     title: '',
     message: '',
   });
 
-  const showFeedback = (config: { icon?: string; title: string; message: string }) => {
+  const showFeedback = (config: {
+    icon?: string;
+    imageSource?: any;
+    title: string;
+    message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
+  }) => {
     setFeedbackModal({
       visible: true,
       ...config,
@@ -98,6 +140,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
     onRefreshList,
     selfControl,
     selectedDeviceFilter,
+    selectedOriginFilter,
     sortBy,
     showFeedback,
     setItemToDelete,
@@ -105,10 +148,12 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
 
   // Hook modular de gestión de aplicaciones móviles
   const apps = useAppsManagement({
+    initialApps: customApps,
     devices,
     onRefreshList,
     selfControl,
     selectedDeviceFilter,
+    selectedOriginFilter,
     sortBy,
     showFeedback,
     setItemToDelete,
@@ -130,7 +175,11 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         onRefreshList();
       }
     } catch (e: any) {
-      Alert.alert('Error al eliminar', e.message || 'No se pudo completar la eliminación.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error al eliminar',
+        message: e.message || 'No se pudo completar la eliminación.',
+      });
     } finally {
       setLoadingDelete(false);
     }
@@ -149,14 +198,104 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
     }
   }, [activeSubTab, onSetAddHandler, sites.handleOpenAddSite, apps.handleOpenAddApp]);
 
+  // Estado de Autoprotección del responsable
+  const isAutoproteccionActive = Boolean(
+    selfControl?.active ||
+    selfControl?.status === 'ACTIVE_LOCKED' ||
+    selfControl?.status === 'DEACTIVATION_PENDING' ||
+    selfControl?.status === 'DEACTIVATION_READY'
+  );
+
+  // Verificación: habilitado solo si existe al menos un sitio o una app activa asignada al Responsable ("Mi dispositivo")
+  const sitesForResponsableCount = countItemsForResponsable(customSites);
+  const appsForResponsableCount = countItemsForResponsable(apps.customApps);
+  const hasSitesOrAppsForResponsable = sitesForResponsableCount + appsForResponsableCount > 0;
+  const isAutoproteccionDisabled = !isAutoproteccionActive && !hasSitesOrAppsForResponsable;
+  const showEmptyAutoproteccionNotice = shouldShowAutoproteccionEmptyNotice(
+    customSites.length,
+    apps.customApps.length,
+    isAutoproteccionActive
+  );
+
+  const handleAutoproteccionPress = () => {
+    if (isAutoproteccionDisabled) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Habilitá un sitio o aplicación',
+        message:
+          'Para activar la autoprotección, primero debés habilitar al menos un sitio web o aplicación para "Mi dispositivo".',
+      });
+      return;
+    }
+    if (onStartSelfControlFlow) {
+      onStartSelfControlFlow();
+    }
+  };
+
   return (
     <View style={styles.container}>
+      {/* Aviso si el servicio de accesibilidad está inactivo en el dispositivo */}
+      {!isA11yActive && (
+        <TouchableOpacity
+          style={styles.a11yNoticeCard}
+          activeOpacity={0.8}
+          onPress={async () => {
+            await protectionService.openAccessibilitySettings();
+            const active = await protectionService.isAccessibilityEnabled();
+            setIsA11yActive(active);
+          }}
+        >
+          <Icon
+            name="alerta"
+            size={18}
+            color="#B45309"
+            style={styles.a11yNoticeIcon}
+          />
+          <Text style={styles.a11yNoticeText}>
+            El servicio de accesibilidad está desactivado. Tocá acá para activarlo en Ajustes y aplicar los bloqueos en este dispositivo.
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Opción de Autoprotección en Sitios y Apps (Texto al lado del toggle azul oficial) */}
+      <TouchableOpacity
+        style={styles.autoprotectionRow}
+        activeOpacity={0.8}
+        onPress={handleAutoproteccionPress}
+      >
+        <Text style={styles.autoprotectionText}>Autoprotección</Text>
+        <ToggleSwitch
+          value={isAutoproteccionActive}
+          onValueChange={handleAutoproteccionPress}
+          disabled={isAutoproteccionDisabled}
+          onDisabledPress={handleAutoproteccionPress}
+        />
+      </TouchableOpacity>
+
+      {/* Aviso cuando la lista está vacía explicando el requisito para activar Autoprotección */}
+      {showEmptyAutoproteccionNotice && (
+        <View style={styles.autoprotectionEmptyNotice}>
+          <Icon
+            name="alerta"
+            size={18}
+            color="#B45309"
+            style={styles.autoprotectionEmptyIcon}
+          />
+          <Text style={styles.autoprotectionEmptyText}>
+            {AUTOPROTECCION_EMPTY_LIST_MESSAGE}
+          </Text>
+        </View>
+      )}
+
       {/* Selector de Sub-pestañas + Menú de 3 Puntos (⋮) */}
       <View style={styles.sectionTabRow}>
         <View style={styles.subTabContainer}>
           <TouchableOpacity
             style={[styles.sectionTabBtn, activeSubTab === 'sites' && styles.sectionTabBtnActive]}
-            onPress={() => setActiveSubTab('sites')}
+            onPress={() => {
+              setActiveSubTab('sites');
+              onSubTabChange?.('sites');
+            }}
           >
             <Text style={[styles.sectionTabText, activeSubTab === 'sites' && styles.sectionTabTextActive]}>
               🌐 Sitios web
@@ -165,7 +304,10 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
 
           <TouchableOpacity
             style={[styles.sectionTabBtn, activeSubTab === 'apps' && styles.sectionTabBtnActive]}
-            onPress={() => setActiveSubTab('apps')}
+            onPress={() => {
+              setActiveSubTab('apps');
+              onSubTabChange?.('apps');
+            }}
           >
             <Text style={[styles.sectionTabText, activeSubTab === 'apps' && styles.sectionTabTextActive]}>
               📱 Aplicaciones
@@ -222,6 +364,24 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         </View>
       )}
 
+      {/* Indicador de filtro activo por origen con botón rápido para restablecer */}
+      {selectedOriginFilter !== 'all' && (
+        <View style={styles.activeOriginFilterBar}>
+          <Text style={styles.activeOriginFilterText}>
+            {selectedOriginFilter === 'adulto_protegido'
+              ? 'Origen: Adulto protegido'
+              : 'Origen: Responsable'}
+          </Text>
+          <TouchableOpacity
+            style={styles.clearOriginFilterBtn}
+            onPress={() => setSelectedOriginFilter('all')}
+            accessibilityLabel="Quitar filtro de origen"
+          >
+            <Text style={styles.clearOriginFilterText}>Ver todos ✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Vista de Sitios Web */}
       {activeSubTab === 'sites' && (
         <SitesTab
@@ -231,6 +391,8 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
           onHideSearch={() => setShowSearchInput(false)}
           isSelectionMode={isSelectionMode}
           sitesList={sites.sortedAndFilteredSites}
+          devices={devices}
+          originFilter={selectedOriginFilter}
           selectedIds={sites.selectedSiteIds}
           onToggleSelect={sites.handleToggleSelectSite}
           onSelectAll={sites.handleSelectAllSites}
@@ -252,6 +414,8 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
           onHideSearch={() => setShowSearchInput(false)}
           isSelectionMode={isSelectionMode}
           appsList={apps.sortedAndFilteredApps}
+          devices={devices}
+          originFilter={selectedOriginFilter}
           selectedIds={apps.selectedAppIds}
           onToggleSelect={apps.handleToggleSelectApp}
           onSelectAll={apps.handleSelectAllApps}
@@ -278,6 +442,10 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         onClose={() => sites.setShowAddSiteModal(false)}
         domain={sites.newSiteDomain}
         onDomainChange={sites.handleNewSiteDomainChange}
+        onSelectSuggestion={(sug) => {
+          sites.handleNewSiteDomainChange(sug.domain);
+          sites.setNewSiteCategory(sug.category);
+        }}
         category={sites.newSiteCategory}
         onCategoryChange={sites.setNewSiteCategory}
         applyToAll={sites.newSiteApplyToAll}
@@ -285,6 +453,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         deviceIds={sites.newSiteDeviceIds}
         devices={devices}
         onToggleDevice={sites.handleToggleNewSiteDevice}
+        existingSites={customSites}
         loading={sites.loadingSite}
         onSave={sites.handleAddSite}
       />
@@ -326,6 +495,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         onDailyLimitChange={apps.setNewAppDailyLimit}
         deviceLimits={apps.newAppDeviceLimits}
         onDeviceLimitChange={apps.handleNewAppDeviceLimitChange}
+        existingApps={apps.customApps}
         loading={apps.loadingApp}
         onSave={apps.handleAddApp}
       />
@@ -357,14 +527,31 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
       <SitesAppsOptionsMenuModal
         visible={showOptionsMenu}
         onClose={() => setShowOptionsMenu(false)}
+        searchValue={activeSubTab === 'sites' ? sites.siteSearch : apps.appSearch}
+        onSearchChange={(text) => {
+          if (activeSubTab === 'sites') {
+            sites.setSiteSearch(text);
+          } else {
+            apps.setAppSearch(text);
+          }
+          if (text) setShowSearchInput(true);
+        }}
+        devices={devices}
+        selectedDeviceFilter={selectedDeviceFilter}
+        onSelectDeviceFilter={(deviceId) => {
+          setSelectedDeviceFilter(deviceId);
+          setShowDeviceFilter(true);
+        }}
+        selectedOriginFilter={selectedOriginFilter}
+        onSelectOriginFilter={setSelectedOriginFilter}
+        sortBy={sortBy}
+        onSelectSortBy={setSortBy}
+        isSelectionMode={isSelectionMode}
+        onToggleSelectionMode={() => setIsSelectionMode((prev) => !prev)}
         showSearchInput={showSearchInput}
         onToggleSearch={() => setShowSearchInput((prev) => !prev)}
         showDeviceFilter={showDeviceFilter}
         onToggleDeviceFilter={() => setShowDeviceFilter((prev) => !prev)}
-        isSelectionMode={isSelectionMode}
-        onToggleSelectionMode={() => setIsSelectionMode((prev) => !prev)}
-        sortBy={sortBy}
-        onSelectSortBy={setSortBy}
       />
 
       {/* Modal estándar de confirmación de eliminación */}
@@ -377,12 +564,29 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
         onConfirm={handleConfirmDelete}
       />
 
-      {/* Modal estándar de retroalimentación / éxito */}
+      {/* Modal estándar de retroalimentación / éxito / confirmación masiva */}
       <FeedbackModal
         visible={feedbackModal.visible}
         icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
+        buttonText={feedbackModal.buttonText}
+        secondaryButtonText={feedbackModal.secondaryButtonText}
+        onConfirm={async () => {
+          const action = feedbackModal.onConfirm;
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          if (action) {
+            await action();
+          }
+        }}
+        onSecondaryPress={() => {
+          const secondaryAction = feedbackModal.onSecondaryPress;
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          if (secondaryAction) {
+            secondaryAction();
+          }
+        }}
         onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </View>

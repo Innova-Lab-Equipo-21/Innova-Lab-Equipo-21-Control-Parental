@@ -16,7 +16,6 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Pressable,
-  Alert,
 } from 'react-native';
 import { colors } from '../../../theme/colors';
 import { DeviceInfo, DevicePermissionsStatus, SelfControlState } from '../../../types';
@@ -36,6 +35,7 @@ interface ProtectedDevicesSectionProps {
   devices: DeviceInfo[];
   selfDevice?: DeviceInfo;
   selfControl?: SelfControlState;
+  hasSitesOrApps?: boolean;
   currentUser?: any;
   onUpdateUser?: (updated: any) => void;
   onUpdateSelfControl?: (sc: SelfControlState) => void;
@@ -50,6 +50,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   devices,
   selfDevice: externalSelfDevice,
   selfControl: propSelfControl,
+  hasSitesOrApps = true,
   currentUser,
   onUpdateUser,
   onUpdateSelfControl,
@@ -130,6 +131,14 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   const [autocontrolModalVisible, setAutocontrolModalVisible] = useState(false);
   const [autocontrolModalMode, setAutocontrolModalMode] = useState<AutocontrolModalMode | null>(null);
 
+  const isSelfControlActive = Boolean(
+    resolvedSelfControl.active ||
+    resolvedSelfControl.status === 'ACTIVE_LOCKED' ||
+    resolvedSelfControl.status === 'DEACTIVATION_PENDING' ||
+    resolvedSelfControl.status === 'DEACTIVATION_READY'
+  );
+  const isAutoproteccionDisabled = !isSelfControlActive && !hasSitesOrApps;
+
   const handleOpenSelfControlModal = async () => {
     let currentSc = resolvedSelfControl;
     try {
@@ -140,6 +149,23 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
       }
     } catch {
       // Usar estado en memoria como respaldo
+    }
+
+    const currentlyActive = Boolean(
+      currentSc.active ||
+      currentSc.status === 'ACTIVE_LOCKED' ||
+      currentSc.status === 'DEACTIVATION_PENDING' ||
+      currentSc.status === 'DEACTIVATION_READY'
+    );
+
+    if (!currentlyActive && !hasSitesOrApps) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Habilitá un sitio o aplicación',
+        message:
+          'Para activar la autoprotección, primero debés habilitar al menos un sitio web o aplicación para "Mi dispositivo".',
+      });
+      return;
     }
 
     if (!currentSc.active || currentSc.status === 'INACTIVE') {
@@ -238,18 +264,24 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
 
       const name = device.childName || device.deviceName;
       if (missing.length === 0) {
-        Alert.alert(
-          'Auditoría de permisos exitosa',
-          `Todos los permisos (6/6) se encuentran activos y reportando correctamente en ${name}.`
-        );
+        showFeedback({
+          icon: '✅',
+          title: 'Auditoría de permisos exitosa',
+          message: `Todos los permisos (6/6) se encuentran activos y reportando correctamente en ${name}.`,
+        });
       } else {
-        Alert.alert(
-          'Auditoría de permisos: atención requerida',
-          `El dispositivo de ${name} reporta ${perms.grantedCount}/6 permisos concedidos.\n\nPermisos pendientes:\n• ${missing.join('\n• ')}\n\nPara reactivarlos, deben otorgarse directamente en el celular del protegido.`
-        );
+        showFeedback({
+          icon: '⚠️',
+          title: 'Auditoría de permisos',
+          message: `El dispositivo de ${name} reporta ${perms.grantedCount}/6 permisos concedidos.\n\nPermisos pendientes:\n• ${missing.join('\n• ')}\n\nPara reactivarlos, deben otorgarse directamente en el celular del protegido.`,
+        });
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo completar la auditoría de permisos.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error de auditoría',
+        message: e.message || 'No se pudo completar la auditoría de permisos.',
+      });
     } finally {
       setAuditingDeviceId(null);
     }
@@ -258,6 +290,18 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   // Guardado de Perfil del Responsable desde su Card
   const handleSaveResponsible = async (updatedUser: any) => {
     try {
+      try {
+        await apiService.updateProfile({
+          fullName: updatedUser.fullName || `${updatedUser.firstName} ${updatedUser.lastName}`,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          gender: updatedUser.gender,
+          birthDate: updatedUser.birthDate,
+          phone: updatedUser.phone,
+          password: updatedUser.password,
+        });
+      } catch {}
+
       const updatedDevice = await apiService.updateSelfDevice({
         childName: updatedUser.fullName || `${updatedUser.firstName} ${updatedUser.lastName}`,
         birthDate: updatedUser.birthDate,
@@ -350,6 +394,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
             onAuditPermissions={handleAuditPermissions}
             isAuditing={auditingDeviceId === selfDev.deviceId}
             selfControl={resolvedSelfControl}
+            isAutoproteccionDisabled={isAutoproteccionDisabled}
             onStartSelfControlFlow={handleOpenSelfControlModal}
             onDisableSelfControl={handleOpenSelfControlModal}
             onPressSelfControl={handleOpenSelfControlModal}

@@ -7,7 +7,7 @@
 //              - client: Cliente Axios, almacenamiento seguro y tiempo confiable
 //              - authApi: Registro, login, recuperación de contraseña y logout
 //              - devicesApi: Pareamiento, auditoría de permisos y gestión de dispositivos
-//              - selfControlApi: Autocontrol de 24hs con temporizador y pase temporal
+//              - selfControlApi: Autoprotección de 24hs con temporizador y pase temporal
 //              - blocklistApi: Listas LOTBA, dominios bloqueados, apps y estadísticas
 //              - telemetryApi: Heartbeats, telemetría y geolocalización híbrida
 // ==============================================================================
@@ -49,6 +49,8 @@ export const apiService = {
   login: authApi.login.bind(authApi),
   googleAuth: authApi.googleAuth.bind(authApi),
   googleLink: authApi.googleLink.bind(authApi),
+  updateProfile: authApi.updateProfile.bind(authApi),
+  deleteAccount: authApi.deleteAccount.bind(authApi),
   recoverPassword: authApi.recoverPassword.bind(authApi),
   logout: authApi.logout.bind(authApi),
   registerFcmToken: authApi.registerFcmToken.bind(authApi),
@@ -67,9 +69,12 @@ export const apiService = {
   auditDevicePermissions: devicesApi.auditDevicePermissions.bind(devicesApi),
   updateDevicePermissions: devicesApi.updateDevicePermissions.bind(devicesApi),
   unbindDevice: devicesApi.unbindDevice.bind(devicesApi),
+  requestAntiUninstallCode: devicesApi.requestAntiUninstallCode.bind(devicesApi),
+  invalidateAntiUninstallCode: devicesApi.invalidateAntiUninstallCode.bind(devicesApi),
+  verifyAntiUninstallCode: devicesApi.verifyAntiUninstallCode.bind(devicesApi),
 
   // --------------------------------------------------------------------------
-  // Autocontrol / Autoprotección del Tutor (Temporizador de 24hs al solicitar y pase de 24hs)
+  // Autoprotección del Tutor (Temporizador de 24hs al solicitar y pase de 24hs)
   // --------------------------------------------------------------------------
   enableSelfControl: selfControlApi.enableSelfControl.bind(selfControlApi),
   requestDeactivation: selfControlApi.requestDeactivation.bind(selfControlApi),
@@ -101,6 +106,8 @@ export const apiService = {
   // --------------------------------------------------------------------------
   sendHeartbeat: telemetryApi.sendHeartbeat.bind(telemetryApi),
   reportBlockedEvent: telemetryApi.reportBlockedEvent.bind(telemetryApi),
+  getBlockedEvents: telemetryApi.getBlockedEvents.bind(telemetryApi),
+  clearBlockedEvents: telemetryApi.clearBlockedEvents.bind(telemetryApi),
   reportSecurityEvent: telemetryApi.reportSecurityEvent.bind(telemetryApi),
 
   // --------------------------------------------------------------------------

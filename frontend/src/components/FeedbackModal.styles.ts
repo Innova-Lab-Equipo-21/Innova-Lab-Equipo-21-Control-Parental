@@ -3,7 +3,8 @@
 // Componente: FeedbackModal Styles
 // Archivo: src/components/FeedbackModal.styles.ts
 // Descripción: Estilos para el modal estándar de confirmación y retroalimentación
-//              positiva / informativa (diseño unificado del app).
+//              positiva / informativa (diseño unificado del app con soporte para
+//              ilustración de mascota Boti / Botito).
 // ==============================================================================
 
 import { StyleSheet } from 'react-native';
@@ -43,6 +44,13 @@ export const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 18,
   },
+  modalMascotImage: {
+    width: 78,
+    height: 78,
+    alignSelf: 'center',
+    marginBottom: 10,
+    marginTop: 2,
+  },
   modalEmoji: {
     fontSize: 36,
     textAlign: 'center',
@@ -65,5 +73,13 @@ export const styles = StyleSheet.create({
   },
   buttonRow: {
     width: '100%',
+  },
+  dualButtonRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  dualButtonItem: {
+    flex: 1,
   },
 });

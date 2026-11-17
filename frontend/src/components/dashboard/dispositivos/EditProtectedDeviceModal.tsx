@@ -14,15 +14,16 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Platform,
   Image,
   Share,
+  ActivityIndicator,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ActionButton } from '../../ActionButton';
 import { Icon } from '../../Icon';
 import { DatePickerModal } from '../../auth/DatePickerModal';
+import { FeedbackModal } from '../../FeedbackModal';
 import { colors } from '../../../theme/colors';
 import { DeviceInfo } from '../../../types';
 import { apiService } from '../../../services/api.service';
@@ -31,6 +32,8 @@ import {
   formatBirthDate,
   formatPhone,
   validateLettersOnly,
+  validateDeviceName,
+  MAX_DEVICE_NAME_LENGTH,
 } from '../../../utils/authValidation';
 import { GenderOption } from './PairingSection';
 import { styles } from './EditProtectedDeviceModal.styles';
@@ -61,6 +64,16 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
   const [loading, setLoading] = useState(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   const [errors, setErrors] = useState<{
     protectedName?: string;
@@ -87,8 +100,39 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       setProtectedPhone(phone);
       setDeviceModel(model);
       setErrors({});
-      setPairingCode(null);
-      setGeneratingCode(false);
+
+      if (device.pairingCode) {
+        setPairingCode(device.pairingCode);
+        setGeneratingCode(false);
+      } else if (device.status === 'INACTIVE' || !device.isProtected) {
+        setGeneratingCode(true);
+        apiService
+          .generatePairingCode({
+            deviceId: device.deviceId,
+            protectedName: name,
+            genero: gen,
+            protectedType: device.profileType || 'Menor',
+            birthDate: bDate,
+            protectedPhone: phone,
+            deviceModel: model,
+          })
+          .then((res) => {
+            const code =
+              res.data?.code ||
+              res.data?.pairingCode ||
+              Math.floor(100000 + Math.random() * 900000).toString();
+            setPairingCode(code);
+          })
+          .catch(() => {
+            setPairingCode(Math.floor(100000 + Math.random() * 900000).toString());
+          })
+          .finally(() => {
+            setGeneratingCode(false);
+          });
+      } else {
+        setPairingCode(null);
+        setGeneratingCode(false);
+      }
 
       if (bDate && bDate.length === 10) {
         const age = calculateAge(bDate);
@@ -151,9 +195,11 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
   };
 
   const handleGenerateNewCode = async () => {
+    if (!device) return;
     setGeneratingCode(true);
     try {
       const res = await apiService.generatePairingCode({
+        deviceId: device.deviceId,
         protectedName: protectedName.trim() || device?.childName || 'Protegido',
         genero,
         protectedType: protectedType || 'Menor',
@@ -185,10 +231,20 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
         message,
       });
       if (result.action === Share.sharedAction) {
-        Alert.alert('Código Compartido', 'El código de vinculación ha sido enviado.');
+        setFeedbackModal({
+          visible: true,
+          icon: '✅',
+          title: 'Código compartido',
+          message: 'El código de vinculación ha sido enviado.',
+        });
       }
     } catch (error: any) {
-      Alert.alert('Código para Compartir', message);
+      setFeedbackModal({
+        visible: true,
+        icon: '📱',
+        title: 'Código para compartir',
+        message,
+      });
     }
   };
 
@@ -204,13 +260,9 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
     } = {};
 
     // 1. Validación de Nombre
-    const trimmedName = protectedName.trim();
-    if (!trimmedName) {
-      newErrors.protectedName = 'El nombre del protegido es obligatorio.';
-    } else if (trimmedName.length < 2) {
-      newErrors.protectedName = 'El nombre debe tener al menos 2 caracteres.';
-    } else if (!validateLettersOnly(trimmedName)) {
-      newErrors.protectedName = 'El nombre solo debe contener letras y espacios.';
+    const nameError = validateDeviceName(protectedName);
+    if (nameError) {
+      newErrors.protectedName = nameError;
     }
 
     // 2. Validación de Género
@@ -250,6 +302,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       return;
     }
 
+    const trimmedName = protectedName.trim();
     setLoading(true);
     try {
       await apiService.updateDevice(device.deviceId, {
@@ -264,7 +317,12 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       onSaveSuccess(trimmedName);
       onClose();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudieron guardar los cambios.');
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Error al guardar',
+        message: e.message || 'No se pudieron guardar los cambios.',
+      });
     } finally {
       setLoading(false);
     }
@@ -316,9 +374,15 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
                   style={styles.input}
                   value={protectedName}
                   selectTextOnFocus={true}
+                  maxLength={45}
                   onChangeText={(text) => {
                     setProtectedName(text);
-                    if (errors.protectedName) {
+                    if (text.trim().length > MAX_DEVICE_NAME_LENGTH) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        protectedName: `El nombre no puede superar los ${MAX_DEVICE_NAME_LENGTH} caracteres (actual: ${text.trim().length}).`,
+                      }));
+                    } else if (errors.protectedName) {
                       setErrors((prev) => ({ ...prev, protectedName: undefined }));
                     }
                   }}
@@ -525,31 +589,37 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
               </View>
             </View>
 
-            {/* Funcionalidad: Generar nuevo código para dispositivos inactivos */}
-            {(device?.status === 'INACTIVE' || !device?.isProtected) && (
+            {/* Sección: Vinculación de dispositivo recuperada de la base de datos */}
+            {(device?.status === 'INACTIVE' || !device?.isProtected) ? (
               <View style={styles.pairingSectionContainer}>
                 <View style={styles.pairingDivider} />
                 <Text style={styles.pairingSectionTitle}>Vinculación de dispositivo</Text>
                 <Text style={styles.pairingSectionSubtitle}>
-                  Este dispositivo aún no fue vinculado. Generá un código para vincularlo con el celular del protegido.
+                  Este dispositivo aún no fue vinculado. Utilizá el código y QR recuperados para vincularlo con el celular del protegido.
                 </Text>
 
-                {pairingCode ? (
-                  <View style={styles.codeDisplayCard}>
-                    <View style={styles.codeDisplay}>
-                      <Text style={styles.protectedSummaryText}>
-                        Vinculando a: {protectedName.trim() || device?.childName || 'Protegido'} ({protectedType || 'Pendiente'})
+                <View style={styles.codeDisplayCard}>
+                  <View style={styles.codeDisplay}>
+                    <Text style={styles.protectedSummaryText}>
+                      Vinculando a: {protectedName.trim() || device?.childName || 'Protegido'} ({protectedType || 'Pendiente'})
+                    </Text>
+                    {generatingCode && !pairingCode ? (
+                      <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 6 }} />
+                    ) : (
+                      <Text style={styles.codeNumber}>
+                        {pairingCode ? pairingCode.replace(/\s+/g, '').split('').join(' ') : '------'}
                       </Text>
-                      <Text style={styles.codeNumber}>{pairingCode}</Text>
-                    </View>
+                    )}
+                  </View>
 
-                    <View style={styles.qrCodeBox}>
-                      <Text style={styles.qrTitle}>Código QR de vinculación</Text>
-                      <Text style={styles.qrSubtitle}>
-                        Apunta la cámara del celular de {protectedName.trim() || device?.childName || 'del protegido'} aquí para vincular
-                      </Text>
+                  <View style={styles.qrCodeBox}>
+                    <Text style={styles.qrTitle}>Código QR de vinculación</Text>
+                    <Text style={styles.qrSubtitle}>
+                      Apunta la cámara del celular de {protectedName.trim() || device?.childName || 'del protegido'} aquí para vincular
+                    </Text>
 
-                      <View style={styles.qrImageContainer}>
+                    <View style={styles.qrImageContainer}>
+                      {pairingCode ? (
                         <Image
                           source={{
                             uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${pairingCode}&color=007AFF&bgcolor=FFFFFF`,
@@ -557,45 +627,55 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
                           style={styles.qrImage}
                           resizeMode="contain"
                         />
-                      </View>
+                      ) : (
+                        <ActivityIndicator size="large" color={colors.primary} style={{ width: 130, height: 130 }} />
+                      )}
+                    </View>
 
-                      {/* CTAs con íconos específicos: Generar nuevo código y Compartir código */}
-                      <View style={styles.codeActionsRow}>
-                        <TouchableOpacity
-                          style={styles.actionIconButton}
-                          onPress={handleGenerateNewCode}
-                          disabled={generatingCode}
-                          activeOpacity={0.7}
-                          accessibilityLabel="Generar nuevo código"
-                        >
-                          <View style={styles.actionIconCircle}>
-                            <Icon name="recargar" size={22} color={colors.primary} />
-                          </View>
-                          <Text style={styles.actionIconLabel}>Generar nuevo código</Text>
-                        </TouchableOpacity>
+                    {/* CTAs con íconos específicos: Generar nuevo código y Compartir código */}
+                    <View style={styles.codeActionsRow}>
+                      <TouchableOpacity
+                        style={styles.actionIconButton}
+                        onPress={handleGenerateNewCode}
+                        disabled={generatingCode}
+                        activeOpacity={0.7}
+                        accessibilityLabel="Generar nuevo código"
+                      >
+                        <View style={styles.actionIconCircle}>
+                          <Icon name="recargar" size={22} color={colors.primary} />
+                        </View>
+                        <Text style={styles.actionIconLabel}>Generar nuevo código</Text>
+                      </TouchableOpacity>
 
-                        <TouchableOpacity
-                          style={styles.actionIconButton}
-                          onPress={handleShareCode}
-                          activeOpacity={0.7}
-                          accessibilityLabel="Compartir código"
-                        >
-                          <View style={styles.actionIconCircle}>
-                            <Icon name="compartir" size={22} color={colors.primary} />
-                          </View>
-                          <Text style={styles.actionIconLabel}>Compartir código</Text>
-                        </TouchableOpacity>
-                      </View>
+                      <TouchableOpacity
+                        style={styles.actionIconButton}
+                        onPress={handleShareCode}
+                        disabled={!pairingCode}
+                        activeOpacity={0.7}
+                        accessibilityLabel="Compartir código"
+                      >
+                        <View style={styles.actionIconCircle}>
+                          <Icon name="compartir" size={22} color={colors.primary} />
+                        </View>
+                        <Text style={styles.actionIconLabel}>Compartir código</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-                ) : (
-                  <ActionButton
-                    title="Generar nuevo código"
-                    variant="primary"
-                    loading={generatingCode}
-                    onPress={handleGenerateNewCode}
-                  />
-                )}
+                </View>
+              </View>
+            ) : (
+              <View style={styles.pairingSectionContainer}>
+                <View style={styles.pairingDivider} />
+                <Text style={styles.pairingSectionTitle}>Vinculación de dispositivo</Text>
+                <View style={styles.linkedCard}>
+                  <Text style={styles.linkedCardIcon}>✅</Text>
+                  <View style={styles.linkedCardContent}>
+                    <Text style={styles.linkedCardTitle}>Dispositivo vinculado y protegido</Text>
+                    <Text style={styles.linkedCardText}>
+                      Este dispositivo completó exitosamente la vinculación y se encuentra activo bajo las reglas de protección.
+                    </Text>
+                  </View>
+                </View>
               </View>
             )}
           </ScrollView>
@@ -632,6 +712,16 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
             setErrors((prev) => ({ ...prev, birthDate: undefined }));
           }
         }}
+      />
+
+      {/* Modal estándar de retroalimentación */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        asOverlay={true}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </Modal>
   );

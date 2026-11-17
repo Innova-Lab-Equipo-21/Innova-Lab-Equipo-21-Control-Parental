@@ -36,6 +36,45 @@ describe('Gestión y Bloqueo de Aplicaciones (Modo Responsable)', () => {
     assert.ok(listRes.data.apps?.some((a) => a.id === res.data.id));
   });
 
+  test('CREATE: Debe rechazar la adición de aplicaciones repetidas / duplicadas', async () => {
+    const appName = `AppRepetidaTest_${Date.now()}`;
+    const packageName = `com.app.repetida.${Date.now()}`;
+
+    await apiService.addCustomBlockedApp(appName, packageName, 'Juegos', true, []);
+
+    // Intentar agregar la misma aplicación por nombre
+    await assert.rejects(
+      async () => {
+        await apiService.addCustomBlockedApp(
+          `  ${appName.toUpperCase()}  `,
+          `com.otro.pkg.${Date.now()}`,
+          'Juegos',
+          true,
+          []
+        );
+      },
+      (err: any) => {
+        return err instanceof Error && /ya se encuentra en tu lista de restricción/i.test(err.message);
+      }
+    );
+
+    // Intentar agregar la misma aplicación por packageName
+    await assert.rejects(
+      async () => {
+        await apiService.addCustomBlockedApp(
+          `NombreDistinto_${Date.now()}`,
+          packageName,
+          'Juegos',
+          true,
+          []
+        );
+      },
+      (err: any) => {
+        return err instanceof Error && /ya se encuentra en tu lista de restricción/i.test(err.message);
+      }
+    );
+  });
+
   test('CREATE: Debe permitir configurar regla de aplicación restringida a dispositivos específicos', async () => {
     const appName = 'TikTok Test';
     const packageName = `com.tiktok.test.${Date.now()}`;

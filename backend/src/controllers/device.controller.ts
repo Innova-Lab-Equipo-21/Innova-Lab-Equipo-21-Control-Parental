@@ -12,8 +12,58 @@ import { AppError } from '../middlewares/error.middleware.js';
 
 export class DeviceController {
   /**
-   * Genera un código de pareamiento temporal (exclusivo para responsables autenticados).
-   * POST /api/devices/pair/generate
+   * Registra un nuevo dispositivo protegido y genera automáticamente su código de vinculación.
+   * POST /api/devices
+   */
+  public async createDevice(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) throw new AppError('Usuario no autenticado', 401);
+
+      const result = await deviceService.createDevice(userId, req.body);
+
+      res.status(201).json({
+        success: true,
+        message: 'Dispositivo registrado y código de vinculación generado con éxito',
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Actualiza los datos de un dispositivo protegido ya registrado.
+   * PUT /api/devices/:id
+   */
+  public async updateDevice(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) throw new AppError('Usuario no autenticado', 401);
+
+      const result = await deviceService.updateDevice(userId, req.params.id, req.body);
+
+      res.status(200).json({
+        success: true,
+        message: 'Dispositivo actualizado exitosamente',
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Genera o regenera un código de pareamiento (exclusivo para responsables autenticados).
+   * POST /api/devices/pair/generate o POST /api/devices/:id/pair/generate
    */
   public async generatePairingCode(
     req: AuthenticatedRequest,
@@ -25,15 +75,16 @@ export class DeviceController {
       if (!userId) throw new AppError('Usuario no autenticado', 401);
 
       const { childName, gender, personType, birthDate, phone } = req.body;
+      const deviceId = req.params?.id || req.body?.deviceId;
       const result = await deviceService.generatePairingCode({
-         userId,
-         childName,
-         gender,
-         personType,
-         birthDate,
-         phone,
+        userId,
+        deviceId,
+        childName,
+        gender,
+        personType,
+        birthDate,
+        phone,
       } as any);
-    
 
       res.status(200).json({
         success: true,
@@ -55,7 +106,8 @@ export class DeviceController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const { pairingCode, deviceUuid, deviceName, childName, model, osVersion, appVersion } = req.body;
+      const { pairingCode, deviceUuid, deviceName, childName, model, osVersion, appVersion } =
+        req.body;
 
       const result = await deviceService.confirmPairing({
         pairingCode,
@@ -148,6 +200,75 @@ export class DeviceController {
         success: true,
         message: 'Configuración actualizada exitosamente',
         data: updatedConfig,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Solicita un código de verificación por correo al responsable para desactivar antidesinstalación.
+   * POST /api/devices/anti-uninstall/request-code
+   */
+  public async requestAntiUninstallCode(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { deviceUuid } = req.body;
+      const result = await deviceService.requestAntiUninstallCode({ deviceUuid });
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Invalida el código de verificación activo de un dispositivo.
+   * POST /api/devices/anti-uninstall/invalidate-code
+   */
+  public async invalidateAntiUninstallCode(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { deviceUuid } = req.body;
+      const result = await deviceService.invalidateAntiUninstallCode({ deviceUuid });
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verifica el código de 6 dígitos ingresado en el dispositivo protegido.
+   * POST /api/devices/anti-uninstall/verify-code
+   */
+  public async verifyAntiUninstallCode(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { deviceUuid, code } = req.body;
+      const result = await deviceService.verifyAntiUninstallCode({ deviceUuid, code });
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result,
       } satisfies ApiResponse);
     } catch (error) {
       next(error);

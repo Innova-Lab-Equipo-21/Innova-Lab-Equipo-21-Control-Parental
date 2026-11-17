@@ -2,10 +2,13 @@
 // Proyecto: BA Protege+
 // Componente: ProfileSection (Perfil del Responsable / Usuario)
 // Archivo: src/components/dashboard/cuenta/ProfileSection.tsx
+// Descripción: Muestra la tarjeta con la información personal del responsable,
+//              estado de verificación (+18), avatar oficial Beti, acciones para
+//              editar perfil y vinculación directa con cuentas Google.
 // ==============================================================================
 
 import React, { useState } from 'react';
-import { View, Text, Image, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { EditResponsibleModal } from './EditResponsibleModal';
 import { FeedbackModal } from '../../FeedbackModal';
@@ -13,12 +16,24 @@ import { styles } from './ProfileSection.styles';
 import { signInWithGoogle, statusCodes } from '../../../services/googleAuth.service';
 import { apiService } from '../../../services/api.service';
 
+/**
+ * Propiedades del componente ProfileSection.
+ *
+ * @property currentUser - Objeto que contiene los datos del usuario autenticado actual.
+ * @property onUpdateUser - Callback opcional ejecutado al guardar cambios del perfil en la API.
+ * @property onDeleteAccount - Callback opcional para solicitar la eliminación permanente de la cuenta.
+ */
 interface ProfileSectionProps {
   currentUser: any;
   onUpdateUser?: (updated: any) => void;
   onDeleteAccount?: () => void;
 }
 
+/**
+ * Componente que renderiza la sección de Perfil dentro de la pestaña Cuenta.
+ * Muestra el estado del tutor responsable, permite la edición mediante un modal institucional,
+ * e integra el flujo de vinculación con la cuenta de Google mediante SSO.
+ */
 export const ProfileSection: React.FC<ProfileSectionProps> = ({
   currentUser,
   onUpdateUser,
@@ -39,6 +54,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
     message: '',
   });
 
+  /** Muestra un modal emergente de retroalimentación en la interfaz */
   const showFeedback = (config: { icon?: string; title: string; message: string }) => {
     setFeedbackModal({
       visible: true,
@@ -54,6 +70,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const email = currentUser?.email || '';
   const isGoogleLinked = !!currentUser?.isGoogleLinked;
 
+  /** Maneja la autenticación y vinculación con la cuenta de Google */
   const handleLinkGoogle = async () => {
     setLinkingLoading(true);
     try {
@@ -77,17 +94,22 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             isGoogleLinked: true,
           });
         }
-        Alert.alert(
-          '¡Vinculación exitosa!',
-          'Tu cuenta de BA Protege+ ha sido vinculada con Google exitosamente.',
-        );
+        showFeedback({
+          icon: '✅',
+          title: 'Vinculación exitosa',
+          message: 'Tu cuenta de BA Protege+ ha sido vinculada con Google exitosamente.',
+        });
       }
     } catch (error: any) {
       if (error?.code === statusCodes?.SIGN_IN_CANCELLED) {
         return;
       }
       const msg = error.response?.data?.message || error.message || 'Error al vincular con Google.';
-      Alert.alert('Error de vinculación', msg);
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error de vinculación',
+        message: msg,
+      });
     } finally {
       setLinkingLoading(false);
     }
@@ -136,10 +158,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 style={styles.googleLinkedButton}
                 activeOpacity={0.8}
                 onPress={() =>
-                  Alert.alert(
-                    'Cuenta vinculada',
-                    `Tu cuenta se encuentra vinculada exitosamente con Google (${email}).`,
-                  )
+                  showFeedback({
+                    icon: '✅',
+                    title: 'Cuenta vinculada',
+                    message: `Tu cuenta se encuentra vinculada exitosamente con Google (${email}).`,
+                  })
                 }
               >
                 <Text style={styles.googleLinkedButtonText}>✓ Vinculado con Google</Text>
@@ -174,16 +197,29 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         visible={isEditing}
         currentUser={currentUser}
         onClose={() => setIsEditing(false)}
-        onSave={(updated) => {
-          setIsEditing(false);
-          if (onUpdateUser) {
-            onUpdateUser(updated);
+        onSave={async (updated) => {
+          try {
+            const res = await apiService.updateProfile({
+              fullName: updated.fullName,
+              firstName: updated.firstName,
+              lastName: updated.lastName,
+              gender: updated.gender,
+              birthDate: updated.birthDate,
+              phone: updated.phone,
+              password: updated.password,
+            });
+            const savedUser = res?.data ? { ...updated, ...res.data } : updated;
+            if (onUpdateUser) {
+              onUpdateUser(savedUser);
+            }
+            showFeedback({
+              icon: '✅',
+              title: 'Perfil actualizado',
+              message: 'Los datos del responsable han sido actualizados exitosamente.',
+            });
+          } catch (err: any) {
+            throw err;
           }
-          showFeedback({
-            icon: '✅',
-            title: 'Perfil actualizado',
-            message: 'Los datos del responsable han sido actualizados exitosamente.',
-          });
         }}
       />
 

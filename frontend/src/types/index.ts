@@ -68,6 +68,8 @@ export interface DeviceInfo {
   createdAt?: string;
   pairedAt?: string;
   colorIndex?: number;
+  pairingCode?: string;
+  pairingExpiresAt?: string;
 }
 
 /**
@@ -131,7 +133,28 @@ export interface NativeBlocklistInfo {
 }
 
 /**
- * Dominio bloqueado personalizado por el responsable.
+ * Origen del registro de bloqueo personalizado:
+ * - RESPONSABLE: creado por el tutor/responsable desde su panel.
+ * - ADULTO_PROTEGIDO: auto-agregado por un adulto protegido en su dispositivo.
+ */
+export type BlockOrigin = 'RESPONSABLE' | 'ADULTO_PROTEGIDO';
+
+/**
+ * Filtro rápido por origen de bloqueo en el panel del responsable.
+ */
+export type BlockOriginFilter = 'all' | 'responsable' | 'adulto_protegido';
+
+/**
+ * Metadatos opcionales para identificar bloqueos creados por un adulto protegido.
+ */
+export interface BlockOriginMeta {
+  createdBy?: BlockOrigin;
+  createdByName?: string;
+  sourceDeviceId?: string;
+}
+
+/**
+ * Dominio bloqueado personalizado por el responsable o por un adulto protegido.
  */
 export interface CustomBlockedDomain {
   id: string;
@@ -141,10 +164,13 @@ export interface CustomBlockedDomain {
   applyToAll: boolean; // Regra 4: Bloqueio em todos os dispositivos
   deviceIds: string[]; // Regra 3: Lista personalizada por dispositivo
   createdAt: string;
+  createdBy?: BlockOrigin;
+  createdByName?: string;
+  sourceDeviceId?: string;
 }
 
 /**
- * Aplicación bloqueada personalizada por el responsable.
+ * Aplicación bloqueada personalizada por el responsable o por un adulto protegido.
  */
 export interface CustomBlockedApp {
   id: string;
@@ -157,6 +183,9 @@ export interface CustomBlockedApp {
   dailyLimitMinutes?: number; // Límite de tiempo diario general (indeterminado por defecto si es undefined)
   deviceLimits?: Record<string, number | undefined>; // Límite de tiempo diario específico configurado por dispositivo
   createdAt: string;
+  createdBy?: BlockOrigin;
+  createdByName?: string;
+  sourceDeviceId?: string;
 }
 
 /**

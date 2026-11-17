@@ -55,7 +55,7 @@ export const ResponsibleHelpModal: React.FC<ResponsibleHelpModalProps> = ({
             </TouchableOpacity>
           </View>
           <Text style={legalStyles.legalModalSubtitle}>
-            BA Protege+ • Guía Rápida de Supervisión y Autocontrol
+            BA Protege+ • Guía Rápida de Supervisión y Autoprotección
           </Text>
 
           <ScrollView
@@ -67,9 +67,9 @@ export const ResponsibleHelpModal: React.FC<ResponsibleHelpModalProps> = ({
               Te permite vincular el teléfono o tablet de un menor a tu cargo mediante un código QR o PIN numérico. Podrás bloquear sitios de apuestas clandestinas (lista LOTBA), establecer límites de tiempo y recibir alertas de seguridad en tiempo real.
             </Text>
 
-            <Text style={legalStyles.legalSectionTitle}>2. ¿Qué es "Ejercer un autocontrol"?</Text>
+            <Text style={legalStyles.legalSectionTitle}>2. ¿Qué es "Ejercer una autoprotección"?</Text>
             <Text style={legalStyles.legalParagraph}>
-              Establece protección y bloqueos preventivos en este mismo dispositivo. Incluye un sistema de autocontrol con doble confirmación y período de enfriamiento de 24 horas para evitar desactivaciones impulsivas.
+              Establece protección y bloqueos preventivos en este mismo dispositivo. Incluye un sistema de autoprotección con doble confirmación y período de enfriamiento de 24 horas para evitar desactivaciones impulsivas.
             </Text>
 
             <Text style={legalStyles.legalSectionTitle}>3. ¿Cómo funcionan los permisos?</Text>

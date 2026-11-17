@@ -33,7 +33,7 @@ interface EditResponsibleModalProps {
   visible: boolean;
   currentUser: any;
   onClose: () => void;
-  onSave: (updatedUser: any) => void;
+  onSave: (updatedUser: any) => Promise<void> | void;
 }
 
 export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
@@ -55,6 +55,7 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [feedbackModal, setFeedbackModal] = useState<{
@@ -114,7 +115,7 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const effectivePassword = registerPassword.trim() || (currentUser?.isGoogleLinked ? 'google-oauth-pwd' : currentUser?.password || 'default-pwd');
     const effectiveConfirmPassword = confirmPassword.trim() || effectivePassword;
 
@@ -168,8 +169,20 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
       password: registerPassword || currentUser?.password,
     };
 
-    onSave(updatedUser);
-    onClose();
+    setIsSaving(true);
+    try {
+      await onSave(updatedUser);
+      onClose();
+    } catch (err: any) {
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Error al actualizar',
+        message: err?.response?.data?.message || err?.message || 'No se pudieron actualizar los datos del perfil.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -432,6 +445,7 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
               <ActionButton
                 title="Cancelar"
                 variant="secondary"
+                disabled={isSaving}
                 onPress={onClose}
               />
             </View>
@@ -439,6 +453,8 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
               <ActionButton
                 title="Guardar"
                 variant="primary"
+                loading={isSaving}
+                disabled={isSaving}
                 onPress={handleSave}
               />
             </View>

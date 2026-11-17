@@ -15,13 +15,13 @@ import {
   TouchableOpacity,
   Image,
   Share,
-  Alert,
   Platform,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ActionButton } from '../../ActionButton';
 import { Icon } from '../../Icon';
 import { DatePickerModal } from '../../auth/DatePickerModal';
+import { FeedbackModal } from '../../FeedbackModal';
 import { colors } from '../../../theme/colors';
 import { MAX_PROTECTED_DEVICES } from '../../../types';
 import { calculateAge } from '../../../utils/age';
@@ -29,6 +29,8 @@ import {
   formatBirthDate,
   formatPhone,
   validateLettersOnly,
+  validateDeviceName,
+  MAX_DEVICE_NAME_LENGTH,
 } from '../../../utils/authValidation';
 import { styles } from './PairingSection.styles';
 
@@ -50,10 +52,10 @@ export interface PairingSectionRef {
 }
 
 interface PairingSectionProps {
-  pairingCode: string | null;
+  pairingCode?: string | null;
   deviceCount: number;
-  loading: boolean;
-  onGenerateCode: (data?: PairingFormData) => void;
+  loading?: boolean;
+  onGenerateCode?: (data?: PairingFormData) => void;
 }
 
 export const PairingSection = React.forwardRef<PairingSectionRef, PairingSectionProps>(({
@@ -73,6 +75,16 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
   // Estados de UI
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   const [errors, setErrors] = useState<{
     protectedName?: string;
@@ -147,13 +159,9 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
     } = {};
 
     // 1. Validación de Nombre del Protegido
-    const trimmedName = protectedName.trim();
-    if (!trimmedName) {
-      newErrors.protectedName = 'El nombre del protegido es obligatorio.';
-    } else if (trimmedName.length < 2) {
-      newErrors.protectedName = 'El nombre debe tener al menos 2 caracteres.';
-    } else if (!validateLettersOnly(trimmedName)) {
-      newErrors.protectedName = 'El nombre solo debe contener letras y espacios.';
+    const nameError = validateDeviceName(protectedName);
+    if (nameError) {
+      newErrors.protectedName = nameError;
     }
 
     // 2. Validación de Género (Obligatorio)
@@ -193,6 +201,7 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
       return null;
     }
 
+    const trimmedName = protectedName.trim();
     const payload: PairingFormData = {
       protectedName: trimmedName,
       genero: genero as GenderOption,
@@ -202,7 +211,7 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
       deviceModel: deviceModel.trim() || undefined,
     };
 
-    onGenerateCode(payload);
+    onGenerateCode?.(payload);
     return payload;
   };
 
@@ -247,10 +256,20 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
       });
 
       if (result.action === Share.sharedAction) {
-        Alert.alert('Código Compartido', 'El código de vinculación ha sido enviado.');
+        setFeedbackModal({
+          visible: true,
+          icon: '✅',
+          title: 'Código compartido',
+          message: 'El código de vinculación ha sido enviado.',
+        });
       }
     } catch (error: any) {
-      Alert.alert('Código para Compartir', message);
+      setFeedbackModal({
+        visible: true,
+        icon: '📱',
+        title: 'Código para compartir',
+        message,
+      });
     }
   };
 
@@ -274,9 +293,15 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
             ]}
             value={protectedName}
             selectTextOnFocus={true}
+            maxLength={45}
             onChangeText={(text) => {
               setProtectedName(text);
-              if (errors.protectedName) {
+              if (text.trim().length > MAX_DEVICE_NAME_LENGTH) {
+                setErrors((prev) => ({
+                  ...prev,
+                  protectedName: `El nombre no puede superar los ${MAX_DEVICE_NAME_LENGTH} caracteres (actual: ${text.trim().length}).`,
+                }));
+              } else if (errors.protectedName) {
                 setErrors((prev) => ({ ...prev, protectedName: undefined }));
               }
             }}
@@ -470,74 +495,6 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
         </View>
       </View>
 
-      {/* MUESTRA DE CÓDIGO, QR Y ACCIONES POR ÍCONOS */}
-      {pairingCode ? (
-        <View style={styles.codeDisplayCard}>
-          <View style={styles.codeDisplay}>
-            <Text style={styles.protectedSummaryText}>
-              Vinculando a: {protectedName.trim() || 'Nuevo protegido'} ({protectedType || 'Pendiente'})
-            </Text>
-            <Text style={styles.codeNumber}>{pairingCode}</Text>
-          </View>
-
-          <View style={styles.qrCodeBox}>
-            <Text style={styles.qrTitle}>Código QR de vinculación</Text>
-            <Text style={styles.qrSubtitle}>
-              Apunta la cámara del celular de {protectedName.trim() || 'del protegido'} aquí para vincular
-            </Text>
-
-            <View style={styles.qrImageContainer}>
-              <Image
-                source={{
-                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${pairingCode}&color=007AFF&bgcolor=FFFFFF`,
-                }}
-                style={styles.qrImage}
-                resizeMode="contain"
-              />
-            </View>
-
-            {/* ACCIONES ESPECÍFICAS CON ÍCONOS: Generar nuevo código y Compartir código */}
-            <View style={styles.codeActionsRow}>
-              <TouchableOpacity
-                style={styles.actionIconButton}
-                onPress={handleValidationAndGenerate}
-                disabled={loading}
-                activeOpacity={0.7}
-                accessibilityLabel="Generar nuevo código"
-              >
-                <View style={styles.actionIconCircle}>
-                  <Icon name="recargar" size={22} color={colors.primary} />
-                </View>
-                <Text style={styles.actionIconLabel}>Generar nuevo código</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionIconButton}
-                onPress={handleShareCode}
-                activeOpacity={0.7}
-                accessibilityLabel="Compartir código"
-              >
-                <View style={styles.actionIconCircle}>
-                  <Icon name="compartir" size={22} color={colors.primary} />
-                </View>
-                <Text style={styles.actionIconLabel}>Compartir código</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      ) : null}
-
-      {/* CTA: Generar código (visible cuando aún no se ha generado el código) */}
-      {!pairingCode && (
-        <ActionButton
-          title="Generar código"
-          variant="primary"
-          onPress={handleValidationAndGenerate}
-          loading={loading}
-          disabled={deviceCount >= MAX_PROTECTED_DEVICES}
-        />
-      )}
-
       {/* Modal de Selección de Calendario */}
       <DatePickerModal
         visible={showDatePickerModal}
@@ -549,6 +506,16 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
             setErrors((prev) => ({ ...prev, birthDate: undefined }));
           }
         }}
+      />
+
+      {/* Modal estándar de retroalimentación */}
+      <FeedbackModal
+        visible={feedbackModal.visible}
+        icon={feedbackModal.icon}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        asOverlay={true}
+        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
       />
     </View>
   );

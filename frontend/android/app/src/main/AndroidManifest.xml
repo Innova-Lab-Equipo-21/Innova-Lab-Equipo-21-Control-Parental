@@ -26,6 +26,13 @@ Descripción: Manifiesto de Android con permisos de VpnService, arranque automá
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Exención de optimización de batería para protección ininterrumpida en segundo plano -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- Permisos de Ubicación y Geolocalización GPS en tiempo real -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <!-- 6to Permiso: Acceso a Estadísticas de Uso para límites de tiempo en aplicaciones -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
 
@@ -53,6 +60,12 @@ Descripción: Manifiesto de Android con permisos de VpnService, arranque automá
             </intent-filter>
         </activity>
 
+        <!-- Pantalla Completa de Bloqueo Empático (Boti / Botito) -->
+        <activity
+            android:name="com.baprotege.BlockedScreenActivity"
+            android:exported="false"
+            android:launchMode="singleInstance" />
+
         <!-- Servicio Nativo VPN para filtrado local y bloqueo de dominios LOTBA -->
         <service
             android:name=".vpn.ProtectionVpnService"
@@ -65,6 +78,20 @@ Descripción: Manifiesto de Android con permisos de VpnService, arranque automá
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="vpn_parental_protection_and_gambling_domain_filtering" />
+        </service>
+
+        <!-- Servicio Nativo de Accesibilidad para protección antidesinstalación y cierre forzado -->
+        <service
+            android:name=".accessibility.ProtectionAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true"
+            android:label="@string/accessibility_service_label">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
         </service>
 
         <!-- Receptor de eventos del sistema para persistencia pós-reinicio (Anti-bypass) -->

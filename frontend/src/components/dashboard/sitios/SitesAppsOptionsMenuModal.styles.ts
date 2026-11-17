@@ -2,19 +2,22 @@
 // Proyecto: BA Protege+
 // Componente: SitesAppsOptionsMenuModal Styles
 // Archivo: src/components/dashboard/sitios/SitesAppsOptionsMenuModal.styles.ts
-// Descripción: Estilos encapsulados para el modal de opciones de gestión de sitios y apps
-//              (herramientas de visualización, filtros y criterios de ordenamiento).
+// Descripción: Estilos encapsulados para el modal directo de opciones de gestión
+//              de sitios y apps (búsqueda limpia, badges de dispositivos sin emojis,
+//              badges de ordenación y switch oficial de acciones en lote).
 // ==============================================================================
 
 import { StyleSheet, Platform } from 'react-native';
 import { colors } from '../../../theme/colors';
 
 export const styles = StyleSheet.create({
+  /** Overlay transparente oscuro al fondo */
   bottomSheetOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'flex-end',
   },
+  /** Tarjeta principal Bottom Sheet en la parte inferior */
   bottomSheetCard: {
     width: '100%',
     backgroundColor: '#FFFFFF',
@@ -23,12 +26,14 @@ export const styles = StyleSheet.create({
     paddingTop: 12,
     paddingHorizontal: 20,
     paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    maxHeight: '88%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 10,
   },
+  /** Tirador táctil superior */
   bottomSheetHandle: {
     width: 44,
     height: 5,
@@ -37,6 +42,7 @@ export const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 14,
   },
+  /** Encabezado del Bottom Sheet */
   sheetHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -59,118 +65,177 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 2,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   sheetSectionTitle: {
     fontSize: 12,
     fontWeight: '700',
     color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 10,
+    textTransform: 'none',
+    letterSpacing: 0.3,
+    marginTop: 14,
     marginBottom: 8,
   },
-  sheetOptionRow: {
+  /** Caja de búsqueda integrada en el modal (sin título de sección arriba) */
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 12,
+    height: 48,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textPrimary,
+    height: '100%',
+  },
+  searchClearBtn: {
+    padding: 6,
+  },
+  searchClearText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  /** Contenedor flex en envolvente para insignias/chips */
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginVertical: 4,
+  },
+  /** Insignia/Chip individual de selección */
+  filterBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  /** Insignia/Chip activa seleccionada */
+  filterBadgeActive: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  filterBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  filterBadgeTextActive: {
+    color: colors.primaryDark,
+    fontWeight: '800',
+  },
+  /** Fila compacta y limpia para la Acción en Lote (sin fondo gris, sin ícono y sin subtítulo) */
+  batchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    marginVertical: 4,
+    minHeight: 40,
   },
-  sheetOptionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 12,
-  },
-  sheetOptionIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: '#E7F1FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  sheetOptionTextCol: {
-    flex: 1,
-  },
-  sheetOptionTitle: {
+  batchTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.textPrimary,
   },
-  sheetOptionDesc: {
-    fontSize: 11.5,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  sortOptionsContainer: {
+  /** Dropdown de selección de dispositivo estilo app */
+  dropdownContainer: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 6,
-    marginBottom: 16,
-  },
-  sortOptionCard: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colors.borderLight,
-    backgroundColor: '#FFFFFF',
-  },
-  sortOptionCardActive: {
-    borderColor: colors.primary,
-    backgroundColor: '#E7F1FF',
-  },
-  sortOptionCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginVertical: 4,
   },
-  sortOptionCardTitle: {
-    fontSize: 13,
-    fontWeight: '700',
+  dropdownValueText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.textPrimary,
   },
-  sortOptionCardTitleActive: {
+  dropdownChevron: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginLeft: 8,
+  },
+  dropdownModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dropdownMenuCard: {
+    width: '100%',
+    maxHeight: 340,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  dropdownMenuHeader: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  dropdownItemActive: {
+    backgroundColor: '#E5F1FF',
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  dropdownItemTextActive: {
+    fontWeight: '800',
     color: colors.primary,
   },
-  sortOptionCardDesc: {
-    fontSize: 11,
-    color: colors.textSecondary,
+  dropdownCheckmark: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
   },
-  sortRadioCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sortRadioCircleActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  sortRadioInner: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#FFFFFF',
-  },
+  /** Botón Confirmar / Listo */
   sheetConfirmBtn: {
     backgroundColor: colors.primary,
-    paddingVertical: 13,
+    paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 6,
+    marginTop: 18,
+    marginBottom: 6,
   },
   sheetConfirmBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

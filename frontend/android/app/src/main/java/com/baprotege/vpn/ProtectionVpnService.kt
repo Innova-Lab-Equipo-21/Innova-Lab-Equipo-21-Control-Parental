@@ -177,6 +177,11 @@ class ProtectionVpnService : VpnService(), Runnable {
         sendBroadcast(intent)
     }
 
+    override fun onRevoke() {
+        stopProtection()
+        super.onRevoke()
+    }
+
     override fun onDestroy() {
         stopProtection()
         super.onDestroy()

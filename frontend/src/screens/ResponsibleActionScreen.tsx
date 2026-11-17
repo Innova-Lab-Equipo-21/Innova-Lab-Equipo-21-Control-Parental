@@ -2,12 +2,15 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla de Acción Inicial del Responsable)
 // Archivo: src/screens/ResponsibleActionScreen.tsx
-// Descripción: Pantalla mostrada tras la habilitación de permisos del responsable,
-//              con bloques espaciados estilo WelcomeScreen, cabecera de PermissionsScreen,
-//              modal de ayuda (estilo TermsModal) y eliminación del icono T.
+// Descripción: Pantalla mostrada únicamente en el primer acceso del usuario
+//              Responsable tras conceder permisos:
+//              - Vincular dispositivo: abre el modal "Vincular nuevo dispositivo"
+//                y, al guardar el dispositivo, continúa directo a Inicio (Home).
+//              - Configurar este dispositivo: continúa a "Sitios y apps" para
+//                incluir sitios/apps y activar la Autoprotección.
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -19,11 +22,16 @@ import {
 import { Icon } from '../components/Icon';
 import { colors } from '../theme/colors';
 import { ResponsibleHelpModal } from '../components/auth/ResponsibleHelpModal';
+import { PairingModal } from '../components/dashboard/dispositivos';
+import { apiService } from '../services/api.service';
 import { styles } from './ResponsibleActionScreen.styles';
 
 interface ResponsibleActionScreenProps {
   userName?: string;
-  onSelectAction: (actionType: 'SUPERVISE' | 'SELF_CONTROL') => void;
+  onSelectAction: (
+    actionType: 'SUPERVISE' | 'SELF_CONTROL',
+    addedDeviceName?: string
+  ) => void;
   onBack: () => void;
 }
 
@@ -33,6 +41,28 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
   onBack,
 }) => {
   const [helpModalVisible, setHelpModalVisible] = useState<boolean>(false);
+  const [showPairingModal, setShowPairingModal] = useState<boolean>(false);
+  const [deviceCount, setDeviceCount] = useState<number>(0);
+
+  useEffect(() => {
+    let mounted = true;
+    apiService
+      .listDevices()
+      .then((res) => {
+        if (mounted && Array.isArray(res.data)) {
+          setDeviceCount(res.data.length);
+          // Si el Responsable ya cuenta con algún dispositivo registrado, omitir "Elegir protección"
+          if (res.data.length > 0) {
+            onSelectAction('SUPERVISE');
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
+  }, [onSelectAction]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -92,7 +122,7 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
 
             <TouchableOpacity
               style={styles.actionBtn}
-              onPress={() => onSelectAction('SUPERVISE')}
+              onPress={() => setShowPairingModal(true)}
               activeOpacity={0.85}
               accessibilityLabel="Vincular dispositivo"
             >
@@ -100,24 +130,24 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
             </TouchableOpacity>
           </View>
 
-          {/* CARD 2: EJERCER UN AUTOCONTROL */}
+          {/* CARD 2: EJERCER AUTOPROTECCIÓN */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Icon name="reloj" size={26} color={colors.primary} style={styles.cardIcon} />
-              <Text style={styles.cardTitle}>Ejercer un autocontrol</Text>
+              <Text style={styles.cardTitle}>Ejercer autoprotección</Text>
             </View>
 
             <Text style={styles.cardDesc}>
-              Establecé tus propios límites de uso y gestioná el tiempo en este mismo dispositivo.
+              Elegí los sitios web y aplicaciones a restringir en este mismo dispositivo antes de activar la autoprotección.
             </Text>
 
             <TouchableOpacity
               style={styles.actionBtn}
               onPress={() => onSelectAction('SELF_CONTROL')}
               activeOpacity={0.85}
-              accessibilityLabel="Activar autocontrol"
+              accessibilityLabel="Configurar este dispositivo"
             >
-              <Text style={styles.actionBtnText}>Activar autocontrol</Text>
+              <Text style={styles.actionBtnText}>Configurar este dispositivo</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -139,6 +169,20 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal para Vincular Nuevo Dispositivo directamente desde Elegir protección */}
+      <PairingModal
+        visible={showPairingModal}
+        deviceCount={deviceCount}
+        onClose={() => setShowPairingModal(false)}
+        onDeviceCreated={(newDev) => {
+          setDeviceCount((prev) => prev + 1);
+        }}
+        onDeviceAdded={(savedName) => {
+          setShowPairingModal(false);
+          onSelectAction('SUPERVISE', savedName);
+        }}
+      />
 
       {/* Modal de Ayuda con el mismo estilo de TermsModal */}
       <ResponsibleHelpModal

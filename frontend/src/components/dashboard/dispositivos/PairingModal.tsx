@@ -3,8 +3,8 @@
 // Componente: PairingModal (Modal para Vinculación de Nuevo Dispositivo)
 // Archivo: src/components/dashboard/dispositivos/PairingModal.tsx
 // Descripción: Modal activado por el FAB + para registrar y vincular un nuevo dispositivo.
-//              Con rodapé que contiene los CTAs Cancelar y Guardar en la misma línea
-//              siguiendo el estándar visual oficial del app.
+//              Permite ingresar los datos y presionar Guardar, tras lo cual se persiste
+//              en la base de datos y se abre el modal con el código de 6 dígitos y QR.
 // ==============================================================================
 
 import React, { useState, useRef } from 'react';
@@ -14,12 +14,13 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { PairingSection, PairingFormData, PairingSectionRef } from './PairingSection';
+import { DevicePairingCodeModal } from './DevicePairingCodeModal';
 import { ActionButton } from '../../ActionButton';
+import { FeedbackModal } from '../../FeedbackModal';
 import { apiService } from '../../../services/api.service';
-import { MAX_PROTECTED_DEVICES } from '../../../types';
+import { MAX_PROTECTED_DEVICES, DeviceInfo } from '../../../types';
 import { styles } from './PairingModal.styles';
 
 interface PairingModalProps {
@@ -27,6 +28,7 @@ interface PairingModalProps {
   deviceCount: number;
   onClose: () => void;
   onDeviceAdded: (deviceName?: string) => void;
+  onDeviceCreated?: (device: DeviceInfo) => void;
 }
 
 export const PairingModal: React.FC<PairingModalProps> = ({
@@ -34,60 +36,46 @@ export const PairingModal: React.FC<PairingModalProps> = ({
   deviceCount,
   onClose,
   onDeviceAdded,
+  onDeviceCreated,
 }) => {
-  const [pairingCode, setPairingCode] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [lastFormData, setLastFormData] = useState<PairingFormData | null>(null);
+  const [createdDevice, setCreatedDevice] = useState<DeviceInfo | null>(null);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    icon?: string;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
   const pairingSectionRef = useRef<PairingSectionRef>(null);
 
   const handleClose = () => {
-    setPairingCode(null);
-    setLastFormData(null);
+    setCreatedDevice(null);
+    setShowCodeModal(false);
     pairingSectionRef.current?.reset();
     onClose();
   };
 
-  const handleGenerateCode = async (data?: PairingFormData) => {
-    if (data) {
-      setLastFormData(data);
-    }
-    setLoading(true);
-    try {
-      const res = await apiService.generatePairingCode(data);
-      const code = res.data?.code || res.data?.pairingCode || Math.floor(100000 + Math.random() * 900000).toString();
-      setPairingCode(code);
-    } catch (e: any) {
-      const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
-      setPairingCode(fallbackCode);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSave = async () => {
-    let dataToSave = lastFormData;
-    if (!dataToSave && pairingSectionRef.current) {
-      dataToSave = pairingSectionRef.current.getFormData();
-    }
-
-    if (!dataToSave) {
-      pairingSectionRef.current?.submit();
-      Alert.alert('Atención', 'Por favor completa todos los datos requeridos del protegido.');
-      return;
-    }
-
-    if (!pairingCode) {
-      const generatedData = pairingSectionRef.current?.submit();
-      if (generatedData) {
-        Alert.alert('Código generado', 'Se generó el código de vinculación. Puedes vincular el dispositivo y presionar Guardar.');
-      }
-      return;
-    }
-
-    setSaving(true);
     try {
-      await apiService.addDevice({
+      const dataToSave: PairingFormData | null = pairingSectionRef.current?.submit() ?? null;
+
+      if (!dataToSave) {
+        setFeedbackModal({
+          visible: true,
+          icon: '⚠️',
+          title: 'Atención',
+          message: 'Por favor completa todos los datos requeridos del protegido.',
+        });
+        return;
+      }
+
+      setSaving(true);
+      const res = await apiService.addDevice({
         childName: dataToSave.protectedName,
         birthDate: dataToSave.birthDate,
         profileType: dataToSave.protectedType,
@@ -98,80 +86,119 @@ export const PairingModal: React.FC<PairingModalProps> = ({
         isProtected: false,
       });
 
-      handleClose();
-      onDeviceAdded(dataToSave.protectedName);
+      const savedDevice = res.data;
+      setCreatedDevice(savedDevice);
+      // Notificar inmediatamente para actualización instantánea (0ms) en Inicio y Dispositivos
+      onDeviceCreated?.(savedDevice);
+      setShowCodeModal(true);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo guardar el dispositivo.');
+      setFeedbackModal({
+        visible: true,
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo guardar el dispositivo.',
+      });
     } finally {
       setSaving(false);
     }
   };
 
+  const handleCodeModalClose = () => {
+    const savedName = createdDevice?.childName || 'nuevo protegido';
+    setShowCodeModal(false);
+    setCreatedDevice(null);
+    handleClose();
+    onDeviceAdded(savedName);
+  };
+
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.dragHandle} />
+    <>
+      <Modal
+        visible={visible && !showCodeModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleClose}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.dragHandle} />
 
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Vincular nuevo dispositivo</Text>
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={handleClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.closeBtnText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {deviceCount >= MAX_PROTECTED_DEVICES ? (
-              <View style={styles.limitWarningCard}>
-                <Text style={styles.limitWarningText}>
-                  ⚠️ Has alcanzado el límite máximo permitido de {MAX_PROTECTED_DEVICES} dispositivos protegidos vinculados a esta cuenta.
-                </Text>
-              </View>
-            ) : (
-              <PairingSection
-                ref={pairingSectionRef}
-                pairingCode={pairingCode}
-                deviceCount={deviceCount}
-                loading={loading}
-                onGenerateCode={handleGenerateCode}
-              />
-            )}
-          </ScrollView>
-
-          {/* Rodapé con los CTAs Cancelar y Guardar en la misma línea (mismo tamaño, estilo oficial del app) */}
-          <View style={styles.buttonsRow}>
-            <View style={{ flex: 1 }}>
-              <ActionButton
-                title="Cancelar"
-                variant="secondary"
-                disabled={loading || saving}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Vincular nuevo dispositivo</Text>
+              <TouchableOpacity
+                style={styles.closeBtn}
                 onPress={handleClose}
-              />
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="Cerrar modal"
+              >
+                <Text style={styles.closeBtnText}>✕</Text>
+              </TouchableOpacity>
             </View>
-            <View style={{ flex: 1 }}>
-              <ActionButton
-                title="Guardar"
-                variant="primary"
-                loading={saving}
-                disabled={deviceCount >= MAX_PROTECTED_DEVICES}
-                onPress={handleSave}
-              />
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {deviceCount >= MAX_PROTECTED_DEVICES ? (
+                <View style={styles.limitWarningCard}>
+                  <Text style={styles.limitWarningText}>
+                    ⚠️ Has alcanzado el límite máximo permitido de {MAX_PROTECTED_DEVICES} dispositivos protegidos vinculados a esta cuenta.
+                  </Text>
+                </View>
+              ) : (
+                <PairingSection
+                  ref={pairingSectionRef}
+                  deviceCount={deviceCount}
+                />
+              )}
+            </ScrollView>
+
+            {/* Rodapé con los CTAs Cancelar y Guardar en la misma línea (mismo tamaño, estilo oficial del app) */}
+            <View style={styles.buttonsRow}>
+              <View style={{ flex: 1 }}>
+                <ActionButton
+                  title="Cancelar"
+                  variant="secondary"
+                  disabled={saving}
+                  onPress={handleClose}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ActionButton
+                  title="Guardar"
+                  variant="primary"
+                  loading={saving}
+                  disabled={deviceCount >= MAX_PROTECTED_DEVICES}
+                  onPress={handleSave}
+                />
+              </View>
             </View>
           </View>
         </View>
-      </View>
-    </Modal>
+
+        {/* Modal estándar de retroalimentación */}
+        <FeedbackModal
+          visible={feedbackModal.visible}
+          icon={feedbackModal.icon}
+          title={feedbackModal.title}
+          message={feedbackModal.message}
+          asOverlay={true}
+          onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+        />
+      </Modal>
+
+      {/* Modal que muestra el código generado y el QR tras presionar Guardar */}
+      <DevicePairingCodeModal
+        visible={showCodeModal}
+        device={createdDevice}
+        pairingCode={createdDevice?.pairingCode || null}
+        onClose={handleCodeModalClose}
+        onCodeRegenerated={(newCode) => {
+          if (createdDevice) {
+            setCreatedDevice({ ...createdDevice, pairingCode: newCode });
+          }
+        }}
+      />
+    </>
   );
 };

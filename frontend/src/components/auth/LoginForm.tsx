@@ -13,7 +13,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   Image,
 } from 'react-native';
 import { ActionButton } from '../ActionButton';
@@ -37,8 +36,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onLoginSuccess,
   onSwitchMode,
 }) => {
-  const [email, setEmail] = useState('tutor@baprotege.gob.ar');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,18 +75,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       });
 
       if (res.data?.token) {
-        onLoginSuccess(res.data.user, res.data.token);
+        onLoginSuccess(res.data.user || { email: email.trim() }, res.data.token);
       } else {
-        onLoginSuccess({ email, fullName: 'Tutor Responsable' }, 'demo-token');
+        throw new Error('Credenciales inválidas.');
       }
     } catch (error: any) {
       const msg = error.response?.data?.message || error.message || 'Error al iniciar sesión.';
-      if (email === 'tutor@baprotege.gob.ar' && password === 'password123') {
-        Alert.alert('Acceso Demo', 'Iniciando sesión en modo demostración local.');
-        onLoginSuccess({ email, fullName: 'Tutor Responsable (Demo)' }, 'demo-token-123');
-      } else {
-        setErrorMessage(msg);
-      }
+      setErrorMessage(msg);
     } finally {
       setLoading(false);
     }

@@ -7,8 +7,18 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// URL base para el entorno de desarrollo (127.0.0.1 funciona mediante adb reverse tcp:3000 tcp:3000)
-export const BASE_API_URL = 'http://127.0.0.1:3000/api';
+let platformOS = 'other';
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const rn = require('react-native');
+  if (rn && rn.Platform) {
+    platformOS = rn.Platform.OS;
+  }
+} catch (_) {}
+
+// URL base para el entorno de desarrollo: 10.0.2.2 apunta al host en emulador Android; 127.0.0.1 para iOS / adb reverse
+const DEV_HOST = platformOS === 'android' ? '10.0.2.2' : '127.0.0.1';
+export const BASE_API_URL = `http://${DEV_HOST}:3000/api`;
 
 const memoryStorage = new Map<string, string>();
 
@@ -18,7 +28,7 @@ export const safeStorage = {
       if (memoryStorage.has(key)) {
         return memoryStorage.get(key) || null;
       }
-      if (typeof window !== 'undefined') {
+      if (AsyncStorage && typeof AsyncStorage.getItem === 'function') {
         const value = await AsyncStorage.getItem(key);
         if (value !== null) {
           memoryStorage.set(key, value);
@@ -33,7 +43,7 @@ export const safeStorage = {
   async setItem(key: string, value: string): Promise<void> {
     memoryStorage.set(key, value);
     try {
-      if (typeof window !== 'undefined') {
+      if (AsyncStorage && typeof AsyncStorage.setItem === 'function') {
         await AsyncStorage.setItem(key, value);
       }
     } catch (e) {
@@ -43,7 +53,7 @@ export const safeStorage = {
   async removeItem(key: string): Promise<void> {
     memoryStorage.delete(key);
     try {
-      if (typeof window !== 'undefined') {
+      if (AsyncStorage && typeof AsyncStorage.removeItem === 'function') {
         await AsyncStorage.removeItem(key);
       }
     } catch (e) {

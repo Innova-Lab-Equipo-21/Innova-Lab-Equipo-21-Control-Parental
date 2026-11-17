@@ -3,14 +3,19 @@
 // Componente: useSitesManagement (Hook de Lógica de Sitios Bloqueados)
 // Archivo: src/components/dashboard/sitios/hooks/useSitesManagement.ts
 // Descripción: Encapsula el estado, validaciones de dominio, restricciones de
-//              autocontrol y operaciones CRUD/masivas para sitios web bloqueados.
+//              autoprotección y operaciones CRUD/masivas para sitios web bloqueados.
 // ==============================================================================
 
 import { useState } from 'react';
-import { Alert } from 'react-native';
-import { CustomBlockedDomain, DeviceInfo, SelfControlState } from '../../../../types';
+import {
+  BlockOriginFilter,
+  CustomBlockedDomain,
+  DeviceInfo,
+  SelfControlState,
+} from '../../../../types';
 import { apiService } from '../../../../services/api.service';
-import { isValidDomainOrUrl } from '../../../../utils/deviceColors';
+import { isValidDomainOrUrl, cleanDomainInput } from '../../../../utils/deviceColors';
+import { matchesBlockOriginFilter } from '../../../../utils/adultoSitios';
 
 interface UseSitesManagementProps {
   customSites: CustomBlockedDomain[];
@@ -18,9 +23,19 @@ interface UseSitesManagementProps {
   onRefreshList: () => void;
   selfControl?: SelfControlState;
   selectedDeviceFilter: string;
+  selectedOriginFilter?: BlockOriginFilter;
   sortBy: 'date' | 'az';
-  showFeedback: (config: { icon?: string; title: string; message: string }) => void;
+  showFeedback: (config: {
+    icon?: string;
+    title: string;
+    message: string;
+    buttonText?: string;
+    secondaryButtonText?: string;
+    onConfirm?: () => void;
+    onSecondaryPress?: () => void;
+  }) => void;
   setItemToDelete: (item: { type: 'site' | 'app'; id: string; name: string } | null) => void;
+  onExitSelectionMode?: () => void;
 }
 
 export const useSitesManagement = ({
@@ -29,9 +44,11 @@ export const useSitesManagement = ({
   onRefreshList,
   selfControl,
   selectedDeviceFilter,
+  selectedOriginFilter = 'all',
   sortBy,
   showFeedback,
   setItemToDelete,
+  onExitSelectionMode,
 }: UseSitesManagementProps) => {
   // Selección múltiple para acciones masivas
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
@@ -109,11 +126,33 @@ export const useSitesManagement = ({
   // Crear nuevo sitio
   const handleAddSite = async () => {
     if (!newSiteDomain.trim() || !isValidDomainOrUrl(newSiteDomain)) {
-      Alert.alert('Dominio Inválido', 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet o https://...).');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Dominio inválido',
+        message: 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet o https://...).',
+      });
       return;
     }
+
+    const cleaned = cleanDomainInput(newSiteDomain);
+    const isDuplicate = customSites.some(
+      (site) => cleanDomainInput(site.domain) === cleaned
+    );
+    if (isDuplicate) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Sitio ya bloqueado',
+        message: 'Este sitio web ya está en tu lista de bloqueo.',
+      });
+      return;
+    }
+
     if (!newSiteApplyToAll && newSiteDeviceIds.length === 0) {
-      Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Dispositivo requerido',
+        message: 'Selecciona al menos un dispositivo o activa la regla global.',
+      });
       return;
     }
     setLoadingSite(true);
@@ -135,7 +174,11 @@ export const useSitesManagement = ({
         message: 'Dominio agregado a tu lista de bloqueo.',
       });
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo agregar el dominio.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo agregar el dominio.',
+      });
     } finally {
       setLoadingSite(false);
     }
@@ -148,10 +191,11 @@ export const useSitesManagement = ({
     setEditSiteCategory(site.category || 'Apuestas');
     const isGlobal = site.applyToAll !== false;
     setEditSiteApplyToAll(isGlobal);
+    const availableIds = getAllDeviceIds();
     if (isGlobal) {
-      setEditSiteDeviceIds(getAllDeviceIds());
+      setEditSiteDeviceIds(availableIds);
     } else {
-      setEditSiteDeviceIds(site.deviceIds || []);
+      setEditSiteDeviceIds((site.deviceIds || []).filter((id) => availableIds.includes(id)));
     }
   };
 
@@ -170,10 +214,11 @@ export const useSitesManagement = ({
   const handleToggleEditSiteDevice = (deviceId: string) => {
     const wasAppliedToSelf = appliesToSelf(editingSite);
     if (deviceId === 'self' && isAutocontrolActive && wasAppliedToSelf && editSiteDeviceIds.includes('self')) {
-      Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés desactivar el bloqueo en tu propio dispositivo mientras el autocontrol esté activo.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     const allIds = getAllDeviceIds();
@@ -191,20 +236,43 @@ export const useSitesManagement = ({
   const handleSaveEditSite = async () => {
     if (!editingSite) return;
     if (!editSiteDomain.trim() || !isValidDomainOrUrl(editSiteDomain)) {
-      Alert.alert('Dominio Inválido', 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet).');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Dominio inválido',
+        message: 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet).',
+      });
       return;
     }
+
+    const cleaned = cleanDomainInput(editSiteDomain);
+    const isDuplicate = customSites.some(
+      (site) => site.id !== editingSite.id && cleanDomainInput(site.domain) === cleaned
+    );
+    if (isDuplicate) {
+      showFeedback({
+        icon: '⚠️',
+        title: 'Sitio ya bloqueado',
+        message: 'Ya existe otro sitio web bloqueado con este dominio.',
+      });
+      return;
+    }
+
     if (!editSiteApplyToAll && editSiteDeviceIds.length === 0) {
-      Alert.alert('Dispositivo Requerido', 'Selecciona al menos un dispositivo o activa la regla global.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Dispositivo requerido',
+        message: 'Selecciona al menos un dispositivo o activa la regla global.',
+      });
       return;
     }
     const wasAppliedToSelf = appliesToSelf(editingSite);
     const willApplyToSelf = editSiteApplyToAll || editSiteDeviceIds.includes('self');
     if (isAutocontrolActive && wasAppliedToSelf && !willApplyToSelf) {
-      Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés desactivar el bloqueo en tu propio dispositivo mientras el autocontrol esté activo.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     setLoadingSite(true);
@@ -223,7 +291,11 @@ export const useSitesManagement = ({
         message: 'Los cambios fueron guardados.',
       });
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo actualizar el dominio.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo actualizar el dominio.',
+      });
     } finally {
       setLoadingSite(false);
     }
@@ -232,10 +304,11 @@ export const useSitesManagement = ({
   // Toggle de activación individual
   const handleToggleSiteActive = async (site: CustomBlockedDomain) => {
     if (isAutocontrolActive && appliesToSelf(site) && site.isActive) {
-      Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés deshabilitar ni pausar bloqueos aplicados a tu propio dispositivo mientras el autocontrol esté activo.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés deshabilitar ni pausar bloqueos aplicados a tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     try {
@@ -244,17 +317,22 @@ export const useSitesManagement = ({
       });
       onRefreshList();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo cambiar el estado del bloqueo.');
+      showFeedback({
+        icon: '⚠️',
+        title: 'Error',
+        message: e.message || 'No se pudo cambiar el estado del bloqueo.',
+      });
     }
   };
 
   // Iniciar eliminación de sitio
   const handleDeleteSite = (site: CustomBlockedDomain) => {
     if (isAutocontrolActive && appliesToSelf(site)) {
-      Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras el autocontrol esté activo.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     setItemToDelete({
@@ -291,10 +369,11 @@ export const useSitesManagement = ({
       return site && appliesToSelf(site);
     });
     if (isAutocontrolActive && affectedSelf) {
-      Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés pausar bloqueos aplicados a tu propio dispositivo mientras el autocontrol esté activo.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés pausar bloqueos aplicados a tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
     for (const id of selectedSiteIds) {
@@ -310,30 +389,27 @@ export const useSitesManagement = ({
       return site && appliesToSelf(site);
     });
     if (isAutocontrolActive && affectedSelf) {
-      Alert.alert(
-        'Autocontrol del responsable activo',
-        'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras el autocontrol esté activo.'
-      );
+      showFeedback({
+        icon: '⚠️',
+        title: 'Autoprotección activa',
+        message: 'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras la autoprotección esté activa.',
+      });
       return;
     }
-    Alert.alert(
-      'Eliminar sitios seleccionados',
-      `¿Deseas eliminar permanentemente los ${selectedSiteIds.length} sitios seleccionados?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar todos',
-          style: 'destructive',
-          onPress: async () => {
-            for (const id of selectedSiteIds) {
-              await apiService.deleteCustomBlockedSite(id);
-            }
-            setSelectedSiteIds([]);
-            onRefreshList();
-          },
-        },
-      ]
-    );
+    showFeedback({
+      icon: '🗑️',
+      title: 'Eliminar sitios seleccionados',
+      message: `¿Deseas eliminar permanentemente los ${selectedSiteIds.length} sitios seleccionados?`,
+      buttonText: 'Eliminar todos',
+      secondaryButtonText: 'Cancelar',
+      onConfirm: async () => {
+        for (const id of selectedSiteIds) {
+          await apiService.deleteCustomBlockedSite(id);
+        }
+        setSelectedSiteIds([]);
+        onRefreshList();
+      },
+    });
   };
 
   // Filtrado y ordenamiento de sitios
@@ -341,9 +417,15 @@ export const useSitesManagement = ({
     const matchesSearch = s.domain.toLowerCase().includes(siteSearch.toLowerCase());
     let matchesDevice = true;
     if (selectedDeviceFilter !== 'all') {
-      matchesDevice = s.applyToAll ? true : s.deviceIds?.includes(selectedDeviceFilter) || false;
+      matchesDevice = s.applyToAll
+        ? true
+        : Boolean(
+            s.deviceIds?.includes(selectedDeviceFilter) ||
+              s.sourceDeviceId === selectedDeviceFilter
+          );
     }
-    return matchesSearch && matchesDevice;
+    const matchesOrigin = matchesBlockOriginFilter(s, selectedOriginFilter);
+    return matchesSearch && matchesDevice && matchesOrigin;
   });
 
   const sortedAndFilteredSites = [...filteredSites].sort((a, b) => {

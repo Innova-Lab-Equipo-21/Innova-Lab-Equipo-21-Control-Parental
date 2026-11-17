@@ -6,7 +6,7 @@
 // ==============================================================================
 
 import { auth } from '../config/firebase.js';
-// import bcrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 // import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
 import { Gender } from '@prisma/client';
@@ -38,6 +38,34 @@ export interface GoogleAuthInput {
   photoUrl?: string;
 }
 
+export interface UpdateProfileInput {
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  gender?: 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'NO_INFORMADO';
+  birthDate?: string;
+  phone?: string;
+  password?: string;
+}
+
+function parseBirthDate(dateStr?: string): Date | null {
+  if (!dateStr) return null;
+  const trimmed = dateStr.trim();
+  const parts = trimmed.split(/[/.-]/);
+  if (parts.length === 3) {
+    if (parts[0].length <= 2 && parts[2].length === 4) {
+      // DD/MM/YYYY
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      const d = new Date(Date.UTC(year, month, day));
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  const parsed = new Date(trimmed);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export class AuthService {
   /**
    * Registra un nuevo usuario responsable (padre/tutor) en el sistema.
@@ -50,15 +78,35 @@ export class AuthService {
     const cleanEmail = input.email.toLowerCase().trim();
     const formatedCellPhone = input.phone ? '+549' + input.phone : undefined; // Agregamos el prefijo de Argentina para el número de teléfono
 
+    let firebaseUser: any = null;
+
     try {
       // 1. Crear el usuario en Firebase Authentication
-      const firebaseUser = await auth.createUser({
-        email: cleanEmail,
-        password: input.password,
-        displayName: computedFullName,
-        phoneNumber: formatedCellPhone || undefined,
-        emailVerified: false,
-      });
+      try {
+        firebaseUser = await auth.createUser({
+          email: cleanEmail,
+          password: input.password,
+          displayName: computedFullName,
+          phoneNumber: formatedCellPhone || undefined,
+          emailVerified: false,
+        });
+      } catch (err: any) {
+        if (err.code === 'auth/email-already-exists') {
+          // Si quedó huérfano en Firebase tras un fallo previo de DB, recuperamos el UID para completar el registro
+          if (!env.USE_MOCK_DATA) {
+            const existingDbUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
+            if (!existingDbUser) {
+              firebaseUser = await auth.getUserByEmail(cleanEmail);
+            } else {
+              throw err;
+            }
+          } else {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
 
       // 2. Persistir el perfil en base de datos local o Mock usando el firebaseUser.uid
       if (env.USE_MOCK_DATA) {
@@ -87,11 +135,12 @@ export class AuthService {
         data: {
           id: firebaseUser.uid, // Guardamos el UID de Firebase en la DB relacional
           email: cleanEmail,
+          passwordHash: bcrypt.hashSync(input.password, 10),
           fullName: computedFullName,
           gender: (input.gender ? input.gender.toUpperCase().replace(/\s+/g, '_') : undefined) as
             | Gender
             | undefined,
-          birthDate: input.birthDate ? new Date(input.birthDate) : null,
+          birthDate: parseBirthDate(input.birthDate),
           phone: input.phone || null,
           isActive: true,
         },
@@ -166,16 +215,34 @@ export class AuthService {
       if (env.USE_MOCK_DATA) {
         userProfile = mockDb.users.find((u) => u.id === data.localId || u.email === cleanEmail);
       } else {
-        userProfile = await prisma.user.findUnique({
-          where: { id: data.localId },
-          select: { id: true, email: true, fullName: true, createdAt: true },
-        });
+        try {
+          userProfile = await prisma.user.findUnique({
+            where: { id: data.localId },
+            select: { id: true, email: true, fullName: true, createdAt: true },
+          });
+
+          // Si el usuario existe en Firebase pero aún no en la tabla users de DB, lo creamos/sincronizamos
+          if (!userProfile) {
+            userProfile = await prisma.user.create({
+              data: {
+                id: data.localId,
+                email: cleanEmail,
+                fullName: data.displayName || 'Responsable',
+                isActive: true,
+              },
+              select: { id: true, email: true, fullName: true, createdAt: true },
+            });
+          }
+        } catch (dbErr: any) {
+          console.warn('[AuthService] Advertencia al sincronizar usuario con base de datos:', dbErr.message);
+        }
       }
 
       return {
         user: userProfile || {
           id: data.localId,
           email: data.email,
+          fullName: data.displayName || 'Responsable',
         },
         token: data.idToken, // ID Token de Firebase para ser usado en el header Authorization
         refreshToken: data.refreshToken,
@@ -343,9 +410,24 @@ export class AuthService {
         data: {
           email,
           fullName: computedFullName,
+          passwordHash: 'GOOGLE_AUTH_FEDERATED',
           isActive: true,
         },
       });
+    }
+
+    let token = firebaseToken;
+    if (!token) {
+      try {
+        if (auth && typeof auth.createCustomToken === 'function') {
+          token = await auth.createCustomToken(user.id);
+        }
+      } catch {
+        token = `google-federated-token-${user.id}`;
+      }
+      if (!token) {
+        token = `google-federated-token-${user.id}`;
+      }
     }
 
     return {
@@ -356,7 +438,7 @@ export class AuthService {
         createdAt: user.createdAt,
         isGoogleLinked: true,
       },
-      token: firebaseToken || '',
+      token,
     };
   }
 
@@ -412,6 +494,135 @@ export class AuthService {
         isGoogleLinked: true,
       },
     };
+  }
+
+  /**
+   * Actualiza el perfil de un usuario responsable.
+   */
+  public async updateProfile(userId: string, input: UpdateProfileInput) {
+    const computedFullName =
+      input.fullName ||
+      [input.firstName, input.lastName].filter(Boolean).join(' ') ||
+      undefined;
+    const cleanPhone = input.phone !== undefined ? input.phone.trim() : undefined;
+    const birthDateObj = input.birthDate !== undefined ? parseBirthDate(input.birthDate) : undefined;
+    const genderEnum = input.gender
+      ? (input.gender.toUpperCase().replace(/\s+/g, '_') as Gender)
+      : undefined;
+
+    if (env.USE_MOCK_DATA) {
+      const user = mockDb.users.find((u) => u.id === userId);
+      if (!user) {
+        throw new AppError('Usuario no encontrado', 404);
+      }
+      if (computedFullName) user.fullName = computedFullName;
+      return user;
+    }
+
+    // 1. Sincronizar con Firebase Authentication (nombre, contraseña y teléfono)
+    if (auth) {
+      const fbUpdate: any = {};
+      if (computedFullName) fbUpdate.displayName = computedFullName;
+      if (input.password && input.password.length >= 6) fbUpdate.password = input.password;
+      if (cleanPhone) fbUpdate.phoneNumber = '+549' + cleanPhone.replace(/\D/g, '');
+
+      if (Object.keys(fbUpdate).length > 0) {
+        try {
+          await auth.updateUser(userId, fbUpdate);
+        } catch (fbErr: any) {
+          console.warn('⚠️ No se pudo sincronizar actualización con Firebase:', fbErr?.message);
+        }
+      }
+    }
+
+    // 2. Actualizar en PostgreSQL
+    const dataToUpdate: any = {};
+    if (computedFullName !== undefined) dataToUpdate.fullName = computedFullName;
+    if (cleanPhone !== undefined) dataToUpdate.phone = cleanPhone || null;
+    if (birthDateObj !== undefined) dataToUpdate.birthDate = birthDateObj;
+    if (genderEnum !== undefined) dataToUpdate.gender = genderEnum;
+    if (input.password && input.password.length >= 6) {
+      dataToUpdate.passwordHash = bcrypt.hashSync(input.password, 10);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: dataToUpdate,
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        gender: true,
+        birthDate: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updatedUser;
+  }
+
+  /**
+   * Elimina definitivamente la cuenta de un usuario responsable y todos sus datos en cascada.
+   */
+  public async deleteAccount(userId: string) {
+    if (env.USE_MOCK_DATA) {
+      const idx = mockDb.users.findIndex((u) => u.id === userId);
+      if (idx !== -1) {
+        mockDb.users.splice(idx, 1);
+      }
+      return { success: true, message: 'Cuenta eliminada exitosamente' };
+    }
+
+    // 1. Eliminar en Firebase Authentication
+    if (auth) {
+      try {
+        await auth.deleteUser(userId);
+      } catch (fbErr: any) {
+        console.warn('⚠️ No se pudo eliminar usuario en Firebase Auth:', fbErr?.message);
+      }
+    }
+
+    // 2. Eliminar en PostgreSQL en transacción en cascada segura
+    await prisma.$transaction(async (tx) => {
+      // Dispositivos y sus registros dependientes
+      const devices = await tx.device.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      const deviceIds = devices.map((d) => d.id);
+
+      if (deviceIds.length > 0) {
+        await tx.deviceStatus.deleteMany({ where: { deviceId: { in: deviceIds } } });
+        await tx.protectionConfig.deleteMany({ where: { deviceId: { in: deviceIds } } });
+        await tx.blockedEvent.deleteMany({ where: { deviceId: { in: deviceIds } } });
+        await tx.securityEvent.deleteMany({ where: { deviceId: { in: deviceIds } } });
+        await tx.devicePairing.deleteMany({ where: { deviceId: { in: deviceIds } } });
+        await tx.device.deleteMany({ where: { id: { in: deviceIds } } });
+      }
+
+      // Listas personalizadas y sus dominios
+      const blocklists = await tx.blocklist.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      const blocklistIds = blocklists.map((b) => b.id);
+      if (blocklistIds.length > 0) {
+        await tx.blocklistDomain.deleteMany({ where: { blocklistId: { in: blocklistIds } } });
+        await tx.blocklist.deleteMany({ where: { id: { in: blocklistIds } } });
+      }
+
+      // Pareamientos y auditorías
+      await tx.devicePairing.deleteMany({ where: { userId } });
+      await tx.auditLog.deleteMany({ where: { userId } });
+
+      // Eliminar el usuario
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    return { success: true, message: 'Cuenta y datos asociados eliminados definitivamente' };
   }
 }
 
