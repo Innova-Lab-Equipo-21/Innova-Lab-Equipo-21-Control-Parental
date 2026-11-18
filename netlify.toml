@@ -1,16 +1,26 @@
-# Configuração do Netlify para BA Protege+
+# Configuración del Netlify para BA Protege+
 [build]
   base = "frontend/landing"
   publish = "."
 
-# Redirecionamento da rota padrão do Firebase Auth Action
+# Redireccionamiento de la ruta estándar de Firebase Auth Action
 [[redirects]]
   from = "/__/auth/action*"
   to = "/reset-password.html"
   status = 200
 
-# Redirecionamento amigável para recuperação de senha
+# Redireccionamientos amigables
 [[redirects]]
   from = "/reset-password"
   to = "/reset-password.html"
+  status = 200
+
+[[redirects]]
+  from = "/terminos"
+  to = "/terminos-y-condiciones.html"
+  status = 200
+
+[[redirects]]
+  from = "/privacidad"
+  to = "/politica-de-privacidad.html"
   status = 200

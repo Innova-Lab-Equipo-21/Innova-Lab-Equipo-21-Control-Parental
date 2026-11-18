@@ -9,8 +9,11 @@ Este módulo contém a **Landing Page Institucional** de BA Protege+ e a **Pági
 ```text
 frontend/landing/
 ├── index.html                           # Landing Page institucional responsive (Desktop & Mobile)
+├── terminos-y-condiciones.html          # Página oficial de Términos y Condiciones (LOTBA S.E.)
+├── politica-de-privacidad.html          # Página oficial de Política de Privacidad (Ley N° 25.326)
 ├── reset-password.html                  # Página de Recuperação de Senha modular (para Firebase Hosting)
 ├── firebase-reset-password-standalone.html # Versão 100% autossuficiente (single-file com CSS, JS e SVG embutidos)
+├── _redirects                           # Configuração de rotas amigáveis para o Netlify
 ├── firebase.json                        # Configuração pronta para Firebase Hosting (com rewrite de /__/auth/action)
 ├── styles/
 │   ├── main.css                         # Design System oficial (tokens de uikit.txt e layout responsive)

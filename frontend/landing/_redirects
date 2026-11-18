@@ -1,2 +1,6 @@
-/__/auth/action*    /reset-password.html   200
-/reset-password     /reset-password.html   200
+/__/auth/action*          /reset-password.html           200
+/reset-password           /reset-password.html           200
+/terminos                 /terminos-y-condiciones.html   200
+/terminos-y-condiciones   /terminos-y-condiciones.html   200
+/privacidad               /politica-de-privacidad.html   200
+/politica-de-privacidad   /politica-de-privacidad.html   200
