@@ -1,0 +1,16 @@
+# Configuração do Netlify para BA Protege+
+[build]
+  base = "frontend/landing"
+  publish = "."
+
+# Redirecionamento da rota padrão do Firebase Auth Action
+[[redirects]]
+  from = "/__/auth/action*"
+  to = "/reset-password.html"
+  status = 200
+
+# Redirecionamento amigável para recuperação de senha
+[[redirects]]
+  from = "/reset-password"
+  to = "/reset-password.html"
+  status = 200
