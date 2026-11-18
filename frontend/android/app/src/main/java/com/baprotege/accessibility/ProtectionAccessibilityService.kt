@@ -46,6 +46,12 @@ data class BlockedAppRule(
     val webDomains: Set<String> = emptySet()
 )
 
+data class BlockedDomainMatch(
+    val domain: String,
+    val appDisplayName: String,
+    val isLotba: Boolean
+)
+
 class ProtectionAccessibilityService : AccessibilityService() {
 
     companion object {
@@ -90,6 +96,58 @@ class ProtectionAccessibilityService : AccessibilityService() {
             "jugadon" to listOf("jugadon.bet.ar"),
             "bplay" to listOf("bplay.bet.ar"),
             "casinobuenosaires" to listOf("casinobuenosairesonline.bet.ar")
+        )
+
+        private val APP_KNOWN_PACKAGES = mapOf(
+            "youtube" to listOf("com.google.android.youtube", "com.google.android.apps.youtube.music", "com.google.android.apps.youtube.kids"),
+            "whatsapp" to listOf("com.whatsapp", "com.whatsapp.w4b"),
+            "tiktok" to listOf("com.zhiliaoapp.musically", "com.ss.android.ugc.trill"),
+            "instagram" to listOf("com.instagram.android"),
+            "facebook" to listOf("com.facebook.katana", "com.facebook.lite", "com.facebook.orca"),
+            "twitter" to listOf("com.twitter.android"),
+            "x" to listOf("com.twitter.android"),
+            "twitch" to listOf("tv.twitch.android.app"),
+            "netflix" to listOf("com.netflix.mediaclient"),
+            "spotify" to listOf("com.spotify.music"),
+            "reddit" to listOf("com.reddit.frontpage"),
+            "discord" to listOf("com.discord"),
+            "telegram" to listOf("org.telegram.messenger", "org.telegram.messenger.web"),
+            "roblox" to listOf("com.roblox.client"),
+            "pinterest" to listOf("com.pinterest"),
+            "snapchat" to listOf("com.snapchat.android"),
+            "bet365" to listOf("com.bet365"),
+            "betsson" to listOf("com.betsson"),
+            "1xbet" to listOf("org.xbet", "com.xbet"),
+            "codere" to listOf("com.codere"),
+            "jugadon" to listOf("ar.bet.jugadon"),
+            "bplay" to listOf("ar.bet.bplay"),
+            "casinobuenosaires" to listOf("ar.bet.casinobuenosaires")
+        )
+
+        private val APP_DISPLAY_NAMES = mapOf(
+            "youtube" to "YouTube",
+            "whatsapp" to "WhatsApp",
+            "tiktok" to "TikTok",
+            "instagram" to "Instagram",
+            "facebook" to "Facebook",
+            "twitter" to "X (Twitter)",
+            "x" to "X (Twitter)",
+            "twitch" to "Twitch",
+            "netflix" to "Netflix",
+            "spotify" to "Spotify",
+            "reddit" to "Reddit",
+            "discord" to "Discord",
+            "telegram" to "Telegram",
+            "roblox" to "Roblox",
+            "pinterest" to "Pinterest",
+            "snapchat" to "Snapchat",
+            "bet365" to "Bet365",
+            "betsson" to "Betsson",
+            "1xbet" to "1xBet",
+            "codere" to "Codere",
+            "jugadon" to "Jugadon",
+            "bplay" to "bplay",
+            "casinobuenosaires" to "Casino Buenos Aires"
         )
 
         fun isServiceActive(): Boolean = isRunning.get()
@@ -284,7 +342,7 @@ class ProtectionAccessibilityService : AccessibilityService() {
                 if (name == "whatsapp" && (cleanPkg == "com.whatsapp" || cleanPkg == "com.whatsapp.w4b")) return rule
                 if (name == "tiktok" && (cleanPkg.contains("musically") || cleanPkg.contains("trill"))) return rule
                 if (name == "instagram" && cleanPkg.contains("instagram")) return rule
-                if (name == "facebook" && (cleanPkg.contains("katana") || cleanPkg.contains("facebook.lite"))) return rule
+                if (name == "facebook" && (cleanPkg.contains("katana") || cleanPkg.contains("facebook.lite") || cleanPkg.contains("orca"))) return rule
                 if (name == "youtube" && (cleanPkg == "com.google.android.youtube" || cleanPkg.contains("youtube"))) return rule
                 if (name.length >= 3 && cleanPkg.contains(name)) return rule
             }
@@ -304,6 +362,70 @@ class ProtectionAccessibilityService : AccessibilityService() {
                     }
                 }
             }
+            return null
+        }
+
+        /**
+         * Lógica de reciprocidad: Evalúa si un paquete de aplicación en ejecución corresponde
+         * a un sitio web bloqueado por el usuario (en lista personalizada) o por LOTBA oficial.
+         * Si el sitio web está bloqueado, la app nativa correspondiente también queda bloqueada.
+         */
+        fun findBlockedDomainForApp(cleanPkg: String): BlockedDomainMatch? {
+            // 1. Coincidencia de la app contra aplicaciones conocidas con dominios web
+            for ((key, pkgs) in APP_KNOWN_PACKAGES) {
+                val matchesPackage = pkgs.any { cleanPkg == it || cleanPkg.startsWith("$it.") }
+                val matchesKey = (key.length >= 4 && cleanPkg.contains(key))
+                if (matchesPackage || matchesKey) {
+                    val defaultDomains = APP_DEFAULT_DOMAINS[key] ?: emptyList()
+                    val displayName = APP_DISPLAY_NAMES[key] ?: key.replaceFirstChar { it.uppercase() }
+
+                    // A. Verificar si algún dominio web de la app está en la lista personalizada del usuario
+                    for (dom in defaultDomains) {
+                        if (isCustomDomainBlocked(dom)) {
+                            return BlockedDomainMatch(dom, displayName, isLotba = false)
+                        }
+                    }
+
+                    // B. Verificar si algún dominio web de la app está en la lista oficial de LOTBA
+                    for (dom in defaultDomains) {
+                        if (isLotbaDomainBlocked(dom)) {
+                            return BlockedDomainMatch(dom, displayName, isLotba = true)
+                        }
+                    }
+                }
+            }
+
+            // 2. Coincidencia directa o por raíz de dominio con lista personalizada del usuario
+            for (blocked in customBlockedDomains) {
+                val cleanBlocked = blocked.lowercase().trim().removePrefix("www.")
+                if (cleanBlocked.isEmpty()) continue
+
+                // Paquete idéntico al dominio bloqueado (ej. dominio com.ejemplo.app)
+                if (cleanPkg == cleanBlocked || cleanPkg.startsWith("$cleanBlocked.")) {
+                    val displayName = appPackageToNameMap[cleanPkg] ?: cleanBlocked
+                    return BlockedDomainMatch(cleanBlocked, displayName, isLotba = false)
+                }
+
+                // Raíz del dominio contenida en el paquete (ej. "facebook" en "com.facebook.katana")
+                val rootName = cleanBlocked.substringBeforeLast('.').substringAfterLast('.')
+                if (rootName.length >= 4 && cleanPkg.contains(rootName)) {
+                    val displayName = appPackageToNameMap[cleanPkg] ?: rootName.replaceFirstChar { it.uppercase() }
+                    return BlockedDomainMatch(cleanBlocked, displayName, isLotba = false)
+                }
+            }
+
+            // 3. Coincidencia con lista oficial LOTBA
+            for (lotbaDom in lotbaBlockedDomains) {
+                val cleanLotba = lotbaDom.lowercase().trim().removePrefix("www.")
+                if (cleanLotba.isEmpty()) continue
+
+                val rootName = cleanLotba.substringBeforeLast('.').substringAfterLast('.')
+                if (rootName.length >= 4 && cleanPkg.contains(rootName)) {
+                    val displayName = appPackageToNameMap[cleanPkg] ?: rootName.replaceFirstChar { it.uppercase() }
+                    return BlockedDomainMatch(cleanLotba, displayName, isLotba = true)
+                }
+            }
+
             return null
         }
 
@@ -499,7 +621,15 @@ class ProtectionAccessibilityService : AccessibilityService() {
             return false
         }
 
-        // 1. Evaluar según regla de app con límites de tiempo
+        // 1. Reciprocidad: Evaluar si la aplicación corresponde a un sitio web bloqueado por el usuario o LOTBA
+        val domainBlock = findBlockedDomainForApp(cleanPkg)
+        if (domainBlock != null) {
+            Log.w(TAG, "🛡️ Aplicación $cleanPkg (${domainBlock.appDisplayName}) bloqueada porque el sitio web ${domainBlock.domain} está bloqueado (LOTBA: ${domainBlock.isLotba})")
+            blockAppAttempt(appName = domainBlock.appDisplayName, fromSite = domainBlock.domain, isLotba = domainBlock.isLotba)
+            return true
+        }
+
+        // 2. Evaluar según regla de app con límites de tiempo
         val rule = findMatchingAppRule(cleanPkg)
         if (rule != null) {
             if (isRuleLimitExceeded(this, rule)) {
@@ -509,7 +639,7 @@ class ProtectionAccessibilityService : AccessibilityService() {
             return false
         }
 
-        // 2. Fallback de coincidencia directa
+        // 3. Fallback de coincidencia directa
         var matchedAppName: String? = null
         for (blockedPkg in blockedAppPackages) {
             if (cleanPkg == blockedPkg || cleanPkg.startsWith("$blockedPkg.")) {
@@ -526,14 +656,14 @@ class ProtectionAccessibilityService : AccessibilityService() {
         return false
     }
 
-    private fun blockAppAttempt(appName: String) {
+    private fun blockAppAttempt(appName: String, fromSite: String? = null, isLotba: Boolean = false) {
         val now = System.currentTimeMillis()
         if (now - lastBlockTimestamp < 1500) {
             return
         }
         lastBlockTimestamp = now
 
-        Log.w(TAG, "🛡️ Aplicación bloqueada por BA Protege+: $appName")
+        Log.w(TAG, "🛡️ Aplicación bloqueada por BA Protege+: $appName (fromSite: $fromSite, isLotba: $isLotba)")
 
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val userMode = prefs.getString(KEY_USER_MODE, "PARENT") ?: "PARENT"
@@ -543,8 +673,10 @@ class ProtectionAccessibilityService : AccessibilityService() {
                 context = applicationContext,
                 type = "APP",
                 targetName = appName,
-                isLotba = false,
-                userMode = userMode
+                isLotba = isLotba,
+                userMode = userMode,
+                fromApp = null,
+                fromSite = fromSite
             )
             startActivity(intent)
         } catch (e: Exception) {

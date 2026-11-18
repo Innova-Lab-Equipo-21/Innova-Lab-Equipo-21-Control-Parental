@@ -29,6 +29,7 @@ class BlockedScreenActivity : AppCompatActivity() {
         const val EXTRA_IS_LOTBA = "extra_is_lotba"          // Boolean
         const val EXTRA_USER_MODE = "extra_user_mode"        // "PARENT", "ADULT", "CHILD"
         const val EXTRA_FROM_APP = "extra_from_app"          // Nombre de app que originó el bloqueo (ej. "YouTube")
+        const val EXTRA_FROM_SITE = "extra_from_site"        // Dominio del sitio web que originó el bloqueo (ej. "facebook.com")
 
         fun createIntent(
             context: Context,
@@ -36,7 +37,8 @@ class BlockedScreenActivity : AppCompatActivity() {
             targetName: String,
             isLotba: Boolean,
             userMode: String,
-            fromApp: String? = null
+            fromApp: String? = null,
+            fromSite: String? = null
         ): Intent {
             return Intent(context, BlockedScreenActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -46,6 +48,9 @@ class BlockedScreenActivity : AppCompatActivity() {
                 putExtra(EXTRA_USER_MODE, userMode)
                 if (!fromApp.isNullOrBlank()) {
                     putExtra(EXTRA_FROM_APP, fromApp)
+                }
+                if (!fromSite.isNullOrBlank()) {
+                    putExtra(EXTRA_FROM_SITE, fromSite)
                 }
             }
         }
@@ -86,6 +91,7 @@ class BlockedScreenActivity : AppCompatActivity() {
         val isLotba = intentData?.getBooleanExtra(EXTRA_IS_LOTBA, false) ?: false
         val userMode = intentData?.getStringExtra(EXTRA_USER_MODE) ?: "PARENT"
         val fromApp = intentData?.getStringExtra(EXTRA_FROM_APP)
+        val fromSite = intentData?.getStringExtra(EXTRA_FROM_SITE)
 
         val ivMascot = findViewById<ImageView>(R.id.ivMascot)
         val tvBadge = findViewById<TextView>(R.id.tvBadge)
@@ -122,21 +128,33 @@ class BlockedScreenActivity : AppCompatActivity() {
             tvBadge.text = "🛡️ Boti te cuida • BA Protege+"
         }
 
-        // 2. Construir Mensaje Personalizado según los 7 escenarios
+        // 2. Construir Mensaje Personalizado según los 7 escenarios y reciprocidad
         if (isLotba) {
-            // Escenario 7: Sitio bloqueado por Lista Oficial LOTBA (Apuestas ilegales)
-            tvTitle.text = "Sitio no autorizado"
+            // Escenario 7: Sitio o app bloqueado por Lista Oficial LOTBA (Apuestas ilegales)
+            tvTitle.text = if (blockType == "APP") "Aplicación no autorizada" else "Sitio no autorizado"
             if (isMenor) {
-                tvMessage.text = "¡Hola! Este sitio web está bloqueado por la lista oficial de protección de Lotería de la Ciudad (LOTBA) para mantenerte siempre seguro."
+                tvMessage.text = if (blockType == "APP") {
+                    "¡Hola! Esta aplicación está bloqueada por la lista oficial de protección de Lotería de la Ciudad (LOTBA) para mantenerte siempre seguro."
+                } else {
+                    "¡Hola! Este sitio web está bloqueado por la lista oficial de protección de Lotería de la Ciudad (LOTBA) para mantenerte siempre seguro."
+                }
                 tvSuggestionHeader.text = "🎮 ¡Hay un mundo genial esperándote afuera!"
                 tvSuggestions.text = "• Jugá a armar rompecabezas o tu juego favorito.\n• Salí a pasear en bicicleta o jugar con amigos.\n• Hacé un dibujo colorido de tu personaje favorito."
             } else if (userMode == "ADULT") {
-                tvMessage.text = "Esta plataforma forma parte de la lista oficial de LOTBA y se encuentra bloqueada para resguardar tu seguridad y bienestar financiero."
+                tvMessage.text = if (blockType == "APP") {
+                    "Esta aplicación forma parte de las plataformas restringidas por la lista oficial de LOTBA y se encuentra bloqueada para resguardar tu seguridad y bienestar financiero."
+                } else {
+                    "Esta plataforma forma parte de la lista oficial de LOTBA y se encuentra bloqueada para resguardar tu seguridad y bienestar financiero."
+                }
                 tvSuggestionHeader.text = "🌿 Pausa saludable fuera de las pantallas:"
                 tvSuggestions.text = "• Salí a caminar al aire libre o hacer algo de ejercicio.\n• Disfrutá de un café o mate conversando con alguien.\n• Retomá esa lectura o proyecto que tanto te gusta."
             } else {
                 // Responsable / Tutor
-                tvMessage.text = "El acceso a este sitio está bloqueado por la lista oficial de LOTBA de apuestas no autorizadas para proteger a todos los dispositivos de tu cuenta."
+                tvMessage.text = if (blockType == "APP") {
+                    "El uso de esta aplicación está bloqueado por la lista oficial de LOTBA de apuestas no autorizadas para proteger a todos los dispositivos de tu cuenta."
+                } else {
+                    "El acceso a este sitio está bloqueado por la lista oficial de LOTBA de apuestas no autorizadas para proteger a todos los dispositivos de tu cuenta."
+                }
                 tvSuggestionHeader.text = "💡 Recomendación para tu bienestar:"
                 tvSuggestions.text = "• Hacé una pausa visual y estirá el cuerpo.\n• Aprovechá para compartir tiempo en familia fuera de las pantallas.\n• Disfrutá de una caminata o desconexión al aire libre."
             }
@@ -145,6 +163,9 @@ class BlockedScreenActivity : AppCompatActivity() {
             if (!fromApp.isNullOrBlank()) {
                 tvTitle.text = "¡Pausa para $fromApp!"
                 tvMessage.text = "Tu responsable configuró un momento de descanso para $fromApp. ¡También cuidamos su acceso desde el navegador ($targetName) para que puedas disfrutar y jugar afuera!"
+            } else if (!fromSite.isNullOrBlank()) {
+                tvTitle.text = "¡Pausa para $targetName!"
+                tvMessage.text = "Tu responsable configuró una restricción para el sitio web $fromSite. ¡También cuidamos el acceso a su aplicación ($targetName) para que puedas disfrutar y jugar afuera!"
             } else if (blockType == "APP") {
                 // Escenario 6: App bloqueada para Menor
                 tvTitle.text = "¡Hagamos una pausa de $targetName!"
@@ -161,6 +182,9 @@ class BlockedScreenActivity : AppCompatActivity() {
             if (!fromApp.isNullOrBlank()) {
                 tvTitle.text = "Pausa digital para $fromApp"
                 tvMessage.text = "El uso de $fromApp fue restringido por tu responsable, incluyendo su versión web ($targetName), para acompañarte en tus metas de autocontrol y equilibrio digital."
+            } else if (!fromSite.isNullOrBlank()) {
+                tvTitle.text = "Aplicación restringida ($targetName)"
+                tvMessage.text = "El acceso al sitio web $fromSite fue restringido por tu responsable, por lo que también se restringió el uso de su aplicación ($targetName) para acompañarte en tus metas de autocontrol y equilibrio digital."
             } else if (blockType == "APP") {
                 // Escenario 4: App bloqueada para Adulto
                 tvTitle.text = "Aplicación restringida"
@@ -177,6 +201,9 @@ class BlockedScreenActivity : AppCompatActivity() {
             if (!fromApp.isNullOrBlank()) {
                 tvTitle.text = "¡Pausa digital para $fromApp!"
                 tvMessage.text = "Bloqueaste la aplicación $fromApp en tu dispositivo. También protegemos el acceso a su versión web ($targetName) respetando tu tiempo de descanso."
+            } else if (!fromSite.isNullOrBlank()) {
+                tvTitle.text = "¡Pausa digital para $targetName!"
+                tvMessage.text = "Bloqueaste el sitio web $fromSite en tu dispositivo. También protegemos el acceso a su aplicación ($targetName) respetando tu tiempo de descanso."
             } else if (blockType == "APP") {
                 // Escenario 2: App bloqueada en su propio dispositivo
                 tvTitle.text = "¡Pausa digital para $targetName!"

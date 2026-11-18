@@ -403,6 +403,88 @@ export class ProtectionService {
   };
 
   /**
+   * Metadatos de aplicaciones conocidas para mapeo y derivación recíproca desde dominios web.
+   */
+  public static readonly KNOWN_APPS_METADATA: Record<string, { appName: string; packageName: string }> = {
+    youtube: { appName: 'YouTube', packageName: 'com.google.android.youtube' },
+    whatsapp: { appName: 'WhatsApp', packageName: 'com.whatsapp' },
+    tiktok: { appName: 'TikTok', packageName: 'com.zhiliaoapp.musically' },
+    instagram: { appName: 'Instagram', packageName: 'com.instagram.android' },
+    facebook: { appName: 'Facebook', packageName: 'com.facebook.katana' },
+    twitter: { appName: 'X (Twitter)', packageName: 'com.twitter.android' },
+    x: { appName: 'X (Twitter)', packageName: 'com.twitter.android' },
+    twitch: { appName: 'Twitch', packageName: 'tv.twitch.android.app' },
+    netflix: { appName: 'Netflix', packageName: 'com.netflix.mediaclient' },
+    spotify: { appName: 'Spotify', packageName: 'com.spotify.music' },
+    reddit: { appName: 'Reddit', packageName: 'com.reddit.frontpage' },
+    discord: { appName: 'Discord', packageName: 'com.discord' },
+    telegram: { appName: 'Telegram', packageName: 'org.telegram.messenger' },
+    roblox: { appName: 'Roblox', packageName: 'com.roblox.client' },
+    pinterest: { appName: 'Pinterest', packageName: 'com.pinterest' },
+    snapchat: { appName: 'Snapchat', packageName: 'com.snapchat.android' },
+    bet365: { appName: 'Bet365', packageName: 'com.bet365' },
+    betsson: { appName: 'Betsson', packageName: 'com.betsson' },
+    '1xbet': { appName: '1xBet', packageName: 'org.xbet' },
+    codere: { appName: 'Codere', packageName: 'com.codere' },
+    jugadon: { appName: 'Jugadon', packageName: 'ar.bet.jugadon' },
+    bplay: { appName: 'bplay', packageName: 'ar.bet.bplay' },
+    casinobuenosaires: { appName: 'Casino Buenos Aires', packageName: 'ar.bet.casinobuenosaires' },
+  };
+
+  /**
+   * Resuelve aplicaciones móviles correspondientes a una lista de dominios web bloqueados (bidireccionalidad).
+   * Al bloquear un sitio web (ej. facebook.com o youtube.com), su aplicación también se bloquea automáticamente.
+   */
+  public getAppsForWebDomains(domains: string[]): Array<{
+    appName: string;
+    packageName: string;
+    dailyLimitMinutes?: number;
+    webDomains: string[];
+  }> {
+    const apps: Array<{
+      appName: string;
+      packageName: string;
+      dailyLimitMinutes?: number;
+      webDomains: string[];
+    }> = [];
+
+    const matchedKeys = new Set<string>();
+
+    for (const rawDomain of domains) {
+      const clean = (rawDomain || '')
+        .toLowerCase()
+        .trim()
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .split('/')[0];
+      if (!clean) continue;
+
+      for (const [key, doms] of Object.entries(ProtectionService.APP_TO_WEB_DOMAINS)) {
+        const matchesDomain = doms.some(
+          (d) => clean === d || clean.endsWith(`.${d}`) || d.endsWith(`.${clean}`)
+        );
+        const matchesKey = key.length >= 4 && clean.includes(key);
+
+        if ((matchesDomain || matchesKey) && !matchedKeys.has(key)) {
+          matchedKeys.add(key);
+          const meta = ProtectionService.KNOWN_APPS_METADATA[key] || {
+            appName: key.charAt(0).toUpperCase() + key.slice(1),
+            packageName: `com.${key}.android`,
+          };
+          apps.push({
+            appName: meta.appName,
+            packageName: meta.packageName,
+            dailyLimitMinutes: undefined, // Bloqueo total
+            webDomains: doms,
+          });
+        }
+      }
+    }
+
+    return apps;
+  }
+
+  /**
    * Resuelve la lista de dominios web correspondientes a una aplicación dada su nombre y paquete.
    */
   public getWebDomainsForApp(appName: string, packageName?: string): string[] {
@@ -530,7 +612,7 @@ export class ProtectionService {
           };
         });
 
-      // Incluir en los dominios personalizados los sitios web de apps con Bloqueo Total
+      // 1. Incluir en los dominios personalizados los sitios web de apps con Bloqueo Total
       const appDomainsForTotalBlock = activeCustomApps
         .filter((a: any) => a.dailyLimitMinutes === undefined || a.dailyLimitMinutes <= 0)
         .flatMap((a: any) => a.webDomains || []);
@@ -540,8 +622,33 @@ export class ProtectionService {
         ...appDomainsForTotalBlock,
       ]));
 
+      // 2. Incluir en las aplicaciones bloqueadas las aplicaciones correspondientes a sitios web bloqueados (reciprocidad)
+      const appsFromBlockedSites = this.getAppsForWebDomains(activeCustomDomains);
+      const allBlockedApps = [...activeCustomApps];
+
+      for (const derivedApp of appsFromBlockedSites) {
+        const existingIdx = allBlockedApps.findIndex(
+          (app) =>
+            (app.packageName && derivedApp.packageName && app.packageName.toLowerCase() === derivedApp.packageName.toLowerCase()) ||
+            app.appName.toLowerCase() === derivedApp.appName.toLowerCase()
+        );
+        if (existingIdx >= 0) {
+          // Si el sitio web está explícitamente bloqueado, asegurar bloqueo total en la app
+          allBlockedApps[existingIdx] = {
+            ...allBlockedApps[existingIdx],
+            dailyLimitMinutes: undefined,
+            webDomains: Array.from(new Set([
+              ...(allBlockedApps[existingIdx].webDomains || []),
+              ...derivedApp.webDomains,
+            ])),
+          };
+        } else {
+          allBlockedApps.push(derivedApp);
+        }
+      }
+
       // 5. Enviar a Android Native diferenciando lista personalizada y lista oficial LOTBA
-      await this.syncProtectionRules(customDomainsOnly, activeCustomApps, lotbaDomains);
+      await this.syncProtectionRules(customDomainsOnly, allBlockedApps, lotbaDomains);
 
       // 6. Consultar eventos de bloqueos capturados nativamente y reportarlos a telemetría
       const recentEvents = await this.getRecentBlockEvents();
