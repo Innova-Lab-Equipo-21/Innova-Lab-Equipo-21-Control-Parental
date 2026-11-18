@@ -51,6 +51,7 @@ export interface FirebaseAuthLoginResponse {
   refreshToken: string;
   expiresIn: string;
   localId: string;
+  displayName?: string;
   registered?: boolean;
 }
 
