@@ -70,3 +70,37 @@ dependencies {
 
 apply plugin: "com.google.gms.google-services"
 
+// ==============================================================================
+// Automatización: Copia de APK debug a la landing (ba-protege-release.apk)
+// ==============================================================================
+tasks.register('copyDebugApkToLanding') {
+    description = "Copia el APK debug compilado hacia frontend/landing/assets/apk como ba-protege-release.apk"
+    group = "ba-protege"
+
+    doLast {
+        def originFile = file("${buildDir}/outputs/apk/debug/app-debug.apk")
+        def targetDir = file("${projectDir}/../../landing/assets/apk")
+        def targetFile = file("${targetDir}/ba-protege-release.apk")
+
+        if (originFile.exists()) {
+            targetDir.mkdirs()
+            java.nio.file.Files.copy(
+                originFile.toPath(),
+                targetFile.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            )
+            def sizeMb = String.format(java.util.Locale.US, "%.2f", (double) originFile.length() / (1024 * 1024))
+            println("🚀 [BA Protege+] APK copiada exitosamente (${sizeMb} MB) a:")
+            println("   ${targetFile.absolutePath}")
+        } else {
+            println("⚠️ [BA Protege+] APK de origen no encontrada en: ${originFile.absolutePath}")
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name == "assembleDebug" || task.name == "packageDebug") {
+        task.finalizedBy('copyDebugApkToLanding')
+    }
+}
+
