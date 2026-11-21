@@ -17,6 +17,7 @@
     setupSmoothScroll();
     setupImageFallbacks();
     setupBackToTop();
+    setupMobileCarousels();
   });
 
   /**
@@ -214,6 +215,105 @@
 
     btn.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  /**
+   * Carruseles horizontales con controles e indicadores para pantallas pequeñas
+   */
+  function setupMobileCarousels() {
+    const carousels = document.querySelectorAll('[data-mobile-carousel="true"]');
+
+    carousels.forEach((track) => {
+      const slides = Array.from(track.children);
+      if (slides.length <= 1) return;
+
+      const controls = document.createElement('div');
+      controls.className = 'carousel-controls';
+
+      const prevBtn = document.createElement('button');
+      prevBtn.type = 'button';
+      prevBtn.className = 'carousel-btn';
+      prevBtn.setAttribute('aria-label', 'Tarjeta anterior');
+      prevBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>';
+
+      const dotsWrap = document.createElement('div');
+      dotsWrap.className = 'carousel-dots';
+
+      const dots = slides.map((_, idx) => {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = idx === 0 ? 'carousel-dot active' : 'carousel-dot';
+        dot.setAttribute('aria-label', `Ir a la tarjeta ${idx + 1}`);
+        dot.addEventListener('click', () => scrollToSlide(idx));
+        dotsWrap.appendChild(dot);
+        return dot;
+      });
+
+      const nextBtn = document.createElement('button');
+      nextBtn.type = 'button';
+      nextBtn.className = 'carousel-btn';
+      nextBtn.setAttribute('aria-label', 'Tarjeta siguiente');
+      nextBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
+
+      controls.appendChild(prevBtn);
+      controls.appendChild(dotsWrap);
+      controls.appendChild(nextBtn);
+      track.insertAdjacentElement('afterend', controls);
+
+      let activeIndex = 0;
+
+      function scrollToSlide(index) {
+        const clamped = Math.max(0, Math.min(slides.length - 1, index));
+        const target = slides[clamped];
+        if (!target) return;
+        const left = target.offsetLeft - (track.clientWidth - target.clientWidth) / 2;
+        track.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+      }
+
+      function updateState() {
+        const center = track.scrollLeft + track.clientWidth / 2;
+        let closestIdx = 0;
+        let minDistance = Infinity;
+
+        slides.forEach((slide, idx) => {
+          const slideCenter = slide.offsetLeft + slide.clientWidth / 2;
+          const dist = Math.abs(slideCenter - center);
+          if (dist < minDistance) {
+            minDistance = dist;
+            closestIdx = idx;
+          }
+        });
+
+        activeIndex = closestIdx;
+        dots.forEach((dot, idx) => {
+          dot.classList.toggle('active', idx === activeIndex);
+        });
+        prevBtn.disabled = activeIndex === 0;
+        nextBtn.disabled = activeIndex === slides.length - 1;
+      }
+
+      prevBtn.addEventListener('click', () => scrollToSlide(activeIndex - 1));
+      nextBtn.addEventListener('click', () => scrollToSlide(activeIndex + 1));
+
+      let ticking = false;
+      track.addEventListener(
+        'scroll',
+        () => {
+          if (ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(() => {
+            updateState();
+            ticking = false;
+          });
+        },
+        { passive: true }
+      );
+
+      window.addEventListener('resize', updateState, { passive: true });
+      updateState();
     });
   }
 })();

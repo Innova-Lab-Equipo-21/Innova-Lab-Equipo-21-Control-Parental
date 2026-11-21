@@ -89,15 +89,15 @@
         <div class="hero-trust-badges">
           <div class="trust-item">
             <img src="assets/img/escudo.png" alt="Escudo de seguridad" class="trust-icon">
-            <span>Aval oficial <strong>LOTBA</strong></span>
+            <span><strong>LotBA</strong></p>probado y aprobado</span>
           </div>
           <div class="trust-item">
             <img src="assets/img/candado.png" alt="Candado de privacidad" class="trust-icon">
-            <span><strong>Privacidad</strong> garantizada</span>
+            <span><strong>Privacidad</strong></p>garantizada</span>
           </div>
           <div class="trust-item">
             <img src="assets/img/check.png" alt="Check de gratuidad" class="trust-icon">
-            <span><strong>Gratuita</strong> y de acceso libre</span>
+            <span><strong>Gratuita</strong></p>y de acceso libre</span>
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@
         <h2 class="section-title">¿Quiénes pueden usar BA Protege +?</h2>
       </div>
 
-      <div class="profiles-grid">
+      <div class="profiles-grid" data-mobile-carousel="true" aria-label="Perfiles de usuarios">
 
         <article class="profile-card">
           <div class="profile-image-wrap">
@@ -220,7 +220,7 @@
         <h2 class="section-title">Todo lo que ofrecemos para una navegación segura</h2>
       </div>
 
-      <div class="features-grid">
+      <div class="features-grid" data-mobile-carousel="true" aria-label="Nuestros servicios">
 
         <div class="feature-card">
           <div class="feature-icon-box">
@@ -291,9 +291,6 @@
 
           <div class="step-card">
             <div class="step-number">1</div>
-            <div class="step-icon-wrap">
-              <img src="assets/img/usuario.png" alt="Carga de datos" class="step-icon">
-            </div>
             <p class="step-desc">
               La persona responsable carga los datos de la persona protegida.
             </p>
@@ -301,9 +298,6 @@
 
           <div class="step-card">
             <div class="step-number">2</div>
-            <div class="step-icon-wrap">
-              <img src="assets/img/candado.png" alt="Código QR y PIN" class="step-icon">
-            </div>
             <p class="step-desc">
               Se genera un código QR y un PIN de 6 dígitos.
             </p>
@@ -311,9 +305,6 @@
 
           <div class="step-card">
             <div class="step-number">3</div>
-            <div class="step-icon-wrap">
-              <img src="assets/img/celular.png" alt="Vinculación de dispositivos" class="step-icon">
-            </div>
             <p class="step-desc">
               Para vincular ambas cuentas, hay que escanear el QR o ingresar el PIN en el dispositivo de la persona protegida. ¡Y listo!
             </p>
@@ -321,18 +312,28 @@
 
         </div>
 
-        <!-- Columna derecha: video vertical -->
+        <!-- Columna derecha: mockup de celular Android con video vertical -->
         <div class="guide-video-block">
-          <h3 class="guide-video-subtitle">Te explicamos el paso a paso en este video:</h3>
-          <div class="video-container video-container--vertical">
-            <iframe
-              src="https://www.youtube.com/embed/YOsJWQiY90g?rel=0"
-              title="Video explicativo paso a paso - BA Protege +"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerpolicy="strict-origin-when-cross-origin"
-              allowfullscreen
-              loading="lazy"
-            ></iframe>
+          <div class="android-mockup">
+            <span class="android-mockup-speaker" aria-hidden="true"></span>
+            <div class="android-mockup-screen">
+              <div class="android-status-bar" aria-hidden="true">
+                <span class="android-punch-hole"></span>
+              </div>
+              <div class="android-mockup-video">
+                <iframe
+                  src="https://www.youtube.com/embed/YOsJWQiY90g?rel=0"
+                  title="Video explicativo paso a paso - BA Protege +"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allowfullscreen
+                  loading="lazy"
+                ></iframe>
+              </div>
+              <div class="android-gesture-bar" aria-hidden="true">
+                <span class="android-gesture-pill"></span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -450,7 +451,7 @@
        ========================================================================= -->
   <section class="section report-section" id="contacto">
     <div class="container">
-      <div class="contact-help-grid">
+      <div class="contact-help-grid" data-mobile-carousel="true" aria-label="Contacto y canales de ayuda">
 
         <!-- Contactanos -->
         <div class="contact-card">
