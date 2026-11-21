@@ -159,4 +159,32 @@ describe('Mascotas Boti y Botito — Recursos e integración en pantallas y moda
       assert.equal(content.includes('beti.png'), false);
     }
   });
+
+  test('AnimatedBotMascot modulariza la animación de Botito/Boti y se reutiliza en Onboarding y Welcome', () => {
+    const mascotCompPath = path.resolve(
+      __dirname,
+      '../src/components/AnimatedBotMascot.tsx'
+    );
+    assert.equal(
+      fs.existsSync(mascotCompPath),
+      true,
+      'Debe existir src/components/AnimatedBotMascot.tsx'
+    );
+
+    const mascotSource = fs.readFileSync(mascotCompPath, 'utf8');
+    assert.ok(mascotSource.includes('BOTITO_ASSETS'));
+    assert.ok(mascotSource.includes('BOTI_ASSETS'));
+    assert.ok(mascotSource.includes('Animated.Image'));
+
+    const onboardingSrc = fs.readFileSync(
+      path.resolve(__dirname, '../src/screens/OnboardingScreen.tsx'),
+      'utf8'
+    );
+    const welcomeSrc = fs.readFileSync(
+      path.resolve(__dirname, '../src/screens/WelcomeScreen.tsx'),
+      'utf8'
+    );
+    assert.ok(onboardingSrc.includes('AnimatedBotMascot'));
+    assert.ok(welcomeSrc.includes('AnimatedBotMascot'));
+  });
 });

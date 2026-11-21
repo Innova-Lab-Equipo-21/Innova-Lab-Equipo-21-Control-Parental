@@ -35,17 +35,17 @@ describe('Flujo de Selección de Modo, Modal de Advertencia e Iniciar Sesión', 
     assert.ok(welcomeSrc.includes('FeedbackModal'), 'Debe usar el componente estándar FeedbackModal');
     assert.ok(welcomeSrc.includes('showResponsibleAlertModal'), 'Debe gestionar el estado visible del modal');
 
-    // 2. Alerta clara sobre la decisión de ser Responsable y que no se puede cambiar a Modo protegido
+    // 2. Alerta clara sobre la decisión de ser Responsable y el cambio de modo
     assert.ok(
-      welcomeSrc.includes('no podrá cambiarse a Modo protegido') ||
-        welcomeSrc.includes('no podrás cambiar a Modo protegido'),
-      'Debe advertir que no se podrá cambiar a Modo protegido desde la aplicación'
+      welcomeSrc.includes('Al actuar como persona responsable') &&
+        welcomeSrc.includes('cambiar al otro modo'),
+      'Debe advertir sobre el rol responsable y el cambio al otro modo'
     );
 
-    // 3. Informa que para cambiar de modo se deben borrar los datos de la app en Ajustes
+    // 3. Informa que para cambiar de modo se deben borrar los datos de la app en los ajustes
     assert.ok(
-      welcomeSrc.includes('Ajustes') && welcomeSrc.includes('borrar los datos'),
-      'Debe indicar que para cambiar de modo es necesario borrar los datos en los Ajustes del sistema'
+      welcomeSrc.toLowerCase().includes('ajustes') && welcomeSrc.includes('borrar los datos'),
+      'Debe indicar que para cambiar de modo es necesario borrar los datos en los ajustes del sistema'
     );
 
     // 4. Botones de acción simétricos en el modal

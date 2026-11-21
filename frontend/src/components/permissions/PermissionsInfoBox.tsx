@@ -19,7 +19,7 @@ interface PermissionsInfoBoxProps {
 
 export const PermissionsInfoBox: React.FC<PermissionsInfoBoxProps> = ({
   title = 'Configurá tu dispositivo',
-  description = 'Activá los 6 permisos para garantizar la protección continua y supervisión del dispositivo.',
+  description = 'Activá los permisos necesarios para garantizar la protección continua y el bienestar digital de tu entorno.',
 }) => {
   return (
     <View style={styles.infoBox}>

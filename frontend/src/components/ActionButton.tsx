@@ -24,12 +24,13 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   loading = false,
   disabled = false,
 }) => {
+  const isSecondary = variant === 'secondary';
   let btnBg = colors.primary;
   let textColor = colors.textLight;
 
-  if (variant === 'secondary') {
-    btnBg = colors.primaryLight;
-    textColor = colors.primaryDark;
+  if (isSecondary) {
+    btnBg = colors.surface;
+    textColor = colors.primary;
   } else if (variant === 'danger') {
     btnBg = colors.statusDanger;
     textColor = colors.textLight;
@@ -40,6 +41,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
       style={[
         styles.button,
         { backgroundColor: btnBg },
+        isSecondary && styles.buttonSecondary,
         disabled && styles.buttonDisabled,
       ]}
       onPress={onPress}
@@ -57,18 +59,23 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    height: 52,
+    height: 50,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 14,
     marginVertical: 8,
+  },
+  buttonSecondary: {
+    borderWidth: 1.5,
+    borderColor: colors.primary,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   text: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15.5,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });

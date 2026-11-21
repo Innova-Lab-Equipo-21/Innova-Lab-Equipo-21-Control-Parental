@@ -15,12 +15,20 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { Logo } from '../components/Logo';
 import { Icon } from '../components/Icon';
+import { AnimatedBotMascot } from '../components/AnimatedBotMascot';
+import {
+  YouTubePlayerView,
+  hasNativeYouTubePlayer,
+} from '../components/YouTubePlayerView';
 import { AppMode } from '../types';
-import { ONBOARDING_WIZARD_VIDEO } from '../data/tutorialVideos';
 import { styles } from './OnboardingScreen.styles';
+
+const ONBOARDING_YOUTUBE_VIDEO_ID = 'TiF6zxlt5fU';
+const ONBOARDING_YOUTUBE_URL = `https://www.youtube.com/shorts/${ONBOARDING_YOUTUBE_VIDEO_ID}`;
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -43,36 +51,26 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     }
   }, [initialStep]);
 
-  // Estados del Video (Paso 3)
+  // Estado del Video (Paso 3)
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [playbackSeconds, setPlaybackSeconds] = useState<number>(0);
-  const totalDuration = ONBOARDING_WIZARD_VIDEO.durationSeconds || 35;
 
-  useEffect(() => {
-    let interval: any = null;
-    if (isPlaying) {
-      interval = setInterval(() => {
-        setPlaybackSeconds((prev) => {
-          if (prev >= totalDuration) {
-            setIsPlaying(false);
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 1000);
+  const handlePlayVideo = () => {
+    if (hasNativeYouTubePlayer()) {
+      setIsPlaying(true);
+      return;
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isPlaying, totalDuration]);
+    Linking.openURL(ONBOARDING_YOUTUBE_URL).catch(() => {});
+  };
 
-  const handleTogglePlay = () => {
-    setIsPlaying((prev) => !prev);
+  const handleVideoError = () => {
+    setIsPlaying(false);
+    Linking.openURL(ONBOARDING_YOUTUBE_URL).catch(() => {});
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
         bounces={false}
@@ -139,83 +137,34 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
             <View style={styles.contentCard}>
               <Text style={styles.mainTitle}>¡Te damos la bienvenida a BA Protege +!</Text>
               <Text style={styles.subtitleBold}>
-                Bloqueamos sitios de juego y apuestas ilegales para que ningún dispositivo con esta app pueda acceder a ellos.
+                Una herramienta pensada para acompañar a quienes más lo necesitan.
               </Text>
 
-              {/* Sección 1: Adulto responsable */}
-              <Text style={styles.sectionHeaderTitle}>Si sos un adulto responsable podrás:</Text>
-              <View style={styles.bulletList}>
-                {/* Item 1 */}
-                <View style={styles.bulletItem}>
-                  <View style={styles.bulletIconWrapper}>
-                    <Icon name="ojo" size={24} color="#007AFF" />
-                  </View>
-                  <Text style={styles.bulletText}>
-                    Proteger lo que ven los menores de 18 años.
-                  </Text>
-                </View>
-
-                {/* Item 2 */}
-                <View style={styles.bulletItem}>
-                  <View style={styles.bulletIconWrapper}>
-                    <Icon name="manos" size={24} color="#007AFF" />
-                  </View>
-                  <Text style={styles.bulletText}>
-                    Acompañar y cuidar a adultos con ludopatía o uso problemático del celular.
-                  </Text>
-                </View>
-
-                {/* Item 3 */}
-                <View style={styles.bulletItem}>
-                  <View style={styles.bulletIconWrapper}>
-                    <Icon name="reloj" size={24} color="#007AFF" />
-                  </View>
-                  <Text style={styles.bulletText}>
-                    Autocontrolar tu propia navegación.
-                  </Text>
-                </View>
-
-                {/* Item 4 */}
-                <View style={styles.bulletItem}>
-                  <View style={styles.bulletIconWrapper}>
-                    <Icon name="sitios" size={24} color="#007AFF" />
-                  </View>
-                  <Text style={styles.bulletText}>
-                    Bloquear sitios y apps personalizados para mejorar la protección.
-                  </Text>
-                </View>
-              </View>
-
-              {/* Sección 2: Alguien que necesita protección */}
-              <Text style={styles.sectionHeaderTitle}>Si sos alguien que necesita protección:</Text>
-              <View style={styles.bulletList}>
-                {/* Item 1 */}
-                <View style={styles.bulletItem}>
-                  <View style={styles.bulletIconWrapper}>
-                    <Icon name="usuario" size={24} color="#007AFF" />
-                  </View>
-                  <Text style={styles.bulletText}>
-                    Recibirás el acompañamiento de un adulto responsable para navegar en entornos digitales seguros.
-                  </Text>
-                </View>
-
-                {/* Item 2 */}
-                <View style={styles.bulletItem}>
+              <View style={styles.highlightsList}>
+                <View style={styles.highlightCard}>
                   <View style={styles.bulletIconWrapper}>
                     <Icon name="escudo" size={24} color="#007AFF" />
                   </View>
-                  <Text style={styles.bulletText}>
-                    Podrás acceder a material interactivo que te ayudará a identificar sitios y apps no seguros.
+                  <Text style={styles.highlightText}>
+                    Bloqueamos sitios de juegos y apuestas ilegales no autorizados por la Lotería de la Ciudad de Buenos Aires (LOTBA) para que ningún dispositivo con esta app pueda acceder a ellos.
                   </Text>
                 </View>
 
-                {/* Item 3 */}
-                <View style={styles.bulletItem}>
+                <View style={styles.highlightCard}>
                   <View style={styles.bulletIconWrapper}>
-                    <Icon name="sitios" size={24} color="#007AFF" />
+                    <Icon name="manos" size={24} color="#007AFF" />
                   </View>
-                  <Text style={styles.bulletText}>
-                    Si sos mayor de edad, podrás bloquear sitios y apps personalizados.
+                  <Text style={styles.highlightText}>
+                    Buscamos prevenir el consumo digital problemático y contamos con material interactivo para hablar en casa sobre hábitos de navegación saludables.
+                  </Text>
+                </View>
+
+                <View style={styles.highlightCard}>
+                  <View style={styles.bulletIconWrapper}>
+                    <Icon name="corazon" size={24} color="#007AFF" />
+                  </View>
+                  <Text style={styles.highlightText}>
+                    En BA Protege + te cuidamos a vos y a los tuyos.
                   </Text>
                 </View>
               </View>
@@ -242,13 +191,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                     <View style={styles.checkItem}>
                       <Icon name="check" size={24} color="#007AFF" style={styles.checkIconWrapper} />
                       <Text style={styles.checkText}>
-                        Configurás las reglas desde tu dispositivo.
+                        Podés agregar sitios y apps personalizados para proteger a personas de tu entorno desde tu dispositivo.
                       </Text>
                     </View>
                     <View style={styles.checkItem}>
                       <Icon name="check" size={24} color="#007AFF" style={styles.checkIconWrapper} />
                       <Text style={styles.checkText}>
-                        Controlás el bloqueo de sitios web y apps.
+                        Acompañás el bienestar digital y definís los límites de uso del celular tanto para vos como para quienes te importan.
                       </Text>
                     </View>
                   </View>
@@ -263,13 +212,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                     <View style={styles.checkItem}>
                       <Icon name="check" size={24} color="#007AFF" style={styles.checkIconWrapper} />
                       <Text style={styles.checkText}>
-                        Tu dispositivo recibe la protección de un adulto responsable.
+                        Tu dispositivo recibe la protección de una persona responsable.
                       </Text>
                     </View>
                     <View style={styles.checkItem}>
                       <Icon name="check" size={24} color="#007AFF" style={styles.checkIconWrapper} />
                       <Text style={styles.checkText}>
-                        Accedés a material interactivo para aprender hábitos saludables en internet.
+                        Accedés a material interactivo para charlar en casa sobre hábitos digitales saludables.
                       </Text>
                     </View>
                   </View>
@@ -283,7 +232,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           {/* ======================================================== */}
           {wizardStep === 3 && (
             <View style={styles.contentCardStep3}>
-              <Text style={styles.mainTitle}>¿Todavía tenés dudas?</Text>
+              <Text style={styles.mainTitle}>¿Tenés dudas?</Text>
               <Text style={styles.subtitleBold}>
                 Te explicamos el paso a paso en este video:
               </Text>
@@ -291,85 +240,112 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
               {/* Reproductor de Video Vertical maximizando espacio */}
               <View style={styles.videoWrapperVertical}>
                 <View style={styles.videoContainerVertical}>
-                  <TouchableOpacity
-                    style={styles.videoPlayCircle}
-                    onPress={handleTogglePlay}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.videoPlayIcon}>
-                      {isPlaying ? '⏸' : '▶'}
-                    </Text>
-                  </TouchableOpacity>
+                  {isPlaying ? (
+                    <YouTubePlayerView
+                      videoId={ONBOARDING_YOUTUBE_VIDEO_ID}
+                      style={styles.videoNativePlayer}
+                      onVideoEnd={() => setIsPlaying(false)}
+                      onVideoError={handleVideoError}
+                    />
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        style={styles.videoPlayCircle}
+                        onPress={handlePlayVideo}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.videoPlayIcon}>▶</Text>
+                      </TouchableOpacity>
+
+                      <View style={styles.videoBotitoContainer} pointerEvents="none">
+                        <AnimatedBotMascot
+                          mood="feliz"
+                          size={112}
+                          restartKey={wizardStep}
+                          accessibilityLabel="Botito feliz invitándote a ver el video"
+                        />
+                      </View>
+                    </>
+                  )}
                 </View>
               </View>
             </View>
           )}
         </View>
-
-        {/* ======================================================== */}
-        {/* RODAPÉ DE LA TELA (FOOTER) - BOTONES DE ACCIÓN DEL APP   */}
-        {/* ======================================================== */}
-        <View style={styles.footerContainer}>
-          {wizardStep === 1 && (
-            <View style={styles.dualButtonContainer}>
-              <View style={styles.buttonSpacer} />
-              <TouchableOpacity
-                style={styles.primaryButtonHalf}
-                onPress={() => setWizardStep(2)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.primaryButtonText}>Continuar</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {wizardStep === 2 && (
-            <View style={styles.dualButtonContainer}>
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => setWizardStep(1)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.secondaryButtonText}>Volver</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.primaryButtonHalf}
-                onPress={() => setWizardStep(3)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.primaryButtonText}>Continuar</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {wizardStep === 3 && (
-            <View style={styles.dualButtonContainer}>
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => {
-                  setIsPlaying(false);
-                  setWizardStep(2);
-                }}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.secondaryButtonText}>Volver</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.primaryButtonHalf}
-                onPress={() => {
-                  setIsPlaying(false);
-                  onComplete();
-                }}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.primaryButtonText}>{completeButtonText || 'Elegir modo'}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
       </ScrollView>
+
+      {/* ======================================================== */}
+      {/* RODAPÉ DE LA TELA (FOOTER) - BOTONES DE ACCIÓN DEL APP   */}
+      {/* ======================================================== */}
+      <View style={styles.footerContainer}>
+        {wizardStep === 1 && (
+          <View style={styles.dualButtonContainer}>
+            <View style={styles.buttonSpacerStep1}>
+              <View style={styles.botitoFloatingBottomLeft} pointerEvents="none">
+                <AnimatedBotMascot
+                  mood="feliz"
+                  size={112}
+                  restartKey={wizardStep}
+                  accessibilityLabel="Botito feliz dándote la bienvenida"
+                />
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.primaryButtonHalf}
+              onPress={() => setWizardStep(2)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryButtonText}>Continuar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {wizardStep === 2 && (
+          <View style={styles.dualButtonContainer}>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => setWizardStep(1)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.secondaryButtonText}>Volver</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.primaryButtonHalf}
+              onPress={() => setWizardStep(3)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryButtonText}>Continuar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {wizardStep === 3 && (
+          <View style={styles.dualButtonContainer}>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => {
+                setIsPlaying(false);
+                setWizardStep(2);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.secondaryButtonText}>Volver</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.primaryButtonHalf}
+              onPress={() => {
+                setIsPlaying(false);
+                onComplete();
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryButtonText}>{completeButtonText || 'Elegir modo'}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
     </SafeAreaView>
   );
 };

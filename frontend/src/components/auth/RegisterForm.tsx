@@ -280,9 +280,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
       setFeedbackModal({
         visible: true,
-        icon: '🎉',
-        title: '¡Cuenta creada exitosamente!',
-        message: `Bienvenido/a, ${fullName}. Tu cuenta ha sido activada en BA Protege+.`,
+        icon: '✅',
+        title: '¡Cuenta creada con éxito!',
+        message: `Ya sos parte de BA Protege +.`,
         onConfirm: () => {
           setFeedbackModal((prev) => ({ ...prev, visible: false }));
           if (res.data?.token) {
@@ -321,7 +321,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           <Text style={styles.title}>Crear cuenta responsable</Text>
         </View>
         <Text style={styles.subtitle}>
-          Registra tus datos para administrar la protección digital de tus protegidos
+          Registrá tus datos para administrar la protección digital de tu entorno.
         </Text>
       </View>
 
@@ -435,10 +435,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         ) : null}
       </View>
 
-      {/* Campo 3: Fecha de Nacimiento (Ubicado antes de Género) */}
+      {/* Campo 3: Fecha de nacimiento (Ubicado antes de Género) */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>
-          Fecha de Nacimiento<Text style={styles.requiredAsterisk}>*</Text>
+          Fecha de nacimiento<Text style={styles.requiredAsterisk}>*</Text>
         </Text>
         <View
           style={[
@@ -715,7 +715,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       {/* Campo 8: Confirmar Contraseña */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>
-          Confirmar contraseña<Text style={styles.requiredAsterisk}>*</Text>
+          Repetí tu contraseña<Text style={styles.requiredAsterisk}>*</Text>
         </Text>
         <View
           style={[
@@ -861,7 +861,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           onPress={() => onSwitchMode('LOGIN')}
         >
           <Text style={styles.secondaryCardButtonText}>
-            ¿Ya tenés una cuenta? <Text style={styles.highlightText}>Iniciar Sesión</Text>
+            ¿Ya tenés una cuenta? <Text style={styles.highlightText}>Iniciar sesión</Text>
           </Text>
         </TouchableOpacity>
       </View>

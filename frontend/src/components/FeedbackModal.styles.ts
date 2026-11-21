@@ -81,5 +81,7 @@ export const styles = StyleSheet.create({
   },
   dualButtonItem: {
     flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
   },
 });

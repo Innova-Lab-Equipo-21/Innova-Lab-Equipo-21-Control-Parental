@@ -1,31 +1,74 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: PrivacyModal (Modal de Políticas de Privacidad)
+// Componente: PrivacyModal (Modal de Políticas de privacidad)
 // Archivo: src/components/auth/PrivacyModal.tsx
-// Descripción: Modal Bottom Sheet que presenta las Políticas de Privacidad oficiales
-//              de BA Protege+ en conformidad con la Ley N° 25.326 de Protección
+// Descripción: Modal Bottom Sheet que presenta las Políticas de privacidad oficiales
+//              de BA Protege + en conformidad con la Ley N° 25.326 de Protección
 //              de Datos Personales.
 // ==============================================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   Modal,
+  Pressable,
   TouchableOpacity,
   ScrollView,
+  StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
-import { legalStyles } from './LegalModal.styles';
+import {
+  legalStyles,
+  LEGAL_SHEET_HEIGHT_RATIO,
+  LEGAL_SHEET_PADDING_TOP,
+  LEGAL_SHEET_PADDING_BOTTOM,
+} from './LegalModal.styles';
 
 export interface PrivacyModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
+const PRIVACY_SECTIONS = [
+  {
+    title: '1. Tu privacidad nos importa',
+    body: 'Por disposición de la Ley N° 25.326, tus datos privados quedan resguardados en tu celular. Nunca vamos a comercializar ni vender tus datos a anunciantes ni a terceros.',
+  },
+  {
+    title: '2. ¿Qué información recopilamos?',
+    body: 'Únicamente los datos mínimos e indispensables (nombre, apellido, correo electrónico, teléfono, fecha de nacimiento, identificador del dispositivo y registros de intentos de acceso a sitios bloqueados).',
+  },
+  {
+    title: '3. ¿Cómo usamos la geolocalización?',
+    body: 'La dirección IP de los dispositivos y la ubicación se utilizan únicamente para mantener activa la seguridad y vincular las cuentas entre personas responsables y protegidas.',
+  },
+  {
+    title: '4. Garantizamos tu seguridad',
+    body: 'Toda la comunicación entre tu dispositivo y nuestros servidores viaja cifrada mediante el protocolo TLS 1.3/HTTPS, lo que significa que ningún tercero puede acceder a esa información.',
+  },
+];
+
 export const PrivacyModal: React.FC<PrivacyModalProps> = ({
   visible,
   onClose,
 }) => {
+  const { height: windowHeight } = useWindowDimensions();
+  const [overlayHeight, setOverlayHeight] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(64);
+  const [footerHeight, setFooterHeight] = useState(62);
+
+  const effectiveHeight = overlayHeight > 0 ? overlayHeight : windowHeight;
+  const sheetHeight = Math.round(effectiveHeight * LEGAL_SHEET_HEIGHT_RATIO);
+  const scrollHeight = Math.max(
+    180,
+    sheetHeight -
+      LEGAL_SHEET_PADDING_TOP -
+      LEGAL_SHEET_PADDING_BOTTOM -
+      headerHeight -
+      footerHeight,
+  );
+
   return (
     <Modal
       visible={visible}
@@ -33,71 +76,91 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
+      <View
         style={legalStyles.legalModalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
+        onLayout={(e) => {
+          const measured = Math.round(e.nativeEvent.layout.height);
+          if (measured > 0 && Math.abs(measured - overlayHeight) > 1) {
+            setOverlayHeight(measured);
+          }
+        }}
       >
-        <View
-          style={legalStyles.legalModalCard}
-          onStartShouldSetResponder={() => true}
-        >
-          {/* Manija táctil del Bottom Sheet */}
-          <View style={legalStyles.bottomSheetHandle} />
+        {/* Fondo oscurecido detrás del sheet: cierra el modal sin interceptar el scroll */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar políticas de privacidad"
+        />
 
-          <View style={legalStyles.legalModalHeader}>
-            <Text style={legalStyles.legalModalTitle}>Políticas de Privacidad</Text>
-            <TouchableOpacity
-              onPress={onClose}
-              style={legalStyles.legalModalCloseBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={legalStyles.legalModalCloseText}>✕</Text>
-            </TouchableOpacity>
+        <View style={[legalStyles.legalModalSheet, { height: sheetHeight }]}>
+          <View
+            style={legalStyles.legalModalHeaderSection}
+            onLayout={(e) => {
+              const measured = Math.round(e.nativeEvent.layout.height);
+              if (measured > 0 && Math.abs(measured - headerHeight) > 1) {
+                setHeaderHeight(measured);
+              }
+            }}
+          >
+            {/* Manija táctil del Bottom Sheet */}
+            <View style={legalStyles.bottomSheetHandle} />
+
+            <View style={legalStyles.legalModalHeader}>
+              <Text style={legalStyles.legalModalTitle}>Políticas de privacidad</Text>
+              <TouchableOpacity
+                onPress={onClose}
+                style={legalStyles.legalModalCloseBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
+                <Text style={legalStyles.legalModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={legalStyles.legalModalSubtitle}>
-            Protección de Datos Personales • Ley N° 25.326
-          </Text>
 
           <ScrollView
-            style={legalStyles.legalModalBody}
+            style={[legalStyles.legalModalScroll, { height: scrollHeight }]}
+            contentContainerStyle={legalStyles.legalModalBodyContent}
             showsVerticalScrollIndicator={true}
+            persistentScrollbar={true}
+            nestedScrollEnabled={true}
+            overScrollMode="never"
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={legalStyles.legalSectionTitle}>1. Compromiso de Privacidad</Text>
-            <Text style={legalStyles.legalParagraph}>
-              BA Protege+ garantiza el tratamiento confidencial y seguro de todos los datos personales de acuerdo con la Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
+            <Text style={legalStyles.legalIntroText}>
+              Tus datos personales están protegidos bajo la Ley N° 25.326.
             </Text>
 
-            <Text style={legalStyles.legalSectionTitle}>2. Información Recolectada</Text>
-            <Text style={legalStyles.legalParagraph}>
-              Recolectamos datos mínimos e indispensables: nombre, apellido, correo electrónico, teléfono, fecha de nacimiento, identificador de dispositivo y registros de intentos de acceso a sitios bloqueados.
-            </Text>
-
-            <Text style={legalStyles.legalSectionTitle}>3. Uso de Datos y Geolocalización</Text>
-            <Text style={legalStyles.legalParagraph}>
-              La información de geolocalización e IP se utiliza únicamente para auditar la seguridad del dispositivo y la vinculación de cuentas. Nunca comercializamos, vendemos ni compartimos datos con anunciantes ni terceros.
-            </Text>
-
-            <Text style={legalStyles.legalSectionTitle}>4. Seguridad e Inmutabilidad</Text>
-            <Text style={legalStyles.legalParagraph}>
-              Toda la comunicación entre el dispositivo y nuestros servidores viaja cifrada con protocolo TLS 1.3/HTTPS. Los registros de auditoría de seguridad se guardan de forma inmutable.
-            </Text>
-
-            <Text style={legalStyles.legalSectionTitle}>5. Derechos del Usuario</Text>
-            <Text style={legalStyles.legalParagraph}>
-              Como titular de los datos, tienes derecho a rectificar, actualizar o solicitar la supresión de tu información personal en cualquier momento escribiendo al soporte oficial de BA Protege+.
-            </Text>
+            {PRIVACY_SECTIONS.map((section) => (
+              <View key={section.title} style={legalStyles.legalItemCard}>
+                <Text style={legalStyles.legalItemTitle}>{section.title}</Text>
+                <Text style={legalStyles.legalItemText}>{section.body}</Text>
+              </View>
+            ))}
           </ScrollView>
 
-          <TouchableOpacity
-            style={legalStyles.legalModalConfirmBtn}
-            onPress={onClose}
-            activeOpacity={0.85}
+          <View
+            style={legalStyles.legalModalFooter}
+            onLayout={(e) => {
+              const measured = Math.round(e.nativeEvent.layout.height);
+              if (measured > 0 && Math.abs(measured - footerHeight) > 1) {
+                setFooterHeight(measured);
+              }
+            }}
           >
-            <Text style={legalStyles.legalModalConfirmBtnText}>Entendido</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={legalStyles.legalModalConfirmBtn}
+              onPress={onClose}
+              activeOpacity={0.85}
+            >
+              <Text style={legalStyles.legalModalConfirmBtnText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 };

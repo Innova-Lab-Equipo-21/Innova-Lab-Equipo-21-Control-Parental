@@ -13,6 +13,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 18,
     paddingTop: 20,
     paddingBottom: 24,
@@ -109,5 +110,11 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  botitoContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
   },
 });

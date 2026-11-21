@@ -55,7 +55,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     setErrorMessage(null);
 
     if (!email.trim()) {
-      setErrorMessage('Por favor, ingresa tu correo electrónico.');
+      setErrorMessage('Por favor, ingresá tu correo electrónico.');
       return;
     }
     if (!validateEmailFormat(email)) {
@@ -63,7 +63,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       return;
     }
     if (!password) {
-      setErrorMessage('Por favor, ingresa tu contraseña.');
+      setErrorMessage('Por favor, ingresá tu contraseña.');
       return;
     }
 
@@ -134,7 +134,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       <View style={styles.headerSection}>
         <Text style={styles.title}>Iniciar sesión</Text>
         <Text style={styles.subtitle}>
-          Acceso exclusivo para padres y tutores responsables
+          Acceso para personas responsables únicamente
         </Text>
       </View>
 
@@ -243,7 +243,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       {/* Acciones */}
       <View style={styles.actionsSection}>
         <ActionButton
-          title="Iniciar Sesión"
+          title="Iniciar sesión"
           variant="primary"
           onPress={handleSubmit}
           loading={loading}
@@ -286,16 +286,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             Este sitio está sujeto a{' '}
             <Text
               style={styles.legalLink}
-              onPress={() => setShowPrivacyModal(true)}
+              onPress={() => setShowTermsModal(true)}
             >
-              Políticas de Privacidad
+              Términos y condiciones
             </Text>
             {' y '}
             <Text
               style={styles.legalLink}
-              onPress={() => setShowTermsModal(true)}
+              onPress={() => setShowPrivacyModal(true)}
             >
-              Términos y condiciones
+              Políticas de privacidad
             </Text>
           </Text>
         </View>

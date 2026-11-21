@@ -1,104 +1,110 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: Frontend Mobile (Tests Automatizados — Onboarding y Tutoriales)
+// Componente: Frontend Mobile (Tests Automatizados — Onboarding)
 // Archivo: tests/onboarding.test.ts
 // Descripción: Suite de tests unitarios para verificar la integridad del Onboarding:
-//              - Flujo Wizard de 3 Pantallas.
-//              - Video explicativo único oficial de onboarding.
-//              - Videos tutoriales y estructura de pasos.
+//              - Flujo Wizard de 3 pasos en OnboardingScreen.tsx.
+//              - Textos alineados al Brandbook (voseo rioplatense y Sentence case).
+//              - Reproductor nativo de YouTube Shorts en el Paso 3.
 // ==============================================================================
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  TUTORIAL_VIDEOS,
-  ONBOARDING_WIZARD_STEPS,
-  ONBOARDING_WIZARD_VIDEO,
-} from '../src/data/tutorialVideos.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const onboardingScreenPath = path.resolve(
+  __dirname,
+  '../src/screens/OnboardingScreen.tsx'
+);
+const youtubeWrapperPath = path.resolve(
+  __dirname,
+  '../src/components/YouTubePlayerView.tsx'
+);
+const protectionPackagePath = path.resolve(
+  __dirname,
+  '../android/app/src/main/java/com/baprotege/bridge/ProtectionPackage.kt'
+);
+
+const onboardingSource = fs.readFileSync(onboardingScreenPath, 'utf-8');
+const youtubeWrapperSource = fs.readFileSync(youtubeWrapperPath, 'utf-8');
+const protectionPackageSource = fs.readFileSync(protectionPackagePath, 'utf-8');
 
 describe('Pantalla de Onboarding y Flujo Wizard de 3 Pantallas', () => {
-  test('El wizard de Onboarding debe contener exactamente 3 pantallas estructuradas', () => {
-    assert.equal(ONBOARDING_WIZARD_STEPS.length, 3, 'El wizard debe constar de 3 pantallas');
-    assert.equal(ONBOARDING_WIZARD_STEPS[0].stepNumber, 1);
-    assert.equal(ONBOARDING_WIZARD_STEPS[1].stepNumber, 2);
-    assert.equal(ONBOARDING_WIZARD_STEPS[2].stepNumber, 3);
-
-    // Pantalla 1: Bienvenida y Privacidad
-    assert.match(ONBOARDING_WIZARD_STEPS[0].title, /Protección Integral/i);
-    // Pantalla 2: Modalidades
-    assert.match(ONBOARDING_WIZARD_STEPS[1].title, /Modalidades/i);
-    // Pantalla 3: Resumen audiovisual
-    assert.match(ONBOARDING_WIZARD_STEPS[2].title, /Video/i);
+  test('El wizard de Onboarding debe contener exactamente 3 pasos estructurados', () => {
+    assert.ok(onboardingSource.includes('wizardStep === 1'), 'Debe incluir el Paso 1');
+    assert.ok(onboardingSource.includes('wizardStep === 2'), 'Debe incluir el Paso 2');
+    assert.ok(onboardingSource.includes('wizardStep === 3'), 'Debe incluir el Paso 3');
+    assert.ok(onboardingSource.includes('[1, 2, 3].map'), 'El stepper debe mostrar 3 pasos');
   });
 
-  test('La tercera pantalla wizard debe incluir un video resumen de pocos segundos y optativo', () => {
-    assert.ok(ONBOARDING_WIZARD_VIDEO, 'Debe existir la configuración del video wizard');
-    assert.equal(ONBOARDING_WIZARD_VIDEO.isOptional, true, 'El video debe ser explícitamente optativo');
+  test('Paso 1 debe mostrar los textos oficiales del Brandbook y Botito feliz animado', () => {
     assert.ok(
-      ONBOARDING_WIZARD_VIDEO.durationSeconds <= 45,
-      'El video debe durar pocos segundos (<= 45s)'
+      onboardingSource.includes('¡Te damos la bienvenida a BA Protege +!'),
+      'Paso 1 debe incluir el título de bienvenida'
     );
     assert.ok(
-      ONBOARDING_WIZARD_VIDEO.durationSeconds >= 20,
-      'El video debe tener duración suficiente para explicar los perfiles'
+      onboardingSource.includes(
+        'Una herramienta pensada para acompañar a quienes más lo necesitan.'
+      ),
+      'Paso 1 debe incluir el subtítulo oficial'
     );
-    assert.match(ONBOARDING_WIZARD_VIDEO.duration, /^\d{2}:\d{2}$/, 'Debe cumplir formato mm:ss');
+    assert.ok(
+      onboardingSource.includes('Lotería de la Ciudad de Buenos Aires (LOTBA)'),
+      'Paso 1 debe mencionar a LOTBA'
+    );
+    assert.ok(
+      onboardingSource.includes('En BA Protege + te cuidamos a vos y a los tuyos.'),
+      'Paso 1 debe incluir el mensaje de cierre con voseo'
+    );
+    assert.ok(
+      onboardingSource.includes('<AnimatedBotMascot') &&
+        onboardingSource.includes('mood="feliz"'),
+      'Paso 1 debe mostrar a Botito feliz animado usando AnimatedBotMascot'
+    );
   });
 
-  test('El video resumen de la pantalla 3 debe explicar los 3 perfiles de usuarios (Responsable, Menor y Dispositivo Adulto)', () => {
-    const profiles = ONBOARDING_WIZARD_VIDEO.steps.map((s) => s.profile);
-    assert.ok(profiles.includes('RESPONSABLE'), 'Debe explicar el perfil Responsable');
-    assert.ok(profiles.includes('MENOR'), 'Debe explicar el perfil Modo Dispositivo Menor');
-    assert.ok(profiles.includes('ADULTO'), 'Debe explicar el perfil Modo Dispositivo Adulto');
-
-    for (const step of ONBOARDING_WIZARD_VIDEO.steps) {
-      assert.ok(step.second >= 0, 'El segundo de inicio debe ser válido');
-      assert.ok(step.title.length > 5, 'El título del perfil debe ser descriptivo');
-      assert.ok(step.description.length > 10, 'La descripción audiovisual debe ser explicativa');
-      assert.ok(step.emoji.length > 0, 'Debe tener emoji representativo');
-      assert.ok(step.badgeColor.startsWith('#'), 'Debe tener color hexadecimal para el reproductor');
-    }
+  test('Paso 2 debe presentar Modo responsable y Modo protegido con textos del Brandbook', () => {
+    assert.ok(onboardingSource.includes('¿Cómo funciona la app?'));
+    assert.ok(onboardingSource.includes('Podés usarla de dos formas distintas:'));
+    assert.ok(onboardingSource.includes('Modo responsable'));
+    assert.ok(onboardingSource.includes('Modo protegido'));
+    assert.ok(
+      onboardingSource.includes(
+        'Podés agregar sitios y apps personalizados para proteger a personas de tu entorno desde tu dispositivo.'
+      )
+    );
+    assert.ok(
+      onboardingSource.includes(
+        'Tu dispositivo recibe la protección de una persona responsable.'
+      )
+    );
   });
 
-  test('Debe contener el video explicativo oficial de onboarding', () => {
-    assert.equal(TUTORIAL_VIDEOS.length, 1, 'Debe haber exactamente 1 video explicativo de onboarding');
+  test('Paso 3 debe incluir el título actualizado y el video de YouTube Shorts TiF6zxlt5fU', () => {
+    assert.ok(onboardingSource.includes('¿Tenés dudas?'), 'Paso 3 debe usar el título "¿Tenés dudas?"');
+    assert.ok(
+      onboardingSource.includes("ONBOARDING_YOUTUBE_VIDEO_ID = 'TiF6zxlt5fU'"),
+      'Paso 3 debe configurar el ID de YouTube Shorts TiF6zxlt5fU'
+    );
+    assert.ok(
+      onboardingSource.includes('<YouTubePlayerView'),
+      'Paso 3 debe renderizar YouTubePlayerView al reproducir'
+    );
   });
 
-  test('Cada video debe contar con duración positiva y formato mm:ss', () => {
-    const durationRegex = /^\d{2}:\d{2}$/;
-    for (const video of TUTORIAL_VIDEOS) {
-      assert.ok(video.durationSeconds > 0, `Duración en segundos debe ser > 0 para ${video.id}`);
-      assert.match(video.duration, durationRegex, `Formato debe ser mm:ss para ${video.id}`);
-    }
-  });
-
-  test('Cada tutorial debe contener una secuencia ordenada de pasos', () => {
-    for (const video of TUTORIAL_VIDEOS) {
-      assert.ok(video.steps.length >= 3, `Debe tener al menos 3 pasos explicativos (${video.id})`);
-
-      for (let i = 0; i < video.steps.length; i++) {
-        const step = video.steps[i];
-        assert.ok(step.second >= 0, 'El segundo de inicio debe ser no negativo');
-        assert.ok(step.second <= video.durationSeconds, 'El segundo de inicio debe estar dentro de la duración');
-        assert.ok(step.title.length > 0, 'El título del paso no puede estar vacío');
-        assert.ok(step.description.length > 0, 'La descripción no puede estar vacía');
-
-        if (i > 0) {
-          assert.ok(
-            step.second >= video.steps[i - 1].second,
-            `Los pasos deben ser cronológicamente crecientes en ${video.id}`
-          );
-        }
-      }
-    }
-  });
-
-  test('Cada video debe contar con puntos clave (highlights) para generar confianza', () => {
-    for (const video of TUTORIAL_VIDEOS) {
-      assert.ok(video.highlights.length >= 3, `Debe contener al menos 3 puntos clave (${video.id})`);
-      for (const h of video.highlights) {
-        assert.ok(h.length > 5, 'Cada punto clave debe ser descriptivo');
-      }
-    }
+  test('El módulo nativo Android registra YouTubePlayerViewManager y existe wrapper TS', () => {
+    assert.ok(
+      youtubeWrapperSource.includes("const VIEW_NAME = 'YouTubePlayerView'"),
+      'YouTubePlayerView.tsx debe apuntar al ViewManager YouTubePlayerView'
+    );
+    assert.ok(
+      protectionPackageSource.includes('YouTubePlayerViewManager()'),
+      'ProtectionPackage.kt debe registrar YouTubePlayerViewManager'
+    );
   });
 });

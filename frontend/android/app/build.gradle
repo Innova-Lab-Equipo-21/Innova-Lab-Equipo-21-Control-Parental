@@ -98,6 +98,37 @@ tasks.register('copyDebugApkToLanding') {
     }
 }
 
+// ==============================================================================
+// Automatización: Sincronización del video de apertura hacia res/raw
+// ==============================================================================
+tasks.register('syncSplashVideoAsset') {
+    description = "Sincroniza frontend/src/assets/videos/hola_botito.mp4 hacia android/app/src/main/res/raw/hola_botito.mp4"
+    group = "ba-protege"
+
+    doLast {
+        def sourceVideo = file("${projectDir}/../../src/assets/videos/hola_botito.mp4")
+        def targetRawDir = file("${projectDir}/src/main/res/raw")
+        def targetVideo = file("${targetRawDir}/hola_botito.mp4")
+
+        if (sourceVideo.exists()) {
+            targetRawDir.mkdirs()
+            if (!targetVideo.exists() ||
+                sourceVideo.length() != targetVideo.length() ||
+                sourceVideo.lastModified() > targetVideo.lastModified()) {
+                java.nio.file.Files.copy(
+                    sourceVideo.toPath(),
+                    targetVideo.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                )
+            }
+        }
+    }
+}
+
+tasks.named('preBuild').configure {
+    dependsOn('syncSplashVideoAsset')
+}
+
 tasks.configureEach { task ->
     if (task.name == "assembleDebug" || task.name == "packageDebug") {
         task.finalizedBy('copyDebugApkToLanding')

@@ -42,8 +42,9 @@ import { protectionService } from './services/protection.service';
 import { apiService } from './services/api.service';
 
 export function App(): React.JSX.Element {
-  // Splash Screen inicial animado
-  const [showSplash, setShowSplash] = useState<boolean>(true);
+  // Splash Screen inicial con video vertical de abertura
+  const [splashFinished, setSplashFinished] = useState<boolean>(false);
+  const [skipSplash, setSkipSplash] = useState<boolean>(false);
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
 
   // 1) Onboarding inicial
@@ -72,6 +73,11 @@ export function App(): React.JSX.Element {
   // Hidratar estado de sesión persistido al iniciar la aplicación
   useEffect(() => {
     getNavigationState().then(async (session) => {
+      // Omitir Splash solo al volver desde Ajustes de Android a la pantalla de Permisos
+      if (session.activeScreen === 'PERMISSIONS') {
+        setSkipSplash(true);
+      }
+
       // Verificar si ya se registró una cuenta de Responsable en este dispositivo
       const accountCreatedRaw = await safeStorage.getItem('@ba_protege_responsible_account_created');
       const modeLockedRaw = await safeStorage.getItem('@ba_protege_mode_locked');
@@ -148,15 +154,6 @@ export function App(): React.JSX.Element {
         effectiveScreen = 'DASHBOARD';
       }
       setActiveScreen(effectiveScreen);
-
-      // Si la sesión ya estaba activa o se encontraba en Permisos, omitir Splash para reingreso fluido
-      if (
-        session.onboardingCompleted ||
-        session.isParentLoggedIn ||
-        session.activeScreen === 'PERMISSIONS'
-      ) {
-        setShowSplash(false);
-      }
       setIsHydrated(true);
     });
   }, []);
@@ -345,17 +342,17 @@ export function App(): React.JSX.Element {
     await clearNavigationSession();
   };
 
+  if (!skipSplash && !splashFinished) {
+    return <SplashScreen onFinish={() => setSplashFinished(true)} />;
+  }
+
   if (!isHydrated) {
     return <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />;
   }
 
-  if (showSplash) {
-    return <SplashScreen onFinish={() => setShowSplash(false)} />;
-  }
-
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar translucent={false} barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* PASO 1: Onboarding para todos los usuarios */}
       {showOnboarding && (

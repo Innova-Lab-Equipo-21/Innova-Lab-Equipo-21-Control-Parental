@@ -16,6 +16,7 @@ import {
 import { Logo } from '../components/Logo';
 import { Icon } from '../components/Icon';
 import { FeedbackModal } from '../components/FeedbackModal';
+import { AnimatedBotMascot } from '../components/AnimatedBotMascot';
 import { colors } from '../theme/colors';
 import { AppMode } from '../types';
 import { styles } from './WelcomeScreen.styles';
@@ -71,12 +72,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           </View>
 
           <Text style={styles.cardDesc}>
-            Ideal para quienes gestionan reglas, restricciones y bloqueos de sitios web y apps en este u outros dispositivos.
+            Para personalizar los bloqueos de sitios y apps, y promover la navegación segura en este u otros dispositivos.
           </Text>
-
-          <View style={styles.pillContainer}>
-            <Text style={styles.pillText}>Basado en PIN y contraseña.</Text>
-          </View>
 
           <TouchableOpacity
             style={styles.actionBtn}
@@ -95,12 +92,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           </View>
 
           <Text style={styles.cardDesc}>
-            Para dispositivos que reciben protección y navegación segura configurada por un adulto responsable.
+            Para dispositivos que reciben la protección de una persona responsable para prevenir los riesgos que se derivan de sitios de juegos y apuestas ilegales.
           </Text>
-
-          <View style={styles.pillContainer}>
-            <Text style={styles.pillText}>Basado en supervisión externa.</Text>
-          </View>
 
           <TouchableOpacity
             style={styles.actionBtn}
@@ -110,14 +103,25 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <Text style={styles.actionBtnText}>Empezar</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Botito pensando animado centrado en el área inferior */}
+        <View style={styles.botitoContainer} pointerEvents="none">
+          <AnimatedBotMascot
+            mood="pensando"
+            size={120}
+            accessibilityLabel="Botito pensando en qué modo elegir"
+          />
+        </View>
       </ScrollView>
 
       {/* Modal estándar de alerta sobre decisión de Modo Responsable */}
       <FeedbackModal
         visible={showResponsibleAlertModal}
         icon="⚠️"
-        title="Modo responsable"
-        message="Al elegir este modo y completar tu registro, este dispositivo quedará configurado permanentemente como Responsable y no podrá cambiarse a Modo protegido desde la aplicación.&#10;&#10;Si en el futuro deseas cambiar el modo de este dispositivo, deberás borrar los datos de la aplicación en los Ajustes del sistema."
+        title="¿Confirmás tu decisión?"
+        message={
+          'Al actuar como persona responsable, vas a poder personalizar los bloqueos de sitios y apps.\n\nSi más adelante necesitás cambiar al otro modo, vas a tener que borrar los datos de la app desde los ajustes de tu celular.'
+        }
         buttonText="Continuar"
         secondaryButtonText="Cancelar"
         onConfirm={() => {

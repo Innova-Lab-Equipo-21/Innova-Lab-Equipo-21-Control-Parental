@@ -1,31 +1,78 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: TermsModal (Modal de Términos y Condiciones)
+// Componente: TermsModal (Modal de Términos y condiciones)
 // Archivo: src/components/auth/TermsModal.tsx
-// Descripción: Modal Bottom Sheet que presenta los Términos y Condiciones oficiales
-//              de BA Protege+ provistos por LOTBA S.E. para la protección digital
-//              y filtrado preventivo.
+// Descripción: Modal Bottom Sheet que presenta los Términos y condiciones oficiales
+//              de BA Protege + provistos por LOTBA para la prevención del juego
+//              ilegal y el cuidado digital.
 // ==============================================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   Modal,
+  Pressable,
   TouchableOpacity,
   ScrollView,
+  StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
-import { legalStyles } from './LegalModal.styles';
+import {
+  legalStyles,
+  LEGAL_SHEET_HEIGHT_RATIO,
+  LEGAL_SHEET_PADDING_TOP,
+  LEGAL_SHEET_PADDING_BOTTOM,
+} from './LegalModal.styles';
 
 export interface TermsModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
+const TERMS_SECTIONS = [
+  {
+    title: '1. La aceptación del servicio',
+    body: 'Al crear tu cuenta, aceptás estos términos para usar la app de forma segura.',
+  },
+  {
+    title: '2. La mayoría de edad',
+    body: 'Quienes utilizan la app bajo el modo responsable deben ser mayores de 18 años (madres, padres, tutores o adultos responsables).',
+  },
+  {
+    title: '3. El filtro VPN',
+    body: 'La app activa este filtro en tu dispositivo para bloquear automáticamente el acceso a sitios de apuestas clandestinas no autorizados por LOTBA. Tus datos privados quedan protegidos en tu celular.',
+  },
+  {
+    title: '4. La protección antidesinstalación',
+    body: 'Para mantener activa tu protección y la de tu entorno, la app cuenta con mecanismos que evitan la desinstalación no autorizada.',
+  },
+  {
+    title: '5. Actualizaciones en el sistema',
+    body: 'Para garantizar la protección continua, LOTBA puede actualizar la lista de sitios bloqueados y las funcionalidades de la app cuando sea necesario.',
+  },
+];
+
 export const TermsModal: React.FC<TermsModalProps> = ({
   visible,
   onClose,
 }) => {
+  const { height: windowHeight } = useWindowDimensions();
+  const [overlayHeight, setOverlayHeight] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(64);
+  const [footerHeight, setFooterHeight] = useState(62);
+
+  const effectiveHeight = overlayHeight > 0 ? overlayHeight : windowHeight;
+  const sheetHeight = Math.round(effectiveHeight * LEGAL_SHEET_HEIGHT_RATIO);
+  const scrollHeight = Math.max(
+    180,
+    sheetHeight -
+      LEGAL_SHEET_PADDING_TOP -
+      LEGAL_SHEET_PADDING_BOTTOM -
+      headerHeight -
+      footerHeight,
+  );
+
   return (
     <Modal
       visible={visible}
@@ -33,71 +80,95 @@ export const TermsModal: React.FC<TermsModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
+      <View
         style={legalStyles.legalModalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
+        onLayout={(e) => {
+          const measured = Math.round(e.nativeEvent.layout.height);
+          if (measured > 0 && Math.abs(measured - overlayHeight) > 1) {
+            setOverlayHeight(measured);
+          }
+        }}
       >
-        <View
-          style={legalStyles.legalModalCard}
-          onStartShouldSetResponder={() => true}
-        >
-          {/* Manija táctil del Bottom Sheet */}
-          <View style={legalStyles.bottomSheetHandle} />
+        {/* Fondo oscurecido detrás del sheet: cierra el modal sin interceptar el scroll */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar términos y condiciones"
+        />
 
-          <View style={legalStyles.legalModalHeader}>
-            <Text style={legalStyles.legalModalTitle}>Términos y Condiciones</Text>
-            <TouchableOpacity
-              onPress={onClose}
-              style={legalStyles.legalModalCloseBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={legalStyles.legalModalCloseText}>✕</Text>
-            </TouchableOpacity>
+        <View style={[legalStyles.legalModalSheet, { height: sheetHeight }]}>
+          <View
+            style={legalStyles.legalModalHeaderSection}
+            onLayout={(e) => {
+              const measured = Math.round(e.nativeEvent.layout.height);
+              if (measured > 0 && Math.abs(measured - headerHeight) > 1) {
+                setHeaderHeight(measured);
+              }
+            }}
+          >
+            {/* Manija táctil del Bottom Sheet */}
+            <View style={legalStyles.bottomSheetHandle} />
+
+            <View style={legalStyles.legalModalHeader}>
+              <Text style={legalStyles.legalModalTitle}>Términos y condiciones</Text>
+              <TouchableOpacity
+                onPress={onClose}
+                style={legalStyles.legalModalCloseBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
+                <Text style={legalStyles.legalModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={legalStyles.legalModalSubtitle}>
-            BA Protege+ • Lotería de la Ciudad de Buenos Aires (LOTBA)
-          </Text>
 
           <ScrollView
-            style={legalStyles.legalModalBody}
+            style={[legalStyles.legalModalScroll, { height: scrollHeight }]}
+            contentContainerStyle={legalStyles.legalModalBodyContent}
             showsVerticalScrollIndicator={true}
+            persistentScrollbar={true}
+            nestedScrollEnabled={true}
+            overScrollMode="never"
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={legalStyles.legalSectionTitle}>1. Aceptación del Servicio</Text>
-            <Text style={legalStyles.legalParagraph}>
-              Al crear una cuenta en BA Protege+, aceptas cumplir íntegramente con los presentes Términos y Condiciones. Esta plataforma es provista por el Gobierno de la Ciudad Autónoma de Buenos Aires a través de LOTBA S.E. para la prevención del juego ilegal y la protección de menores.
+            <Text style={legalStyles.legalIntroText}>
+              BA Protege + es una plataforma para bloquear sitios y apps no autorizados por la Lotería de la Ciudad de Buenos Aires (LOTBA) con el fin de prevenir el juego ilegal y proteger a las personas contra consumos problemáticos.
             </Text>
 
-            <Text style={legalStyles.legalSectionTitle}>2. Requisito de Mayoría de Edad</Text>
-            <Text style={legalStyles.legalParagraph}>
-              El registro en el Modo Responsable está reservado exclusivamente a padres, madres, tutores legales o adultos responsables mayores de 18 años. Queda estrictamente prohibida la creación de cuentas por menores de edad.
+            <Text style={legalStyles.legalLeadTitle}>
+              Para funcionar, la app necesita:
             </Text>
 
-            <Text style={legalStyles.legalSectionTitle}>3. Uso del Servicio de Filtrado VPN</Text>
-            <Text style={legalStyles.legalParagraph}>
-              La aplicación instala un túnel de filtrado local (VPN) en el dispositivo para bloquear automáticamente solicitudes hacia plataformas de apuestas no autorizadas o clandestinas enumeradas en la lista oficial de LOTBA.
-            </Text>
-
-            <Text style={legalStyles.legalSectionTitle}>4. Protección Anti-Desinstalación</Text>
-            <Text style={legalStyles.legalParagraph}>
-              Con el fin de asegurar la efectividad del control parental, el sistema utiliza permisos de Accesibilidad de Android para prevenir el cierre o desinstalación no autorizada de la aplicación sin la clave PIN del tutor.
-            </Text>
-
-            <Text style={legalStyles.legalSectionTitle}>5. Modificaciones y Actualizaciones</Text>
-            <Text style={legalStyles.legalParagraph}>
-              LOTBA se reserva el derecho de actualizar la lista de dominios bloqueados y las funcionalidades del sistema en cualquier momento para mantener la protección activa.
-            </Text>
+            {TERMS_SECTIONS.map((section) => (
+              <View key={section.title} style={legalStyles.legalItemCard}>
+                <Text style={legalStyles.legalItemTitle}>{section.title}</Text>
+                <Text style={legalStyles.legalItemText}>{section.body}</Text>
+              </View>
+            ))}
           </ScrollView>
 
-          <TouchableOpacity
-            style={legalStyles.legalModalConfirmBtn}
-            onPress={onClose}
-            activeOpacity={0.85}
+          <View
+            style={legalStyles.legalModalFooter}
+            onLayout={(e) => {
+              const measured = Math.round(e.nativeEvent.layout.height);
+              if (measured > 0 && Math.abs(measured - footerHeight) > 1) {
+                setFooterHeight(measured);
+              }
+            }}
           >
-            <Text style={legalStyles.legalModalConfirmBtnText}>Entendido</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={legalStyles.legalModalConfirmBtn}
+              onPress={onClose}
+              activeOpacity={0.85}
+            >
+              <Text style={legalStyles.legalModalConfirmBtnText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 };
