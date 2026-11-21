@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Política de privacidad · BA Protege+</title>
+  <title>Políticas de privacidad · BA Protege +</title>
 
-  <meta name="description" content="Políticas de Privacidad oficiales de BA Protege+ en conformidad con la Ley N° 25.326 de Protección de Datos Personales de la República Argentina.">
-  <meta name="author" content="Gobierno de la Ciudad de Buenos Aires · LOTBA S.E.">
+  <meta name="description" content="Políticas de privacidad oficiales de BA Protege + en conformidad con la Ley N° 25.326 de Protección de Datos Personales de la República Argentina.">
+  <meta name="author" content="Gobierno de la Ciudad de Buenos Aires · LOTBA">
 
   <!-- Favicon oficial de la Ciudad de Buenos Aires -->
   <link rel="icon" type="image/png" href="assets/img/logo_ba.png">
@@ -16,151 +16,44 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap" rel="stylesheet">
 
+  <!-- Estilos principales y de páginas legales -->
   <link rel="stylesheet" href="styles/main.css">
-  <style>
-    .legal-page {
-      padding: 50px 0 80px;
-      background: radial-gradient(circle at 20% 20%, rgba(40, 167, 69, 0.05) 0%, transparent 50%), #F8F9FA;
-    }
-    .legal-card {
-      background-color: #FFFFFF;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-card);
-      padding: 48px;
-      max-width: 860px;
-      margin: 0 auto;
-    }
-    .legal-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background-color: var(--color-secondary-light);
-      color: var(--color-secondary-dark);
-      padding: 4px 12px;
-      border-radius: var(--radius-full);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      margin-bottom: 12px;
-    }
-    .legal-title {
-      font-size: 34px;
-      font-weight: 800;
-      color: var(--color-text-primary);
-      margin-bottom: 8px;
-      letter-spacing: -0.5px;
-    }
-    .legal-meta {
-      font-size: 13px;
-      color: var(--color-text-secondary);
-      padding-bottom: 24px;
-      border-bottom: 1px solid var(--color-border);
-      margin-bottom: 32px;
-    }
-    .legal-section {
-      margin-bottom: 28px;
-    }
-    .legal-section-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-    .legal-section-num {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background-color: var(--color-secondary);
-      color: #FFFFFF;
-      font-size: 13px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .legal-section-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--color-text-primary);
-    }
-    .legal-paragraph {
-      font-size: 15px;
-      line-height: 1.7;
-      color: #495057;
-      padding-left: 40px;
-    }
-    .legal-callout {
-      margin-top: 36px;
-      padding: 20px 24px;
-      background-color: var(--color-secondary-light);
-      border-left: 4px solid var(--color-secondary);
-      border-radius: 8px;
-      font-size: 14px;
-      color: var(--color-text-primary);
-      line-height: 1.6;
-    }
-    .breadcrumb {
-      font-size: 13px;
-      color: var(--color-text-secondary);
-      margin-bottom: 24px;
-    }
-    .breadcrumb a {
-      color: var(--color-primary);
-      text-decoration: none;
-    }
-    .breadcrumb a:hover {
-      text-decoration: underline;
-    }
-    @media (max-width: 768px) {
-      .legal-card { padding: 28px 20px; }
-      .legal-title { font-size: 26px; }
-      .legal-paragraph { padding-left: 0; margin-top: 8px; }
-    }
-  </style>
+  <link rel="stylesheet" href="styles/legal.css">
 </head>
 <body>
 
-  <!-- Top bar oficial -->
-  <header class="top-bar">
-    <div class="container top-bar-content">
-      <div class="top-bar-brand">
-        <span class="top-bar-badge">Oficial</span>
-        <span>Gobierno de la Ciudad de Buenos Aires · LOTBA S.E.</span>
-      </div>
-      <div class="top-bar-links">
-        <a href="index.html">← Volver al portal principal</a>
-        <a href="tel:08003330333">0800-333-0333 (Juego responsable)</a>
-      </div>
-    </div>
-  </header>
-
-  <!-- Navbar (Solo logo oficial) -->
+  <!-- Navbar principal -->
   <nav class="navbar" aria-label="Navegación principal">
     <div class="container nav-container">
-      <a href="index.html" class="nav-brand" aria-label="BA Protege+">
-        <img src="assets/img/logo_baprotege.png" alt="BA Protege+" class="nav-logo-img">
+      <a href="index.html" class="nav-brand" aria-label="BA Protege +">
+        <img src="assets/img/logo_baprotege.png" alt="BA Protege +" class="nav-logo-img">
       </a>
-      <ul class="nav-links">
-        <li><a href="index.html">Inicio</a></li>
-        <li><a href="index.html#como-funciona">Cómo funciona</a></li>
-        <li><a href="index.html#caracteristicas">Funciones</a></li>
-        <li><a href="terminos-y-condiciones.html">Términos y condiciones</a></li>
+
+      <ul class="nav-links" id="nav-links">
+        <li><a href="index.html#usuarios">Nuestros usuarios</a></li>
+        <li><a href="index.html#servicios">Nuestros servicios</a></li>
+        <li><a href="index.html#guia-de-uso">Guía de uso</a></li>
+        <li><a href="index.html#faq">Preguntas frecuentes</a></li>
         <li><a href="index.html#contacto">Contacto</a></li>
       </ul>
+
       <div class="nav-actions">
-        <a href="index.html#descarga" class="btn btn-primary btn-sm">Descargar APK</a>
+        <a href="index.html#descarga" class="btn btn-primary btn-sm">
+          <span>Descargar BA Protege +</span>
+        </a>
+        <button class="mobile-toggle" id="mobile-menu-toggle" aria-label="Abrir menú de navegación" aria-expanded="false">
+          ☰
+        </button>
       </div>
     </div>
   </nav>
 
   <!-- Contenido legal -->
-  <main class="legal-page">
+  <main class="legal-page legal-page--privacy">
     <div class="container">
 
       <div class="breadcrumb">
-        <a href="index.html">Inicio</a> / <span>Política de privacidad</span>
+        <a href="index.html">Inicio</a> / <span>Políticas de privacidad</span>
       </div>
 
       <article class="legal-card">
@@ -169,19 +62,25 @@
           <span>Ley N° 25.326 · Protección de datos personales</span>
         </div>
 
-        <h1 class="legal-title">Política de privacidad</h1>
+        <h1 class="legal-title">Políticas de privacidad</h1>
         <div class="legal-meta">
-          <span>BA Protege+ • República Argentina • Ley N° 25.326 • Última actualización: Noviembre 2026</span>
+          <span>BA Protege + • República Argentina • Ley N° 25.326 • Última actualización: Noviembre 2026</span>
+        </div>
+
+        <div class="legal-intro">
+          <p>
+            Tus datos personales están protegidos bajo la Ley N° 25.326.
+          </p>
         </div>
 
         <!-- Sección 1 -->
         <section class="legal-section">
           <div class="legal-section-header">
             <span class="legal-section-num">1</span>
-            <h2 class="legal-section-title">Compromiso de privacidad</h2>
+            <h2 class="legal-section-title">Tu privacidad nos importa</h2>
           </div>
           <p class="legal-paragraph">
-            <strong>BA Protege+</strong> garantiza el tratamiento confidencial, ético y seguro de todos los datos personales recolectados en el marco del servicio, en estricto cumplimiento de la Ley N° 25.326 de Protección de Datos Personales de la República Argentina y las normativas vigentes en la Ciudad Autónoma de Buenos Aires.
+            Por disposición de la Ley N° 25.326, tus datos privados quedan resguardados en tu celular. Nunca vamos a comercializar ni vender tus datos a anunciantes ni a terceros.
           </p>
         </section>
 
@@ -189,10 +88,10 @@
         <section class="legal-section">
           <div class="legal-section-header">
             <span class="legal-section-num">2</span>
-            <h2 class="legal-section-title">Información recolectada</h2>
+            <h2 class="legal-section-title">¿Qué información recopilamos?</h2>
           </div>
           <p class="legal-paragraph">
-            Recolectamos únicamente los datos mínimos e indispensables para el correcto funcionamiento del control parental: nombre, apellido, correo electrónico, número de teléfono, fecha de nacimiento, identificador único del dispositivo y registros de auditoría de intentos de acceso a sitios bloqueados. <strong>No recopilamos ni inspeccionamos</strong> el contenido de mensajes privados, fotografías, contactos, audios ni historial personal de navegación web general.
+            Únicamente los datos mínimos e indispensables (nombre, apellido, correo electrónico, teléfono, fecha de nacimiento, identificador del dispositivo y registros de intentos de acceso a sitios bloqueados).
           </p>
         </section>
 
@@ -200,10 +99,10 @@
         <section class="legal-section">
           <div class="legal-section-header">
             <span class="legal-section-num">3</span>
-            <h2 class="legal-section-title">Uso de datos y geolocalización</h2>
+            <h2 class="legal-section-title">¿Cómo usamos la geolocalización?</h2>
           </div>
           <p class="legal-paragraph">
-            La información técnica de geolocalización e IP se utiliza exclusivamente para auditar la seguridad del dispositivo, verificar el cumplimiento jurisdiccional y validar la vinculación segura de cuentas entre el tutor y el menor. <strong>Bajo ninguna circunstancia</strong> comercializamos, transferimos ni compartimos datos personales con agencias de publicidad, anunciantes ni empresas terceras.
+            La dirección IP de los dispositivos y la ubicación se utilizan únicamente para mantener activa la seguridad y vincular las cuentas entre personas responsables y protegidas.
           </p>
         </section>
 
@@ -211,28 +110,17 @@
         <section class="legal-section">
           <div class="legal-section-header">
             <span class="legal-section-num">4</span>
-            <h2 class="legal-section-title">Seguridad e inmutabilidad</h2>
+            <h2 class="legal-section-title">Garantizamos tu seguridad</h2>
           </div>
           <p class="legal-paragraph">
-            Toda la comunicación e intercambio de información entre el dispositivo móvil y nuestros servidores seguros viaja cifrada mediante los protocolos <strong>TLS 1.3 y HTTPS</strong> de última generación. Los registros de seguridad y reglas de bloqueo se almacenan con mecanismos de inmutabilidad para prevenir cualquier manipulación indebida.
-          </p>
-        </section>
-
-        <!-- Sección 5 -->
-        <section class="legal-section">
-          <div class="legal-section-header">
-            <span class="legal-section-num">5</span>
-            <h2 class="legal-section-title">Derechos del usuario</h2>
-          </div>
-          <p class="legal-paragraph">
-            Como titular de los datos personales, tienes derecho a acceder, rectificar, actualizar o solicitar la supresión de tu información en cualquier momento. Puedes ejercer estos derechos comunicándote con el equipo oficial de soporte de <strong>BA Protege+</strong> a través de <a href="mailto:baprotegemas@gmail.com" style="color: var(--color-primary); font-weight: 700;">baprotegemas@gmail.com</a> o los canales institucionales de la Ciudad de Buenos Aires.
+            Toda la comunicación entre tu dispositivo y nuestros servidores viaja cifrada mediante el protocolo TLS 1.3/HTTPS, lo que significa que ningún tercero puede acceder a esa información.
           </p>
         </section>
 
         <!-- Callout institucional -->
         <div class="legal-callout">
           <strong>Protección y confianza para tu familia</strong><br>
-          BA Protege+ es una política pública orientada al cuidado de los menores, no a la vigilancia invasiva. Consulta también nuestros <a href="terminos-y-condiciones.html" style="color: var(--color-primary-dark); font-weight: 700;">Términos y condiciones</a>.
+          BA Protege + es una política pública orientada al cuidado y bienestar digital, no a la vigilancia invasiva. Consultá también nuestros <a href="terminos-y-condiciones.html">Términos y condiciones</a> y la <a href="https://www.argentina.gob.ar/justicia/derechofacil/leysimple/datos-personales" target="_blank" rel="noopener">información oficial sobre la Ley 25.326</a>.
         </div>
 
       </article>
@@ -240,42 +128,63 @@
     </div>
   </main>
 
-  <!-- Footer -->
+  <!-- Footer institucional -->
   <footer class="footer">
     <div class="container">
+
       <div class="footer-grid">
+
         <div>
-          <div class="footer-brand-title">BA Protege+</div>
-          <p class="footer-desc">Herramienta pública de concientización y control parental digital de la Ciudad de Buenos Aires y LOTBA S.E.</p>
+          <div class="footer-brand-title">BA Protege +</div>
+          <p class="footer-desc">
+            Desarrollo conjunto del Gobierno de la Ciudad de Buenos Aires y la Lotería de la Ciudad (LOTBA) para promover el bienestar digital y prevenir las apuestas ilegales.
+          </p>
+          <img src="assets/img/logo_ba.png" alt="Gobierno de la Ciudad de Buenos Aires" class="footer-logo-ba">
         </div>
+
         <div>
-          <div class="footer-col-title">Legal y privacidad</div>
+          <div class="footer-col-title">Navegación</div>
+          <ul class="footer-links">
+            <li><a href="index.html#usuarios">Nuestros usuarios</a></li>
+            <li><a href="index.html#servicios">Nuestros servicios</a></li>
+            <li><a href="index.html#guia-de-uso">Guía de uso</a></li>
+            <li><a href="index.html#descarga">Descargar BA Protege +</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-col-title">Ayuda y legal</div>
           <ul class="footer-links">
             <li><a href="terminos-y-condiciones.html">Términos y condiciones</a></li>
-            <li><a href="politica-de-privacidad.html">Política de privacidad</a></li>
-            <li><a href="mailto:baprotegemas@gmail.com">baprotegemas@gmail.com</a></li>
+            <li><a href="politica-de-privacidad.html">Políticas de privacidad</a></li>
+            <li><a href="index.html#faq">Preguntas frecuentes</a></li>
+            <li><a href="https://www.argentina.gob.ar/justicia/derechofacil/leysimple/datos-personales" target="_blank" rel="noopener">Información sobre la Ley 25.326</a></li>
+            <li><a href="index.html#contacto">Contacto</a></li>
           </ul>
         </div>
+
         <div>
-          <div class="footer-col-title">Enlaces oficiales</div>
-          <ul class="footer-links">
-            <li><a href="https://buenosaires.gob.ar" target="_blank" rel="noopener">buenosaires.gob.ar</a></li>
-            <li><a href="https://loteriadelaciudad.gob.ar" target="_blank" rel="noopener">LOTBA S.E.</a></li>
-          </ul>
-        </div>
-        <div>
-          <div class="footer-col-title">Asistencia al jugador</div>
+          <div class="footer-col-title">Canales de ayuda oficiales</div>
           <div class="helpline-box">
-            <span class="helpline-title">Línea gratuita LOTBA</span>
-            <span class="helpline-number">0800-333-0333</span>
+            <span class="helpline-title">Lotería de la Ciudad (LOTBA)</span>
+            <span class="helpline-number">0800-666-6006</span>
+            <p class="helpline-note">
+              Línea <strong>108 (opción 3)</strong> · Juego responsable: <strong>0800-333-0333</strong>
+            </p>
           </div>
         </div>
+
       </div>
+
       <div class="footer-bottom">
-        <span>© 2026 Gobierno de la Ciudad Autónoma de Buenos Aires · LOTBA S.E. Todos los derechos reservados.</span>
+        <span>© 2026 Gobierno de la Ciudad Autónoma de Buenos Aires · LOTBA. Todos los derechos reservados.</span>
+        <span><a href="mailto:baprotegemas@gmail.com" class="footer-email-link">baprotegemas@gmail.com</a></span>
       </div>
+
     </div>
   </footer>
 
+  <!-- Scripts interactivos -->
+  <script src="scripts/landing.js"></script>
 </body>
 </html>

@@ -15,6 +15,8 @@
     setupFaqAccordion();
     setupContactForm();
     setupSmoothScroll();
+    setupImageFallbacks();
+    setupBackToTop();
   });
 
   /**
@@ -172,6 +174,46 @@
           });
         }
       });
+    });
+  }
+  /**
+   * Respaldo local si alguna imagen externa no logra cargarse
+   */
+  function setupImageFallbacks() {
+    document.querySelectorAll('img[data-fallback]').forEach((img) => {
+      const applyFallback = () => {
+        const fallback = img.getAttribute('data-fallback');
+        if (!fallback || img.dataset.fallbackApplied === 'true') return;
+        img.dataset.fallbackApplied = 'true';
+        img.src = fallback;
+        img.classList.add('fallback-contain');
+      };
+
+      img.addEventListener('error', applyFallback);
+
+      if (img.complete && img.naturalWidth === 0) {
+        applyFallback();
+      }
+    });
+  }
+  /**
+   * Botón flotante para volver al inicio
+   */
+  function setupBackToTop() {
+    const btn = document.getElementById('back-to-top');
+    if (!btn) return;
+
+    const toggleVisibility = () => {
+      const shouldShow = window.scrollY > 320;
+      btn.classList.toggle('visible', shouldShow);
+      btn.setAttribute('aria-hidden', String(!shouldShow));
+    };
+
+    window.addEventListener('scroll', toggleVisibility, { passive: true });
+    toggleVisibility();
+
+    btn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
 })();
