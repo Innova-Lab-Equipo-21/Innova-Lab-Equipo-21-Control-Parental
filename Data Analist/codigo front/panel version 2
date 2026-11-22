@@ -1,0 +1,202 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BA Protege + | Actividad</title>
+<style>
+:root{--blue:#0284c7;--blue-dark:#0369a1;--amber:#f59e0b;--bg:#e2e8f0;--surface:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--red:#dc2626;--green:#059669}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);padding:18px}
+button,select{font:inherit;cursor:pointer}
+.workspace{max-width:1100px;margin:auto;display:grid;grid-template-columns:minmax(320px,410px) minmax(280px,1fr);gap:24px;align-items:start}
+.phone{background:#fff;border:9px solid #0f172a;border-radius:38px;overflow:hidden;min-height:780px;box-shadow:0 20px 45px #0f172a25;display:flex;flex-direction:column}
+.status{background:#dbeafe;padding:9px 20px;font-size:11px;font-weight:bold;display:flex;justify-content:space-between;color:#1e3a8a}
+.brand{background:linear-gradient(#dbeafe,#eff6ff);padding:15px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #bfdbfe}
+.brand strong{font-size:20px;color:var(--blue-dark)}
+.sync{font-size:10px;color:var(--blue-dark);background:white;border:1px solid #bae6fd;border-radius:20px;padding:6px 9px;font-weight:bold}
+.head{padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.head h1{font-size:17px}.head p{font-size:11px;color:var(--muted);margin-top:4px}
+select{background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:7px;font-size:11px;font-weight:bold;color:var(--text)}
+.content{padding:8px 14px 16px;display:flex;flex-direction:column;gap:11px;flex:1}
+.card{border:1.5px solid var(--border);border-radius:14px;padding:12px 13px;background:#fff}
+.card h2{font-size:13px;margin-bottom:9px}
+.muted{color:var(--muted);font-size:11px}
+.kpi{font-size:29px;font-weight:800;letter-spacing:-1px;margin:5px 0}
+.pill{font-size:10px;font-weight:bold;border-radius:6px;padding:4px 7px;background:#ecfdf5;color:#047857}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.device-list{display:flex;gap:6px;overflow:auto;padding:2px 0 5px}
+.chip,.tab{border:1px solid #cbd5e1;background:#f8fafc;color:#334155;border-radius:20px;padding:7px 10px;font-size:11px;font-weight:bold;white-space:nowrap}
+.chip.active,.tab.active{background:#0f172a;color:#fff;border-color:#0f172a}
+.bar{height:12px;border-radius:20px;background:#f1f5f9;display:flex;overflow:hidden;gap:3px;margin:9px 0}
+.bar span:first-child{background:var(--blue)}.bar span:last-child{background:var(--amber)}
+.legend{display:flex;justify-content:space-between;font-size:10px;color:#475569;gap:8px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:4px}
+.chart{height:130px;display:flex;align-items:end;justify-content:space-around;gap:7px;border-bottom:1px solid #cbd5e1;padding:10px 4px 0}
+.column{flex:1;display:flex;flex-direction:column;justify-content:end;align-items:center;height:100%;gap:4px;cursor:pointer}
+.column b{font-size:9px;color:#475569}
+.stack{width:100%;max-width:27px;border-radius:5px 5px 1px 1px;overflow:hidden;display:flex;flex-direction:column-reverse;gap:2px}
+.stack i:first-child{background:var(--blue)}.stack i:last-child{background:var(--amber)}
+.axis{display:flex;justify-content:space-around;font-size:10px;color:var(--muted);padding-top:6px}.hourly-chart{gap:2px;padding-left:1px;padding-right:1px}.hourly-chart .column{min-width:0;gap:2px}.hourly-chart .column b{font-size:7px;min-height:8px}.hourly-chart .stack{max-width:9px;border-radius:3px 3px 1px 1px}.hourly-axis{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:9px}
+.list-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9;gap:10px}
+.list-item:last-child{border:0}.list-item strong{font-size:12px}.list-item small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.tag{font-size:10px;font-weight:bold;padding:4px 7px;border-radius:6px;background:#e0f2fe;color:#0369a1;white-space:nowrap}
+.tag.amber{background:#fef3c7;color:#92400e}.tag.red{background:#fef2f2;color:#b91c1c}
+.progress{height:8px;border-radius:20px;background:#e2e8f0;overflow:hidden;margin-top:7px}.progress span{height:100%;display:block;background:var(--blue);border-radius:20px}
+.wait{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;color:#92400e;font-size:11px}
+.game-score{font-size:22px;font-weight:800;color:var(--blue-dark)}
+.bottom{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--border);padding:9px 5px;background:#fff}
+.bottom div{text-align:center;font-size:9px;color:var(--muted);padding:6px 1px}.bottom .selected{background:#e0f2fe;color:var(--blue-dark);border-radius:9px;font-weight:bold}
+.panel{background:#fff;border:1px solid #cbd5e1;border-radius:16px;padding:17px;box-shadow:0 4px 14px #0f172a0d}
+.panel h2{font-size:16px;margin-bottom:10px}.panel p,.panel li{font-size:12px;line-height:1.55;color:#475569}.panel ul{padding-left:18px;margin:8px 0}
+.note{background:#f8fafc;border-left:4px solid var(--blue);padding:10px;border-radius:8px;margin-top:10px;font-size:11px;line-height:1.5}
+.hidden{display:none!important}
+@media(max-width:760px){body{padding:8px}.workspace{grid-template-columns:1fr;justify-items:center}.phone{width:100%;max-width:410px}.panel{width:100%;max-width:410px}}
+</style>
+</head>
+<body>
+<div class="workspace">
+ <section class="phone">
+  <div class="status"><span>17:37</span><span>5G · Protección activa</span></div>
+  <header class="brand"><strong>BA<br>Protege +</strong><span class="sync">● Listas actualizadas</span></header>
+  <div class="head">
+   <div><h1>Actividad</h1><p id="subtitle">Resumen de actividad de los protegidos</p></div>
+   <span class="tag">Últimas 24 h</span>
+  </div>
+  <main class="content">
+   <div class="device-list" id="roleTabs">
+    <button class="chip active" data-role="responsable">Responsable</button>
+    <button class="chip" data-role="menor">Protegido menor</button>
+    <button class="chip" data-role="mayor">Protegido mayor</button>
+   </div>
+
+   <!-- RESPONSABLE -->
+   <section id="view-responsable">
+    <div class="card">
+     <div class="row"><span class="muted">Bloqueos totales de los protegidos menores</span><span class="pill">Protección activa: 98,4%</span></div>
+     <div class="kpi" id="guardianTotal">1.426</div><p class="muted">Intentos frenados en el período seleccionado</p>
+     <div class="device-list" style="margin-top:9px">
+      <button class="chip active" data-device="all">Todos</button><button class="chip" data-device="tomas">Tomás</button><button class="chip" data-device="lucia">Lucía</button>
+     </div>
+    </div>
+    <div class="card">
+     <div class="row"><h2>Bloqueos por fuente</h2><span class="tag">Últimas 24 h</span></div>
+     <div class="bar"><span id="lotbaBar" style="width:73%"></span><span id="customBar" style="width:27%"></span></div>
+     <div class="legend"><span><i class="dot" style="background:var(--blue)"></i>Lista LOTBA <b id="lotbaValue">1.045</b> (<span id="lotbaPct">73</span>%)</span><span><i class="dot" style="background:var(--amber)"></i>Personalizada <b id="customValue">381</b> (<span id="customPct">27</span>%)</span></div>
+     <div style="border-top:1px solid var(--border);margin:12px 0 10px"></div>
+     <div class="row"><h2>Actividad de bloqueos</h2><span class="muted">Distribución por hora</span></div>
+     <div class="chart hourly-chart" id="guardianChart"></div><div class="axis hourly-axis"><span>00 h</span><span>04 h</span><span>08 h</span><span>12 h</span><span>16 h</span><span>20 h</span><span>24 h</span></div>
+     <p class="muted" style="margin-top:7px">Cada barra representa los bloqueos de una hora. Los colores identifican la fuente del bloqueo.</p>
+    </div>
+    <div class="card">
+     <h2>Métricas de juegos de los menores</h2>
+     <div class="list-item"><div><strong>Tomás · Juego de decisiones</strong><small>Partidas completadas</small></div><b>8</b></div>
+     <div class="list-item"><div><strong>Lucía · Desafío de seguridad</strong><small>Respuestas correctas</small></div><b>92%</b></div>
+     <div class="list-item"><div><strong>Participación general</strong><small>Juegos completados por los menores</small></div><b>14</b></div>
+    </div>
+   </section>
+
+   <!-- PROTEGIDO MENOR -->
+   <section id="view-menor" class="hidden">
+    <div class="card">
+     <div class="row"><h2>Tiempo de uso de aplicaciones</h2><span class="tag">Últimas 24 h</span></div>
+     <div class="list-item"><div><strong>Instagram</strong><small>Tiempo utilizado: 45 min de 60 min</small><div class="progress"><span style="width:75%"></span></div></div><b>45 min</b></div>
+     <div class="list-item"><div><strong>TikTok</strong><small>Tiempo utilizado: 30 min de 45 min</small><div class="progress"><span style="width:67%"></span></div></div><b>30 min</b></div>
+     <div class="list-item"><div><strong>YouTube</strong><small>Tiempo utilizado: 1 h 10 min de 90 min</small><div class="progress"><span style="width:78%"></span></div></div><b>1 h 10</b></div>
+    </div>
+    <div class="card">
+     <h2>Tiempo de espera para volver a usar</h2>
+     <div class="list-item"><div><strong>Instagram</strong><small>Tiempo restante para volver a usarla</small></div><span class="tag amber">15 min</span></div>
+     <div class="list-item"><div><strong>TikTok</strong><small>Tiempo restante para volver a usarla</small></div><span class="tag amber">30 min</span></div>
+     <div class="list-item"><div><strong>YouTube</strong><small>Estado de acceso</small></div><span class="tag">Disponible</span></div>
+    </div>
+    <div class="card">
+     <h2>Mis métricas de juegos</h2>
+     <div class="row"><div><p class="muted">Puntaje acumulado</p><div class="game-score">850 pts</div></div><div><p class="muted">Juegos completados</p><div class="game-score">8</div></div></div>
+     <div class="list-item"><div><strong>Desafío de decisiones</strong><small>Última partida · 8 de 10 respuestas correctas</small></div><span class="tag">80%</span></div>
+     <div class="list-item"><div><strong>Uso responsable</strong><small>Mejor resultado</small></div><span class="tag">95%</span></div>
+    </div>
+   </section>
+
+   <!-- PROTEGIDO MAYOR -->
+   <section id="view-mayor" class="hidden">
+    <div class="card">
+     <div class="row"><h2>Tiempo de uso de aplicaciones</h2><span class="tag">Últimas 24 h</span></div>
+     <div class="list-item"><div><strong>Instagram</strong><small>Tiempo utilizado: 1 h 20 min de 2 h</small><div class="progress"><span style="width:67%"></span></div></div><b>1 h 20</b></div>
+     <div class="list-item"><div><strong>TikTok</strong><small>Tiempo utilizado: 50 min de 90 min</small><div class="progress"><span style="width:56%"></span></div></div><b>50 min</b></div>
+     <div class="list-item"><div><strong>YouTube</strong><small>Tiempo utilizado: 35 min de 60 min</small><div class="progress"><span style="width:58%"></span></div></div><b>35 min</b></div>
+    </div>
+    <div class="card">
+     <h2>Tiempo de espera para volver a usar</h2>
+     <div class="list-item"><div><strong>Instagram</strong><small>Tiempo restante según el límite configurado</small></div><span class="tag amber">20 min</span></div>
+     <div class="list-item"><div><strong>TikTok</strong><small>Tiempo restante según el límite configurado</small></div><span class="tag amber">10 min</span></div>
+     <div class="list-item"><div><strong>YouTube</strong><small>Estado de acceso</small></div><span class="tag">Disponible</span></div>
+    </div>
+    <div class="card">
+     <h2>Historial de intentos en sitios bloqueados</h2>
+     <div class="list-item"><div><strong>ejemplo-apuestas.com</strong><small>Hoy · 14:32 · Intento de acceso</small></div><span class="tag red">Bloqueado</span></div>
+     <div class="list-item"><div><strong>casino-demo.net</strong><small>Hoy · 12:08 · Intento de acceso</small></div><span class="tag red">Bloqueado</span></div>
+     <div class="list-item"><div><strong>sitio-restringido.com</strong><small>Ayer · 21:45 · Intento de acceso</small></div><span class="tag red">Bloqueado</span></div>
+    </div>
+    <div class="card">
+     <h2>Métricas del cuestionario lúdico</h2>
+     <div class="row"><div><p class="muted">Puntaje obtenido</p><div class="game-score">18/20</div></div><div><p class="muted">Respuestas correctas</p><div class="game-score">90%</div></div></div>
+     <div class="list-item"><div><strong>Cuestionario de seguridad digital</strong><small>Completado · 5 min</small></div><span class="tag">Finalizado</span></div>
+    </div>
+   </section>
+  </main>
+  <nav class="bottom"><div>⌂<br>Panel</div><div>▣<br>Dispositivos</div><div>◎<br>Sitios y apps</div><div class="selected">▥<br>Actividad</div><div>◉<br>Cuenta</div></nav>
+ </section>
+ <aside class="panel">
+  <h2>Prototipo de la sección «Actividad»</h2>
+  <p>La navegación superior permite cambiar entre los tres perfiles. Cada perfil muestra únicamente las métricas que corresponden a los requisitos definidos.</p>
+  <ul>
+   <li><b>Responsable:</b> bloqueos por fuente y gráfico horario en una misma tarjeta, más métricas de los juegos de los menores.</li>
+   <li><b>Protegido menor:</b> tiempo de uso, tiempo de espera y métricas de sus juegos.</li>
+   <li><b>Protegido mayor:</b> tiempo de uso, tiempo de espera, historial de intentos bloqueados y métricas del cuestionario lúdico.</li>
+  </ul>
+  <div class="note"><b>Importante:</b> los valores incluidos son datos ficticios para mostrar el funcionamiento visual. Para utilizarlo en producción, hay que conectar cada indicador con los registros reales de la aplicación y aplicar los permisos correspondientes a cada perfil.</div>
+  <div class="note">Se conserva la línea visual del archivo base: marco de celular, encabezado BA Protege +, tarjetas, azul LOTBA, ámbar para listas personalizadas y navegación inferior.</div>
+ </aside>
+</div>
+<script>
+const profiles={
+ all:{total:1426,lotba:1045,custom:381,hours:[18,14,12,10,9,12,18,27,42,55,61,72,83,90,95,88,79,76,84,92,86,68,55,80]},
+ tomas:{total:890,lotba:640,custom:250,hours:[12,9,8,6,5,8,11,16,26,34,38,45,52,56,59,55,49,47,52,57,53,42,34,56]},
+ lucia:{total:412,lotba:310,custom:102,hours:[6,4,4,3,3,4,6,8,12,16,18,21,24,27,28,26,23,22,24,27,25,20,16,24]}
+};
+let currentDevice='all';
+function scaledHours(weights,total){
+ const sum=weights.reduce((a,b)=>a+b,0);
+ const values=weights.map(v=>Math.floor(v/sum*total));
+ let remainder=total-values.reduce((a,b)=>a+b,0);
+ for(let i=0;remainder>0;i=(i+1)%values.length){values[i]++;remainder--;}
+ return values;
+}
+function renderGuardian(){
+ const p=profiles[currentDevice], total=p.total;
+ document.getElementById('guardianTotal').textContent=total.toLocaleString('es-AR');
+ document.getElementById('lotbaValue').textContent=p.lotba.toLocaleString('es-AR');
+ document.getElementById('customValue').textContent=p.custom.toLocaleString('es-AR');
+ const lp=Math.round(p.lotba/total*100),cp=100-lp;
+ document.getElementById('lotbaPct').textContent=lp;document.getElementById('customPct').textContent=cp;
+ document.getElementById('lotbaBar').style.width=lp+'%';document.getElementById('customBar').style.width=cp+'%';
+ const hours=scaledHours(p.hours,total),max=Math.max(...hours);
+ document.getElementById('guardianChart').innerHTML=hours.map((v,i)=>{const lotba=Math.round(v*lp/100),custom=v-lotba;return `<div class="column" title="${String(i).padStart(2,'0')}:00 · ${v} bloqueos"><b>${v}</b><div class="stack" style="height:${Math.max(5,v/max*85)}%"><i style="height:${v?lotba/v*100:0}%"></i><i style="height:${v?custom/v*100:0}%"></i></div></div>`;}).join('');
+}
+document.querySelectorAll('[data-role]').forEach(btn=>btn.addEventListener('click',()=>{
+ document.querySelectorAll('[data-role]').forEach(b=>b.classList.toggle('active',b===btn));
+ const role=btn.dataset.role;
+ ['responsable','menor','mayor'].forEach(r=>document.getElementById('view-'+r).classList.toggle('hidden',r!==role));
+ document.getElementById('subtitle').textContent=role==='responsable'?'Resumen de actividad de los protegidos':role==='menor'?'Tu tiempo de uso y tus juegos':'Tu actividad y cuestionario lúdico';
+}));
+document.querySelectorAll('[data-device]').forEach(btn=>btn.addEventListener('click',()=>{
+ currentDevice=btn.dataset.device;
+ document.querySelectorAll('[data-device]').forEach(b=>b.classList.toggle('active',b===btn));
+ renderGuardian();
+}));
+renderGuardian();
+</script>
+</body>
+</html>
