@@ -23,7 +23,7 @@ frontend/landing/
 │   └── reset-password.js                # Lógica de integração com Firebase REST API e reações de Boti
 └── assets/
     ├── apk/
-    │   └── ba-protege-release.apk       # Instalador APK oficial para download direto
+    │   └── ba-protege-release.apk       # APK oficial de Release assinada (~28 MB, arm64-v8a/armeabi-v7a, gerada por `npm run build:apk:release`)
     └── img/                             # Logos oficiais e expressões de Boti (feliz, pensando, nervoso, triste)
 ```
 

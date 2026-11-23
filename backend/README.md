@@ -19,11 +19,12 @@ Servidor backend desarrollado en **Node.js 24 (LTS) + Express + TypeScript**, co
 1. [Tecnologías y Arquitectura](#-tecnologías-y-arquitectura)
 2. [Estructura del Proyecto](#-estructura-del-proyecto)
 3. [Instalación y Configuración](#-instalación-y-configuración)
-4. [Integración con Supabase y Firebase](#-integración-con-supabase-y-firebase)
-5. [Modos de Ejecución (Mock vs. Supabase PostgreSQL)](#-modos-de-ejecución-mock-vs-supabase-postgresql)
-6. [Scripts Disponibles](#-scripts-disponibles)
-7. [Referencia de Endpoints y Pruebas con cURL](#-referencia-de-endpoints-y-pruebas-con-curl)
-8. [Datos de Prueba Precargados (Modo Mock)](#-datos-de-prueba-precargados-modo-mock)
+4. [Integración con Supabase, Firebase Auth y Google Sign-In](#-integración-con-supabase-firebase-auth-y-google-sign-in)
+5. [Despliegue en Producción (Railway)](#-despliegue-en-producción-railway)
+6. [Modos de Ejecución (Mock vs. Supabase PostgreSQL)](#-modos-de-ejecución-mock-vs-supabase-postgresql)
+7. [Scripts Disponibles](#-scripts-disponibles)
+8. [Referencia de Endpoints y Pruebas con cURL](#-referencia-de-endpoints-y-pruebas-con-curl)
+9. [Datos de Prueba Precargados (Modo Mock)](#-datos-de-prueba-precargados-modo-mock)
 
 ---
 
@@ -64,7 +65,6 @@ backend/
 │   ├── health.test.ts        # Verificación de endpoint de salud y manejo 404
 │   ├── auth.test.ts          # Pruebas de registro, validaciones Zod, login y recuperación
 │   ├── blocklist.test.ts     # Pruebas de listas oficiales LOTBA y dominios personalizados
-│   ├── device.test.ts        # Pruebas de códigos de pareamiento y vinculación
 │   ├── device.test.ts        # Pruebas de códigos de pareamiento y vinculación
 │   ├── telemetry.test.ts     # Pruebas de latidos (heartbeats), estados y eventos de seguridad
 │   └── app-limits.test.ts    # Pruebas unitarias de límites de tiempo de uso diario en aplicaciones
@@ -119,17 +119,33 @@ HEARTBEAT_TIMEOUT_MINUTES=5
 
 ---
 
-## 🔥 Integración con Supabase y Firebase
+## 🔥 Integración con Supabase, Firebase Auth y Google Sign-In
 
 ### Base de Datos Supabase (PostgreSQL)
 - **Pooler PgBouncer:** Configurado a través de `DATABASE_URL` para gestionar conexiones eficientes y concurrentes desde la API REST.
 - **Migraciones DDL:** Prisma se conecta directamente a Supabase a través de `DIRECT_URL` para aplicar cambios estructurales en el esquema.
 - **Modelos desplegados:** `users`, `devices`, `device_pairings`, `protection_configs`, `device_status`, `blocklists`, `blocklist_domains`, `blocked_events`, `security_events`, `audit_logs`.
 
-### Firebase Admin SDK
-- **Módulo de Configuración:** Ubicado en [`src/config/firebase.ts`](file:///home/juan/Documentos/Innova-Lab-Equipo-21-Control-Parental/backend/src/config/firebase.ts).
-- **Credenciales:** Soporta carga dinámica mediante variables de entorno en `.env` o archivo de clave local no versionado.
-- **Propósito:** Gestión de notificaciones push para eventos de seguridad y alertas de bloqueo en dispositivos móviles.
+### Firebase Admin SDK y Autenticación con Google
+- **Módulo de Configuración:** Ubicado en [`src/config/firebase.ts`](src/config/firebase.ts).
+- **Credenciales:** Soporta carga dinámica mediante variables de entorno (`FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`) o archivo local no versionado.
+- **Google Sign-In (`POST /api/auth/google` y `POST /api/auth/google/link`):**
+  - Intercambia el `idToken` de Google OAuth emitido por la app Android por un **Firebase Auth ID Token** válido mediante Identity Toolkit (`accounts:signInWithIdp`), con fallback seguro vía Admin SDK (`createCustomToken` + `signInWithCustomToken`).
+  - Sincroniza el `id` del usuario en Prisma con el UID oficial de Firebase y vincula el proveedor `google.com` en cuentas creadas por correo/contraseña.
+  - Devuelve el campo booleano `isGoogleLinked` en los flujos de inicio de sesión y vinculación.
+- **Push Notifications:** Gestión de notificaciones push para eventos de seguridad y alertas de bloqueo en dispositivos móviles.
+
+---
+
+## ☁️ Despliegue en Producción (Railway)
+
+El backend se despliega en **Railway** directamente desde la rama `main`:
+- **Root Directory:** `/backend`
+- **URL Pública:** `https://innova-lab-equipo-21-control-parental-ba-protege.up.railway.app`
+- **Endpoint API Base:** `https://innova-lab-equipo-21-control-parental-ba-protege.up.railway.app/api`
+- **Puerto de escucha:** `process.env.PORT` (por defecto `3000`, enlazado a `0.0.0.0`).
+- **Build & Start:** Al ejecutar `npm install`, el script `postinstall` ejecuta automáticamente `prisma generate` para generar el cliente de Prisma antes de `npm run build` y `npm start`.
+- **Variables requeridas en Railway:** `USE_MOCK_DATA=false`, `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`.
 
 ---
 
@@ -176,9 +192,10 @@ npm test
 | Comando | Descripción |
 | :--- | :--- |
 | `npm run dev` | Inicia el servidor con recarga en caliente usando `tsx watch`. |
-| `npm test` | Ejecuta la suite completa de 19 pruebas automatizadas con `tsx --test`. |
+| `npm test` | Ejecuta la suite completa de pruebas automatizadas con `tsx --test`. |
 | `npm run build` | Compila el código TypeScript a JavaScript en la carpeta `dist/`. |
 | `npm run start` | Inicia el servidor compilado de producción (`node dist/server.js`). |
+| `npm run postinstall` | Ejecuta `prisma generate` automáticamente tras `npm install` (utilizado en Railway). |
 | `npm run lint` | Valida la coherencia de tipos con `tsc --noEmit`. |
 | `npm run prisma:generate` | Regenera el cliente de Prisma basado en `schema.prisma`. |
 | `npm run prisma:migrate` | Aplica migraciones pendientes a la base de datos PostgreSQL en Supabase. |
@@ -223,7 +240,22 @@ curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"tutor@baprotege.gob.ar\",\"password\":\"password123\"}"
 ```
-*Respuesta:* Retorna el objeto `user` y el `token` JWT necesario para las rutas protegidas.
+*Respuesta:* Retorna el objeto `user` (incluyendo `isGoogleLinked`) y el `token` JWT/Firebase necesario para las rutas protegidas.
+
+### 3B. Autenticación y Vinculación con Google (`POST /api/auth/google` y `/api/auth/google/link`)
+```bash
+# Login o registro con Google OAuth idToken
+curl -X POST https://innova-lab-equipo-21-control-parental-ba-protege.up.railway.app/api/auth/google \
+  -H "Content-Type: application/json" \
+  -d "{\"idToken\":\"GOOGLE_ID_TOKEN\"}"
+
+# Vincular cuenta Google desde la pestaña Cuenta (requiere token Bearer)
+curl -X POST https://innova-lab-equipo-21-control-parental-ba-protege.up.railway.app/api/auth/google/link \
+  -H "Authorization: Bearer TU_TOKEN_AQUI" \
+  -H "Content-Type: application/json" \
+  -d "{\"idToken\":\"GOOGLE_ID_TOKEN\"}"
+```
+*Respuesta:* Retorna `user` actualizado (`isGoogleLinked: true`) y el `token` Firebase renovado.
 
 ### 4. Recuperación de Contraseña
 ```bash

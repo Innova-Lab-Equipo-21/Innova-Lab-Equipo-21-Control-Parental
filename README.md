@@ -24,8 +24,9 @@ Sistema integral de control parental y protección digital desarrollado para sal
 7. [Requisitos Previos del Entorno](#-requisitos-previos-del-entorno)
 8. [Guía de Instalación Paso a Paso](#-guía-de-instalación-paso-a-paso)
 9. [Guía de Pruebas Rápidas (Modo Simulado / Sin Base de Datos)](#-guía-de-pruebas-rápidas-modo-simulado--sin-base-de-datos)
-10. [Configuración con Base de Datos Real (PostgreSQL 18)](#-configuración-con-base-de-datos-real-postgresql-18)
-11. [Ejecución en Emulador / Dispositivo Android](#-ejecución-en-emulador--dispositivo-android)
+10. [Configuración con Base de Datos Real (PostgreSQL 18 / Supabase) y Railway](#-configuración-con-base-de-datos-real-postgresql-18--supabase-y-railway)
+11. [Compilación de APK de Release y Distribución](#-compilación-de-apk-de-release-y-distribución)
+12. [Ejecución en Emulador / Dispositivo Android](#-ejecución-en-emulador--dispositivo-android)
 
 ---
 
@@ -181,9 +182,9 @@ El panel principal cuenta con barra de navegación inferior de 5 pestañas (`Das
 | **Mobile (Frontend)** | React Native + TypeScript | 0.87 / 0.76+ |
 | **Kit UI/UX (Design System)** | Custom Theme + Components (`uikit.txt`) | Tokens e Iconografía oficial |
 | **Nativo Android** | Kotlin + Android SDK (`VpnService`) | Kotlin 2.x / SDK 35/37 (Java 17) |
-| **Backend (API REST)** | Node.js (LTS) + Express + TypeScript | Node 24.20 LTS / Express 4/5 |
-| **ORM & Base de Datos** | Prisma ORM + PostgreSQL | PostgreSQL 18.6 / Prisma 5.x |
-| **Autenticación** | JWT (`jsonwebtoken`) + Hashing (`bcryptjs`) | Estándar con Refresh Tokens |
+| **Backend (API REST)** | Node.js (LTS) + Express + TypeScript | Node 24.20 LTS / Express 4.x (desplegado en **Railway**) |
+| **ORM & Base de Datos** | Prisma ORM + PostgreSQL (Supabase) | PostgreSQL 18.6 / Prisma 5.22 |
+| **Autenticación** | Firebase Auth + Google Sign-In + JWT (`jsonwebtoken`) + `bcryptjs` | Intercambio de tokens Firebase (`accounts:signInWithIdp`) + Google OAuth nativo |
 | **Control de Versiones** | Git + GitHub | Git 2.55+ |
 
 ---
@@ -365,14 +366,15 @@ npm test
 
 ---
 
-## 🗄️ Configuración con Base de Datos Real (PostgreSQL 18)
+## 🗄️ Configuración con Base de Datos Real (PostgreSQL 18 / Supabase) y Railway
 
-Cuando se desee utilizar una base de datos PostgreSQL real:
+Cuando se desee utilizar una base de datos PostgreSQL real (local o Supabase):
 
-1. Configurar el archivo `backend/.env`:
+1. Configurar el archivo `backend/.env` (ver plantilla en `backend/.env.example`):
    ```env
    USE_MOCK_DATA=false
    DATABASE_URL="postgresql://postgres:TU_PASSWORD@localhost:5432/baprotege_db?schema=public"
+   DIRECT_URL="postgresql://postgres:TU_PASSWORD@localhost:5432/baprotege_db?schema=public"
    ```
 2. Ejecutar las migraciones de Prisma para crear las tablas:
    ```bash
@@ -383,6 +385,30 @@ Cuando se desee utilizar una base de datos PostgreSQL real:
    ```bash
    npm run dev
    ```
+
+### ☁️ Despliegue en Producción (Railway)
+El backend se encuentra desplegado en **Railway** con despliegue automático conectado a la rama `main` (directorio raíz `/backend`):
+- **URL Base API (Producción):** `https://innova-lab-equipo-21-control-parental-ba-protege.up.railway.app/api`
+- **Health Check:** `GET https://innova-lab-equipo-21-control-parental-ba-protege.up.railway.app/api/health`
+- El cliente móvil (`frontend/src/services/api/client.ts`) apunta por defecto a esta URL HTTPS pública para que cualquier teléfono físico pueda registrarse e iniciar sesión (con correo o con Google) sin depender de un servidor local.
+
+---
+
+## 📦 Compilación de APK de Release y Distribución
+
+Para generar una **APK de Release firmada** lista para distribuir e instalar en cualquier teléfono Android real (peso reducido a **~28 MB** con soporte para arquitecturas ARM `arm64-v8a` y `armeabi-v7a`, bundle Hermes embebido y modo `debuggable` desactivado):
+
+1. **Configurar la clave de firma local (no versionada en Git):**
+   - Copiar `frontend/android/keystore.properties.example` a `frontend/android/keystore.properties` y completar los datos de la keystore local (`baprotege-release.keystore`).
+   - Asegurarse de tener las huellas digitales **SHA-1** y **SHA-256** del certificado de release registradas en **Firebase Console** y el archivo `frontend/android/app/google-services.json` actualizado (necesario para **Google Sign-In**).
+2. **Compilar la APK de Release:**
+   ```bash
+   cd frontend
+   npm run build:apk:release
+   ```
+   - La APK firmada se genera en `frontend/android/app/build/outputs/apk/release/app-release.apk` y se copia automáticamente a `frontend/landing/assets/apk/ba-protege-release.apk`.
+3. **Instalación en celular físico:**
+   - Si el teléfono ya tenía instalada una versión anterior compilada en modo `debug`, desinstalarla una única vez antes de instalar la APK de `release` (ya que cambia la firma digital).
 
 ---
 

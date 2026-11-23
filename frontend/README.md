@@ -47,7 +47,9 @@ Aplicación móvil desarrollada en **React Native 0.87 + TypeScript** con un **K
 - **Anti-Bypass & Resiliencia:** `BootReceiver` (`RECEIVE_BOOT_COMPLETED`) y validación de tiempo confiable (`getReliableTimestamp()`)
 - **Servicios en Primer Plano:** `NotificationManager` con canal persistente de seguridad
 - **Puente Nativo:** `ProtectionModule` (`ReactContextBaseJavaModule`)
-- **Capa de Servicios API:** Modularizada en `src/services/api/` (`auth`, `devices`, `blocklist`, `selfControl`, `telemetry`) con fachada unificada `apiService` y soporte híbrido online/offline (`safeStorage`)
+- **Capa de Servicios API:** Modularizada en `src/services/api/` (`auth`, `devices`, `blocklist`, `selfControl`, `telemetry`) con cliente configurado hacia la API en producción en **Railway** (`https://innova-lab-equipo-21-control-parental-ba-protege.up.railway.app/api`), fachada unificada `apiService` y soporte híbrido online/offline (`safeStorage`)
+- **Autenticación con Google & Firebase:** Integración nativa con `@react-native-google-signin/google-signin` (`src/services/googleAuth.service.ts`) sincronizada con `google-services.json` (huellas SHA-1/SHA-256 de debug y release)
+- **Compilación Release Optimizada:** Firma digital vía `android/keystore.properties`, filtro de arquitecturas ARM (`arm64-v8a`, `armeabi-v7a`) en release (~28 MB) y copia automática hacia `landing/assets/apk/ba-protege-release.apk`
 - **Persistencia Local:** `@react-native-async-storage/async-storage` para sesiones, preferencias y períodos de analítica
 - **Testing Automatizado:** Node Test Runner + `tsx` (`142 tests` distribuidos en `31 suites` y `18` archivos de prueba)
 
@@ -236,7 +238,11 @@ Barra inferior diferenciada de 4 pestañas (`MenorNavbar.tsx`): **`Inicio` · `P
 6. **Pasatiempos con Juego de la Memoria de 12 Piezas e Inactivación Post-Victoria**: Reemplazo del antiguo rompecabezas por `MemoryGameModal.tsx` (6 pares / 12 cartas) y ordenamiento dinámico de juegos completados al final de la lista.
 7. **Metadatos de Origen + Filtro en Sitios y Apps**: Sincronización de bloqueos creados por Adulto Protegido hacia la lista del Responsable con identificador visual y filtro dedicado.
 8. **Reglas Globales y Desactivación de Antidesinstalación Protegida con OTP (`AntiUninstallCodeModal.tsx`)**: Código de 6 dígitos con correo enmascarado del responsable para desactivar Antidesinstalación, con invalidación automática al cerrar.
-9. **Crecimiento de la Suite de Pruebas**: Expansión a **142 tests automatizados en 31 suites**, garantizando cobertura integral en métricas, persistencia, flujos de vinculación, permisos y reglas de seguridad.
+9. **Producción en Railway + Google Sign-In Nativo + APK de Release (~28 MB)**:
+   - Cliente HTTP (`src/services/api/client.ts`) apuntando al backend HTTPS en **Railway**, habilitando registro y login desde cualquier celular físico sin depender de red local.
+   - `googleAuth.service.ts` actualizado con el Web Client ID oficial del proyecto Firebase, selector limpio de cuenta y sincronización del token tras vincular Google en Cuenta.
+   - Configuración de firma de release (`keystore.properties.example`), filtro ABI (`arm64-v8a`, `armeabi-v7a`) que reduce la APK de ~113 MB a **~28 MB**, registro de huellas SHA-1/SHA-256 de debug y release en `google-services.json` y script `npm run build:apk:release`.
+10. **Crecimiento de la Suite de Pruebas**: Expansión a **142 tests automatizados en 31 suites**, garantizando cobertura integral en métricas, persistencia, flujos de vinculación, permisos y reglas de seguridad.
 
 ---
 
@@ -247,6 +253,8 @@ A continuación se detalla la arquitectura modular del frontend organizada por d
 ```text
 frontend/
 ├── android/                                      # Proyecto nativo Android (Gradle, Kotlin, VpnService, ProtectionModule)
+│   ├── app/google-services.json                  # Configuración Firebase (clientes OAuth debug + release y Web Client ID)
+│   └── keystore.properties.example               # Plantilla para configuración local de firma de release
 ├── src/
 │   ├── assets/                                   # Recursos gráficos oficiales
 │   │   ├── icons/                                # Íconos vectoriales y PNG (UI, navbar, escudo, engrenaje, etc.)
@@ -274,6 +282,7 @@ frontend/
 │   ├── services/                                 # Capa de integración y servicios de backend
 │   │   ├── api/                                  # Módulos de API tipados (auth, devices, blocklist, telemetry, client)
 │   │   ├── api.service.ts                        # Fachada unificada de comunicación con el backend
+│   │   ├── googleAuth.service.ts                 # Autenticación nativa con Google Sign-In
 │   │   └── protection.service.ts                 # Puente JS hacia el módulo nativo Android (VPN y permisos)
 │   ├── theme/                                    # Tokens de diseño global (paleta de colores, tipografía, bordes)
 │   ├── types/                                    # Contratos e interfaces TypeScript del dominio
@@ -301,20 +310,27 @@ npm run lint
 npm test
 ```
 
-### 4. Generar el Bundle de Producción de React Native para Android
+### 4. Compilar APK de Release (Recomendada para Celulares Físicos — ~28 MB)
+1. Crear `frontend/android/keystore.properties` a partir de `frontend/android/keystore.properties.example` apuntando a la keystore de release local (`baprotege-release.keystore`, excluida de Git).
+2. Ejecutar:
 ```bash
+npm run build:apk:release
+```
+- Compila el bundle JS/Hermes automáticamente, filtra ABIs a `arm64-v8a` y `armeabi-v7a`, firma la APK en modo release (`debuggable = false`) y la genera en:
+  - `android/app/build/outputs/apk/release/app-release.apk`
+  - `landing/assets/apk/ba-protege-release.apk` *(copia automática)*
+- **Nota:** Si el dispositivo tenía instalada previamente una versión `debug`, desinstalarla una única vez antes de instalar la versión `release`.
+
+### 5. Compilar APK Debug (Emulador x86_64 y Desarrollo)
+```bash
+# 1. Generar el bundle JS estático (opcional para pruebas sin Metro)
 npm run build:bundle
-```
 
-### 5. Compilar la APK Debug
-```bash
+# 2. Compilar APK Debug
 npm run build:apk
-```
-*El archivo APK generado se ubicará en:*
-`android/app/build/outputs/apk/debug/app-debug.apk`
+# Ubicación: android/app/build/outputs/apk/debug/app-debug.apk
 
-### 6. Instalar y Ejecutar en Emulador o Celular Físico
-```bash
+# 3. Instalar y ejecutar en emulador o dispositivo conectado
 npm run install:device
 # O alternativamente:
 npm run android
