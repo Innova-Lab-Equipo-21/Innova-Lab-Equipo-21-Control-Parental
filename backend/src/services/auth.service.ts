@@ -238,11 +238,26 @@ export class AuthService {
         }
       }
 
+      let isGoogleLinked = false;
+      try {
+        if (auth && typeof auth.getUser === 'function') {
+          const fbUser = await auth.getUser(data.localId);
+          isGoogleLinked = fbUser.providerData.some(
+            (p: { providerId?: string }) => p.providerId === 'google.com',
+          );
+        }
+      } catch {
+        // Silencioso si Firebase Admin no está disponible
+      }
+
       return {
-        user: userProfile || {
-          id: data.localId,
-          email: data.email,
-          fullName: data.displayName || 'Responsable',
+        user: {
+          ...(userProfile || {
+            id: data.localId,
+            email: data.email,
+            fullName: data.displayName || 'Responsable',
+          }),
+          isGoogleLinked,
         },
         token: data.idToken, // ID Token de Firebase para ser usado en el header Authorization
         refreshToken: data.refreshToken,
@@ -344,29 +359,146 @@ export class AuthService {
   }
 
   /**
+   * Intercambia un Google OAuth ID Token con Firebase Identity Toolkit (accounts:signInWithIdp)
+   * para obtener o vincular un usuario de Firebase Auth y recibir un Firebase ID Token válido.
+   */
+  private async exchangeGoogleIdTokenWithFirebase(
+    googleIdToken: string,
+    currentFirebaseIdToken?: string,
+  ) {
+    const apiKey = env.FIREBASE_API_KEY;
+    if (!apiKey) {
+      return null;
+    }
+
+    const payload: Record<string, unknown> = {
+      postBody: `id_token=${encodeURIComponent(googleIdToken)}&providerId=google.com`,
+      requestUri: 'http://localhost',
+      returnIdpCredential: true,
+      returnSecureToken: true,
+    };
+
+    if (currentFirebaseIdToken) {
+      payload.idToken = currentFirebaseIdToken;
+    }
+
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    const data = (await response.json()) as any;
+
+    if (!response.ok) {
+      const errorCode = data?.error?.message || 'FIREBASE_IDP_ERROR';
+      throw new Error(errorCode);
+    }
+
+    return {
+      uid: data.localId as string,
+      idToken: data.idToken as string,
+      refreshToken: data.refreshToken as string | undefined,
+      expiresIn: data.expiresIn as string | undefined,
+      email: (data.email as string | undefined)?.trim().toLowerCase(),
+      fullName: (data.fullName || data.displayName) as string | undefined,
+      photoUrl: data.photoUrl as string | undefined,
+    };
+  }
+
+  /**
+   * Intercambia un Custom Token de Firebase Admin por un Firebase ID Token válido
+   * (fallback cuando signInWithIdp no está disponible).
+   */
+  private async exchangeCustomTokenForIdToken(customToken: string) {
+    const apiKey = env.FIREBASE_API_KEY;
+    if (!apiKey) {
+      return null;
+    }
+
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: customToken,
+          returnSecureToken: true,
+        }),
+      },
+    );
+
+    const data = (await response.json()) as any;
+    if (!response.ok) {
+      return null;
+    }
+
+    return {
+      idToken: data.idToken as string,
+      refreshToken: data.refreshToken as string | undefined,
+      expiresIn: data.expiresIn as string | undefined,
+    };
+  }
+
+  /**
    * Autenticación o registro unificado con Google Sign-In.
-   * Verifica el ID Token de Firebase y devuelve el perfil del usuario.
-   * El token de Firebase ya viene del cliente, no se genera uno nuevo.
+   * Intercambia el Google OAuth ID Token por un Firebase ID Token válido
+   * y sincroniza el perfil del responsable en la base de datos.
    */
   public async googleLogin(input: GoogleAuthInput) {
     let email = input.email?.trim().toLowerCase();
     let fullName = input.fullName?.trim();
-    let firebaseToken = input.idToken;
+    let firebaseUid: string | undefined;
+    let firebaseToken: string | undefined;
+    let refreshToken: string | undefined;
+    let expiresIn: string | undefined;
 
-    // Si se envía idToken, se verifica con Firebase para mayor integridad
     if (input.idToken) {
-      try {
-        const decoded = await auth.verifyIdToken(input.idToken);
-        if (decoded && decoded.email) {
-          email = decoded.email.toLowerCase();
-          if (!fullName && (decoded.name || decoded.given_name)) {
-            fullName =
-              decoded.name || `${decoded.given_name || ''} ${decoded.family_name || ''}`.trim();
+      // 1. Verificar si el cliente ya envió un Firebase ID Token válido
+      if (auth && typeof auth.verifyIdToken === 'function') {
+        try {
+          const decoded = await auth.verifyIdToken(input.idToken);
+          if (decoded?.uid) {
+            firebaseUid = decoded.uid;
+            firebaseToken = input.idToken;
+            if (decoded.email) {
+              email = decoded.email.toLowerCase();
+            }
+            if (!fullName && (decoded.name || decoded.given_name)) {
+              fullName =
+                decoded.name || `${decoded.given_name || ''} ${decoded.family_name || ''}`.trim();
+            }
           }
-          firebaseToken = input.idToken;
+        } catch {
+          // Es lo esperado cuando el cliente envía un Google OAuth ID Token
         }
-      } catch {
-        // En caso de no poder verificar, se utilizan los datos recibidos
+      }
+
+      // 2. Intercambiar Google OAuth ID Token por un Firebase Auth ID Token vía signInWithIdp
+      if (!firebaseToken) {
+        try {
+          const idpResult = await this.exchangeGoogleIdTokenWithFirebase(input.idToken);
+          if (idpResult) {
+            firebaseUid = idpResult.uid;
+            firebaseToken = idpResult.idToken;
+            refreshToken = idpResult.refreshToken;
+            expiresIn = idpResult.expiresIn;
+            if (idpResult.email) {
+              email = idpResult.email;
+            }
+            if (!fullName && idpResult.fullName) {
+              fullName = idpResult.fullName;
+            }
+          }
+        } catch (idpErr: any) {
+          console.warn(
+            '[AuthService] Error en Firebase signInWithIdp para Google Login:',
+            idpErr?.message || idpErr,
+          );
+        }
       }
     }
 
@@ -376,11 +508,47 @@ export class AuthService {
 
     const computedFullName = fullName || 'Responsable Google';
 
+    // 3. Si aún no tenemos Firebase ID Token, sincronizar/crear usuario en Firebase Admin y emitir token válido
+    if (!firebaseToken && !env.USE_MOCK_DATA && auth && typeof auth.getUserByEmail === 'function') {
+      try {
+        let fbUser;
+        try {
+          fbUser = await auth.getUserByEmail(email);
+        } catch (lookupErr: any) {
+          if (lookupErr?.code === 'auth/user-not-found') {
+            fbUser = await auth.createUser({
+              email,
+              displayName: computedFullName,
+              emailVerified: true,
+            });
+          } else {
+            throw lookupErr;
+          }
+        }
+
+        if (fbUser?.uid) {
+          firebaseUid = fbUser.uid;
+          const customToken = await auth.createCustomToken(fbUser.uid);
+          const exchanged = await this.exchangeCustomTokenForIdToken(customToken);
+          if (exchanged?.idToken) {
+            firebaseToken = exchanged.idToken;
+            refreshToken = exchanged.refreshToken;
+            expiresIn = exchanged.expiresIn;
+          }
+        }
+      } catch (fbErr: any) {
+        console.warn(
+          '[AuthService] No se pudo emitir Firebase ID Token de respaldo para Google Login:',
+          fbErr?.message || fbErr,
+        );
+      }
+    }
+
     if (env.USE_MOCK_DATA) {
-      let user = mockDb.users.find((u) => u.email === email);
+      let user = mockDb.users.find((u) => (firebaseUid && u.id === firebaseUid) || u.email === email);
       if (!user) {
         user = {
-          id: `usr-google-${Date.now()}`,
+          id: firebaseUid || `usr-google-${Date.now()}`,
           email,
           fullName: computedFullName,
           isActive: true,
@@ -397,17 +565,26 @@ export class AuthService {
           createdAt: user.createdAt,
           isGoogleLinked: true,
         },
-        token: firebaseToken || '',
+        token: firebaseToken || input.idToken || '',
+        ...(refreshToken ? { refreshToken } : {}),
+        ...(expiresIn ? { expiresIn } : {}),
       };
     }
 
-    let user = await prisma.user.findUnique({
-      where: { email },
-    });
+    let user = firebaseUid
+      ? await prisma.user.findUnique({ where: { id: firebaseUid } })
+      : null;
+
+    if (!user) {
+      user = await prisma.user.findUnique({
+        where: { email },
+      });
+    }
 
     if (!user) {
       user = await prisma.user.create({
         data: {
+          ...(firebaseUid ? { id: firebaseUid } : {}),
           email,
           fullName: computedFullName,
           passwordHash: 'GOOGLE_AUTH_FEDERATED',
@@ -416,45 +593,82 @@ export class AuthService {
       });
     }
 
-    let token = firebaseToken;
-    if (!token) {
-      try {
-        if (auth && typeof auth.createCustomToken === 'function') {
-          token = await auth.createCustomToken(user.id);
-        }
-      } catch {
-        token = `google-federated-token-${user.id}`;
-      }
-      if (!token) {
-        token = `google-federated-token-${user.id}`;
-      }
-    }
+    const token = firebaseToken || input.idToken || `google-federated-token-${user.id}`;
 
     return {
       user: {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
+        gender: user.gender,
+        birthDate: user.birthDate,
+        phone: user.phone,
         createdAt: user.createdAt,
         isGoogleLinked: true,
       },
       token,
+      ...(refreshToken ? { refreshToken } : {}),
+      ...(expiresIn ? { expiresIn } : {}),
     };
   }
 
   /**
    * Vincula una cuenta ya existente de responsable con una credencial de Google.
-   * Verifica el ID Token de Firebase para obtener el email.
+   * Asocia el proveedor google.com al usuario actual en Firebase Auth.
    */
-  public async googleLink(userId: string, input: GoogleAuthInput) {
+  public async googleLink(
+    userId: string,
+    input: GoogleAuthInput,
+    currentFirebaseToken?: string,
+  ) {
     let email = input.email?.trim().toLowerCase();
-    if (input.idToken) {
+    let refreshedToken: string | undefined;
+
+    if (input.idToken && currentFirebaseToken && !env.USE_MOCK_DATA) {
       try {
-        const decoded = await auth.verifyIdToken(input.idToken);
-        if (decoded && decoded.email) {
-          email = decoded.email.toLowerCase();
+        const linked = await this.exchangeGoogleIdTokenWithFirebase(
+          input.idToken,
+          currentFirebaseToken,
+        );
+        if (linked) {
+          refreshedToken = linked.idToken;
+          if (linked.email) {
+            email = linked.email;
+          }
         }
-      } catch {}
+      } catch (linkErr: any) {
+        const errCode = String(linkErr?.message || '');
+        if (
+          errCode.includes('FEDERATED_USER_ID_ALREADY_LINKED') ||
+          errCode.includes('EMAIL_EXISTS')
+        ) {
+          // Verificar si ya está vinculada a ESTE mismo usuario o a otro
+          let alreadyLinkedToSelf = false;
+          if (auth && typeof auth.getUser === 'function') {
+            try {
+              const fbUser = await auth.getUser(userId);
+              alreadyLinkedToSelf = fbUser.providerData.some(
+                (p: { providerId?: string; email?: string }) =>
+                  p.providerId === 'google.com' &&
+                  (!email || p.email?.toLowerCase() === email),
+              );
+            } catch {
+              // Ignorar
+            }
+          }
+          if (!alreadyLinkedToSelf) {
+            throw new AppError(
+              'Esta cuenta de Google ya se encuentra vinculada a otro usuario.',
+              409,
+            );
+          }
+        } else {
+          console.warn(
+            '[AuthService] Advertencia al vincular proveedor Google en Firebase:',
+            errCode,
+          );
+        }
+      }
     }
 
     if (!email) {
@@ -474,6 +688,7 @@ export class AuthService {
           createdAt: user.createdAt,
           isGoogleLinked: true,
         },
+        ...(refreshedToken ? { token: refreshedToken } : {}),
       };
     }
 
@@ -490,9 +705,13 @@ export class AuthService {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
+        gender: user.gender,
+        birthDate: user.birthDate,
+        phone: user.phone,
         createdAt: user.createdAt,
         isGoogleLinked: true,
       },
+      ...(refreshedToken ? { token: refreshedToken } : {}),
     };
   }
 

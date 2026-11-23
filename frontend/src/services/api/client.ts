@@ -7,18 +7,9 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-let platformOS = 'other';
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const rn = require('react-native');
-  if (rn && rn.Platform) {
-    platformOS = rn.Platform.OS;
-  }
-} catch (_) {}
-
-// URL base para el entorno de desarrollo: 10.0.2.2 apunta al host en emulador Android; 127.0.0.1 para iOS / adb reverse
-const DEV_HOST = platformOS === 'android' ? '10.0.2.2' : '127.0.0.1';
-export const BASE_API_URL = `http://${DEV_HOST}:3000/api`;
+// URL base de la API en producción (Railway HTTPS -> puerto interno 3000)
+export const BASE_API_URL =
+  'https://innova-lab-equipo-21-control-parental-ba-protege.up.railway.app/api';
 
 const memoryStorage = new Map<string, string>();
 

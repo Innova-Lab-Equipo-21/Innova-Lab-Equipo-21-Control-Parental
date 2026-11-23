@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "578907185126-8bf4dmodjte6k7fdcmr4k9ts05arh0tr.apps.googleusercontent.com",
+          "client_id": "578907185126-04kn6u5mo1m9a2gse8sd0j0g4kq54j0u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.baprotege",
+            "certificate_hash": "4460273ee5e0d95316321aecfc7be721ccdb103b"
+          }
+        },
+        {
+          "client_id": "578907185126-eiec0aq7fsmgpeaufmib9mo837c5or11.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -27,7 +35,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "578907185126-8bf4dmodjte6k7fdcmr4k9ts05arh0tr.apps.googleusercontent.com",
+              "client_id": "578907185126-eiec0aq7fsmgpeaufmib9mo837c5or11.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

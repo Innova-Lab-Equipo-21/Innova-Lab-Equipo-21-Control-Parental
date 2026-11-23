@@ -9,7 +9,7 @@ import { GoogleSignin, statusCodes, type SignInSuccessResponse } from '@react-na
 
 export type GoogleUser = SignInSuccessResponse['data'];
 
-export const GOOGLE_WEB_CLIENT_ID = '578907185126-8bf4dmodjte6k7fdcmr4k9ts05arh0tr.apps.googleusercontent.com';
+export const GOOGLE_WEB_CLIENT_ID = '578907185126-eiec0aq7fsmgpeaufmib9mo837c5or11.apps.googleusercontent.com';
 
 let isConfigured = false;
 
@@ -29,6 +29,11 @@ export function configureGoogleSignIn(): void {
 export async function signInWithGoogle(): Promise<GoogleUser | null> {
   configureGoogleSignIn();
   await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  try {
+    await GoogleSignin.signOut();
+  } catch {
+    // Ignorar si no había sesión previa de Google en el dispositivo
+  }
   const response = await GoogleSignin.signIn();
   if (response.type === 'success') {
     return response.data;

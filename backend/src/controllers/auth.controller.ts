@@ -111,8 +111,15 @@ export class AuthController {
         return;
       }
 
+      const currentFirebaseToken = req.headers.authorization?.startsWith('Bearer ')
+        ? req.headers.authorization.split(' ')[1]
+        : undefined;
       const { idToken, email, fullName, photoUrl } = req.body;
-      const result = await authService.googleLink(userId, { idToken, email, fullName, photoUrl });
+      const result = await authService.googleLink(
+        userId,
+        { idToken, email, fullName, photoUrl },
+        currentFirebaseToken,
+      );
 
       res.status(200).json({
         success: true,

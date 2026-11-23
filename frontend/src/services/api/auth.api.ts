@@ -125,6 +125,9 @@ export const authApi = {
 
   async googleLink(data: GoogleAuthPayload) {
     const response = await apiClient.post('/auth/google/link', data);
+    if (response.data.data?.token) {
+      await safeStorage.setItem('@ba_protege_jwt_token', response.data.data.token);
+    }
     return response.data;
   },
 
