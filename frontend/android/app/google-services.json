@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "578907185126-otu9sftufgfevomp9dr507jik8fbq3pp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.baprotege",
+            "certificate_hash": "8ea36dae9298b81984da65a9a3982d65664844bc"
+          }
+        },
+        {
           "client_id": "578907185126-eiec0aq7fsmgpeaufmib9mo837c5or11.apps.googleusercontent.com",
           "client_type": 3
         }

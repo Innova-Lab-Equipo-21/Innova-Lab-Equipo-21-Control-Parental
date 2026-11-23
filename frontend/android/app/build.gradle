@@ -19,6 +19,15 @@ react {
 
 def jscFlavor = 'org.webkit:android-jsc:+'
 
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new java.util.Properties()
+def hasReleaseSigning = keystorePropertiesFile.exists()
+if (hasReleaseSigning) {
+    keystorePropertiesFile.withInputStream { stream ->
+        keystoreProperties.load(stream)
+    }
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -31,6 +40,35 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
+    }
+
+    signingConfigs {
+        debug {
+            // Usa o debug.keystore padrão do Android SDK (~/.android/debug.keystore)
+        }
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(keystoreProperties.getProperty("storeFile"))
+                storePassword keystoreProperties.getProperty("storePassword")
+                keyAlias keystoreProperties.getProperty("keyAlias")
+                keyPassword keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            debuggable false
+            minifyEnabled false
+            shrinkResources false
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
+            ndk {
+                abiFilters "arm64-v8a", "armeabi-v7a"
+            }
+        }
     }
 
     compileOptions {
@@ -90,10 +128,38 @@ tasks.register('copyDebugApkToLanding') {
                 java.nio.file.StandardCopyOption.REPLACE_EXISTING
             )
             def sizeMb = String.format(java.util.Locale.US, "%.2f", (double) originFile.length() / (1024 * 1024))
-            println("🚀 [BA Protege+] APK copiada exitosamente (${sizeMb} MB) a:")
+            println("🚀 [BA Protege+] APK debug copiada exitosamente (${sizeMb} MB) a:")
             println("   ${targetFile.absolutePath}")
         } else {
             println("⚠️ [BA Protege+] APK de origen no encontrada en: ${originFile.absolutePath}")
+        }
+    }
+}
+
+// ==============================================================================
+// Automatización: Copia de APK release firmada a la landing (ba-protege-release.apk)
+// ==============================================================================
+tasks.register('copyReleaseApkToLanding') {
+    description = "Copia el APK release firmado hacia frontend/landing/assets/apk como ba-protege-release.apk"
+    group = "ba-protege"
+
+    doLast {
+        def originFile = file("${buildDir}/outputs/apk/release/app-release.apk")
+        def targetDir = file("${projectDir}/../../landing/assets/apk")
+        def targetFile = file("${targetDir}/ba-protege-release.apk")
+
+        if (originFile.exists()) {
+            targetDir.mkdirs()
+            java.nio.file.Files.copy(
+                originFile.toPath(),
+                targetFile.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            )
+            def sizeMb = String.format(java.util.Locale.US, "%.2f", (double) originFile.length() / (1024 * 1024))
+            println("🚀 [BA Protege+] APK RELEASE copiada exitosamente (${sizeMb} MB) a:")
+            println("   ${targetFile.absolutePath}")
+        } else {
+            println("⚠️ [BA Protege+] APK release no encontrada en: ${originFile.absolutePath}")
         }
     }
 }
@@ -132,6 +198,9 @@ tasks.named('preBuild').configure {
 tasks.configureEach { task ->
     if (task.name == "assembleDebug" || task.name == "packageDebug") {
         task.finalizedBy('copyDebugApkToLanding')
+    }
+    if (task.name == "assembleRelease" || task.name == "packageRelease") {
+        task.finalizedBy('copyReleaseApkToLanding')
     }
 }
 

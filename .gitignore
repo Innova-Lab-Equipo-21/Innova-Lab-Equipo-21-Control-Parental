@@ -58,6 +58,9 @@ frontend/android/captures/
 frontend/android/.cxx/
 *.apk
 *.aab
+*.keystore
+*.jks
+keystore.properties
 local.properties
 
 # Prisma
