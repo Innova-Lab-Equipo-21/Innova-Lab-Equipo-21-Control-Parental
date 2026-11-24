@@ -2,7 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: Permission Definitions & Configs
 // Archivo: src/components/permissions/permissionConfigs.ts
-// Descripción: Configuración declarativa de textos, subtítulos y pasos pedagógicos
+// Descripción: Configuración declarativa de textos y pasos pedagógicos
 //              para los 6 permisos clave de la aplicación.
 // ==============================================================================
 
@@ -11,86 +11,79 @@ import { PermissionDefinition } from './types';
 export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: 'vpn',
-    title: 'Servicio de filtrado VPN',
-    subtitle: 'Bloqueo de sitios de apuestas y contenido no seguro',
+    title: 'Filtro para bloquear sitios y apps no seguros',
     detailedText:
-      'Crea un túnel local en el dispositivo para interceptar y bloquear solicitudes a casas de apuestas clandestinas de la lista oficial LOTBA, sin enviar tu tráfico a servidores externos.',
+      'Activá este filtro para bloquear sitios y apps poco fiables. Tus datos privados quedarán protegidos en tu celular.',
     steps: [
-      'Activá el interruptor del permiso.',
-      "En el diálogo del sistema 'Solicitud de conexión', confirmá tocando Aceptar.",
+      'Hacé clic en el botón “Activar filtro seguro”.',
+      'Cuando te aparezca la ventana de solicitud de conexión, hacé clic en “Aceptar”.',
       'Verificá que aparezca el ícono de llave o escudo en la barra de notificaciones superior.',
     ],
-    actionLabel: 'Autorizar filtrado VPN',
+    actionLabel: 'Activar filtro seguro',
     loadingKey: 'vpn',
   },
   {
     key: 'accessibility',
-    title: 'Servicio de accesibilidad',
-    subtitle: 'Protección antidesinstalación y cierre forzado',
+    title: 'Protección antidesinstalación',
     detailedText:
-      'Protección antidesinstalación: impide que el menor o un tercero cierre forzadamente la app, la suspenda o la elimine sin autorizar previamente el PIN del tutor responsable.',
+      'Activá esta protección para que la aplicación no se cierre o se elimine por error. De esta forma, tu protección y la de los tuyos se mantendrá siempre activa.',
     steps: [
-      'Activá el interruptor para abrir Ajustes de Accesibilidad.',
-      "Buscá y seleccioná 'BA Protege+' en la lista de aplicaciones instaladas.",
-      "Activá el servicio y confirmá tocando 'Permitir' en la ventana de advertencia.",
+      'Hacé clic en el botón “Activar antidesinstalación”.',
+      'Buscá y seleccioná “BA Protege +” en la lista de aplicaciones instaladas.',
+      'Confirmá la protección tocando “Permitir” en la ventana de advertencia.',
     ],
-    actionLabel: 'Activar servicio de accesibilidad',
+    actionLabel: 'Activar antidesinstalación',
     loadingKey: 'accessibility',
   },
   {
     key: 'notifications',
     title: 'Notificaciones del sistema',
-    subtitle: 'Alertas inmediatas y estado de supervisión',
     detailedText:
-      'Mantiene la notificación de servicio persistente de seguridad en la barra de estado y envía alertas instantáneas de intentos de bloqueo o límites alcanzados.',
+      'Activá las notificaciones para recibir avisos de intentos de evasión de sitios y apps bloqueados y mensajes de advertencia cuando el tiempo en las aplicaciones alcanzó un límite establecido.',
     steps: [
-      'Activá el interruptor para habilitar las notificaciones.',
-      "En la ventana emergente de permisos de Android, seleccioná 'Permitir'.",
-      'Comprobá que las alertas del sistema no queden silenciadas.',
+      'Hacé clic en el botón “Activar notificaciones”.',
+      'En la ventana emergente de permisos de Android seleccioná “Permitir”.',
+      'Comprobá que las notificaciones no queden silenciadas.',
     ],
-    actionLabel: 'Permitir notificaciones',
+    actionLabel: 'Activar notificaciones',
     loadingKey: 'notifications',
   },
   {
     key: 'batteryOptimization',
-    title: 'Optimización de batería',
-    subtitle: 'Protección continua con pantalla apagada',
+    title: 'Protección con pantalla apagada',
     detailedText:
-      'Evita que el ahorro de energía de Android suspenda o detenga el motor de filtrado cuando el celular esté con pantalla apagada o en reposo prolongado.',
+      'Este permiso mantiene activa la protección contra sitios y apps de juegos y apuestas ilegales las 24 horas, inclusive cuando el celular está en reposo o con el ahorro de energía activado.',
     steps: [
-      'Activá el interruptor de exención de batería.',
-      "En el aviso del sistema '¿Ignorar optimizaciones de batería?', elegí 'Permitir' (o Sin restricciones).",
-      'La app quedará autorizada para operar ininterrumpidamente en segundo plano.',
+      'Hacé clic en el botón “Activar protección continua”.',
+      'En la ventana emergente de permisos de Android seleccioná “Permitir”.',
     ],
-    actionLabel: 'Conceder exención de batería',
+    actionLabel: 'Activar protección continua',
     loadingKey: 'battery',
   },
   {
     key: 'location',
     title: 'Ubicación y geolocalización',
-    subtitle: 'Registro de localización y seguridad familiar',
     detailedText:
-      'Utiliza el sensor GPS del dispositivo para registrar la dirección exacta para el responsable. Si el permiso no es otorgado o no hay señal GPS satelital, el sistema obtiene la ubicación aproximada basada en la red IP.',
+      'Activá este permiso para que la aplicación reconozca la ubicación de tu celular y siempre te lleguen las alertas para mantener una navegación segura.',
     steps: [
-      'Activá el interruptor del permiso de ubicación.',
-      "En el diálogo del sistema, seleccioná 'Mientras la app está en uso' o 'Siempre'.",
-      'Asegurate de mantener activada la ubicación precisa del dispositivo.',
+      'Hacé clic en el botón “Activar ubicación”.',
+      'En la ventana emergente de permisos de Android seleccioná “Mientras la app está en uso” o “Siempre”.',
+      'Chequeá que tengas activada la localización precisa del celular.',
     ],
-    actionLabel: 'Autorizar permiso de ubicación (GPS)',
+    actionLabel: 'Activar ubicación',
     loadingKey: 'location',
   },
   {
     key: 'usageStats',
     title: 'Estadísticas de uso de aplicaciones',
-    subtitle: 'Supervisión de tiempo en pantalla y límites',
     detailedText:
-      'Necesario para supervisar el tiempo en primer plano de las aplicaciones y hacer cumplir los horarios y límites de tiempo diario configurados por el responsable.',
+      'Activá este permiso para que puedas ver el tiempo en las aplicaciones y cumplir con los límites diarios que establezcas para vos y tu entorno.',
     steps: [
-      "Activá el interruptor para abrir la sección 'Acceso de uso' en Ajustes.",
-      "Localizá y seleccioná 'BA Protege+' en la lista de aplicaciones.",
-      "Habilitá la opción 'Permitir seguimiento de uso' (o acceso a datos de uso).",
+      'Hacé clic en el botón “Activar estadísticas”.',
+      'Localizá y seleccioná “BA Protege +” en la lista de aplicaciones.',
+      'Habilitá la opción “Permitir seguimiento de uso” o “Permitir acceso a datos de uso”.',
     ],
-    actionLabel: 'Autorizar estadísticas de uso',
+    actionLabel: 'Activar estadísticas',
     loadingKey: 'usageStats',
   },
 ];

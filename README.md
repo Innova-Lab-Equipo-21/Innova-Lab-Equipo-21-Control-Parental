@@ -401,14 +401,18 @@ Para generar una **APK de Release firmada** lista para distribuir e instalar en 
 1. **Configurar la clave de firma local (no versionada en Git):**
    - Copiar `frontend/android/keystore.properties.example` a `frontend/android/keystore.properties` y completar los datos de la keystore local (`baprotege-release.keystore`).
    - Asegurarse de tener las huellas digitales **SHA-1** y **SHA-256** del certificado de release registradas en **Firebase Console** y el archivo `frontend/android/app/google-services.json` actualizado (necesario para **Google Sign-In**).
-2. **Compilar la APK de Release:**
+2. **Compilar la APK de Release para la Landing (un solo comando):**
    ```bash
    cd frontend
    npm run build:apk:release
    ```
-   - La APK firmada se genera en `frontend/android/app/build/outputs/apk/release/app-release.apk` y se copia automáticamente a `frontend/landing/assets/apk/ba-protege-release.apk`.
+   - Empaqueta automáticamente el bundle JS/Hermes (no requiere ejecutar `npm run build:bundle` previamente), firma el binario y lo genera en `frontend/android/app/build/outputs/apk/release/app-release.apk`.
+   - Lo copia **automáticamente** hacia `frontend/landing/assets/apk/ba-protege-release.apk` mediante la tarea Gradle `copyReleaseApkToLanding`.
+   - Si solo se necesita volver a copiar el último release compilado a la landing, ejecutar `npm run copy:apk`.
+   - Las compilaciones de desarrollo/emulador (`npm run build:apk`, `npm run install:device`, `npm run android`) **no sobrescriben** `ba-protege-release.apk`.
 3. **Instalación en celular físico:**
    - Si el teléfono ya tenía instalada una versión anterior compilada en modo `debug`, desinstalarla una única vez antes de instalar la APK de `release` (ya que cambia la firma digital).
+   - Para publicar nuevas versiones en la landing, incrementar `versionCode` y `versionName` en `frontend/android/app/build.gradle` antes de ejecutar `npm run build:apk:release`.
 
 ---
 

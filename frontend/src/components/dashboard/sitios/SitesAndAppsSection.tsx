@@ -38,6 +38,7 @@ import {
   shouldShowAutoproteccionEmptyNotice,
   countItemsForResponsable,
 } from '../../../utils/responsibleFirstAccess';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { styles } from './SitesAndAppsSection.styles';
 
 export interface SitesAndAppsSectionProps {
@@ -162,17 +163,30 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   // Confirmación centralizada de eliminación
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
+    const deletedItem = itemToDelete;
     setLoadingDelete(true);
     try {
-      if (itemToDelete.type === 'site') {
-        await apiService.deleteCustomBlockedSite(itemToDelete.id);
+      if (deletedItem.type === 'site') {
+        await apiService.deleteCustomBlockedSite(deletedItem.id);
         setItemToDelete(null);
         onRefreshList();
+        showFeedback({
+          imageSource: BOTITO_ASSETS.nervioso,
+          title: 'Sitio eliminado',
+          message: `Quitamos ${deletedItem.name} de tu lista de bloqueos. Podés agregarlo cuando quieras desde el botón +.`,
+          buttonText: 'Entendido',
+        });
       } else {
-        await apiService.deleteCustomBlockedApp(itemToDelete.id);
+        await apiService.deleteCustomBlockedApp(deletedItem.id);
         setItemToDelete(null);
         await apps.loadApps();
         onRefreshList();
+        showFeedback({
+          imageSource: BOTITO_ASSETS.nervioso,
+          title: 'Aplicación eliminada',
+          message: `Quitamos ${deletedItem.name} de tu lista de bloqueos. Podés agregarla cuando quieras desde el botón +.`,
+          buttonText: 'Entendido',
+        });
       }
     } catch (e: any) {
       showFeedback({
@@ -252,7 +266,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
             style={styles.a11yNoticeIcon}
           />
           <Text style={styles.a11yNoticeText}>
-            El servicio de accesibilidad está desactivado. Tocá acá para activarlo en Ajustes y aplicar los bloqueos en este dispositivo.
+            La protección antidesinstalación está desactivada. Tocá acá para activarla y poder aplicar los bloqueos.
           </Text>
         </TouchableOpacity>
       )}

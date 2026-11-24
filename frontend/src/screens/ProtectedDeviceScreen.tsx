@@ -500,12 +500,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
       {mode === 'ADULT' && activeTab === 'sitios' && (
         <Header
           showTopLogo={false}
-          title={adultoSitiosSubTab === 'apps' ? 'Aplicaciones' : 'Gestión de sitios y apps'}
-          subtitle={
-            adultoSitiosSubTab === 'apps'
-              ? 'Aplicaciones restringidas en este dispositivo'
-              : 'Filtro oficial LOTBA, dominios y aplicaciones'
-          }
+          title="Gestión de sitios y apps"
           onBack={() => setActiveTab('inicio')}
         />
       )}

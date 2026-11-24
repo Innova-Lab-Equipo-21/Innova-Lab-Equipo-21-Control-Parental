@@ -109,6 +109,14 @@ export const styles = StyleSheet.create({
     gap: 8,
     marginVertical: 4,
   },
+  /** Contenedor en una sola línea para las 3 opciones de Filtrar por origen */
+  originBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    alignItems: 'center',
+    gap: 6,
+    marginVertical: 4,
+  },
   /** Insignia/Chip individual de selección */
   filterBadge: {
     paddingHorizontal: 16,
@@ -120,6 +128,12 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  /** Ajuste compacto para que las 3 opciones de origen quepan en una sola línea */
+  originFilterBadge: {
+    paddingHorizontal: 11,
+    justifyContent: 'center',
+    flexShrink: 1,
+  },
   /** Insignia/Chip activa seleccionada */
   filterBadgeActive: {
     backgroundColor: colors.primaryLight,
@@ -129,6 +143,9 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
+  },
+  originFilterBadgeText: {
+    fontSize: 12,
   },
   filterBadgeTextActive: {
     color: colors.primaryDark,

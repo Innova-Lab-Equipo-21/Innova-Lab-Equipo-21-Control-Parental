@@ -46,6 +46,59 @@ import {
 
 export type { PermissionItemState };
 
+const DEACTIVATION_CONFIRMATION_MODALS: Record<
+  keyof PermissionItemState,
+  {
+    title: string;
+    message: string;
+    mood: BotMood;
+    buttonText: string;
+  }
+> = {
+  vpn: {
+    title: 'Filtro desactivado',
+    message:
+      'Sin este filtro el dispositivo queda expuesto a sitios y apps de juegos y apuestas ilegales. Podés volver a activarlo cuando quieras desde la configuración.',
+    mood: 'nervioso',
+    buttonText: 'Entendido',
+  },
+  accessibility: {
+    title: 'Antidesinstalación desactivada',
+    message:
+      'Sin esta protección, la aplicación podría cerrarse o eliminarse por error. Podés volver a activarla cuando quieras desde la configuración.',
+    mood: 'nervioso',
+    buttonText: 'Entendido',
+  },
+  notifications: {
+    title: 'Notificaciones desactivadas',
+    message:
+      'Sin estos avisos, no vas a enterarte al instante de las alertas de seguridad. Podés volver a activarlas cuando quieras desde la configuración.',
+    mood: 'nervioso',
+    buttonText: 'Entendido',
+  },
+  batteryOptimization: {
+    title: 'Protección continua desactivada',
+    message:
+      'Para mantener activa la protección contra sitios y apps de juegos y apuestas ilegales las 24 horas, podés activar la protección cuando quieras desde la configuración.',
+    mood: 'nervioso',
+    buttonText: 'Entendido',
+  },
+  location: {
+    title: 'Ubicación desactivada',
+    message:
+      'Sin este permiso, la aplicación no puede garantizar que te lleguen en todo momento las alertas de seguridad. Podés volver a activarlo cuando quieras desde la configuración.',
+    mood: 'nervioso',
+    buttonText: 'Entendido',
+  },
+  usageStats: {
+    title: 'Estadísticas desactivadas',
+    message:
+      'Sin este permiso, no podremos informarte sobre el tiempo que pasaste en las aplicaciones. Podés volver a activarlo cuando quieras desde la configuración.',
+    mood: 'nervioso',
+    buttonText: 'Entendido',
+  },
+};
+
 interface PermissionsScreenProps {
   onPermissionsComplete: () => void;
   onBack?: () => void;
@@ -110,18 +163,26 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   const isRequestingLocationRef = useRef<boolean>(false);
   const isRequestingUsageStatsRef = useRef<boolean>(false);
   const appStateRef = useRef(AppState.currentState);
+  const permissionsRef = useRef<PermissionItemState>(permissions);
+  const pendingDisableConfirmationRef = useRef<keyof PermissionItemState | null>(null);
+
+  useEffect(() => {
+    permissionsRef.current = permissions;
+  }, [permissions]);
 
   // Consultar permisos reales nativos al montar
   useEffect(() => {
     checkRealDevicePermissions(userId).then((real) => {
-      setPermissions({
+      const initial: PermissionItemState = {
         vpn: real.vpn,
         accessibility: real.accessibility,
         notifications: real.notifications,
         batteryOptimization: real.batteryOptimization,
         location: real.location,
         usageStats: real.usageStats,
-      });
+      };
+      permissionsRef.current = initial;
+      setPermissions(initial);
     });
     saveNavigationState({ activeScreen: 'PERMISSIONS' }).catch(() => {});
   }, [userId]);
@@ -168,75 +229,50 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
             protectionService.isProtectionActive().catch(() => false),
           ]);
 
-          let feedbackToShow: {
-            title: string;
-            message: string;
-            mood: 'feliz' | 'pensando' | 'triste' | 'festejando' | 'nervioso';
-            buttonText: string;
-          } | null = null;
+          const prev = permissionsRef.current;
+          let nextVpn = prev.vpn;
+          if (isPrepared === false) {
+            nextVpn = false;
+          } else if (isVpnActive) {
+            nextVpn = true;
+          }
 
-          setPermissions((prev) => {
-            let nextVpn = prev.vpn;
-            if (isPrepared === false) {
-              nextVpn = false;
-            } else if (isVpnActive) {
-              nextVpn = true;
-            }
+          const nextAcc = isAccEnabled !== null ? isAccEnabled : prev.accessibility;
+          const nextNotif = isNotifEnabled !== null ? isNotifEnabled : prev.notifications;
+          const nextBattery = isBatteryIgnored !== null ? isBatteryIgnored : prev.batteryOptimization;
+          const nextUsage = isUsageStatsGranted !== null ? isUsageStatsGranted : prev.usageStats;
+          let nextLoc = prev.location;
+          if (isLocGranted === false) {
+            nextLoc = false;
+          }
 
-            const nextAcc = isAccEnabled !== null ? isAccEnabled : prev.accessibility;
-            const nextNotif = isNotifEnabled !== null ? isNotifEnabled : prev.notifications;
-            const nextBattery = isBatteryIgnored !== null ? isBatteryIgnored : prev.batteryOptimization;
-            const nextUsage = isUsageStatsGranted !== null ? isUsageStatsGranted : prev.usageStats;
-            let nextLoc = prev.location;
-            if (isLocGranted === false) {
-              nextLoc = false;
-            }
+          const pendingDisableKey = pendingDisableConfirmationRef.current;
+          pendingDisableConfirmationRef.current = null;
 
-            if (prev.batteryOptimization && nextBattery === false) {
-              feedbackToShow = {
-                title: 'Optimización de batería desactivada',
-                message:
-                  'El permiso de optimización de batería fue deshabilitado correctamente.',
-                mood: 'feliz',
-                buttonText: 'Entendido',
-              };
-            } else if (prev.accessibility && nextAcc === false) {
-              feedbackToShow = {
-                title: 'Accesibilidad desactivada',
-                message:
-                  'El servicio de accesibilidad fue deshabilitado correctamente.',
-                mood: 'feliz',
-                buttonText: 'Entendido',
-              };
-            } else if (prev.notifications && nextNotif === false) {
-              feedbackToShow = {
-                title: 'Notificaciones desactivadas',
-                message:
-                  'Las notificaciones del sistema fueron deshabilitadas correctamente.',
-                mood: 'feliz',
-                buttonText: 'Entendido',
-              };
-            } else if (prev.usageStats && nextUsage === false) {
-              feedbackToShow = {
-                title: 'Estadísticas de uso desactivadas',
-                message:
-                  'El acceso a estadísticas de uso fue deshabilitado correctamente.',
-                mood: 'feliz',
-                buttonText: 'Entendido',
-              };
-            }
+          let deactivatedKey: keyof PermissionItemState | null = null;
+          if ((prev.vpn && nextVpn === false) || (pendingDisableKey === 'vpn' && !nextVpn)) {
+            deactivatedKey = 'vpn';
+          } else if (prev.accessibility && nextAcc === false) {
+            deactivatedKey = 'accessibility';
+          } else if (prev.notifications && nextNotif === false) {
+            deactivatedKey = 'notifications';
+          } else if (prev.batteryOptimization && nextBattery === false) {
+            deactivatedKey = 'batteryOptimization';
+          } else if ((prev.location && nextLoc === false) || (pendingDisableKey === 'location' && !nextLoc)) {
+            deactivatedKey = 'location';
+          } else if (prev.usageStats && nextUsage === false) {
+            deactivatedKey = 'usageStats';
+          }
 
-            if (
-              prev.vpn === nextVpn &&
-              prev.accessibility === nextAcc &&
-              prev.notifications === nextNotif &&
-              prev.batteryOptimization === nextBattery &&
-              prev.location === nextLoc &&
-              prev.usageStats === nextUsage
-            ) {
-              return prev;
-            }
-            const next = {
+          if (
+            prev.vpn !== nextVpn ||
+            prev.accessibility !== nextAcc ||
+            prev.notifications !== nextNotif ||
+            prev.batteryOptimization !== nextBattery ||
+            prev.location !== nextLoc ||
+            prev.usageStats !== nextUsage
+          ) {
+            const next: PermissionItemState = {
               ...prev,
               vpn: nextVpn,
               accessibility: nextAcc,
@@ -245,12 +281,13 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               location: nextLoc,
               usageStats: nextUsage,
             };
+            permissionsRef.current = next;
+            setPermissions(next);
             saveDevicePermissions(next, userId);
-            return next;
-          });
+          }
 
-          if (feedbackToShow) {
-            showFeedback(feedbackToShow);
+          if (deactivatedKey) {
+            showFeedback(DEACTIVATION_CONFIRMATION_MODALS[deactivatedKey]);
           }
         } catch {
           // Mantener estado actual si falla la verificación nativa
@@ -261,20 +298,18 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     return () => {
       subscription.remove();
     };
-  }, [userId]);
+  }, [userId, protectedProfile]);
 
   // Helper para actualizar y persistir el estado real de permisos
   const updatePermission = (key: keyof PermissionItemState, value: boolean) => {
-    setPermissions((prev) => {
-      const next = { ...prev, [key]: value };
-      saveDevicePermissions(next, userId);
-      return next;
-    });
+    const next: PermissionItemState = { ...permissionsRef.current, [key]: value };
+    permissionsRef.current = next;
+    setPermissions(next);
+    saveDevicePermissions(next, userId);
   };
 
   // Solo un card puede estar abierto a la vez (los demás se cierran automáticamente)
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
-  const [locationAddress, setLocationAddress] = useState<string | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   const toggleExpand = (key: string) => {
@@ -300,17 +335,17 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       if (result.granted) {
         updatePermission('vpn', true);
         showFeedback({
-          title: 'Permiso VPN concedido',
-          message: 'El servicio de filtrado local VPN ha sido autorizado en la configuración del dispositivo.',
+          title: '¡Filtro activado con éxito!',
+          message:
+            'Ya está funcionando en tu celular la protección contra sitios y apps de juegos y apuestas ilegales. Tus datos siguen seguros y privados.',
           mood: 'feliz',
         });
       } else {
         updatePermission('vpn', false);
         showFeedback({
-          title: 'Permiso VPN no activado',
-          message: result.cancelled
-            ? 'Cancelaste la solicitud de conexión VPN. Para activar la protección, confirmá el permiso en el diálogo del sistema.'
-            : 'No se pudo verificar la activación del permiso VPN en la configuración del dispositivo.',
+          title: 'El filtro sigue desactivado',
+          message:
+            'Para mantener la protección activa, recordá confirmar la solicitud en la ventana de tu celular cuando vuelvas a intentarlo.',
           mood: 'nervioso',
         });
       }
@@ -333,15 +368,17 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       if (result.granted) {
         updatePermission('accessibility', true);
         showFeedback({
-          title: 'Servicio de accesibilidad activado',
-          message: 'Se activó la protección antidesinstalación en la configuración del dispositivo.',
+          title: '¡Antidesinstalación activada con éxito!',
+          message:
+            'Ya está funcionando en tu celular la protección para que la aplicación no se cierre o se elimine por error.',
           mood: 'feliz',
         });
       } else {
         updatePermission('accessibility', false);
         showFeedback({
-          title: 'Servicio de accesibilidad no activado',
-          message: 'No se detectó la activación de "BA Protege+" en Accesibilidad. En Ajustes de Accesibilidad, seleccioná "BA Protege+" y activá el servicio.',
+          title: 'La antidesinstalación sigue desactivada',
+          message:
+            'Sin esta protección, la aplicación podría cerrarse o eliminarse por error. Podés activarla cuando quieras desde los ajustes del sistema.',
           mood: 'nervioso',
         });
       }
@@ -364,17 +401,17 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       if (result.granted) {
         updatePermission('notifications', true);
         showFeedback({
-          title: 'Notificaciones habilitadas',
-          message: 'Las notificaciones del sistema están activas. Recibirás alertas en tiempo real y avisos de supervisión.',
+          title: '¡Notificaciones activadas con éxito!',
+          message:
+            'Vas a recibir avisos en tiempo real para mantener activa la protección contra sitios y apps de juegos y apuestas ilegales.',
           mood: 'feliz',
         });
       } else {
         updatePermission('notifications', false);
         showFeedback({
-          title: 'Notificaciones no activadas',
-          message: result.denied
-            ? 'No se otorgó el permiso de notificaciones en el dispositivo. Habilitá las notificaciones para recibir alertas de protección.'
-            : 'No se pudo verificar la activación de notificaciones en el dispositivo.',
+          title: 'Las notificaciones siguen desactivadas',
+          message:
+            'Para recibir avisos sobre tu actividad digital y la de tu entorno podés activarlas cuando quieras desde la configuración.',
           mood: 'nervioso',
         });
       }
@@ -397,17 +434,17 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       if (result.granted) {
         updatePermission('batteryOptimization', true);
         showFeedback({
-          title: 'Exención de batería concedida',
-          message: 'La app quedó autorizada para operar ininterrumpidamente en segundo plano.',
+          title: '¡Protección continua activada con éxito!',
+          message:
+            'El bloqueo de sitios y apps de juegos y apuestas ilegales va a seguir funcionando las 24 horas.',
           mood: 'feliz',
         });
       } else {
         updatePermission('batteryOptimization', false);
         showFeedback({
-          title: 'Exención de batería no activada',
-          message: result.denied
-            ? 'No se concedió la exención de ahorro de batería. Para evitar interrupciones en la protección, permití la ejecución sin restricciones.'
-            : 'No se pudo verificar la exención de batería en la configuración del dispositivo.',
+          title: 'Protección continua desactivada',
+          message:
+            'Para mantener activa la protección contra sitios y apps de juegos y apuestas ilegales las 24 horas, podés activar la protección cuando quieras desde la configuración.',
           mood: 'nervioso',
         });
       }
@@ -429,17 +466,17 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       if (result.granted) {
         updatePermission('usageStats', true);
         showFeedback({
-          title: 'Estadísticas de uso autorizadas',
-          message: 'Permiso concedido para supervisar tiempo de pantalla y límites diarios de aplicaciones.',
+          title: '¡Estadísticas activadas con éxito!',
+          message:
+            'Ahora podremos acompañarte en la gestión del tiempo en las aplicaciones y cuidar tu bienestar digital.',
           mood: 'feliz',
         });
       } else {
         updatePermission('usageStats', false);
         showFeedback({
-          title: 'Permiso de acceso al uso no concedido',
-          message: result.denied
-            ? 'No se activó el acceso a estadísticas de uso. Para hacer cumplir los límites de tiempo de pantalla, habilitá BA Protege+ en Ajustes.'
-            : 'No se pudo verificar el acceso a estadísticas de uso en la configuración del dispositivo.',
+          title: 'Las estadísticas siguen desactivadas',
+          message:
+            'Para que puedas ver el tiempo en las aplicaciones y cumplir con los límites diarios que estipules, podés activar este permiso cuando quieras desde la configuración.',
           mood: 'nervioso',
         });
       }
@@ -502,7 +539,6 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         // Usa coordenadas formateadas si el servicio de nombres no responde
       }
 
-      setLocationAddress(addressText);
       updatePermission('location', true);
 
       await apiService.saveUserLocation({
@@ -513,8 +549,9 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       });
 
       showFeedback({
-        title: 'Ubicación GPS registrada',
-        message: `Dirección obtenida exitosamente por GPS:\n${addressText}`,
+        title: '¡Ubicación activada con éxito!',
+        message:
+          'Ahora la aplicación podrá garantizar el funcionamiento de las alertas para mantener una navegación segura.',
         mood: 'feliz',
       });
     } else {
@@ -527,7 +564,6 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   const fallbackIpLocation = async (permissionGranted: boolean = false) => {
     if (!permissionGranted) {
       updatePermission('location', false);
-      setLocationAddress(null);
       return;
     }
 
@@ -536,7 +572,6 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       const data = await res.json();
       const ipAddress = `${data.city || 'Buenos Aires'}, ${data.region || 'CABA'}, ${data.country_name || 'Argentina'} (Aproximada por red)`;
 
-      setLocationAddress(ipAddress);
       updatePermission('location', true);
 
       await apiService.saveUserLocation({
@@ -547,20 +582,21 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       });
 
       showFeedback({
-        title: 'Ubicación registrada',
-        message: `Permiso de ubicación autorizado. Se sincronizó la posición de referencia:\n${ipAddress}`,
+        title: '¡Ubicación activada con éxito!',
+        message:
+          'Ahora la aplicación podrá garantizar el funcionamiento de las alertas para mantener una navegación segura.',
         mood: 'feliz',
       });
     } catch {
       const defaultLoc = 'Buenos Aires, Argentina (Ubicación de referencia)';
-      setLocationAddress(defaultLoc);
       updatePermission('location', true);
 
       await apiService.saveUserLocation({ address: defaultLoc, source: 'IP' });
 
       showFeedback({
-        title: 'Ubicación registrada',
-        message: `Permiso de ubicación autorizado:\n${defaultLoc}`,
+        title: '¡Ubicación activada con éxito!',
+        message:
+          'Ahora la aplicación podrá garantizar el funcionamiento de las alertas para mantener una navegación segura.',
         mood: 'feliz',
       });
     }
@@ -582,10 +618,10 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
 
       if (!result.granted) {
         updatePermission('location', false);
-        setLocationAddress(null);
         showFeedback({
-          title: 'Permiso de ubicación no concedido',
-          message: 'Para supervisar la geolocalización y seguridad familiar, debés aceptar el permiso de ubicación en el dispositivo.',
+          title: 'La ubicación sigue desactivada',
+          message:
+            'Para garantizar que siempre te lleguen las alertas de seguridad, podés activar la ubicación cuando quieras desde la configuración.',
           mood: 'nervioso',
         });
         return;
@@ -596,10 +632,11 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         const isLocEnabled = await protectionService.isLocationEnabled();
         if (!isLocEnabled) {
           showFeedback({
-            title: 'Ubicación desactivada',
-            message: 'El permiso de ubicación fue concedido, pero la ubicación del dispositivo está desactivada. ¿Deseás activarla en Ajustes?',
+            title: 'La ubicación sigue desactivada',
+            message:
+              'Para garantizar que siempre te lleguen las alertas de seguridad, podés activar la ubicación cuando quieras desde la configuración.',
             mood: 'pensando',
-            buttonText: 'Abrir ajustes',
+            buttonText: 'Configurar',
             secondaryButtonText: 'Cancelar',
             onConfirm: async () => {
               setFeedbackModal((prev) => ({ ...prev, visible: false }));
@@ -608,7 +645,6 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
             },
             onSecondaryPress: () => {
               setFeedbackModal((prev) => ({ ...prev, visible: false }));
-              recordLocationData().catch(() => {});
             },
           });
           return;
@@ -619,7 +655,6 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     } catch (error) {
       console.warn('[PermissionsScreen] Error al solicitar permiso de ubicación:', error);
       updatePermission('location', false);
-      setLocationAddress(null);
     } finally {
       isRequestingLocationRef.current = false;
       setLoadingKey(null);
@@ -637,22 +672,28 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   const handleDisablePermission = async (key: keyof PermissionItemState) => {
     switch (key) {
       case 'vpn': {
-        try {
-          await protectionService.stopProtection();
-        } catch (err) {
-          console.warn('[PermissionsScreen] Error al detener VPN:', err);
-        }
-        updatePermission('vpn', false);
         showFeedback({
-          title: 'Filtrado VPN desactivado',
+          title: '¿Querés desactivar el filtro?',
           message:
-            'Se detuvo el servicio de filtrado y protección VPN en el dispositivo. Si deseás desconectar o administrar la conexión en el sistema, podés abrir Ajustes.',
-          mood: 'feliz',
-          buttonText: 'Abrir ajustes',
+            'Sin este filtro el dispositivo queda expuesto a sitios y apps de juegos y apuestas ilegales. Podés volver a activarlo cuando quieras desde la configuración.',
+          mood: 'pensando',
+          buttonText: 'Configurar',
           secondaryButtonText: 'Cancelar',
-          onConfirm: () => {
+          onConfirm: async () => {
             setFeedbackModal((prev) => ({ ...prev, visible: false }));
-            protectionService.openVpnSettings().catch(() => {});
+            try {
+              await protectionService.stopProtection();
+            } catch (err) {
+              console.warn('[PermissionsScreen] Error al detener VPN:', err);
+            }
+            updatePermission('vpn', false);
+            pendingDisableConfirmationRef.current = 'vpn';
+            try {
+              await protectionService.openVpnSettings();
+            } catch {
+              pendingDisableConfirmationRef.current = null;
+              showFeedback(DEACTIVATION_CONFIRMATION_MODALS.vpn);
+            }
           },
           onSecondaryPress: () => {
             setFeedbackModal((prev) => ({ ...prev, visible: false }));
@@ -662,11 +703,11 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       }
       case 'accessibility': {
         showFeedback({
-          title: 'Desactivar accesibilidad',
+          title: '¿Querés desactivar la antidesinstalación?',
           message:
-            'Para desactivar la protección antidesinstalación, Android requiere que apagues el servicio en los Ajustes de accesibilidad del sistema. ¿Deseás abrir Ajustes ahora?',
+            'Sin esta protección, la aplicación podría cerrarse o eliminarse por error. Podés volver a activarla cuando quieras desde la configuración.',
           mood: 'pensando',
-          buttonText: 'Abrir ajustes',
+          buttonText: 'Configurar',
           secondaryButtonText: 'Cancelar',
           onConfirm: async () => {
             setFeedbackModal((prev) => ({ ...prev, visible: false }));
@@ -684,11 +725,11 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       }
       case 'notifications': {
         showFeedback({
-          title: 'Desactivar notificaciones',
+          title: '¿Querés desactivar las notificaciones?',
           message:
-            'Para desactivar las alertas y notificaciones del sistema, debés deshabilitarlas en los Ajustes de la aplicación. ¿Deseás abrir Ajustes ahora?',
+            'Sin estos avisos, no vas a enterarte al instante de las alertas de seguridad. Para avanzar, debés cambiar la configuración desde tu celular.',
           mood: 'pensando',
-          buttonText: 'Abrir ajustes',
+          buttonText: 'Configurar',
           secondaryButtonText: 'Cancelar',
           onConfirm: async () => {
             setFeedbackModal((prev) => ({ ...prev, visible: false }));
@@ -706,11 +747,11 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       }
       case 'batteryOptimization': {
         showFeedback({
-          title: 'Optimización de batería',
+          title: '¿Querés desactivar la protección continua?',
           message:
-            'Para reactivar la optimización de batería (ahorro de energía de Android), podés modificarlo en los Ajustes del sistema. ¿Deseás abrir Ajustes ahora?',
+            'Sin este permiso, la aplicación no podrá mantener la protección contra sitios y apps de juegos y apuestas ilegales las 24 horas. Para avanzar, debés cambiar la configuración desde tu celular.',
           mood: 'pensando',
-          buttonText: 'Abrir ajustes',
+          buttonText: 'Configurar',
           secondaryButtonText: 'Cancelar',
           onConfirm: async () => {
             setFeedbackModal((prev) => ({ ...prev, visible: false }));
@@ -727,21 +768,23 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         break;
       }
       case 'location': {
-        updatePermission('location', false);
-        setLocationAddress(null);
         showFeedback({
-          title: 'Ubicación desactivada',
+          title: '¿Querés desactivar la ubicación?',
           message:
-            'Se desactivó el registro de ubicación en la aplicación. Si deseás revocar el permiso GPS del sistema, podés hacerlo en los Ajustes.',
-          mood: 'feliz',
-          buttonText: 'Abrir ajustes',
+            'Sin este permiso, la aplicación no puede garantizar que te lleguen en todo momento las alertas de seguridad. Podés volver a activarlo cuando quieras desde la configuración.',
+          mood: 'pensando',
+          buttonText: 'Configurar',
           secondaryButtonText: 'Cancelar',
           onConfirm: async () => {
             setFeedbackModal((prev) => ({ ...prev, visible: false }));
+            updatePermission('location', false);
+            pendingDisableConfirmationRef.current = 'location';
             try {
               await protectionService.openLocationSettings();
             } catch (err) {
               console.warn('[PermissionsScreen] Error al abrir ubicación:', err);
+              pendingDisableConfirmationRef.current = null;
+              showFeedback(DEACTIVATION_CONFIRMATION_MODALS.location);
             }
           },
           onSecondaryPress: () => {
@@ -752,11 +795,11 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       }
       case 'usageStats': {
         showFeedback({
-          title: 'Desactivar estadísticas de uso',
+          title: '¿Querés desactivar las estadísticas?',
           message:
-            'Para desactivar la supervisión del tiempo de uso de aplicaciones, Android requiere que apagues el acceso en los Ajustes del sistema. ¿Deseás abrir Ajustes ahora?',
+            'Sin este permiso, no podremos informarte sobre el tiempo que pasaste en las aplicaciones. Para avanzar, debés cambiar la configuración desde tu celular.',
           mood: 'pensando',
-          buttonText: 'Abrir ajustes',
+          buttonText: 'Configurar',
           secondaryButtonText: 'Cancelar',
           onConfirm: async () => {
             setFeedbackModal((prev) => ({ ...prev, visible: false }));
@@ -849,7 +892,6 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
                 isExpanded={isExpanded}
                 isLoading={isLoading}
                 canDisablePermissions={canDisablePermissions}
-                locationAddress={locationAddress}
                 onToggleExpand={() => toggleExpand(item.key)}
                 onTogglePermission={() => handleTogglePermission(item.key)}
                 onDisablePermission={() => handleDisablePermission(item.key)}

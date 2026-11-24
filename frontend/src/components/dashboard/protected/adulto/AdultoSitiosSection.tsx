@@ -297,7 +297,7 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
       <View style={styles.infoBanner}>
         <Text style={styles.infoBannerTitle}>🌐 Lista oficial LOTBA activa</Text>
         <Text style={styles.infoBannerText}>
-          Se bloquean automáticamente más de 450 plataformas de apuestas clandestinas e ilegales en navegadores y apps.
+          Bloqueamos de forma automática sitios y apps de apuestas ilegales no autorizados por LOTBA.
         </Text>
       </View>
 
@@ -367,7 +367,7 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
               <Text style={styles.emptyText}>
                 {siteSearch.trim().length > 0
                   ? 'No se encontraron sitios web que coincidan con tu búsqueda.'
-                  : 'No tienes sitios personalizados bloqueados. Agrega dominios con el botón + flotante.'}
+                  : 'No tenés sitios personalizados bloqueados. Agregá los que quieras con el botón +.'}
               </Text>
             </View>
           ) : (
@@ -401,7 +401,7 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
               <Text style={styles.emptyText}>
                 {appSearch.trim().length > 0
                   ? 'No se encontraron aplicaciones que coincidan con tu búsqueda.'
-                  : 'No tienes aplicaciones bloqueadas. Agrega apps con el botón + flotante.'}
+                  : 'No tenés aplicaciones personalizadas bloqueadas. Agregá las que quieras con el botón +.'}
               </Text>
             </View>
           ) : (

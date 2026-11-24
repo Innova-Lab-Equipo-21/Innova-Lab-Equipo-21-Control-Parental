@@ -12,8 +12,9 @@
 // ==============================================================================
 
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, Image } from 'react-native';
 import { ActionButton } from '../../ActionButton';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { styles } from './DeleteBlockItemModal.styles';
 
 export type DeleteItemType = 'site' | 'app';
@@ -39,17 +40,12 @@ export const DeleteBlockItemModal: React.FC<DeleteBlockItemModalProps> = ({
     return null;
   }
 
-  const title =
-    type === 'site'
-      ? 'Eliminar sitio bloqueado'
-      : 'Eliminar aplicación bloqueada';
+  const title = `¿Querés quitar ${itemName} de tu lista de bloqueos?`;
 
-  const bodyText = `¿Deseas desbloquear y eliminar permanentemente "${itemName}" de tu lista?`;
-
-  const warningText =
+  const bodyText =
     type === 'site'
-      ? '⚠️ Esta acción deshabilitará el bloqueo del sitio en todos los dispositivos asignados y no se puede deshacer.'
-      : '⚠️ Esta acción deshabilitará el bloqueo de la aplicación en todos los dispositivos asignados y no se puede deshacer.';
+      ? 'Al eliminar este sitio de tu lista, dejará de estar bloqueado en los dispositivos seleccionados y todos podrán acceder a él.'
+      : 'Al eliminar esta aplicación de tu lista, dejará de estar bloqueada en los dispositivos seleccionados y todos podrán acceder a ella.';
 
   return (
     <Modal
@@ -71,19 +67,18 @@ export const DeleteBlockItemModal: React.FC<DeleteBlockItemModalProps> = ({
             <Text style={styles.closeBtnText}>✕</Text>
           </TouchableOpacity>
 
-          {/* Emoji centrado identificador */}
-          <Text style={styles.modalEmoji}>🗑️</Text>
+          {/* Ilustración Botito pensando */}
+          <Image
+            source={BOTITO_ASSETS.pensando}
+            style={styles.modalMascotImage}
+            resizeMode="contain"
+          />
 
           {/* Título en Sentence case */}
           <Text style={styles.modalTitle}>{title}</Text>
 
           {/* Cuerpo descriptivo */}
           <Text style={styles.modalBody}>{bodyText}</Text>
-
-          {/* Caja de advertencia */}
-          <View style={styles.warningBox}>
-            <Text style={styles.warningBoxText}>{warningText}</Text>
-          </View>
 
           {/* Fila de CTAs con igual tamaño */}
           <View style={styles.buttonsRow}>

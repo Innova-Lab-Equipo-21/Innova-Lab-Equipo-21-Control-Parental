@@ -35,8 +35,17 @@ describe('Validación del Formulario de Vinculación de Dispositivos (PairingSec
   test('Debe validar que el nombre del protegido contenga solo letras y al menos 2 caracteres', () => {
     assert.equal(validateLettersOnly('Sofía'), true);
     assert.equal(validateLettersOnly('Juan Pérez'), true);
+    assert.equal(validateLettersOnly('Agüero'), true);
+    assert.equal(validateLettersOnly('Güemes'), true);
+    assert.equal(validateLettersOnly('João Conceição'), true);
+    assert.equal(validateLettersOnly('Ângela'), true);
+    assert.equal(validateLettersOnly("D'Alessandro"), true);
+    assert.equal(validateLettersOnly('García-López'), true);
+    assert.equal(validateLettersOnly('Jose\u0301'), true);
     assert.equal(validateLettersOnly('1234'), false, 'No debe aceptar números en el nombre');
     assert.equal(validateLettersOnly('Sofía123'), false, 'No debe aceptar mezcla con números');
+    assert.equal(validateLettersOnly('---'), false, 'No debe aceptar solo guiones');
+    assert.equal(validateLettersOnly("'''"), false, 'No debe aceptar solo apóstrofes');
   });
 
   test('Debe formatear el teléfono correctamente con el patrón XX XXXX-XXXX', () => {

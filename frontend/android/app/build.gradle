@@ -196,9 +196,6 @@ tasks.named('preBuild').configure {
 }
 
 tasks.configureEach { task ->
-    if (task.name == "assembleDebug" || task.name == "packageDebug") {
-        task.finalizedBy('copyDebugApkToLanding')
-    }
     if (task.name == "assembleRelease" || task.name == "packageRelease") {
         task.finalizedBy('copyReleaseApkToLanding')
     }

@@ -109,15 +109,15 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
 
         {/* CONTENEDOR DE BLOQUES DISTRIBUIDO PARA OCUPAR MÁS ESPACIO */}
         <View style={styles.blocksContainer}>
-          {/* CARD 1: SUPERVISAR OTRO DISPOSITIVO */}
+          {/* CARD 1: PROTEGER OTRO DISPOSITIVO */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Icon name="celular" size={26} color={colors.primary} style={styles.cardIcon} />
-              <Text style={styles.cardTitle}>Supervisar otro dispositivo</Text>
+              <Text style={styles.cardTitle}>Proteger otro dispositivo</Text>
             </View>
 
             <Text style={styles.cardDesc}>
-              Vinculá el dispositivo del menor a tu cargo o del adulto que necesita tu supervisión.
+              Vinculá el celular o la tablet de un menor a tu cargo o de una persona adulta que necesite tu acompañamiento en la navegación digital.
             </Text>
 
             <TouchableOpacity
@@ -138,7 +138,7 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
             </View>
 
             <Text style={styles.cardDesc}>
-              Elegí los sitios web y aplicaciones a restringir en este mismo dispositivo antes de activar la autoprotección.
+              Elegí qué sitios y apps bloquear en este dispositivo y administrá el tiempo de uso de las aplicaciones para cuidar tu propio bienestar digital.
             </Text>
 
             <TouchableOpacity

@@ -90,10 +90,16 @@ export const validateDeviceName = (name: string): string | null => {
   return null;
 };
 
-/** Valida que el texto solo contenga letras y espacios */
+/**
+ * Valida que el texto contenga únicamente letras (incluidos todos los acentos,
+ * diéresis como ü/Ü, ñ/Ñ, ç y diacríticos combinados), espacios, apóstrofes o guiones,
+ * y al menos una letra.
+ */
+export const NAME_LETTERS_REGEX =
+  /^(?=.*[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F\u1E00-\u1EFF])[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F\u1E00-\u1EFF\u0300-\u036F\s'’-]+$/;
+
 export const validateLettersOnly = (text: string): boolean => {
-  const lettersRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
-  return lettersRegex.test(text.trim());
+  return NAME_LETTERS_REGEX.test(text.trim());
 };
 
 /** Valida el formato de correo electrónico */

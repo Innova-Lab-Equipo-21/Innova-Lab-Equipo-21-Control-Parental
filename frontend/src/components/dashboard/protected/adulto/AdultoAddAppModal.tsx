@@ -7,7 +7,7 @@
 //              que solo el responsable podrá desactivarla o eliminarla.
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -54,16 +54,37 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
     }
   }, [visible]);
 
+  const blockedAppNamesSet = useMemo(
+    () =>
+      new Set((existingApps ?? []).map((app) => app.appName.trim().toLowerCase())),
+    [existingApps]
+  );
+
+  const blockedAppPackagesSet = useMemo(
+    () =>
+      new Set(
+        (existingApps ?? [])
+          .map((app) => app.packageName?.trim().toLowerCase())
+          .filter((pkg): pkg is string => Boolean(pkg))
+      ),
+    [existingApps]
+  );
+
+  const availableAppSuggestions = useMemo(
+    () =>
+      top15PlayStoreApps.filter(
+        (item) =>
+          !blockedAppNamesSet.has(item.name.trim().toLowerCase()) &&
+          !blockedAppPackagesSet.has(item.pkg.trim().toLowerCase())
+      ),
+    [blockedAppNamesSet, blockedAppPackagesSet]
+  );
+
   const hasInput = appName.trim().length > 0;
   const isDuplicate =
-    hasInput &&
-    Boolean(
-      existingApps?.some(
-        (app) => app.appName.trim().toLowerCase() === appName.trim().toLowerCase()
-      )
-    );
+    hasInput && blockedAppNamesSet.has(appName.trim().toLowerCase());
 
-  const selectedDropdownApp = top15PlayStoreApps.find(
+  const selectedDropdownApp = availableAppSuggestions.find(
     (item) => item.name.toLowerCase().trim() === appName.toLowerCase().trim()
   );
 
@@ -91,7 +112,7 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Seleccioná o ingresá la aplicación que deseás restringir en este dispositivo.
+            Elegí de la lista o escribí la aplicación que querés bloquear y definí un límite de tiempo para usarla.
           </Text>
 
           <ScrollView
@@ -117,8 +138,8 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
                   numberOfLines={1}
                 >
                   {selectedDropdownApp
-                    ? `${selectedDropdownApp.name} (${selectedDropdownApp.category})`
-                    : 'Seleccionar app de la lista (Top 15 Play Store)...'}
+                    ? selectedDropdownApp.name
+                    : 'Seleccionar app de la lista...'}
                 </Text>
               </View>
               <Text style={{ fontSize: 12, color: colors.primary, fontWeight: 'bold' }}>
@@ -129,22 +150,28 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
             {showDropdown && (
               <View style={styles.dropdownMenu}>
                 <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator>
-                  {top15PlayStoreApps.map((item) => {
-                    const isCurrent =
-                      appName.toLowerCase().trim() === item.name.toLowerCase().trim();
-                    return (
-                      <TouchableOpacity
-                        key={item.pkg}
-                        style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
-                        onPress={() => {
-                          onSelectSuggestion(item);
-                          setShowDropdown(false);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={{ fontSize: 15 }}>{item.icon}</Text>
-                          <View>
+                  {availableAppSuggestions.length === 0 ? (
+                    <View style={styles.dropdownItem}>
+                      <Text style={styles.dropdownItemSubtext}>
+                        Todas las sugerencias ya están en tu lista de bloqueo.
+                      </Text>
+                    </View>
+                  ) : (
+                    availableAppSuggestions.map((item) => {
+                      const isCurrent =
+                        appName.toLowerCase().trim() === item.name.toLowerCase().trim();
+                      return (
+                        <TouchableOpacity
+                          key={item.pkg}
+                          style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
+                          onPress={() => {
+                            onSelectSuggestion(item);
+                            setShowDropdown(false);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={{ fontSize: 15 }}>{item.icon}</Text>
                             <Text
                               style={[
                                 styles.dropdownItemText,
@@ -153,17 +180,16 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
                             >
                               {item.name}
                             </Text>
-                            <Text style={styles.dropdownItemSubtext}>{item.category}</Text>
                           </View>
-                        </View>
-                        {isCurrent && (
-                          <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
-                            ✓
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
+                          {isCurrent && (
+                            <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
+                              ✓
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
                 </ScrollView>
               </View>
             )}
@@ -171,7 +197,7 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
             <Text style={styles.inputLabel}>Nombre de la aplicación:</Text>
             <TextInput
               style={styles.formInput}
-              placeholder="ejemplo: Bet365, TikTok"
+              placeholder="Ejemplo: Bet365, TikTok"
               placeholderTextColor={colors.textSecondary}
               value={appName}
               selectTextOnFocus={true}

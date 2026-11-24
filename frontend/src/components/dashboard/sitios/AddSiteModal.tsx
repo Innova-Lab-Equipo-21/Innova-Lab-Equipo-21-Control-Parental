@@ -7,7 +7,7 @@
 //              validación en tiempo real y asignación personalizada de dispositivos.
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
@@ -86,18 +86,33 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
   const validation = validateDomainInputDetailed(domain);
   const isDomainValid = validation.isValid;
   const normalizedDomain = hasInput ? cleanDomainInput(domain) : '';
-  const autocompleteItems = getDomainAutocompleteSuggestions(domain, top15ArgentinaSites);
+
+  const blockedDomainsSet = useMemo(
+    () =>
+      new Set(
+        (existingSites ?? []).map((site) => cleanDomainInput(site.domain).toLowerCase())
+      ),
+    [existingSites]
+  );
+
+  const availableSiteSuggestions = useMemo(
+    () =>
+      top15ArgentinaSites.filter(
+        (item) => !blockedDomainsSet.has(cleanDomainInput(item.domain).toLowerCase())
+      ),
+    [blockedDomainsSet]
+  );
+
+  const autocompleteItems = getDomainAutocompleteSuggestions(
+    domain,
+    availableSiteSuggestions
+  ).filter((item) => !blockedDomainsSet.has(cleanDomainInput(item.domain).toLowerCase()));
 
   const isDuplicate =
-    hasInput &&
-    Boolean(
-      existingSites?.some(
-        (site) => cleanDomainInput(site.domain) === normalizedDomain
-      )
-    );
+    hasInput && blockedDomainsSet.has(normalizedDomain.toLowerCase());
 
   // Sitio seleccionado en el dropdown
-  const selectedDropdownSite = top15ArgentinaSites.find(
+  const selectedDropdownSite = availableSiteSuggestions.find(
     (item) =>
       item.domain.toLowerCase().trim() === normalizedDomain.toLowerCase().trim() ||
       item.name.toLowerCase().trim() === domain.toLowerCase().trim()
@@ -131,7 +146,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Seleccioná o ingresá el dominio o dirección web que deseás restringir en los dispositivos de tu familia.
+            Elegí de la lista o escribí la dirección web que querés bloquear.
           </Text>
 
           <ScrollView
@@ -158,8 +173,8 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
                   numberOfLines={1}
                 >
                   {selectedDropdownSite
-                    ? `${selectedDropdownSite.name} (${selectedDropdownSite.category})`
-                    : 'Seleccionar sitio de la lista (Top 15 Argentina)...'}
+                    ? selectedDropdownSite.name
+                    : 'Seleccionar un sitio de la lista'}
                 </Text>
               </View>
               <Text style={{ fontSize: 12, color: colors.primary, fontWeight: 'bold' }}>
@@ -170,27 +185,33 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
             {showDropdown && (
               <View style={styles.dropdownMenu}>
                 <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator>
-                  {top15ArgentinaSites.map((item) => {
-                    const isCurrent =
-                      normalizedDomain.toLowerCase().trim() === item.domain.toLowerCase().trim() ||
-                      domain.toLowerCase().trim() === item.name.toLowerCase().trim();
-                    return (
-                      <TouchableOpacity
-                        key={item.domain}
-                        style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
-                        onPress={() => {
-                          onDomainChange(item.domain);
-                          if (onCategoryChange) {
-                            onCategoryChange(item.category);
-                          }
-                          onSelectSuggestion?.(item);
-                          setShowDropdown(false);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={{ fontSize: 15 }}>{item.icon}</Text>
-                          <View>
+                  {availableSiteSuggestions.length === 0 ? (
+                    <View style={styles.dropdownItem}>
+                      <Text style={styles.dropdownItemSubtext}>
+                        Todas las sugerencias ya están en tu lista de bloqueo.
+                      </Text>
+                    </View>
+                  ) : (
+                    availableSiteSuggestions.map((item) => {
+                      const isCurrent =
+                        normalizedDomain.toLowerCase().trim() === item.domain.toLowerCase().trim() ||
+                        domain.toLowerCase().trim() === item.name.toLowerCase().trim();
+                      return (
+                        <TouchableOpacity
+                          key={item.domain}
+                          style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
+                          onPress={() => {
+                            onDomainChange(item.domain);
+                            if (onCategoryChange) {
+                              onCategoryChange(item.category);
+                            }
+                            onSelectSuggestion?.(item);
+                            setShowDropdown(false);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={{ fontSize: 15 }}>{item.icon}</Text>
                             <Text
                               style={[
                                 styles.dropdownItemText,
@@ -199,30 +220,27 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
                             >
                               {item.name}
                             </Text>
-                            <Text style={styles.dropdownItemSubtext}>
-                              {item.domain} • {item.category}
-                            </Text>
                           </View>
-                        </View>
-                        {isCurrent && (
-                          <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
-                            ✓
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
+                          {isCurrent && (
+                            <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
+                              ✓
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
                 </ScrollView>
               </View>
             )}
 
-            <Text style={styles.inputLabel}>Dominio o URL del sitio:</Text>
+            <Text style={styles.inputLabel}>Dirección del sitio o enlace:</Text>
             <TextInput
               style={[
                 styles.formInput,
                 hasInput && (isDomainValid ? styles.inputValid : styles.inputInvalid),
               ]}
-              placeholder="ejemplo: casino-ilegal.bet o https://..."
+              placeholder="Ejemplo: casino-ilegal.bet o https://..."
               placeholderTextColor={colors.textSecondary}
               value={domain}
               selectTextOnFocus={true}
@@ -234,7 +252,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
             {/* Chips de Autocompletado Inteligente en Tiempo Real */}
             {hasInput && autocompleteItems.length > 0 && (
               <View style={styles.autocompleteContainer}>
-                <Text style={styles.autocompleteTitle}>💡 Autocompletar sitio sugerido:</Text>
+                <Text style={styles.autocompleteTitle}>Autocompletar sitio sugerido:</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -252,7 +270,6 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
                       }}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.autocompleteChipIcon}>{item.icon || '🌐'}</Text>
                       <Text style={styles.autocompleteChipText}>{item.domain}</Text>
                     </TouchableOpacity>
                   ))}
@@ -279,7 +296,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
                   {isDuplicate
                     ? '⚠️ Este sitio web ya está en tu lista de bloqueo.'
                     : isDomainValid
-                    ? `✓ Sitio válido (se bloqueará: ${normalizedDomain})`
+                    ? `¡Listo! Se bloqueará: ${normalizedDomain}`
                     : validation.message ||
                       '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
                 </Text>
@@ -305,12 +322,12 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
             >
               {!hasInput && (
                 <Text style={styles.deviceSelectionDisabledHint}>
-                  Ingresá o seleccioná primero el dominio o URL del sitio para seleccionar los dispositivos.
+                  Elegí o escribí primero el sitio para indicar en qué dispositivos aplicar el bloqueo.
                 </Text>
               )}
 
               <View style={styles.applyToAllRow}>
-                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (regla global)</Text>
+                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos</Text>
                 <ToggleSwitch
                   value={applyToAll}
                   onValueChange={hasInput ? onApplyToAllChange : () => {}}
@@ -320,7 +337,7 @@ export const AddSiteModal: React.FC<AddSiteModalProps> = ({
 
               {/* Listado siempre visible de dispositivos registrados */}
               <View style={styles.deviceListContainer}>
-                <Text style={styles.deviceListTitle}>Seleccioná los dispositivos:</Text>
+                <Text style={styles.deviceListTitle}>Elegí los dispositivos:</Text>
 
                 {/* Mi dispositivo (Responsable) */}
                 <TouchableOpacity

@@ -130,7 +130,7 @@ export const SitesTab: React.FC<SitesTabProps> = ({
           <Text style={styles.emptyText}>
             {originFilter === 'adulto_protegido'
               ? 'No hay sitios web agregados por adultos protegidos.'
-              : 'No tienes sitios personalizados bloqueados. Agrega dominios con el botón + flotante.'}
+              : 'No tenés sitios personalizados bloqueados. Agregá los que quieras con el botón +.'}
           </Text>
         </View>
       ) : (

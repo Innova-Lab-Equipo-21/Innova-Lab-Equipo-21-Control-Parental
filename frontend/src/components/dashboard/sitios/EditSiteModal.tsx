@@ -127,7 +127,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
               )}
 
               <View style={styles.applyToAllRow}>
-                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (regla global)</Text>
+                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos</Text>
                 <ToggleSwitch
                   value={applyToAll}
                   onValueChange={hasInput ? onApplyToAllChange : () => {}}

@@ -19,7 +19,6 @@ export interface PermissionItemState {
 export interface PermissionDefinition {
   key: keyof PermissionItemState;
   title: string;
-  subtitle: string;
   detailedText: string;
   steps: string[];
   actionLabel: string;

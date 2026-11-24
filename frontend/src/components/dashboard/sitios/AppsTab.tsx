@@ -132,7 +132,7 @@ export const AppsTab: React.FC<AppsTabProps> = ({
           <Text style={styles.emptyText}>
             {originFilter === 'adulto_protegido'
               ? 'No hay aplicaciones agregadas por adultos protegidos.'
-              : 'No tienes aplicaciones bloqueadas. Agrega apps con el botón + flotante.'}
+              : 'No tenés aplicaciones personalizadas bloqueadas. Agregá las que quieras con el botón +.'}
           </Text>
         </View>
       ) : (

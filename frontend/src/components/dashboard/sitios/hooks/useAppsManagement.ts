@@ -15,6 +15,7 @@ import {
 } from '../../../../types';
 import { apiService } from '../../../../services/api.service';
 import { matchesBlockOriginFilter } from '../../../../utils/adultoSitios';
+import { BOTITO_ASSETS } from '../../protected/botAssets';
 
 interface UseAppsManagementProps {
   initialApps?: CustomBlockedApp[];
@@ -26,6 +27,7 @@ interface UseAppsManagementProps {
   sortBy: 'date' | 'az';
   showFeedback: (config: {
     icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
     buttonText?: string;
@@ -223,9 +225,10 @@ export const useAppsManagement = ({
       await loadApps();
       onRefreshList();
       showFeedback({
-        icon: '🛡️',
-        title: 'Aplicación bloqueada',
-        message: 'La aplicación fue agregada a la lista de restricción.',
+        imageSource: BOTITO_ASSETS.feliz,
+        title: '¡Aplicación bloqueada con éxito!',
+        message: 'Sumamos la aplicación a tu lista de bloqueo.',
+        buttonText: 'Entendido',
       });
     } catch (e: any) {
       showFeedback({

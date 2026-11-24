@@ -7,7 +7,7 @@
 //              advirtiendo explícitamente que solo el responsable podrá desactivarlo o eliminarlo.
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -60,17 +60,32 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
   const validation = validateDomainInputDetailed(domain);
   const isDomainValid = validation.isValid;
   const normalizedDomain = hasInput ? cleanDomainInput(domain) : '';
-  const autocompleteItems = getDomainAutocompleteSuggestions(domain, top15ArgentinaSites);
+
+  const blockedDomainsSet = useMemo(
+    () =>
+      new Set(
+        (existingSites ?? []).map((item) => cleanDomainInput(item.domain).toLowerCase())
+      ),
+    [existingSites]
+  );
+
+  const availableSiteSuggestions = useMemo(
+    () =>
+      top15ArgentinaSites.filter(
+        (item) => !blockedDomainsSet.has(cleanDomainInput(item.domain).toLowerCase())
+      ),
+    [blockedDomainsSet]
+  );
+
+  const autocompleteItems = getDomainAutocompleteSuggestions(
+    domain,
+    availableSiteSuggestions
+  ).filter((item) => !blockedDomainsSet.has(cleanDomainInput(item.domain).toLowerCase()));
 
   const isDuplicate =
-    hasInput &&
-    Boolean(
-      existingSites?.some(
-        (item) => cleanDomainInput(item.domain) === normalizedDomain
-      )
-    );
+    hasInput && blockedDomainsSet.has(normalizedDomain.toLowerCase());
 
-  const selectedDropdownSite = top15ArgentinaSites.find(
+  const selectedDropdownSite = availableSiteSuggestions.find(
     (item) =>
       item.domain.toLowerCase().trim() === normalizedDomain.toLowerCase().trim() ||
       item.name.toLowerCase().trim() === domain.toLowerCase().trim()
@@ -127,7 +142,7 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
                   numberOfLines={1}
                 >
                   {selectedDropdownSite
-                    ? `${selectedDropdownSite.name} (${selectedDropdownSite.category})`
+                    ? selectedDropdownSite.name
                     : 'Seleccionar sitio de la lista (Top 15 Argentina)...'}
                 </Text>
               </View>
@@ -139,24 +154,30 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
             {showDropdown && (
               <View style={styles.dropdownMenu}>
                 <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator>
-                  {top15ArgentinaSites.map((item) => {
-                    const isCurrent =
-                      normalizedDomain.toLowerCase().trim() === item.domain.toLowerCase().trim() ||
-                      domain.toLowerCase().trim() === item.name.toLowerCase().trim();
-                    return (
-                      <TouchableOpacity
-                        key={item.domain}
-                        style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
-                        onPress={() => {
-                          onDomainChange(item.domain);
-                          onSelectSuggestion?.(item);
-                          setShowDropdown(false);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={{ fontSize: 15 }}>{item.icon}</Text>
-                          <View>
+                  {availableSiteSuggestions.length === 0 ? (
+                    <View style={styles.dropdownItem}>
+                      <Text style={styles.dropdownItemSubtext}>
+                        Todas las sugerencias ya están en tu lista de bloqueo.
+                      </Text>
+                    </View>
+                  ) : (
+                    availableSiteSuggestions.map((item) => {
+                      const isCurrent =
+                        normalizedDomain.toLowerCase().trim() === item.domain.toLowerCase().trim() ||
+                        domain.toLowerCase().trim() === item.name.toLowerCase().trim();
+                      return (
+                        <TouchableOpacity
+                          key={item.domain}
+                          style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
+                          onPress={() => {
+                            onDomainChange(item.domain);
+                            onSelectSuggestion?.(item);
+                            setShowDropdown(false);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={{ fontSize: 15 }}>{item.icon}</Text>
                             <Text
                               style={[
                                 styles.dropdownItemText,
@@ -165,19 +186,16 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
                             >
                               {item.name}
                             </Text>
-                            <Text style={styles.dropdownItemSubtext}>
-                              {item.domain} • {item.category}
-                            </Text>
                           </View>
-                        </View>
-                        {isCurrent && (
-                          <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
-                            ✓
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
+                          {isCurrent && (
+                            <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
+                              ✓
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
                 </ScrollView>
               </View>
             )}

@@ -6,7 +6,7 @@
 //              asignación por dispositivo y configuración de límites diarios individuales.
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { ToggleSwitch } from '../../ToggleSwitch';
@@ -90,8 +90,34 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
     }
   }, [visible]);
 
-  // Aplicación seleccionada en el dropdown (si coincide con alguna del catálogo)
-  const selectedDropdownApp = top15PlayStoreApps.find(
+  const blockedAppNamesSet = useMemo(
+    () =>
+      new Set((existingApps ?? []).map((app) => app.appName.trim().toLowerCase())),
+    [existingApps]
+  );
+
+  const blockedAppPackagesSet = useMemo(
+    () =>
+      new Set(
+        (existingApps ?? [])
+          .map((app) => app.packageName?.trim().toLowerCase())
+          .filter((pkg): pkg is string => Boolean(pkg))
+      ),
+    [existingApps]
+  );
+
+  const availableAppSuggestions = useMemo(
+    () =>
+      top15PlayStoreApps.filter(
+        (item) =>
+          !blockedAppNamesSet.has(item.name.trim().toLowerCase()) &&
+          !blockedAppPackagesSet.has(item.pkg.trim().toLowerCase())
+      ),
+    [blockedAppNamesSet, blockedAppPackagesSet]
+  );
+
+  // Aplicación seleccionada en el dropdown (si coincide con alguna sugerencia disponible)
+  const selectedDropdownApp = availableAppSuggestions.find(
     (item) => item.name.toLowerCase().trim() === appName.toLowerCase().trim()
   );
 
@@ -387,7 +413,7 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Seleccioná o ingresá la aplicación a restringir y definí opcionalmente su límite de tiempo diario para cada dispositivo.
+            Elegí de la lista o escribí la aplicación que querés bloquear y definí un límite de tiempo para usarla.
           </Text>
 
           <ScrollView
@@ -414,8 +440,8 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
                   numberOfLines={1}
                 >
                   {selectedDropdownApp
-                    ? `${selectedDropdownApp.name} (${selectedDropdownApp.category})`
-                    : 'Seleccionar app de la lista (Top 15 Play Store)...'}
+                    ? selectedDropdownApp.name
+                    : 'Seleccionar una app de la lista...'}
                 </Text>
               </View>
               <Text style={{ fontSize: 12, color: colors.primary, fontWeight: 'bold' }}>
@@ -426,22 +452,28 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
             {showDropdown && (
               <View style={styles.dropdownMenu}>
                 <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator>
-                  {top15PlayStoreApps.map((item) => {
-                    const isCurrent =
-                      appName.toLowerCase().trim() === item.name.toLowerCase().trim();
-                    return (
-                      <TouchableOpacity
-                        key={item.pkg}
-                        style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
-                        onPress={() => {
-                          onSelectSuggestion(item);
-                          setShowDropdown(false);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={{ fontSize: 15 }}>{item.icon}</Text>
-                          <View>
+                  {availableAppSuggestions.length === 0 ? (
+                    <View style={styles.dropdownItem}>
+                      <Text style={styles.dropdownItemSubtext}>
+                        Todas las sugerencias ya están en tu lista de bloqueo.
+                      </Text>
+                    </View>
+                  ) : (
+                    availableAppSuggestions.map((item) => {
+                      const isCurrent =
+                        appName.toLowerCase().trim() === item.name.toLowerCase().trim();
+                      return (
+                        <TouchableOpacity
+                          key={item.pkg}
+                          style={[styles.dropdownItem, isCurrent && styles.dropdownItemActive]}
+                          onPress={() => {
+                            onSelectSuggestion(item);
+                            setShowDropdown(false);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={{ fontSize: 15 }}>{item.icon}</Text>
                             <Text
                               style={[
                                 styles.dropdownItemText,
@@ -450,17 +482,16 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
                             >
                               {item.name}
                             </Text>
-                            <Text style={styles.dropdownItemSubtext}>{item.category}</Text>
                           </View>
-                        </View>
-                        {isCurrent && (
-                          <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
-                            ✓
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
+                          {isCurrent && (
+                            <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 14 }}>
+                              ✓
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
                 </ScrollView>
               </View>
             )}
@@ -492,12 +523,12 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
             >
               {!hasInput && (
                 <Text style={styles.deviceSelectionDisabledHint}>
-                  Ingresá o seleccioná primero la aplicación para seleccionar los dispositivos.
+                  Elegí o escribí primero el nombre de la app para indicar en qué dispositivos aplicar el bloqueo.
                 </Text>
               )}
 
               <View style={styles.applyToAllRow}>
-                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (regla global)</Text>
+                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos</Text>
                 <ToggleSwitch
                   value={applyToAll}
                   onValueChange={hasInput ? onApplyToAllChange : () => {}}
@@ -507,7 +538,7 @@ export const AddAppModal: React.FC<AddAppModalProps> = ({
 
               {/* Listado de dispositivos con configuración de tiempo por dispositivo */}
               <View style={styles.deviceListContainer}>
-                <Text style={styles.deviceListTitle}>Seleccioná los dispositivos:</Text>
+                <Text style={styles.deviceListTitle}>Elegí los dispositivos:</Text>
 
                 {/* Mi dispositivo (Responsable) */}
                 {renderDeviceCard('self', 'Mi dispositivo', getDeviceHighlight('self'))}

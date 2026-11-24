@@ -16,6 +16,7 @@ import {
 import { apiService } from '../../../../services/api.service';
 import { isValidDomainOrUrl, cleanDomainInput } from '../../../../utils/deviceColors';
 import { matchesBlockOriginFilter } from '../../../../utils/adultoSitios';
+import { BOTITO_ASSETS } from '../../protected/botAssets';
 
 interface UseSitesManagementProps {
   customSites: CustomBlockedDomain[];
@@ -27,6 +28,7 @@ interface UseSitesManagementProps {
   sortBy: 'date' | 'az';
   showFeedback: (config: {
     icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
     buttonText?: string;
@@ -169,9 +171,10 @@ export const useSitesManagement = ({
       setShowAddSiteModal(false);
       onRefreshList();
       showFeedback({
-        icon: '🛡️',
-        title: 'Sitio bloqueado',
-        message: 'Dominio agregado a tu lista de bloqueo.',
+        imageSource: BOTITO_ASSETS.feliz,
+        title: '¡Sitio bloqueado con éxito!',
+        message: 'Sumamos el sitio a tu lista de bloqueo.',
+        buttonText: 'Entendido',
       });
     } catch (e: any) {
       showFeedback({

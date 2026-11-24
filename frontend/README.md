@@ -310,28 +310,35 @@ npm run lint
 npm test
 ```
 
-### 4. Compilar APK de Release (Recomendada para Celulares Físicos — ~28 MB)
+### 4. Compilar APK de Release para la Landing y Celulares Físicos (~28 MB)
 1. Crear `frontend/android/keystore.properties` a partir de `frontend/android/keystore.properties.example` apuntando a la keystore de release local (`baprotege-release.keystore`, excluida de Git).
-2. Ejecutar:
+2. *(Opcional al publicar nueva versión)* Incrementar `versionCode` y `versionName` en `android/app/build.gradle`.
+3. Ejecutar un único comando desde `frontend/`:
 ```bash
 npm run build:apk:release
 ```
-- Compila el bundle JS/Hermes automáticamente, filtra ABIs a `arm64-v8a` y `armeabi-v7a`, firma la APK en modo release (`debuggable = false`) y la genera en:
+- Compila automáticamente el bundle JS/Hermes (no hace falta correr `npm run build:bundle`), filtra ABIs a `arm64-v8a` y `armeabi-v7a`, firma la APK en modo release (`debuggable = false`) y la deja en:
   - `android/app/build/outputs/apk/release/app-release.apk`
-  - `landing/assets/apk/ba-protege-release.apk` *(copia automática)*
+  - `landing/assets/apk/ba-protege-release.apk` *(copia automática vía `copyReleaseApkToLanding`)*
+- Si se necesita volver a copiar manualmente el último release generado a la landing:
+```bash
+npm run copy:apk
+```
 - **Nota:** Si el dispositivo tenía instalada previamente una versión `debug`, desinstalarla una única vez antes de instalar la versión `release`.
 
-### 5. Compilar APK Debug (Emulador x86_64 y Desarrollo)
+### 5. Compilar y Ejecutar APK Debug (Emulador x86_64 y Desarrollo)
+Los comandos de desarrollo **no sobrescriben** `landing/assets/apk/ba-protege-release.apk`:
 ```bash
-# 1. Generar el bundle JS estático (opcional para pruebas sin Metro)
+# 1. Generar el bundle JS estático (para pruebas sin servidor Metro activo)
 npm run build:bundle
 
 # 2. Compilar APK Debug
 npm run build:apk
 # Ubicación: android/app/build/outputs/apk/debug/app-debug.apk
 
-# 3. Instalar y ejecutar en emulador o dispositivo conectado
+# 3. Instalar en el emulador o dispositivo conectado
 npm run install:device
-# O alternativamente:
+
+# O compilar, instalar y abrir con Metro:
 npm run android
 ```

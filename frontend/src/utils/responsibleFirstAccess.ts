@@ -12,7 +12,7 @@ import { safeStorage } from '../services/api/client';
 export type ResponsibleInitialAction = 'NONE' | 'SUPERVISE' | 'SELF_CONTROL';
 
 export const AUTOPROTECCION_EMPTY_LIST_MESSAGE =
-  'Para activar la autoprotección, primero necesitás incluir al menos un sitio web o aplicación en la lista con el botón +.';
+  'Para activar la autoprotección, primero sumá al menos un sitio o aplicación con el botón +.';
 
 const FIRST_ACCESS_KEY_PREFIX = '@ba_protege_responsible_first_access_done_';
 

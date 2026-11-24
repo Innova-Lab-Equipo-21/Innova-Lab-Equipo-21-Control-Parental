@@ -23,9 +23,24 @@ frontend/landing/
 │   └── reset-password.js                # Lógica de integração com Firebase REST API e reações de Boti
 └── assets/
     ├── apk/
-    │   └── ba-protege-release.apk       # APK oficial de Release assinada (~28 MB, arm64-v8a/armeabi-v7a, gerada por `npm run build:apk:release`)
+    │   └── ba-protege-release.apk       # APK oficial de Release assinada (~28 MB, arm64-v8a/armeabi-v7a)
     └── img/                             # Logos oficiais e expressões de Boti (feliz, pensando, nervoso, triste)
 ```
+
+---
+
+## 📦 Como Atualizar a APK de Release da Landing
+
+Dentro da pasta `frontend/`, basta executar um único comando:
+
+```bash
+npm run build:apk:release
+```
+
+Esse comando gera o bundle JS/Hermes automaticamente, compila e assina o APK de release (`~28 MB`) e copia automaticamente para `frontend/landing/assets/apk/ba-protege-release.apk`.
+
+- Para recopiar manualmente o último release já compilado sem recompilar: `npm run copy:apk`
+- Compilações de debug para emulador (`npm run build:apk`, `npm run install:device`, `npm run android`) **não sobrescrevem** o `ba-protege-release.apk`.
 
 ---
 

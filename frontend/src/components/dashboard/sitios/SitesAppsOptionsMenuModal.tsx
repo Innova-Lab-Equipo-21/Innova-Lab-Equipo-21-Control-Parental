@@ -152,7 +152,7 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                 </TouchableOpacity>
               </View>
               <Text style={styles.sheetSubtitle}>
-                Personalizá la vista, filtros y el orden de los elementos
+                Filtrá y ordená la lista a tu manera.
               </Text>
 
               <ScrollView
@@ -166,7 +166,7 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                   <TextInput
                     ref={inputRef}
                     style={styles.searchInput}
-                    placeholder="Buscar por dominio o aplicación..."
+                    placeholder="Buscar sitio o aplicación..."
                     placeholderTextColor="#94A3B8"
                     value={searchValue}
                     onChangeText={(text) => {
@@ -257,10 +257,11 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
 
                 {/* 3. FILTRAR POR ORIGEN (Sentence case) */}
                 <Text style={styles.sheetSectionTitle}>Filtrar por origen</Text>
-                <View style={styles.badgeRow}>
+                <View style={styles.originBadgeRow}>
                   <TouchableOpacity
                     style={[
                       styles.filterBadge,
+                      styles.originFilterBadge,
                       selectedOriginFilter === 'all' && styles.filterBadgeActive,
                     ]}
                     onPress={() => {
@@ -269,8 +270,12 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                     }}
                   >
                     <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
                       style={[
                         styles.filterBadgeText,
+                        styles.originFilterBadgeText,
                         selectedOriginFilter === 'all' && styles.filterBadgeTextActive,
                       ]}
                     >
@@ -281,6 +286,7 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                   <TouchableOpacity
                     style={[
                       styles.filterBadge,
+                      styles.originFilterBadge,
                       selectedOriginFilter === 'responsable' && styles.filterBadgeActive,
                     ]}
                     onPress={() => {
@@ -289,8 +295,12 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                     }}
                   >
                     <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
                       style={[
                         styles.filterBadgeText,
+                        styles.originFilterBadgeText,
                         selectedOriginFilter === 'responsable' && styles.filterBadgeTextActive,
                       ]}
                     >
@@ -301,6 +311,7 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                   <TouchableOpacity
                     style={[
                       styles.filterBadge,
+                      styles.originFilterBadge,
                       selectedOriginFilter === 'adulto_protegido' && styles.filterBadgeActive,
                     ]}
                     onPress={() => {
@@ -309,12 +320,16 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                     }}
                   >
                     <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
                       style={[
                         styles.filterBadgeText,
+                        styles.originFilterBadgeText,
                         selectedOriginFilter === 'adulto_protegido' && styles.filterBadgeTextActive,
                       ]}
                     >
-                      Adulto protegido
+                      Persona protegida
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -339,7 +354,7 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                         sortBy === 'date' && styles.filterBadgeTextActive,
                       ]}
                     >
-                      Por fecha (Recientes)
+                      Más recientes
                     </Text>
                   </TouchableOpacity>
 
@@ -366,7 +381,7 @@ export const SitesAppsOptionsMenuModal: React.FC<SitesAppsOptionsMenuModalProps>
                 </View>
 
                 {/* 5. ACCIÓN EN LOTE (Sentence case) */}
-                <Text style={styles.sheetSectionTitle}>Acción en lote</Text>
+                <Text style={styles.sheetSectionTitle}>Elegir varios</Text>
                 <View style={styles.batchRow}>
                   <Text style={styles.batchTitle}>Selección múltiple</Text>
                   <ToggleSwitch

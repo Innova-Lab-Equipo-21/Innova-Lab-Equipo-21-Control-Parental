@@ -107,7 +107,7 @@ export const styles = StyleSheet.create({
   permCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -124,6 +124,7 @@ export const styles = StyleSheet.create({
     }),
   },
   permCardHeader: {
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -136,12 +137,7 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 2,
-  },
-  permSubtitle: {
-    fontSize: 11,
-    color: '#8E8E93',
-    lineHeight: 14,
+    lineHeight: 19,
   },
   permRightColumn: {
     flexDirection: 'row',
@@ -220,25 +216,6 @@ export const styles = StyleSheet.create({
   actionButtonRow: {
     marginTop: 4,
   },
-  grantedActionsContainer: {
-    gap: 8,
-  },
-  activeNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  activeNoticeText: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: '#16A34A',
-  },
   disablePermissionButton: {
     backgroundColor: '#FFF1F2',
     borderWidth: 1,
@@ -253,26 +230,6 @@ export const styles = StyleSheet.create({
     color: '#E11D48',
     fontSize: 12,
     fontWeight: '700',
-  },
-  // Caja de Ubicación GPS
-  locationBox: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#007AFF',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 10,
-  },
-  locationBoxLabel: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#007AFF',
-    marginBottom: 2,
-  },
-  locationBoxValue: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: '#1E293B',
   },
   // Sección Inferior (Footer Buttons)
   footerSection: {

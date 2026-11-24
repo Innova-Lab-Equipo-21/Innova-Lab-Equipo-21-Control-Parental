@@ -13,6 +13,10 @@ import { validateRequest } from '../middlewares/validation.middleware.js';
 
 const router = Router();
 
+// Letras latinas con todos los acentos/diacríticos (áéíóúüñçãõâêô, etc.), espacios, apóstrofes y guiones
+const NAME_LETTERS_REGEX =
+  /^(?=.*[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F\u1E00-\u1EFF])[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F\u1E00-\u1EFF\u0300-\u036F\s'’-]+$/;
+
 // Esquema de validación para registro
 const registerSchema = z.object({
   body: z.object({
@@ -21,12 +25,12 @@ const registerSchema = z.object({
     fullName: z.string().min(2, 'El nombre completo es requerido').optional(),
     firstName: z
       .string()
-      .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El nombre solo puede contener letras')
+      .regex(NAME_LETTERS_REGEX, 'El nombre solo puede contener letras')
       .min(2, 'El nombre debe tener al menos 2 caracteres')
       .optional(),
     lastName: z
       .string()
-      .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El apellido solo puede contener letras')
+      .regex(NAME_LETTERS_REGEX, 'El apellido solo puede contener letras')
       .min(2, 'El apellido debe tener al menos 2 caracteres')
       .optional(),
     gender: z.enum(['Masculino', 'Femenino', 'Otro', 'No informado']).optional(),
@@ -103,12 +107,12 @@ const updateProfileSchema = z.object({
     fullName: z.string().min(2, 'El nombre completo debe tener al menos 2 caracteres').optional(),
     firstName: z
       .string()
-      .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El nombre solo puede contener letras')
+      .regex(NAME_LETTERS_REGEX, 'El nombre solo puede contener letras')
       .min(2, 'El nombre debe tener al menos 2 caracteres')
       .optional(),
     lastName: z
       .string()
-      .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El apellido solo puede contener letras')
+      .regex(NAME_LETTERS_REGEX, 'El apellido solo puede contener letras')
       .min(2, 'El apellido debe tener al menos 2 caracteres')
       .optional(),
     gender: z.enum(['Masculino', 'Femenino', 'Otro', 'No informado']).optional(),

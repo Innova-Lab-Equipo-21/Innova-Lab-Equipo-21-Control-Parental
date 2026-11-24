@@ -603,12 +603,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       {activeTab === 'sitios' && (
         <View style={{ flex: 1, position: 'relative' }}>
           <Header
-            title={currentSitiosSubTab === 'apps' ? 'Aplicaciones' : 'Gestión de sitios y apps'}
-            subtitle={
-              currentSitiosSubTab === 'apps'
-                ? 'Límites de uso y aplicaciones móviles restringidas'
-                : 'Filtro oficial LOTBA, dominios y aplicaciones'
-            }
+            title="Gestión de sitios y apps"
             onBack={() => setActiveTab('inicio')}
           />
           <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 85 }]}>
@@ -616,7 +611,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             <View style={styles.infoBanner}>
               <Text style={styles.infoBannerTitle}>🌐 Lista oficial LOTBA activa</Text>
               <Text style={styles.infoBannerText}>
-                Se bloquean automáticamente plataformas de apuestas clandestinas e ilegales en navegadores y apps.
+                Bloqueamos de forma automática sitios y apps de apuestas ilegales no autorizados por LOTBA.
               </Text>
             </View>
 

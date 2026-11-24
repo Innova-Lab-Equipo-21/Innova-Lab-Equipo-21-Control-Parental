@@ -93,15 +93,15 @@ describe('2. Modal "Opciones de gestión" — Sentence Case y Dropdown de Dispos
       'Debe contener "Ordenar lista" en Sentence case'
     );
     assert.ok(
-      modalSrc.includes('Acción en lote'),
-      'Debe contener "Acción en lote" en Sentence case'
+      modalSrc.includes('Elegir varios'),
+      'Debe contener "Elegir varios" en Sentence case'
     );
 
     // Asegurar que no existan títulos en UPPERCASE forzado
     assert.ok(!modalSrc.includes('>FILTRAR POR DISPOSITIVO<'));
     assert.ok(!modalSrc.includes('>FILTRAR POR ORIGEN<'));
     assert.ok(!modalSrc.includes('>ORDENAR LISTA<'));
-    assert.ok(!modalSrc.includes('>ACCIÓN EN LOTE<'));
+    assert.ok(!modalSrc.includes('>ELEGIR VARIOS<'));
 
     const stylesPath = path.resolve(
       __dirname,

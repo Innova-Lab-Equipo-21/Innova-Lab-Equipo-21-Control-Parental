@@ -77,7 +77,7 @@ describe('Pantalla "Elegir protección" y flujo inicial del Responsable', () => 
 
     // Con 0 sitios y 0 apps y autoprotección inactiva -> mostrar aviso
     assert.equal(shouldShowAutoproteccionEmptyNotice(0, 0, false), true);
-    assert.ok(AUTOPROTECCION_EMPTY_LIST_MESSAGE.includes('al menos un sitio web o aplicación'));
+    assert.ok(AUTOPROTECCION_EMPTY_LIST_MESSAGE.includes('al menos un sitio o aplicación'));
 
     // Al agregar al menos 1 sitio o 1 app -> ocultar aviso
     assert.equal(shouldShowAutoproteccionEmptyNotice(1, 0, false), false);

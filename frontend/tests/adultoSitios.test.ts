@@ -376,7 +376,7 @@ describe('Identificación de Origen (Adulto Protegido -> Panel del Responsable)'
 
     assert.equal(optionsModalSource.includes('FILTRAR POR ORIGEN'), true);
     assert.equal(optionsModalSource.includes('Responsable'), true);
-    assert.equal(optionsModalSource.includes('Adulto protegido'), true);
+    assert.equal(optionsModalSource.includes('Persona protegida'), true);
   });
 });
 
