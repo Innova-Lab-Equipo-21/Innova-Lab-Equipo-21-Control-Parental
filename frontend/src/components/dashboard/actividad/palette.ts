@@ -54,10 +54,6 @@ export const analyticsPalette = {
   peakText: '#92400e',
   peakStrong: '#78350f',
 
-  // Cabecera de marca y barra de estado
-  headerGradientTop: '#dbeafe',
+  // Superficie suave destacada (cards de resumen)
   headerGradientBottom: '#eff6ff',
-  headerBorder: '#bfdbfe',
-  statusBarBg: '#dbeafe',
-  statusBarText: '#1e3a8a',
 } as const;

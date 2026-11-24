@@ -643,7 +643,10 @@ export class ProtectionService {
             ])),
           };
         } else {
-          allBlockedApps.push(derivedApp);
+          allBlockedApps.push({
+            ...derivedApp,
+            dailyLimitMinutes: derivedApp.dailyLimitMinutes,
+          });
         }
       }
 
@@ -670,6 +673,47 @@ export class ProtectionService {
     } catch (err) {
       console.warn('[ProtectionService] Error sincronizando reglas con Android nativo:', err);
       return false;
+    }
+  }
+
+  /**
+   * Consulta en Android el consumo real del día (en minutos) para las apps de la lista de bloqueos.
+   */
+  public async getBlockedAppsUsageToday(
+    apps: Array<{
+      appName: string;
+      packageName?: string;
+      dailyLimitMinutes?: number;
+    }>
+  ): Promise<
+    Array<{
+      appName: string;
+      packageName: string;
+      usedMinutes: number;
+      dailyLimitMinutes: number | null;
+      remainingMinutes: number;
+      isBlocked: boolean;
+    }>
+  > {
+    if (
+      Platform.OS !== 'android' ||
+      !ProtectionModule ||
+      typeof ProtectionModule.getBlockedAppsUsageToday !== 'function'
+    ) {
+      return [];
+    }
+    try {
+      const payload = apps.map((a) => ({
+        appName: a.appName,
+        packageName: a.packageName || '',
+        dailyLimitMinutes:
+          typeof a.dailyLimitMinutes === 'number' ? a.dailyLimitMinutes : null,
+        webDomains: this.getWebDomainsForApp(a.appName, a.packageName),
+      }));
+      const res = await ProtectionModule.getBlockedAppsUsageToday(payload);
+      return Array.isArray(res) ? res : [];
+    } catch {
+      return [];
     }
   }
 

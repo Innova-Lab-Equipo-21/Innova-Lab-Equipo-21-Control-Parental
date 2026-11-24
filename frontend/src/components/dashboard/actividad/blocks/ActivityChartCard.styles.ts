@@ -10,39 +10,6 @@ import { StyleSheet } from 'react-native';
 import { analyticsPalette as palette } from '../palette';
 
 export const styles = StyleSheet.create({
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 7,
-  },
-
-  tabsWrap: {
-    flex: 1,
-  },
-
-  peakPill: {
-    backgroundColor: palette.peakBg,
-    borderWidth: 1,
-    borderColor: palette.peakBorder,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-    flexShrink: 0,
-  },
-
-  peakPillText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: palette.peakText,
-  },
-
-  peakPillStrong: {
-    color: palette.peakStrong,
-    fontWeight: '800',
-  },
-
   daySelector: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -58,17 +25,20 @@ export const styles = StyleSheet.create({
   dayPill: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 4,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
 
   dayPillActive: {
     backgroundColor: palette.lotbaBlue,
+    borderColor: palette.lotbaBlue,
   },
 
   dayPillToday: {
     backgroundColor: palette.lotbaBlueBg,
-    borderWidth: 1,
     borderColor: palette.lotbaBlueBorder,
   },
 
@@ -91,6 +61,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
     backgroundColor: palette.offWhite,
     borderWidth: 1,
     borderColor: palette.cardBorder,
@@ -107,20 +78,10 @@ export const styles = StyleSheet.create({
     flexShrink: 1,
   },
 
-  inspectorRight: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-
-  inspectorLotba: {
+  inspectorPeak: {
     fontSize: 10.5,
-    fontWeight: '700',
-    color: palette.lotbaBlueDark,
-  },
-
-  inspectorCustom: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: palette.customAmberDark,
+    fontWeight: '800',
+    color: palette.peakStrong,
+    flexShrink: 0,
   },
 });

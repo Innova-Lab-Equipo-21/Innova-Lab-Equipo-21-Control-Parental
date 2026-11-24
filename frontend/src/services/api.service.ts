@@ -102,13 +102,23 @@ export const apiService = {
   getAppUsageStats: blocklistApi.getAppUsageStats.bind(blocklistApi),
 
   // --------------------------------------------------------------------------
-  // Telemetría y Heartbeat
+  // Telemetría, Heartbeat, Pasatiempos y Uso de Apps
   // --------------------------------------------------------------------------
   sendHeartbeat: telemetryApi.sendHeartbeat.bind(telemetryApi),
   reportBlockedEvent: telemetryApi.reportBlockedEvent.bind(telemetryApi),
   getBlockedEvents: telemetryApi.getBlockedEvents.bind(telemetryApi),
   clearBlockedEvents: telemetryApi.clearBlockedEvents.bind(telemetryApi),
   reportSecurityEvent: telemetryApi.reportSecurityEvent.bind(telemetryApi),
+  getSecurityEvents: telemetryApi.getSecurityEvents.bind(telemetryApi),
+  markSecurityEventAsRead: telemetryApi.markSecurityEventAsRead.bind(telemetryApi),
+  saveLocalDailyPasatiempos: telemetryApi.saveLocalDailyPasatiempos.bind(telemetryApi),
+  getLocalPasatiemposHistory: telemetryApi.getLocalPasatiemposHistory.bind(telemetryApi),
+  reportPasatiempoProgress: telemetryApi.reportPasatiempoProgress.bind(telemetryApi),
+  getDevicePasatiemposHistory: telemetryApi.getDevicePasatiemposHistory.bind(telemetryApi),
+  syncAppUsageSnapshot: telemetryApi.syncAppUsageSnapshot.bind(telemetryApi),
+  getLocalAppUsageSnapshot: telemetryApi.getLocalAppUsageSnapshot.bind(telemetryApi),
+  getActivityOverview: telemetryApi.getActivityOverview.bind(telemetryApi),
+  getDeviceActivityMetrics: telemetryApi.getDeviceActivityMetrics.bind(telemetryApi),
 
   // --------------------------------------------------------------------------
   // Geolocalización y Registro de Ubicación (Estrategia Híbrida GPS / IP)

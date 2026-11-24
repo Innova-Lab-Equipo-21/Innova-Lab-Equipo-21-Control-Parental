@@ -7,10 +7,7 @@
 //              (API, mock, estado local).
 // ==============================================================================
 
-/** Vista del gráfico de actividad: distribución por día o franja horaria. */
-export type ChartView = 'daily' | 'hourly';
-
-/** Estado operativo de un dispositivo (dot de color en el chip). */
+/** Estado operativo de un dispositivo (dot de color en el selector). */
 export type DeviceStatus = 'online' | 'warning' | 'offline';
 
 /** Fuente de un evento de bloqueo. */
@@ -33,6 +30,8 @@ export interface AnalyticsDevice {
   /** Nombre corto usado en el desglose, ej. "Tomás". */
   shortLabel: string;
   status: DeviceStatus;
+  /** Índice de color asignado en Dispositivos para ícono y color consistente. */
+  colorIndex?: number;
   /** Total de intentos frenados del dispositivo. */
   total: number;
   /** Bloqueos provenientes de Lista LOTBA. */
@@ -72,16 +71,24 @@ export interface AttemptEvent {
   title: string;
   meta: string;
   source: SourceType;
+  /** Tipo de recurso bloqueado: sitio web o aplicación. */
+  itemType?: 'site' | 'app';
+  /** Fecha y hora formateada (Hoy / Ayer / dd/mm/aaaa · hh:mm). */
+  formattedDateTime?: string;
   /** Texto del badge cuando no se usa el label por defecto (ej. "VPN_STOP"). */
   badgeLabel?: string;
   deviceId?: string;
+  /** Timestamp ISO en que el Responsable marcó la alerta como leída (persistido en BD). */
+  readAt?: string | null;
 }
 
-/** Elemento del desglose de bloqueos por dispositivo. */
-export interface DeviceBreakdownItem {
+/** Serie temporal de intentos bloqueados por dispositivo para el gráfico de historial. */
+export interface DeviceHistorySeries {
+  id: string;
   label: string;
-  count: number;
-  pct: number;
+  color: string;
+  /** Conteo de intentos por punto temporal del período seleccionado. */
+  values: number[];
 }
 
 /** Barra individual del gráfico apilado (ya escalada por el hook). */

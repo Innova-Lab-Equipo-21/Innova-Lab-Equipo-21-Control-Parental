@@ -566,7 +566,6 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
         <View style={{ flex: 1, position: 'relative' }}>
           <Header
             title="Mis dispositivos protegidos"
-            subtitle={`Administración de hasta ${MAX_PROTECTED_DEVICES} celulares vinculados`}
             onBack={() => setActiveTab('inicio')}
           />
           <ScrollView
@@ -648,11 +647,17 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
         <View style={{ flex: 1, backgroundColor: '#FFFFFF', position: 'relative' }}>
           <AnalyticsPanel
             devices={realAnalytics.devices}
+            rawDevices={realAnalytics.rawDevices}
+            customApps={realAnalytics.customApps}
             weekData={realAnalytics.weekData}
             hourlyData={realAnalytics.hourlyData}
             blockedAttempts={realAnalytics.blockedAttempts}
+            rawBlockedEvents={realAnalytics.rawBlockedEvents}
             bypassEvents={realAnalytics.bypassEvents}
-            blocklistVersion={realAnalytics.blocklistVersion}
+            appUsageSnapshots={realAnalytics.appUsageSnapshots}
+            pasatiemposRecordsByDevice={realAnalytics.pasatiemposRecordsByDevice}
+            pasatiemposStreakByDevice={realAnalytics.pasatiemposStreakByDevice}
+            pasatiemposWeeklyPctByDevice={realAnalytics.pasatiemposWeeklyPctByDevice}
             allUptime={realAnalytics.allUptime}
             onBack={() => setActiveTab('inicio')}
             scrollable={true}
@@ -665,7 +670,6 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
         <>
           <Header
             title="Perfil y cuenta"
-            subtitle="Ajustes del responsable, permisos y soporte"
             onBack={() => setActiveTab('inicio')}
           />
           <ScrollView contentContainerStyle={styles.container}>

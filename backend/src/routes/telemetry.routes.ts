@@ -31,6 +31,7 @@ const blockedEventSchema = z.object({
     deviceUuid: z.string().min(1, 'El UUID del dispositivo es requerido'),
     attemptedDomain: z.string().min(1, 'El dominio bloqueado es requerido'),
     sourceListType: z.string().optional(),
+    itemType: z.enum(['SITE', 'APP', 'site', 'app']).optional(),
   }),
 });
 
@@ -52,6 +53,39 @@ const securityEventSchema = z.object({
   }),
 });
 
+// Esquema de validación para progreso/resultado diario de pasatiempos
+const pasatiempoProgressSchema = z.object({
+  body: z.object({
+    deviceUuid: z.string().min(1, 'El UUID del dispositivo es requerido'),
+    dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    gameType: z.enum(['QUIZ', 'WORDSEARCH', 'MEMORY']),
+    status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']),
+    correctCount: z.number().int().min(0),
+    wrongCount: z.number().int().min(0).optional(),
+    totalItems: z.number().int().min(0),
+    attempts: z.number().int().min(0).optional(),
+    details: z.record(z.unknown()).nullable().optional(),
+    completedAt: z.string().nullable().optional(),
+  }),
+});
+
+// Esquema de validación para snapshot de uso diario de apps bloqueadas
+const appUsageSnapshotSchema = z.object({
+  body: z.object({
+    deviceUuid: z.string().min(1, 'El UUID del dispositivo es requerido'),
+    dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    apps: z.array(
+      z.object({
+        packageName: z.string().min(1),
+        appName: z.string().min(1),
+        usedMinutes: z.number().min(0),
+        dailyLimitMinutes: z.number().min(0).nullable().optional(),
+        isBlocked: z.boolean().optional(),
+      }),
+    ),
+  }),
+});
+
 router.post('/heartbeat', validateRequest(heartbeatSchema), (req, res, next) =>
   telemetryController.heartbeat(req, res, next),
 );
@@ -62,6 +96,18 @@ router.post('/events/blocked', validateRequest(blockedEventSchema), (req, res, n
 
 router.post('/events/security', validateRequest(securityEventSchema), (req, res, next) =>
   telemetryController.recordSecurityEvent(req, res, next),
+);
+
+router.post('/pasatiempos', validateRequest(pasatiempoProgressSchema), (req, res, next) =>
+  telemetryController.recordPasatiempo(req, res, next),
+);
+
+router.get('/pasatiempos/:deviceUuid', (req, res, next) =>
+  telemetryController.getDevicePasatiempos(req, res, next),
+);
+
+router.post('/app-usage', validateRequest(appUsageSnapshotSchema), (req, res, next) =>
+  telemetryController.recordAppUsage(req, res, next),
 );
 
 export const telemetryRoutes = router;

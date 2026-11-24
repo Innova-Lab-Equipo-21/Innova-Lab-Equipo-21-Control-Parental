@@ -75,6 +75,7 @@ export interface MockBlockedEvent {
   deviceId: string;
   attemptedDomain: string;
   sourceListType: string;
+  itemType?: string;
   blockedAt: Date;
 }
 
@@ -85,6 +86,7 @@ export interface MockSecurityEvent {
   description: string;
   metadata?: Record<string, unknown>;
   occurredAt: Date;
+  readAt?: Date | null;
 }
 
 export interface MockPairing {
@@ -104,6 +106,35 @@ export interface MockPairing {
   createdAt: Date;
 }
 
+export interface MockPasatiempoSession {
+  id: string;
+  deviceId: string;
+  dateKey: string;
+  gameType: 'QUIZ' | 'WORDSEARCH' | 'MEMORY';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  correctCount: number;
+  wrongCount: number;
+  totalItems: number;
+  attempts: number;
+  details?: Record<string, unknown> | null;
+  completedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MockAppUsageSnapshot {
+  id: string;
+  deviceId: string;
+  dateKey: string;
+  packageName: string;
+  appName: string;
+  usedMinutes: number;
+  dailyLimitMinutes: number | null;
+  isBlocked: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 class MockDatabase {
   public users: MockUser[] = [];
   public devices: MockDevice[] = [];
@@ -111,6 +142,8 @@ class MockDatabase {
   public blocklists: MockBlocklist[] = [];
   public blockedEvents: MockBlockedEvent[] = [];
   public securityEvents: MockSecurityEvent[] = [];
+  public pasatiempoSessions: MockPasatiempoSession[] = [];
+  public appUsageSnapshots: MockAppUsageSnapshot[] = [];
 
   constructor() {
     this.seedInitialData();

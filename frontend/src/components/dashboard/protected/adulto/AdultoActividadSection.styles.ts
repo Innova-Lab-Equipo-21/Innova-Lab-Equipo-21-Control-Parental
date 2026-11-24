@@ -2,198 +2,291 @@
 // Proyecto: BA Protege+
 // Componente: AdultoActividadSection Styles
 // Archivo: src/components/dashboard/protected/adulto/AdultoActividadSection.styles.ts
-// Descripción: Estilos para la pestaña Actividad del Modo Protegido Adulto.
+// Descripción: Estilos oficiales de la pestaña Actividad del Protegido Adulto
+//              con 3 bloques: Mis apps hoy, Cuestionario diario y Sitios y apps
+//              bloqueados (usando analyticsPalette oficial).
 // ==============================================================================
 
 import { StyleSheet } from 'react-native';
+import { analyticsPalette as palette } from '../../actividad/palette';
 
 export const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    flex: 1,
+    paddingHorizontal: 14,
     paddingTop: 12,
-    paddingBottom: 100,
+    paddingBottom: 28,
+    backgroundColor: palette.surfaceBg,
   },
-  headerBanner: {
-    backgroundColor: '#007AFF',
-    borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+
+  // --- Bloque 2: Cuestionario diario ---
+  quizHeaderRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 5,
-    elevation: 3,
+    gap: 8,
+    marginBottom: 10,
   },
-  headerBannerTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  headerBannerLink: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#007AFF',
-    padding: 12,
+
+  quizTitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  clockIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#EBF5FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  clockIconText: {
-    fontSize: 28,
-  },
-  mascotIconImage: {
-    width: 48,
-    height: 48,
-    marginRight: 8,
-  },
-  statTextColumn: {
+    gap: 9,
     flex: 1,
   },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#007AFF',
-    marginBottom: 2,
-  },
-  statValueText: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#007AFF',
-    letterSpacing: -0.5,
-  },
-  statRestantText: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: '#007AFF',
-    marginTop: 2,
-  },
-  appUsageContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#007AFF',
-    padding: 14,
-    marginBottom: 18,
-    gap: 12,
-  },
-  appItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#007AFF',
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  appIconCircle: {
+
+  quizIconBox: {
     width: 34,
     height: 34,
-    borderRadius: 17,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: palette.lotbaBlue,
     alignItems: 'center',
-    marginRight: 10,
+    justifyContent: 'center',
   },
-  appIconText: {
-    color: '#FFFFFF',
+
+  quizIconBoxDone: {
+    backgroundColor: '#16A34A',
+  },
+
+  quizIconText: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
+    color: palette.white,
   },
-  progressTrack: {
-    flex: 1,
-    height: 10,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 5,
-    marginRight: 12,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#007AFF',
-    borderRadius: 5,
-  },
-  appTimeText: {
+
+  quizTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#007AFF',
+    color: palette.textMain,
   },
-  blockedSectionTitle: {
-    fontSize: 15,
+
+  quizSubtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: palette.textMuted,
+    marginTop: 1,
+  },
+
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 99,
+    borderWidth: 1,
+  },
+
+  statusPillDone: {
+    backgroundColor: palette.successBg,
+    borderColor: palette.successBorder,
+  },
+
+  statusPillProgress: {
+    backgroundColor: palette.lotbaBlueBg,
+    borderColor: palette.lotbaBlueBorder,
+  },
+
+  statusPillPending: {
+    backgroundColor: palette.customAmberBg,
+    borderColor: palette.customAmberBorder,
+  },
+
+  statusPillText: {
+    fontSize: 10.5,
     fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 10,
   },
-  blockedCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    marginBottom: 10,
+
+  statusPillTextDone: {
+    color: palette.successDark,
+  },
+
+  statusPillTextProgress: {
+    color: palette.lotbaBlueDark,
+  },
+
+  statusPillTextPending: {
+    color: palette.customAmberDark,
+  },
+
+  kpiRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: 8,
   },
-  lockIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FEF2F2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  lockIconText: {
-    fontSize: 18,
-  },
-  blockedTextColumn: {
+
+  kpiBox: {
     flex: 1,
+    backgroundColor: palette.offWhite,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 9,
   },
-  blockedDomainTitle: {
+
+  kpiLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: palette.textMuted,
+    marginBottom: 3,
+  },
+
+  kpiValue: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: palette.textMain,
+  },
+
+  kpiSub: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: palette.textMuted,
+    marginTop: 2,
+  },
+
+  quizCtaButton: {
+    marginTop: 10,
+    backgroundColor: palette.lotbaBlue,
+    borderRadius: 10,
+    paddingVertical: 9,
+    alignItems: 'center',
+  },
+
+  quizCtaText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: palette.white,
+  },
+
+  // --- Bloque 3: Sitios y apps bloqueados ---
+  blockedHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 8,
+  },
+
+  blockedTitle: {
     fontSize: 13.5,
     fontWeight: '800',
-    color: '#0F172A',
+    color: palette.textMain,
   },
-  blockedBadgeText: {
+
+  blockedSubtitleCount: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#DC2626',
+    color: palette.textMuted,
+  },
+
+  stackedBarTrack: {
+    height: 10,
+    borderRadius: 99,
+    backgroundColor: palette.surfaceBg,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    marginBottom: 9,
+  },
+
+  stackedBarLotba: {
+    height: '100%',
+    backgroundColor: palette.lotbaBlue,
+  },
+
+  stackedBarDivider: {
+    width: 2,
+    height: '100%',
+    backgroundColor: palette.white,
+  },
+
+  stackedBarCustom: {
+    height: '100%',
+    backgroundColor: palette.customAmber,
+  },
+
+  legendRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: palette.surfaceBg,
+    marginBottom: 4,
+  },
+
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+
+  legendDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 3,
+  },
+
+  legendText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: palette.textSubtle,
+  },
+
+  legendStrong: {
+    fontWeight: '900',
+    color: palette.textMain,
+  },
+
+  legendPct: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: palette.textMuted,
+  },
+
+  attemptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: palette.surfaceBg,
+    gap: 10,
+  },
+
+  attemptRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 2,
+  },
+
+  attemptInfo: {
+    flex: 1,
+  },
+
+  attemptTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: palette.textMain,
+  },
+
+  attemptDate: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: palette.textMuted,
     marginTop: 2,
   },
-  protectedLockNotice: {
-    fontSize: 10.5,
-    color: '#64748B',
-    marginTop: 2,
+
+  emptyBox: {
+    backgroundColor: palette.offWhite,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    marginTop: 6,
+  },
+
+  emptyText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: palette.textMuted,
+    textAlign: 'center',
   },
 });

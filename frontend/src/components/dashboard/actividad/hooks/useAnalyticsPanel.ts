@@ -3,27 +3,54 @@
 // Componente: Panel de Analítica (Hook de estado y derivación de métricas)
 // Archivo: src/components/dashboard/actividad/hooks/useAnalyticsPanel.ts
 // Descripción: Encapsula la selección de dispositivo, período (con persistencia
-//              en AsyncStorage iniciando en "Hoy"), vista del gráfico, día/hora
-//              inspeccionados y pestaña de auditoría. Deriva en tiempo real el
-//              dataset escalado destacando la barra de "HOY" en vista diaria y
-//              horaria, e inspector sin abreviaciones ambiguas.
+//              en AsyncStorage iniciando en "Hoy"), día/hora inspeccionados en
+//              franja horaria, series reales de historial por dispositivo y
+//              pestaña de auditoría.
 // ==============================================================================
 
 import { useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getDeviceFirstName } from '../../../../utils/authValidation';
 import {
+  BlockedAttemptRecord,
+  normalizeAttemptSource,
+} from '../../../../utils/activityMetrics';
+import { getDeviceHighlight } from '../../../../utils/deviceColors';
+import {
   AnalyticsDevice,
   AnalyticsPeriod,
   AuditTab,
   ChartBar,
-  ChartView,
   DayBlock,
-  DeviceBreakdownItem,
+  DeviceHistorySeries,
   HourBlock,
 } from '../types';
+import { HeartbeatAlertItem } from '../blocks/HeartbeatBanner';
 
 export const STORAGE_KEY_PERIOD = '@ba_protege_actividad_period';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const SHORT_MONTHS_ES = [
+  'ENE',
+  'FEB',
+  'MAR',
+  'ABR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AGO',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DIC',
+];
+
+const formatShortAxisDate = (ms: number): string => {
+  const d = new Date(ms);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mmm = SHORT_MONTHS_ES[d.getMonth()] ?? 'ENE';
+  return `${dd} ${mmm}`;
+};
 
 const safeGetPeriod = async (): Promise<AnalyticsPeriod | null> => {
   try {
@@ -60,6 +87,8 @@ export interface UseAnalyticsPanelParams {
   devices?: AnalyticsDevice[];
   weekData?: DayBlock[];
   hourlyData?: HourBlock[];
+  /** Eventos reales de bloqueo para derivar totales y gráfico histórico sin datos fake. */
+  rawBlockedEvents?: BlockedAttemptRecord[];
   /** Continuidad de protección cuando el filtro está en "Todos". */
   allUptime?: string;
 }
@@ -69,8 +98,6 @@ export interface UseAnalyticsPanelResult {
   setSelectedDeviceId: (id: string) => void;
   period: AnalyticsPeriod;
   changePeriod: (period: AnalyticsPeriod) => void;
-  chartView: ChartView;
-  setChartView: (view: ChartView) => void;
   selectedDayIndex: number;
   selectDay: (index: number) => void;
   selectedHourIndex: number;
@@ -79,23 +106,28 @@ export interface UseAnalyticsPanelResult {
   auditTab: AuditTab;
   setAuditTab: (tab: AuditTab) => void;
 
-  deviceOptions: { id: string; label: string; status: AnalyticsDevice['status'] }[];
+  deviceOptions: {
+    id: string;
+    label: string;
+    status: AnalyticsDevice['status'];
+    colorIndex?: number;
+  }[];
   activeDevice: AnalyticsDevice | null;
   totalBlocks: number;
   lotbaCount: number;
   customCount: number;
   uptime: string;
   showAlert: boolean;
-  alertText?: string;
-  alertTag?: string;
-  breakdown: DeviceBreakdownItem[];
+  alertDevices: HeartbeatAlertItem[];
+  historySeries: DeviceHistorySeries[];
+  historyDateLabels: [string, string, string];
   sourceLotbaPct: number;
   sourceCustomPct: number;
 
   chartBars: ChartBar[];
   selectedChartIndex: number;
   inspector: InspectorInfo;
-  peakInfo: { label: string; value: string };
+  peakInfo: { range: string | null };
   daySelector: { short: string; index: number; isToday?: boolean }[];
 }
 
@@ -103,7 +135,8 @@ export function useAnalyticsPanel({
   devices = [],
   weekData = [],
   hourlyData = [],
-  allUptime = '98.4%',
+  rawBlockedEvents,
+  allUptime = '100%',
 }: UseAnalyticsPanelParams): UseAnalyticsPanelResult {
   // Cálculo de día actual (0=Dom, 1=Lun..6=Sáb) y hora actual
   const now = new Date();
@@ -119,7 +152,6 @@ export function useAnalyticsPanel({
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('all');
   // Requisito: siempre abrir en 'today' (Hoy) por defecto en la primera carga
   const [period, setPeriod] = useState<AnalyticsPeriod>('today');
-  const [chartView, setChartView] = useState<ChartView>('hourly');
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(todayDayIndex);
   const [selectedHourIndex, setSelectedHourIndex] = useState<number>(currentHour);
   const [auditTab, setAuditTab] = useState<AuditTab>('urls');
@@ -130,18 +162,12 @@ export function useAnalyticsPanel({
     safeGetPeriod().then((saved) => {
       if (isMounted && saved) {
         setPeriod(saved);
-        setChartView(saved === 'today' ? 'hourly' : 'daily');
       }
     });
     return () => {
       isMounted = false;
     };
   }, []);
-
-  // ---- Agregados del equipo (suma de dispositivos) ----
-  const allTotal = devices.reduce((sum, d) => sum + d.total, 0);
-  const allLotba = devices.reduce((sum, d) => sum + d.lotba, 0);
-  const allCustom = devices.reduce((sum, d) => sum + d.custom, 0);
 
   const activeDevice = useMemo(
     () => devices.find((d) => d.id === selectedDeviceId) ?? null,
@@ -155,16 +181,18 @@ export function useAnalyticsPanel({
     );
 
     // 2. Dispositivos protegidos ordenados alfabéticamente (A-Z) mostrando solo el primer nombre
+    //    preservando el colorIndex asignado en la pantalla de Dispositivos
     const protectedDevices = devices
       .filter(
         (d) => d.id !== 'self' && d.label !== 'Yo' && d.label !== 'Mi dispositivo'
       )
-      .map((d) => {
+      .map((d, idx) => {
         const firstName = getDeviceFirstName(d.label);
         return {
           ...d,
           label: firstName,
           shortLabel: firstName,
+          colorIndex: d.colorIndex ?? idx,
         };
       })
       .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
@@ -175,6 +203,7 @@ export function useAnalyticsPanel({
         ...selfDevice,
         label: 'Yo',
         shortLabel: 'Yo',
+        colorIndex: 0,
       });
     }
     sortedList.push(...protectedDevices);
@@ -183,51 +212,177 @@ export function useAnalyticsPanel({
       id: d.id,
       label: d.label,
       status: d.status,
+      colorIndex: d.colorIndex,
     }));
   }, [devices]);
 
+  // ---- Ventana temporal del período seleccionado ----
+  const periodWindow = useMemo(() => {
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    ).getTime();
+
+    if (period === 'today') {
+      return {
+        startMs: startOfToday,
+        endMs: startOfToday + DAY_MS,
+        bucketCount: 8, // 8 franjas de 3 h
+        labels: ['00 h', '12 h', '23 h'] as [string, string, string],
+      };
+    }
+
+    if (period === 'week') {
+      const startMs = startOfToday - 6 * DAY_MS;
+      const midMs = startOfToday - 3 * DAY_MS;
+      return {
+        startMs,
+        endMs: startOfToday + DAY_MS,
+        bucketCount: 7, // 7 días calendario
+        labels: [
+          formatShortAxisDate(startMs),
+          formatShortAxisDate(midMs),
+          'HOY',
+        ] as [string, string, string],
+      };
+    }
+
+    // 'month' (30 días -> 15 puntos de 2 días)
+    const startMs = startOfToday - 29 * DAY_MS;
+    const midMs = startOfToday - 15 * DAY_MS;
+    return {
+      startMs,
+      endMs: startOfToday + DAY_MS,
+      bucketCount: 15,
+      labels: [
+        formatShortAxisDate(startMs),
+        formatShortAxisDate(midMs),
+        'HOY',
+      ] as [string, string, string],
+    };
+  }, [period, currentDayOfWeek]);
+
+  // ---- Eventos filtrados por período y dispositivo (cuando hay fuente real) ----
+  const filteredRawEvents = useMemo(() => {
+    if (!rawBlockedEvents) return null;
+    return rawBlockedEvents.filter((ev) => {
+      if (selectedDeviceId !== 'all' && ev.deviceId !== selectedDeviceId) {
+        return false;
+      }
+      const ts = new Date(ev.blockedAt).getTime();
+      if (!Number.isFinite(ts)) return false;
+      return ts >= periodWindow.startMs && ts <= periodWindow.endMs;
+    });
+  }, [rawBlockedEvents, selectedDeviceId, periodWindow]);
+
   // ---- Métricas del dispositivo (o del equipo en "Todos") ----
+  const allTotal = devices.reduce((sum, d) => sum + d.total, 0);
+  const allLotba = devices.reduce((sum, d) => sum + d.lotba, 0);
+  const allCustom = devices.reduce((sum, d) => sum + d.custom, 0);
+
+  const { totalBlocks, lotbaCount, customCount } = useMemo(() => {
+    if (filteredRawEvents !== null) {
+      let lotba = 0;
+      let custom = 0;
+      for (const ev of filteredRawEvents) {
+        const w = Math.max(1, Math.round(ev.count ?? 1));
+        if (normalizeAttemptSource(ev.sourceListType) === 'CUSTOM') {
+          custom += w;
+        } else {
+          lotba += w;
+        }
+      }
+      return { totalBlocks: lotba + custom, lotbaCount: lotba, customCount: custom };
+    }
+
+    return {
+      totalBlocks: activeDevice ? activeDevice.total : allTotal,
+      lotbaCount: activeDevice ? activeDevice.lotba : allLotba,
+      customCount: activeDevice ? activeDevice.custom : allCustom,
+    };
+  }, [filteredRawEvents, activeDevice, allTotal, allLotba, allCustom]);
+
   const mult = activeDevice?.mult ?? 1;
-  const totalBlocks = activeDevice ? activeDevice.total : allTotal;
-  const lotbaCount = activeDevice ? activeDevice.lotba : allLotba;
-  const customCount = activeDevice ? activeDevice.custom : allCustom;
   const uptime = activeDevice ? activeDevice.uptime : allUptime;
 
   const sourceLotbaPct =
     totalBlocks > 0 ? Math.round((lotbaCount / totalBlocks) * 100) : 0;
-  const sourceCustomPct = 100 - sourceLotbaPct;
+  const sourceCustomPct = totalBlocks > 0 ? 100 - sourceLotbaPct : 0;
 
-  // ---- Desglose por dispositivo (respecto del total del equipo) ----
-  const breakdown: DeviceBreakdownItem[] = useMemo(
-    () =>
-      devices.map((d) => ({
-        label: d.shortLabel,
-        count: d.total,
-        pct: allTotal > 0 ? Math.round((d.total / allTotal) * 100) : 0,
-      })),
-    [devices, allTotal]
-  );
+  // ---- Series históricas por dispositivo ("Yo" siempre primero, respetando color oficial) ----
+  const historySeries: DeviceHistorySeries[] = useMemo(() => {
+    // Dispositivos visibles en la leyenda:
+    // - Si se filtró uno específico: solo ese dispositivo.
+    // - Si está en "Todos": "Yo" siempre primero + dispositivos protegidos vinculados (A-Z).
+    const candidates =
+      selectedDeviceId !== 'all'
+        ? deviceOptions.filter((d) => d.id === selectedDeviceId)
+        : deviceOptions.filter(
+            (d) => d.id === 'self' || d.status === 'online'
+          );
 
-  // ---- Alerta de heartbeat (dispositivo que dejó de reportar) ----
-  const alertDevice = useMemo(() => devices.find((d) => d.showAlert) ?? null, [devices]);
-  const showAlert = Boolean(
-    alertDevice &&
-      (selectedDeviceId === 'all' || selectedDeviceId === alertDevice.id)
-  );
+    const ensuredCandidates =
+      candidates.length > 0
+        ? candidates
+        : [{ id: 'self', label: 'Yo', status: 'online' as const, colorIndex: 0 }];
 
-  // ---- Dataset escalado por dispositivo ----
-  const scaledWeek = useMemo(
-    () =>
-      weekData.map((d) => ({
-        ...d,
-        lotbaVal: Math.max(1, Math.round(d.lotba * mult)),
-        customVal: Math.max(1, Math.round(d.custom * mult)),
-      })),
-    [weekData, mult]
-  );
+    const { startMs, endMs, bucketCount } = periodWindow;
+    const spanMs = Math.max(1, endMs - startMs);
 
+    return ensuredCandidates.map((dev, idx) => {
+      const highlight = getDeviceHighlight(
+        dev.id,
+        dev.label,
+        dev.label,
+        dev.id === 'self' ? 0 : (dev.colorIndex ?? idx)
+      );
+      const values = Array.from({ length: bucketCount }, () => 0);
+
+      if (filteredRawEvents) {
+        for (const ev of filteredRawEvents) {
+          if (ev.deviceId !== dev.id) continue;
+          const ts = new Date(ev.blockedAt).getTime();
+          if (!Number.isFinite(ts)) continue;
+          const ratio = Math.max(0, Math.min(0.9999, (ts - startMs) / spanMs));
+          const bucketIdx = Math.floor(ratio * bucketCount);
+          values[bucketIdx] += Math.max(1, Math.round(ev.count ?? 1));
+        }
+      }
+
+      return {
+        id: dev.id,
+        label: dev.id === 'self' ? 'Yo' : dev.label,
+        color: highlight.color,
+        values,
+      };
+    });
+  }, [deviceOptions, selectedDeviceId, periodWindow, filteredRawEvents]);
+
+  // ---- Alertas de dispositivos pendientes de vinculación (todos los aplicables) ----
+  const alertDevices: HeartbeatAlertItem[] = useMemo(() => {
+    return devices
+      .filter(
+        (d) =>
+          d.showAlert &&
+          (selectedDeviceId === 'all' || selectedDeviceId === d.id)
+      )
+      .map((d, idx) => ({
+        id: d.id,
+        label: getDeviceFirstName(d.shortLabel || d.label),
+        colorIndex: d.colorIndex ?? idx,
+        text: d.alertText,
+      }))
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, 'es', { sensitivity: 'base' })
+      );
+  }, [devices, selectedDeviceId]);
+
+  const showAlert = alertDevices.length > 0;
+
+  // ---- Dataset horario escalado por dispositivo y día seleccionado ----
   const peakDayTotal = useMemo(
-    () => Math.max(...weekData.map((d) => d.lotba + d.custom), 1),
+    () => Math.max(...weekData.map((d) => d.lotba + d.custom), 0),
     [weekData]
   );
 
@@ -237,41 +392,31 @@ export function useAnalyticsPanel({
   const dayFactor =
     peakDayTotal > 0
       ? ((selectedDay.lotba + selectedDay.custom) / peakDayTotal) * mult
-      : mult;
+      : 0;
 
   const scaledHours = useMemo(
     () =>
       hourlyData.map((h) => ({
         ...h,
-        lotbaVal: Math.max(1, Math.round(h.lotba * dayFactor)),
-        customVal: Math.max(0, Math.round(h.custom * dayFactor)),
+        lotbaVal:
+          h.lotba > 0 && dayFactor > 0
+            ? Math.max(1, Math.round(h.lotba * dayFactor))
+            : 0,
+        customVal:
+          h.custom > 0 && dayFactor > 0
+            ? Math.max(0, Math.round(h.custom * dayFactor))
+            : 0,
       })),
     [hourlyData, dayFactor]
   );
 
-  // ---- Barras del gráfico según la vista activa ----
-  // Destaca siempre la barra referente al día de hoy en "Por día (Sem)"
-  const dailyBars: ChartBar[] = useMemo(
-    () =>
-      scaledWeek.map((d, index) => ({
-        lotba: d.lotbaVal,
-        custom: d.customVal,
-        isPeak: d.isPeak,
-        isToday: index === todayDayIndex,
-        peakLabel: 'PICO',
-        label: d.short,
-        fullLabel: d.full,
-      })),
-    [scaledWeek, todayDayIndex]
-  );
-
   // Destaca la barra referente al día de hoy / hora actual en "Franja horaria"
-  const hourlyBars: ChartBar[] = useMemo(
+  const chartBars: ChartBar[] = useMemo(
     () =>
       scaledHours.map((h, hourIndex) => ({
         lotba: h.lotbaVal,
         custom: h.customVal,
-        isPeak: h.isPeak,
+        isPeak: h.isPeak && h.lotbaVal + h.customVal > 0,
         isToday: selectedDayIndex === todayDayIndex && hourIndex === currentHour,
         peakLabel: h.label,
         label: h.label,
@@ -279,23 +424,10 @@ export function useAnalyticsPanel({
     [scaledHours, selectedDayIndex, todayDayIndex, currentHour]
   );
 
-  const chartBars = chartView === 'daily' ? dailyBars : hourlyBars;
-  const selectedChartIndex = chartView === 'daily' ? selectedDayIndex : selectedHourIndex;
+  const selectedChartIndex = selectedHourIndex;
 
-  // ---- Inspector y texto de pico ----
+  // ---- Inspector y texto de pico (Franja horaria) ----
   const inspector: InspectorInfo = useMemo(() => {
-    if (chartView === 'daily') {
-      const d = scaledWeek[selectedDayIndex] ?? scaledWeek[0];
-      if (!d) {
-        return { label: 'Sin datos', total: 0, lotba: 0, custom: 0 };
-      }
-      return {
-        label: `${d.full}: ${d.lotbaVal + d.customVal} intentos`,
-        total: d.lotbaVal + d.customVal,
-        lotba: d.lotbaVal,
-        custom: d.customVal,
-      };
-    }
     const h = scaledHours[selectedHourIndex] ?? scaledHours[0];
     if (!h) {
       return { label: 'Sin datos', total: 0, lotba: 0, custom: 0 };
@@ -308,38 +440,27 @@ export function useAnalyticsPanel({
       lotba: h.lotbaVal,
       custom: h.customVal,
     };
-  }, [chartView, scaledWeek, scaledHours, selectedDayIndex, selectedHourIndex, selectedDay]);
+  }, [scaledHours, selectedHourIndex, selectedDay]);
 
   const peakInfo = useMemo(() => {
-    if (chartView === 'daily') {
-      if (scaledWeek.length === 0) {
-        return { label: 'Día pico', value: '0' };
-      }
-      const peak =
-        scaledWeek.find((d) => d.isPeak) ??
-        scaledWeek.reduce((max, d) =>
-          d.lotbaVal + d.customVal > max.lotbaVal + max.customVal ? d : max
-        );
-      return {
-        label: `Día pico: ${peak.short}`,
-        value: `${peak.lotbaVal + peak.customVal}`,
-      };
-    }
     if (scaledHours.length === 0) {
-      return { label: 'Pico', value: '0' };
+      return { range: null as string | null };
     }
     const peak =
-      scaledHours.find((h) => h.isPeak) ??
+      scaledHours.find((h) => h.isPeak && h.lotbaVal + h.customVal > 0) ??
       scaledHours.reduce((max, h) =>
         h.lotbaVal + h.customVal > max.lotbaVal + max.customVal ? h : max
       );
+    const peakTotal = peak.lotbaVal + peak.customVal;
+    if (peakTotal === 0) {
+      return { range: null as string | null };
+    }
     const peakIndex = scaledHours.indexOf(peak);
     const nextH = (peakIndex + 1) % 24;
     return {
-      label: `Pico ${selectedDay.short}: ${peakIndex} a ${nextH} h`,
-      value: `${peak.lotbaVal + peak.customVal}`,
+      range: `${peakIndex}h-${nextH}h`,
     };
-  }, [chartView, scaledWeek, scaledHours, selectedDay]);
+  }, [scaledHours]);
 
   // ---- Selector de día estilo Google Maps (modo horario) ----
   const daySelector = useMemo(
@@ -355,33 +476,22 @@ export function useAnalyticsPanel({
   // ---- Acciones ----
   const changePeriod = (nextPeriod: AnalyticsPeriod) => {
     setPeriod(nextPeriod);
-    setChartView(nextPeriod === 'today' ? 'hourly' : 'daily');
     safeSetPeriod(nextPeriod);
   };
 
   const selectDay = (index: number) => setSelectedDayIndex(index);
   const selectHour = (index: number) => setSelectedHourIndex(index);
 
-  const onSelectChart = (index: number) => {
-    if (chartView === 'daily') {
-      setSelectedDayIndex(index);
-    } else {
-      setSelectedHourIndex(index);
-    }
-  };
-
   return {
     selectedDeviceId,
     setSelectedDeviceId,
     period,
     changePeriod,
-    chartView,
-    setChartView,
     selectedDayIndex,
     selectDay,
     selectedHourIndex,
     selectHour,
-    onSelectChart,
+    onSelectChart: selectHour,
     auditTab,
     setAuditTab,
 
@@ -392,9 +502,9 @@ export function useAnalyticsPanel({
     customCount,
     uptime,
     showAlert,
-    alertText: alertDevice?.alertText,
-    alertTag: alertDevice?.alertTag,
-    breakdown,
+    alertDevices,
+    historySeries,
+    historyDateLabels: periodWindow.labels,
     sourceLotbaPct,
     sourceCustomPct,
 

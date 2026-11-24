@@ -2,67 +2,44 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla del Dispositivo Protegido)
 // Archivo: src/screens/ProtectedDeviceScreen.tsx
-// Descripción: Panel del usuario protegido separado modularmente entre:
-//              - Menor (protected/menor): Inicio, Pasatiempos, Actividad y Cuenta.
-//              - Adulto (protected/adulto): Inicio, Sitios y apps (FAB +), Actividad y Cuenta.
-//              - Juegos (protected/juegos): Quiz, Sopa de letras y Juego de la memoria.
+// Descripción: Orquestador modular del usuario protegido:
+//              - Hooks especializados (protected/hooks): datos/actividad,
+//                pasatiempos y antidesinstalación OTP.
+//              - Vistas por perfil: Menor (protected/menor) y Adulto (protected/adulto).
+//              - Modales compartidos: juegos, FAQ, permisos y antidesinstalación.
 // ==============================================================================
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Image, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import {
-  View,
-  Text,
-  SafeAreaView,
-  ScrollView,
-  Image,
-  ImageSourcePropType,
-  Modal,
-  AppState,
-} from 'react-native';
-import {
-  MenorNavbar,
-  MenorInicioSection,
-  MenorPasatiemposSection,
-  MenorActividadSection,
-  MenorCuentaSection,
-} from '../components/dashboard/protected/menor';
-import {
-  AdultoNavbar,
-  AdultoInicioSection,
-  AdultoSitiosSection,
   AdultoActividadSection,
   AdultoCuentaSection,
-} from '../components/dashboard/protected/adulto';
-import {
-  QuizModal,
-  WordSearchModal,
-  MemoryGameModal,
-} from '../components/dashboard/protected/juegos';
+  AdultoInicioSection,
+  AdultoNavbar,
+  AdultoSitiosSection,
+  MenorActividadSection,
+  MenorCuentaSection,
+  MenorInicioSection,
+  MenorNavbar,
+  MenorPasatiemposSection,
+  ProtectedGameModals,
+  useAntiUninstallProtection,
+  useProtectedDeviceData,
+  useProtectedPasatiempos,
+} from '../components/dashboard/protected';
 import { Header } from '../components/Header';
-import { PinKeyboard } from '../components/PinKeyboard';
-import { ActionButton } from '../components/ActionButton';
 import { FabWithTooltip } from '../components/FabWithTooltip';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { FaqModal } from '../components/dashboard/cuenta/FaqModal';
 import { AntiUninstallCodeModal } from '../components/dashboard/cuenta/AntiUninstallCodeModal';
-import { getBotMascotImage } from '../components/dashboard/protected/botAssets';
 import { OnboardingScreen } from './OnboardingScreen';
 import { PermissionsScreen, PermissionItemState } from './PermissionsScreen';
-import { CustomBlockedApp, CustomBlockedDomain, DeviceInfo } from '../types';
 import {
-  CompletedGamesState,
-  INITIAL_COMPLETED_GAMES,
-  PasatiempoGameId,
   ProtectedTab,
   canPlayPasatiempoGame,
-  getCompletedGamesCount,
   normalizeProtectedTabForMode,
 } from '../utils/pasatiempos';
-import { isItemVisibleForAdultoDevice } from '../utils/adultoSitios';
-import { checkRealDevicePermissions } from '../utils/permissionChecker';
 import { saveNavigationState } from '../utils/navigationSession';
-import { protectionService } from '../services/protection.service';
-import { apiService } from '../services/api.service';
 import { styles } from './ProtectedDeviceScreen.styles';
 
 interface ProtectedDeviceScreenProps {
@@ -79,354 +56,76 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
   mode = 'CHILD',
 }) => {
   const [activeTab, setActiveTab] = useState<ProtectedTab>('inicio');
-
-  // Estado compartido de juegos entre Inicio y Pasatiempos
-  const [completedGames, setCompletedGames] = useState<CompletedGamesState>(
-    INITIAL_COMPLETED_GAMES
-  );
-  const [completedGamesOrder, setCompletedGamesOrder] = useState<PasatiempoGameId[]>([]);
-  const [activeGameModal, setActiveGameModal] = useState<PasatiempoGameId | null>(null);
-  const [quizScore, setQuizScore] = useState<{ score: number; total: number }>({
-    score: 0,
-    total: 5,
-  });
-
-  // Listas reales de sitios y apps bloqueadas para Modo Protegido Adulto y Actividad
-  const [customSites, setCustomSites] = useState<CustomBlockedDomain[]>([]);
-  const [customApps, setCustomApps] = useState<CustomBlockedApp[]>([]);
-  const [pairedDevices, setPairedDevices] = useState<DeviceInfo[]>([]);
   const [adultoSitiosSubTab, setAdultoSitiosSubTab] = useState<'sites' | 'apps'>('sites');
   const [adultoInitialSubTab, setAdultoInitialSubTab] = useState<'sites' | 'apps'>('sites');
-  const adultoAddHandlerRef = useRef<(() => void) | null>(null);
-
-  // Estado real de permisos (tanto Menor como Adulto pueden activar permisos, nunca desactivar)
-  const [grantedPermsCount, setGrantedPermsCount] = useState<number>(6);
   const [showPermissionsModal, setShowPermissionsModal] = useState<boolean>(false);
   const [showFaqModal, setShowFaqModal] = useState<boolean>(false);
   const [showOnboardingFlow, setShowOnboardingFlow] = useState<boolean>(false);
 
-  // Modal Teclado PIN para tutor y retroalimentación con Boti / Botito
-  const [showPinModal, setShowPinModal] = useState<boolean>(false);
-  const [enteredPin, setEnteredPin] = useState<string>('');
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-  const [pinFeedback, setPinFeedback] = useState<{
-    visible: boolean;
-    imageSource?: ImageSourcePropType;
-    title: string;
-    message: string;
-  }>({
-    visible: false,
-    title: '',
-    message: '',
+  const adultoAddHandlerRef = useRef<(() => void) | null>(null);
+  const syncAntiUninstallRef = useRef<(() => void) | null>(null);
+
+  // 1. Datos del dispositivo, listas bloqueadas, permisos y métricas de Actividad
+  const deviceData = useProtectedDeviceData({
+    deviceUuid,
+    mode,
+    onForegroundResume: () => syncAntiUninstallRef.current?.(),
   });
 
-  // Reglas de protección global: Antidesinstalación
-  const [ruleUninstallProtection, setRuleUninstallProtection] = useState<boolean>(true);
-  const [showAntiUninstallModal, setShowAntiUninstallModal] = useState<boolean>(false);
-  const [maskedTutorEmail, setMaskedTutorEmail] = useState<string>('t***r@baprotege.gob.ar');
-  const [antiUninstallError, setAntiUninstallError] = useState<string | null>(null);
-  const [loadingAntiUninstall, setLoadingAntiUninstall] = useState<boolean>(false);
+  // 2. Estado, persistencia diaria, Racha y handlers de Pasatiempos
+  const pasatiempos = useProtectedPasatiempos({ deviceUuid, mode });
+  const { completedGames } = pasatiempos;
 
-  // Modal institucional de Feedback
-  const [feedbackModal, setFeedbackModal] = useState<{
-    visible: boolean;
-    imageSource?: ImageSourcePropType;
-    title: string;
-    message: string;
-    buttonText?: string;
-    secondaryButtonText?: string;
-    onConfirm?: () => void;
-    onSecondaryPress?: () => void;
-  }>({
-    visible: false,
-    title: '',
-    message: '',
+  // 3. Reglas globales de Antidesinstalación (accesibilidad + OTP de 6 dígitos)
+  const {
+    ruleUninstallProtection,
+    showAntiUninstallModal,
+    maskedTutorEmail,
+    antiUninstallError,
+    loadingAntiUninstall,
+    feedbackModal,
+    closeFeedbackModal,
+    syncAntiUninstallState,
+    handleOpenAntiUninstallModal,
+    handleCloseAntiUninstallModal,
+    handleConfirmAntiUninstallCode,
+    handleToggleUninstallProtection,
+  } = useAntiUninstallProtection({
+    deviceUuid,
+    mode,
+    onPermissionsChanged: deviceData.refreshPermissions,
   });
 
-  const refreshPermissions = useCallback(async () => {
-    try {
-      const real = await checkRealDevicePermissions(deviceUuid);
-      setGrantedPermsCount(real.grantedCount);
-    } catch (e) {
-      // Mantener conteo actual si falla la lectura
-    }
-  }, [deviceUuid]);
-
-  const loadCustomBlockedList = useCallback(async () => {
-    try {
-      const [res, devRes] = await Promise.all([
-        apiService.getCustomBlocklist(),
-        apiService.listDevices().catch(() => null),
-      ]);
-      setCustomSites(res.data?.domains || []);
-      setCustomApps(res.data?.apps || []);
-      if (devRes?.data && Array.isArray(devRes.data)) {
-        setPairedDevices(devRes.data);
-      }
-      // Sincronizar con los servicios nativos de Android para este dispositivo
-      await protectionService.syncProtectionRulesWithNative(deviceUuid || 'self', mode);
-    } catch (e) {
-      // Mantener estado actual ante error de red
-    }
-  }, [deviceUuid]);
-
-  useEffect(() => {
-    checkVpnStatus();
-    loadCustomBlockedList();
-    refreshPermissions();
-  }, [loadCustomBlockedList, refreshPermissions]);
-
-  // Sincronizar estado real de antidesinstalación con el sistema
-  useEffect(() => {
-    const syncAntiUninstall = async () => {
-      const isA11yActive = await protectionService.isAccessibilityEnabled();
-      const isEnabledInPrefs = await protectionService.isAntiUninstallEnabled();
-      setRuleUninstallProtection(isA11yActive && isEnabledInPrefs);
-    };
-    syncAntiUninstall();
-  }, []);
-
-  // Monitorear cuando la app regresa a primer plano desde los Ajustes del sistema
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', async (nextState) => {
-      if (nextState === 'active') {
-        refreshPermissions();
-        const isA11yActive = await protectionService.isAccessibilityEnabled();
-        const isEnabledInPrefs = await protectionService.isAntiUninstallEnabled();
-        setRuleUninstallProtection(isA11yActive && isEnabledInPrefs);
-      }
-    });
-    return () => {
-      subscription.remove();
-    };
-  }, [refreshPermissions]);
+  syncAntiUninstallRef.current = syncAntiUninstallState;
 
   useEffect(() => {
     setActiveTab((prev) => normalizeProtectedTabForMode(prev, mode));
   }, [mode]);
 
-  const checkVpnStatus = async () => {
-    try {
-      await protectionService.isProtectionActive();
-    } catch (e) {
-      console.warn('Servicio VPN en modo emulador');
+  useEffect(() => {
+    if (activeTab === 'actividad') {
+      pasatiempos.loadPasatiemposHistory();
+      deviceData.loadActivityUsageAndBlocks();
     }
-  };
-
-  const handleMarkGameCompleted = (gameId: PasatiempoGameId) => {
-    setCompletedGames((prev) => ({
-      ...prev,
-      [gameId]: true,
-    }));
-    setCompletedGamesOrder((prev) =>
-      prev.includes(gameId) ? prev : [...prev, gameId]
-    );
-  };
-
-  const handleOpenChildGame = (gameId: PasatiempoGameId) => {
-    if (!canPlayPasatiempoGame(completedGames, gameId)) {
-      return;
-    }
-    setActiveGameModal(gameId);
-  };
+  }, [activeTab, pasatiempos.loadPasatiemposHistory, deviceData.loadActivityUsageAndBlocks]);
 
   // El adulto protegido tampoco puede repetir el Quiz una vez completado
   const handleOpenAdultQuiz = () => {
     if (!canPlayPasatiempoGame(completedGames, 'quiz')) {
       return;
     }
-    setActiveGameModal('quiz');
+    pasatiempos.setActiveGameModal('quiz');
   };
-
-  const handleCompleteQuiz = (score: number, total: number) => {
-    setQuizScore({ score, total });
-    handleMarkGameCompleted('quiz');
-    setActiveGameModal(null);
-  };
-
-  const handlePinKeyPress = (key: string) => {
-    if (enteredPin.length < 4) {
-      const newPin = enteredPin + key;
-      setEnteredPin(newPin);
-      if (newPin.length === 4) {
-        if (newPin === '1234') {
-          setShowPinModal(false);
-          setEnteredPin('');
-          if (pendingAction) {
-            pendingAction();
-            setPendingAction(null);
-          } else {
-            setPinFeedback({
-              visible: true,
-              imageSource: getBotMascotImage(mode, 'feliz'),
-              title: 'PIN correcto',
-              message: 'Acción de tutor autorizada exitosamente.',
-            });
-          }
-        } else {
-          setEnteredPin('');
-          setPinFeedback({
-            visible: true,
-            imageSource: getBotMascotImage(mode, 'triste'),
-            title: 'PIN incorrecto',
-            message: 'El código de tutor es inválido (Demo: 1234). Intentá nuevamente.',
-          });
-        }
-      }
-    }
-  };
-
-  const handlePinDelete = () => {
-    setEnteredPin((prev) => prev.slice(0, -1));
-  };
-
-  const triggerTutorPinAction = (action: () => void) => {
-    setPendingAction(() => action);
-    setEnteredPin('');
-    setShowPinModal(true);
-  };
-
-  const openTutorPinAlert = (alertMessage: string) =>
-    triggerTutorPinAction(() => {
-      setPinFeedback({
-        visible: true,
-        imageSource: getBotMascotImage(mode, 'feliz'),
-        title: 'Modificación autorizada',
-        message: alertMessage,
-      });
-    });
-
-  // Manejo de código de 6 dígitos para desactivar antidesinstalación
-  const handleOpenAntiUninstallModal = async () => {
-    setAntiUninstallError(null);
-    setLoadingAntiUninstall(true);
-    setShowAntiUninstallModal(true);
-    try {
-      const res = await apiService.requestAntiUninstallCode(deviceUuid);
-      if (res?.maskedEmail) {
-        setMaskedTutorEmail(res.maskedEmail);
-      }
-    } catch (err: any) {
-      console.warn('Error al solicitar código:', err);
-    } finally {
-      setLoadingAntiUninstall(false);
-    }
-  };
-
-  const handleCloseAntiUninstallModal = async () => {
-    setShowAntiUninstallModal(false);
-    setAntiUninstallError(null);
-    try {
-      await apiService.invalidateAntiUninstallCode(deviceUuid);
-    } catch (err) {}
-  };
-
-  const handleConfirmAntiUninstallCode = async (enteredCode: string) => {
-    setLoadingAntiUninstall(true);
-    setAntiUninstallError(null);
-    try {
-      await apiService.verifyAntiUninstallCode(deviceUuid, enteredCode);
-      setShowAntiUninstallModal(false);
-      setRuleUninstallProtection(false);
-      await protectionService.setAntiUninstallEnabled(false);
-
-      setFeedbackModal({
-        visible: true,
-        imageSource: getBotMascotImage(mode, 'feliz'),
-        title: 'Antidesinstalación desactivada',
-        message: 'La protección antidesinstalación ha sido desactivada exitosamente en este dispositivo.',
-        buttonText: 'Entendido',
-        onConfirm: () => {
-          setFeedbackModal((prev) => ({ ...prev, visible: false }));
-        },
-      });
-    } catch (err: any) {
-      setAntiUninstallError(
-        err.message || 'Código incorrecto. Verificá el correo del responsable.'
-      );
-    } finally {
-      setLoadingAntiUninstall(false);
-    }
-  };
-
-  const handleToggleUninstallProtection = async (val: boolean) => {
-    if (val) {
-      const isA11yActive = await protectionService.isAccessibilityEnabled();
-      if (!isA11yActive) {
-        setRuleUninstallProtection(false);
-        setFeedbackModal({
-          visible: true,
-          imageSource: getBotMascotImage(mode, 'pensando'),
-          title: 'Servicio de accesibilidad',
-          message:
-            'Para activar la protección antidesinstalación, es necesario habilitar el servicio de accesibilidad de BA Protege+ en los Ajustes del sistema. ¿Deseás abrir Ajustes ahora?',
-          buttonText: 'Abrir ajustes',
-          secondaryButtonText: 'Cancelar',
-          onConfirm: async () => {
-            setFeedbackModal((prev) => ({ ...prev, visible: false }));
-            try {
-              await protectionService.openAccessibilitySettings();
-              const activeAfterSettings = await protectionService.isAccessibilityEnabled();
-              if (activeAfterSettings) {
-                setRuleUninstallProtection(true);
-                await protectionService.setAntiUninstallEnabled(true);
-                refreshPermissions();
-              }
-            } catch (err) {
-              console.warn('[ProtectedDevice] Error al abrir accesibilidad:', err);
-            }
-          },
-          onSecondaryPress: () => {
-            setFeedbackModal((prev) => ({ ...prev, visible: false }));
-          },
-        });
-        return;
-      }
-      setRuleUninstallProtection(true);
-      await protectionService.setAntiUninstallEnabled(true);
-    } else {
-      await handleOpenAntiUninstallModal();
-    }
-  };
-
-  // Identificación del dispositivo protegido vinculado (Menor o Adulto)
-  const matchedChildDevice =
-    pairedDevices.find(
-      (d) =>
-        (d.deviceUuid === deviceUuid || d.deviceId === deviceUuid) &&
-        d.profileType === 'Menor'
-    ) || pairedDevices.find((d) => d.profileType === 'Menor');
-  const resolvedChildName =
-    matchedChildDevice?.childName || matchedChildDevice?.deviceName || undefined;
-  const resolvedChildPhone = matchedChildDevice?.phone || undefined;
-
-  const matchedAdultDevice =
-    pairedDevices.find(
-      (d) => d.deviceUuid === deviceUuid || d.deviceId === deviceUuid
-    ) || pairedDevices.find((d) => d.profileType === 'Adulto');
-  const resolvedAdultDeviceId = matchedAdultDevice?.deviceId || deviceUuid;
-  const resolvedAdultName =
-    matchedAdultDevice?.childName || matchedAdultDevice?.deviceName || undefined;
-  const resolvedAdultPhone = matchedAdultDevice?.phone || undefined;
-
-  const adultVisibleSites = customSites.filter((s) =>
-    isItemVisibleForAdultoDevice(s, resolvedAdultDeviceId)
-  );
-  const adultVisibleApps = customApps.filter((a) =>
-    isItemVisibleForAdultoDevice(a, resolvedAdultDeviceId)
-  );
-
-  // Lista combinada de nombres para las vistas de Actividad
-  const customBlockedItems: string[] = [
-    ...customSites.filter((s) => s.isActive !== false).map((s) => s.domain),
-    ...customApps.filter((a) => a.isActive !== false).map((a) => a.appName),
-  ];
-
-  const completedCount = getCompletedGamesCount(completedGames);
 
   const handleOpenPermissions = () => {
     saveNavigationState({ activeScreen: 'PERMISSIONS' }).catch(() => {});
     setShowPermissionsModal(true);
+  };
+
+  const handleClosePermissions = () => {
+    saveNavigationState({ activeScreen: 'PROTECTED_DEVICE' }).catch(() => {});
+    setShowPermissionsModal(false);
+    deviceData.refreshPermissions();
   };
 
   if (showPermissionsModal) {
@@ -436,16 +135,8 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
         allowDisablePermissions={false}
         protectedProfile={mode}
         userId={deviceUuid}
-        onPermissionsComplete={() => {
-          saveNavigationState({ activeScreen: 'PROTECTED_DEVICE' }).catch(() => {});
-          setShowPermissionsModal(false);
-          refreshPermissions();
-        }}
-        onBack={() => {
-          saveNavigationState({ activeScreen: 'PROTECTED_DEVICE' }).catch(() => {});
-          setShowPermissionsModal(false);
-          refreshPermissions();
-        }}
+        onPermissionsComplete={handleClosePermissions}
+        onBack={handleClosePermissions}
       />
     );
   }
@@ -479,24 +170,22 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
         </View>
       </View>
 
-      {/* Subheader con botón volver a Inicio en Pasatiempos (Modo Menor) */}
+      {/* Subheaders contextuales por pestaña */}
       {mode === 'CHILD' && activeTab === 'pasatiempos' && (
         <Header
           showTopLogo={false}
           title="Pasatiempos"
-          subtitle="Elegí uno de los tres juegos para aprender y divertirte"
           onBack={() => setActiveTab('inicio')}
           rightElement={
             <View style={styles.pasatiemposProgressPill}>
               <Text style={styles.pasatiemposProgressPillText}>
-                {completedCount}/3 completados
+                {pasatiempos.completedCount}/3 completados
               </Text>
             </View>
           }
         />
       )}
 
-      {/* Subheader estilo Responsable cuando el Adulto Protegido entra a Sitios y apps */}
       {mode === 'ADULT' && activeTab === 'sitios' && (
         <Header
           showTopLogo={false}
@@ -505,21 +194,23 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
         />
       )}
 
-      {/* Subheader estilo Responsable cuando Adulto o Menor entran a Cuenta */}
-      {activeTab === 'cuenta' && (
+      {activeTab === 'actividad' && (
         <Header
           showTopLogo={false}
-          title="Perfil y cuenta"
-          subtitle={
-            mode === 'CHILD'
-              ? 'Información del perfil menor y soporte'
-              : 'Información del perfil adulto y soporte'
-          }
+          title="Actividad"
           onBack={() => setActiveTab('inicio')}
         />
       )}
 
-      {/* 2. CONTENIDO PRINCIPAL + FAB (encima de la navbar para no solaparla) */}
+      {activeTab === 'cuenta' && (
+        <Header
+          showTopLogo={false}
+          title="Perfil y cuenta"
+          onBack={() => setActiveTab('inicio')}
+        />
+      )}
+
+      {/* 2. CONTENIDO PRINCIPAL + FAB */}
       <View style={{ flex: 1, position: 'relative' }}>
         <ScrollView
           style={styles.scrollBody}
@@ -530,11 +221,11 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
             <>
               {activeTab === 'inicio' && (
                 <MenorInicioSection
-                  childName={resolvedChildName}
+                  childName={deviceData.resolvedChildName}
                   tutorName="Ana"
-                  grantedCount={grantedPermsCount}
+                  grantedCount={deviceData.grantedPermsCount}
                   completedGames={completedGames}
-                  onOpenGame={handleOpenChildGame}
+                  onOpenGame={pasatiempos.handleOpenChildGame}
                   onNavigateToPermissions={handleOpenPermissions}
                   onNavigateToPasatiempos={() => setActiveTab('pasatiempos')}
                   onNavigateToActivity={() => setActiveTab('actividad')}
@@ -545,25 +236,26 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
               {activeTab === 'pasatiempos' && (
                 <MenorPasatiemposSection
                   completedGames={completedGames}
-                  completedGamesOrder={completedGamesOrder}
-                  onSelectGame={handleOpenChildGame}
+                  completedGamesOrder={pasatiempos.completedGamesOrder}
+                  onSelectGame={pasatiempos.handleOpenChildGame}
                 />
               )}
 
               {activeTab === 'actividad' && (
                 <MenorActividadSection
-                  customBlockedItems={customBlockedItems}
-                  onOpenPinModal={() =>
-                    openTutorPinAlert('Has ingresado el PIN del tutor.')
-                  }
+                  appsUsageSummary={deviceData.appsUsageSummary}
+                  todayRecord={pasatiempos.todayRecord}
+                  streakDays={pasatiempos.streakDays}
+                  onOpenGame={pasatiempos.handleOpenChildGame}
+                  customBlockedItems={deviceData.customBlockedItems}
                 />
               )}
 
               {activeTab === 'cuenta' && (
                 <MenorCuentaSection
                   deviceUuid={deviceUuid}
-                  childName={resolvedChildName}
-                  childPhone={resolvedChildPhone}
+                  childName={deviceData.resolvedChildName}
+                  childPhone={deviceData.resolvedChildPhone}
                   tutorName="Ana"
                   ruleUninstallProtection={ruleUninstallProtection}
                   onToggleUninstallProtection={handleToggleUninstallProtection}
@@ -577,13 +269,13 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
             <>
               {activeTab === 'inicio' && (
                 <AdultoInicioSection
-                  adultName={resolvedAdultName}
+                  adultName={deviceData.resolvedAdultName}
                   tutorName="Ana"
-                  grantedCount={grantedPermsCount}
-                  customSitesCount={adultVisibleSites.length}
-                  blockedAppsCount={adultVisibleApps.length}
+                  grantedCount={deviceData.grantedPermsCount}
+                  customSitesCount={deviceData.adultVisibleSites.length}
+                  blockedAppsCount={deviceData.adultVisibleApps.length}
                   quizCompleted={completedGames.quiz}
-                  quizScore={quizScore}
+                  quizScore={pasatiempos.quizScore}
                   onNavigateToPermissions={handleOpenPermissions}
                   onOpenQuiz={handleOpenAdultQuiz}
                   onNavigateToSites={() => {
@@ -603,11 +295,11 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
 
               {activeTab === 'sitios' && (
                 <AdultoSitiosSection
-                  customSites={customSites}
-                  customApps={customApps}
-                  onRefreshList={loadCustomBlockedList}
-                  sourceDeviceId={resolvedAdultDeviceId}
-                  adultName={resolvedAdultName}
+                  customSites={deviceData.customSites}
+                  customApps={deviceData.customApps}
+                  onRefreshList={deviceData.loadCustomBlockedList}
+                  sourceDeviceId={deviceData.resolvedAdultDeviceId}
+                  adultName={deviceData.resolvedAdultName}
                   hideInternalFab={true}
                   initialSubTab={adultoInitialSubTab}
                   onSubTabChange={setAdultoSitiosSubTab}
@@ -619,18 +311,21 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
 
               {activeTab === 'actividad' && (
                 <AdultoActividadSection
-                  customBlockedItems={customBlockedItems}
-                  onOpenPinModal={() =>
-                    openTutorPinAlert('Has ingresado el PIN del tutor.')
-                  }
+                  appsUsageSummary={deviceData.appsUsageSummary}
+                  todayRecord={pasatiempos.todayRecord}
+                  streakDays={pasatiempos.streakDays}
+                  weeklyQuizAccuracyPct={pasatiempos.weeklyQuizAccuracyPct}
+                  blockedAttempts={deviceData.deviceBlockedAttempts}
+                  onOpenQuiz={handleOpenAdultQuiz}
+                  customBlockedItems={deviceData.customBlockedItems}
                 />
               )}
 
               {activeTab === 'cuenta' && (
                 <AdultoCuentaSection
                   deviceUuid={deviceUuid}
-                  adultName={resolvedAdultName}
-                  adultPhone={resolvedAdultPhone}
+                  adultName={deviceData.resolvedAdultName}
+                  adultPhone={deviceData.resolvedAdultPhone}
                   tutorName="Ana"
                   ruleUninstallProtection={ruleUninstallProtection}
                   onToggleUninstallProtection={handleToggleUninstallProtection}
@@ -643,15 +338,11 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
           )}
         </ScrollView>
 
-        {/* 3. BOTÓN FLOTANTE FAB (+) EXCLUSIVO DE "SITIOS Y APPS" EN MODO ADULTO */}
+        {/* 3. FAB (+) EXCLUSIVO DE "SITIOS Y APPS" EN MODO ADULTO */}
         {mode === 'ADULT' && activeTab === 'sitios' && (
           <FabWithTooltip
             label={adultoSitiosSubTab === 'sites' ? 'Bloquear sitio' : 'Bloquear app'}
-            onPress={() => {
-              if (adultoAddHandlerRef.current) {
-                adultoAddHandlerRef.current();
-              }
-            }}
+            onPress={() => adultoAddHandlerRef.current?.()}
           />
         )}
       </View>
@@ -659,104 +350,36 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
       {/* 4. NAVBAR INFERIOR SEGÚN PERFIL */}
       {mode === 'CHILD' ? (
         <MenorNavbar
-          activeTab={
-            activeTab === 'sitios' ? 'inicio' : activeTab
-          }
+          activeTab={activeTab === 'sitios' ? 'inicio' : activeTab}
           onSelectTab={setActiveTab}
         />
       ) : (
         <AdultoNavbar
-          activeTab={
-            activeTab === 'pasatiempos' ? 'inicio' : activeTab
-          }
+          activeTab={activeTab === 'pasatiempos' ? 'inicio' : activeTab}
           onSelectTab={setActiveTab}
         />
       )}
 
-      {/* MODALES INTERACTIVOS DE JUEGOS (protected/juegos) */}
-      <QuizModal
-        visible={activeGameModal === 'quiz'}
+      {/* 5. MODALES INTERACTIVOS COMPARTIDOS */}
+      <ProtectedGameModals
+        activeGameModal={pasatiempos.activeGameModal}
         mode={mode}
-        onClose={() => setActiveGameModal(null)}
-        onCompleteQuiz={handleCompleteQuiz}
+        initialWordSearchFoundByBoard={pasatiempos.initialWordSearchFoundByBoard}
+        initialMemoryAttempts={pasatiempos.todayRecord.memory.attempts}
+        onClose={() => pasatiempos.setActiveGameModal(null)}
+        onProgressQuiz={pasatiempos.handleProgressQuiz}
+        onCompleteQuiz={pasatiempos.handleCompleteQuiz}
+        onProgressWordSearch={pasatiempos.handleProgressWordSearch}
+        onCompleteWordSearch={pasatiempos.handleCompleteWordSearch}
+        onProgressMemory={pasatiempos.handleProgressMemory}
+        onCompleteMemory={pasatiempos.handleCompleteMemory}
       />
 
-      <WordSearchModal
-        visible={activeGameModal === 'wordsearch'}
-        onClose={() => setActiveGameModal(null)}
-        onCompleteGame={() => handleMarkGameCompleted('wordsearch')}
-      />
-
-      <MemoryGameModal
-        visible={activeGameModal === 'memory'}
-        onClose={() => setActiveGameModal(null)}
-        onCompleteGame={() => handleMarkGameCompleted('memory')}
-      />
-
-      {/* MODAL DE PREGUNTAS FRECUENTES (FAQ) */}
       <FaqModal
         visible={showFaqModal}
         onClose={() => setShowFaqModal(false)}
       />
 
-      {/* MODAL TECLADO PIN PARA VALIDACIÓN DE TUTOR */}
-      <Modal
-        visible={showPinModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowPinModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Image
-              source={getBotMascotImage(mode, 'nervioso')}
-              style={styles.pinMascotImage}
-              resizeMode="contain"
-            />
-            <Text style={styles.modalTitle}>PIN del tutor requerido</Text>
-            <Text style={styles.modalSubtitle}>
-              Ingresa el PIN de 4 dígitos para autorizar esta acción (Demo: 1234).
-            </Text>
-
-            <View style={styles.pinDotsRow}>
-              {[0, 1, 2, 3].map((index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.pinDot,
-                    enteredPin.length > index && styles.pinDotFilled,
-                  ]}
-                />
-              ))}
-            </View>
-
-            <PinKeyboard
-              onKeyPress={handlePinKeyPress}
-              onDelete={handlePinDelete}
-              onClear={() => setEnteredPin('')}
-            />
-
-            <ActionButton
-              title="Cancelar"
-              variant="secondary"
-              onPress={() => {
-                setShowPinModal(false);
-                setPendingAction(null);
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
-
-      <FeedbackModal
-        visible={pinFeedback.visible}
-        imageSource={pinFeedback.imageSource}
-        title={pinFeedback.title}
-        message={pinFeedback.message}
-        onClose={() => setPinFeedback((prev) => ({ ...prev, visible: false }))}
-      />
-
-      {/* MODAL INSTITUCIONAL PARA CÓDIGO DE DESACTIVACIÓN DE ANTIDESINSTALACIÓN */}
       <AntiUninstallCodeModal
         visible={showAntiUninstallModal}
         maskedEmail={maskedTutorEmail}
@@ -768,7 +391,6 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
         onResendCode={handleOpenAntiUninstallModal}
       />
 
-      {/* MODAL INSTITUCIONAL DE RETROALIMENTACIÓN */}
       <FeedbackModal
         visible={feedbackModal.visible}
         imageSource={feedbackModal.imageSource}
@@ -778,7 +400,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
         secondaryButtonText={feedbackModal.secondaryButtonText}
         onConfirm={feedbackModal.onConfirm}
         onSecondaryPress={feedbackModal.onSecondaryPress}
-        onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+        onClose={closeFeedbackModal}
       />
     </SafeAreaView>
   );

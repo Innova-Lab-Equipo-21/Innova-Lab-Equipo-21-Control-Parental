@@ -33,11 +33,12 @@ export class TelemetryController {
    */
   public async recordBlockedEvent(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { deviceUuid, attemptedDomain, sourceListType } = req.body;
+      const { deviceUuid, attemptedDomain, sourceListType, itemType } = req.body;
       const event = await telemetryService.recordBlockedEvent({
         deviceUuid,
         attemptedDomain,
         sourceListType,
+        itemType,
       });
 
       res.status(201).json({
@@ -68,6 +69,61 @@ export class TelemetryController {
         success: true,
         message: 'Evento de seguridad registrado exitosamente',
         data: event,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Registra progreso o finalización de un pasatiempo (Quiz, Sopa de letras o Memoria).
+   * POST /api/telemetry/pasatiempos
+   */
+  public async recordPasatiempo(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await telemetryService.recordPasatiempoProgress(req.body);
+
+      res.status(201).json({
+        success: true,
+        message: 'Progreso de pasatiempo registrado exitosamente',
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Obtiene el resumen e historial de pasatiempos de un dispositivo.
+   * GET /api/telemetry/pasatiempos/:deviceUuid
+   */
+  public async getDevicePasatiempos(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const deviceUuid = String(req.params.deviceUuid || '');
+      const dateKey = typeof req.query.dateKey === 'string' ? req.query.dateKey : undefined;
+      const result = await telemetryService.getDevicePasatiempos(deviceUuid, dateKey);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Registra snapshot de consumo diario de aplicaciones bloqueadas.
+   * POST /api/telemetry/app-usage
+   */
+  public async recordAppUsage(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await telemetryService.recordAppUsageSnapshot(req.body);
+
+      res.status(201).json({
+        success: true,
+        message: 'Uso diario de aplicaciones registrado exitosamente',
+        data: result,
       } satisfies ApiResponse);
     } catch (error) {
       next(error);

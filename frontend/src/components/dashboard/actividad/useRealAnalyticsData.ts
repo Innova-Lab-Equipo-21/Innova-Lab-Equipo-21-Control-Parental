@@ -2,9 +2,9 @@
 // Proyecto: BA Protege+
 // Componente: Hook de Datos Reales de Analítica (useRealAnalyticsData)
 // Archivo: src/components/dashboard/actividad/useRealAnalyticsData.ts
-// Descripción: Transforma los dispositivos reales, sitios/apps personalizados y
-//              eventos de telemetría y bloqueos persistidos en el modelo de
-//              datos de la Propuesta Superadora MVP (AnalyticsPanel).
+// Descripción: Transforma los dispositivos reales, sitios/apps personalizados,
+//              eventos de bloqueo, consumo diario de apps bloqueadas y sesiones
+//              de Pasatiempos en el modelo de datos del Panel de Actividad.
 // ==============================================================================
 
 import { useEffect, useMemo, useState } from 'react';
@@ -14,26 +14,29 @@ import {
   DeviceInfo,
 } from '../../../types';
 import { apiService } from '../../../services/api.service';
+import { SecurityEventOverviewItem } from '../../../services/api/telemetry.api';
+import { protectionService } from '../../../services/protection.service';
 import { getDeviceFirstName } from '../../../utils/authValidation';
 import {
   BlockedAttemptRecord,
-  buildActivityDataset,
   computeActivityMetrics,
+  formatAttemptDateTime,
   normalizeAttemptSource,
 } from '../../../utils/activityMetrics';
+import { AppUsageRawSnapshot } from '../../../utils/appUsageMetrics';
+import {
+  DailyPasatiemposRecord,
+  computePasatiemposStreakDays,
+  computeWeeklyQuizAccuracyPct,
+  getLocalDateKey,
+  hydrateDailyRecordFromSessions,
+} from '../../../utils/pasatiemposMetrics';
 import {
   AnalyticsDevice,
   AttemptEvent,
   DayBlock,
   HourBlock,
 } from './types';
-import {
-  DEMO_BLOCKED_ATTEMPTS,
-  DEMO_BYPASS_EVENTS,
-  DEMO_DEVICES,
-  DEMO_HOURLY_DATA,
-  DEMO_WEEK_DATA,
-} from './data';
 
 export interface UseRealAnalyticsDataParams {
   devices?: DeviceInfo[];
@@ -44,11 +47,17 @@ export interface UseRealAnalyticsDataParams {
 
 export interface RealAnalyticsDataResult {
   devices: AnalyticsDevice[];
+  rawDevices: DeviceInfo[];
+  customApps: CustomBlockedApp[];
   weekData: DayBlock[];
   hourlyData: HourBlock[];
   blockedAttempts: AttemptEvent[];
+  rawBlockedEvents: BlockedAttemptRecord[];
   bypassEvents: AttemptEvent[];
-  blocklistVersion: string;
+  appUsageSnapshots: AppUsageRawSnapshot[];
+  pasatiemposRecordsByDevice: Record<string, DailyPasatiemposRecord>;
+  pasatiemposStreakByDevice: Record<string, number>;
+  pasatiemposWeeklyPctByDevice: Record<string, number>;
   allUptime: string;
   loading: boolean;
   refresh: () => Promise<void>;
@@ -64,23 +73,6 @@ const DAY_ORDER: Array<{ short: string; full: string; dayIndex: number }> = [
   { short: 'Dom', full: 'Domingo', dayIndex: 0 },
 ];
 
-/**
- * Anonimiza un dominio de la lista secreta de LOTBA para proteger la confidencialidad.
- * Ejemplo: "apuestas-online-ilegal.bet" -> "apuestas-***.bet" o "ap***.bet"
- */
-function anonymizeLotbaDomain(domain: string): string {
-  if (!domain) return 'sitio-protegido.lotba';
-  const parts = domain.split('.');
-  if (parts.length < 2) return `${domain.slice(0, 3)}***`;
-  const ext = parts.slice(1).join('.');
-  const name = parts[0];
-  if (name.length <= 4) {
-    return `${name.slice(0, 2)}***.${ext}`;
-  }
-  const prefix = name.slice(0, Math.min(5, Math.floor(name.length / 2)));
-  return `${prefix}***.${ext}`;
-}
-
 export function useRealAnalyticsData({
   devices = [],
   customSites = [],
@@ -88,31 +80,181 @@ export function useRealAnalyticsData({
   currentUser,
 }: UseRealAnalyticsDataParams): RealAnalyticsDataResult {
   const [persistedEvents, setPersistedEvents] = useState<BlockedAttemptRecord[]>([]);
+  const [persistedSecurityEvents, setPersistedSecurityEvents] = useState<
+    SecurityEventOverviewItem[]
+  >([]);
   const [localSites, setLocalSites] = useState<CustomBlockedDomain[]>(customSites);
   const [localApps, setLocalApps] = useState<CustomBlockedApp[]>(customApps);
+  const [appUsageSnapshots, setAppUsageSnapshots] = useState<AppUsageRawSnapshot[]>([]);
+  const [pasatiemposRecordsByDevice, setPasatiemposRecordsByDevice] = useState<
+    Record<string, DailyPasatiemposRecord>
+  >({});
+  const [pasatiemposStreakByDevice, setPasatiemposStreakByDevice] = useState<
+    Record<string, number>
+  >({});
+  const [pasatiemposWeeklyPctByDevice, setPasatiemposWeeklyPctByDevice] = useState<
+    Record<string, number>
+  >({});
   const [loading, setLoading] = useState<boolean>(false);
-  const [blocklistVersion, setBlocklistVersion] = useState<string>('v24.11');
 
   const loadData = async () => {
     setLoading(true);
+    const todayKey = getLocalDateKey();
     try {
-      const [events, customRes] = await Promise.all([
+      const [events, storedSecurityEvents, customRes, overview] = await Promise.all([
         apiService.getBlockedEvents().catch(() => []),
-        customSites.length === 0
+        apiService.getSecurityEvents().catch(() => []),
+        customSites.length === 0 || customApps.length === 0
           ? apiService.getCustomBlocklist().catch(() => null)
           : Promise.resolve(null),
+        apiService.getActivityOverview(todayKey).catch(() => null),
       ]);
 
-      if (Array.isArray(events)) {
-        setPersistedEvents(events);
-      }
+      // Alertas de seguridad reales de dispositivos protegidos (backend + local)
+      const remoteSecurity: SecurityEventOverviewItem[] = Array.isArray(
+        overview?.securityEvents
+      )
+        ? overview.securityEvents
+        : [];
+      const seenSecurityIds = new Set<string>();
+      const mergedSecurity = [...remoteSecurity, ...storedSecurityEvents].filter(
+        (ev) => {
+          if (!ev?.id || seenSecurityIds.has(ev.id)) return false;
+          seenSecurityIds.add(ev.id);
+          return true;
+        }
+      );
+      setPersistedSecurityEvents(mergedSecurity);
 
+      const resolvedApps: CustomBlockedApp[] =
+        customRes?.data?.apps || localApps || customApps;
       if (customRes?.data?.domains) {
         setLocalSites(customRes.data.domains);
       }
       if (customRes?.data?.apps) {
         setLocalApps(customRes.data.apps);
       }
+
+      // 1. Combinar eventos de bloqueo locales + remotos del backend
+      const mergedEventsMap = new Map<string, BlockedAttemptRecord>();
+      if (Array.isArray(overview?.blockedEvents)) {
+        for (const ev of overview.blockedEvents) {
+          mergedEventsMap.set(ev.id, {
+            id: ev.id,
+            deviceId: ev.deviceId,
+            deviceName: ev.deviceName,
+            attemptedDomain: ev.attemptedDomain,
+            sourceListType: normalizeAttemptSource(ev.sourceListType),
+            itemType: ev.itemType,
+            blockedAt: ev.blockedAt,
+            count: 1,
+          });
+        }
+      }
+      if (Array.isArray(events)) {
+        for (const ev of events) {
+          if (!mergedEventsMap.has(ev.id)) {
+            mergedEventsMap.set(ev.id, ev);
+          }
+        }
+      }
+      setPersistedEvents(Array.from(mergedEventsMap.values()));
+
+      // 2. Combinar snapshots de uso de apps del backend + consumo real local del Responsable
+      const combinedSnapshots: AppUsageRawSnapshot[] = Array.isArray(overview?.appUsage)
+        ? [...overview.appUsage]
+        : [];
+
+      const activeAppsForSelf = resolvedApps.filter(
+        (a) => a.isActive !== false && (a.applyToAll || a.deviceIds?.includes('self'))
+      );
+
+      let selfUsage: AppUsageRawSnapshot[] = [];
+      if (activeAppsForSelf.length > 0) {
+        try {
+          const nativeUsage = await protectionService.getBlockedAppsUsageToday(
+            activeAppsForSelf
+          );
+          if (nativeUsage.length > 0) {
+            selfUsage = nativeUsage.map((item) => ({
+              deviceId: 'self',
+              packageName: item.packageName,
+              appName: item.appName,
+              usedMinutes: item.usedMinutes,
+              dailyLimitMinutes: item.dailyLimitMinutes ?? null,
+              isBlocked: item.isBlocked,
+            }));
+            apiService.syncAppUsageSnapshot('self', selfUsage, todayKey).catch(() => {});
+          }
+        } catch {
+          // Respaldo desde caché local si el módulo nativo no está disponible
+        }
+      }
+
+      if (selfUsage.length === 0) {
+        const cachedSelf = await apiService
+          .getLocalAppUsageSnapshot('self', todayKey)
+          .catch(() => []);
+        selfUsage = cachedSelf.map((s) => ({ ...s, deviceId: 'self' }));
+      }
+
+      const selfKeys = new Set(
+        selfUsage.map((s) => `${s.deviceId || 'self'}:${(s.packageName || s.appName).toLowerCase()}`)
+      );
+      const filteredRemote = combinedSnapshots.filter(
+        (s) =>
+          !selfKeys.has(
+            `${s.deviceId || 'self'}:${(s.packageName || s.appName).toLowerCase()}`
+          )
+      );
+      setAppUsageSnapshots([...filteredRemote, ...selfUsage]);
+
+      // 3. Pasatiempos por dispositivo protegido (backend + respaldo local)
+      const nextRecords: Record<string, DailyPasatiemposRecord> = {};
+      const nextStreaks: Record<string, number> = {};
+      const nextWeekly: Record<string, number> = {};
+
+      if (Array.isArray(overview?.pasatiemposByDevice)) {
+        for (const entry of overview.pasatiemposByDevice) {
+          const rec = hydrateDailyRecordFromSessions(
+            entry.deviceId,
+            entry.profileType,
+            todayKey,
+            entry.today || []
+          );
+          nextRecords[entry.deviceId] = rec;
+          if (entry.deviceUuid) nextRecords[entry.deviceUuid] = rec;
+          nextStreaks[entry.deviceId] = entry.streakDays || 0;
+          if (entry.deviceUuid) nextStreaks[entry.deviceUuid] = entry.streakDays || 0;
+          nextWeekly[entry.deviceId] = entry.weeklyQuizAccuracyPct || 0;
+          if (entry.deviceUuid) nextWeekly[entry.deviceUuid] = entry.weeklyQuizAccuracyPct || 0;
+        }
+      }
+
+      // Completar desde AsyncStorage local si algún dispositivo no vino del backend
+      for (const dev of devices) {
+        const devId = dev.deviceId || dev.deviceUuid;
+        if (!devId || nextRecords[devId]) continue;
+        const profileType = dev.profileType === 'Adulto' ? 'ADULTO' : 'MENOR';
+        const localHistory = await apiService
+          .getLocalPasatiemposHistory(dev.deviceUuid || devId)
+          .catch(() => []);
+        if (localHistory.length > 0) {
+          const todayRec = localHistory.find((r) => r.dateKey === todayKey);
+          if (todayRec) {
+            nextRecords[devId] = todayRec;
+            if (dev.deviceUuid) nextRecords[dev.deviceUuid] = todayRec;
+          }
+          const streak = computePasatiemposStreakDays(localHistory, profileType, todayKey);
+          const weekly = computeWeeklyQuizAccuracyPct(localHistory, todayKey);
+          nextStreaks[devId] = streak;
+          nextWeekly[devId] = weekly;
+        }
+      }
+
+      setPasatiemposRecordsByDevice(nextRecords);
+      setPasatiemposStreakByDevice(nextStreaks);
+      setPasatiemposWeeklyPctByDevice(nextWeekly);
     } catch {
       // Usar estado en memoria como respaldo
     } finally {
@@ -122,26 +264,25 @@ export function useRealAnalyticsData({
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [devices.length, customApps.length]);
 
   useEffect(() => {
     if (customSites.length > 0) setLocalSites(customSites);
     if (customApps.length > 0) setLocalApps(customApps);
   }, [customSites, customApps]);
 
-  // Dataset consolidado (eventos reales persistidos + dataset base por dispositivo)
-  const dataset = useMemo(
+  // Dataset exclusivamente con eventos reales persistidos (sin datos fake ni semillas sintéticas)
+  const dataset: BlockedAttemptRecord[] = useMemo(
     () =>
-      buildActivityDataset({
-        devices,
-        customSites: localSites,
-        customApps: localApps,
-        persistedEvents,
-      }),
-    [devices, localSites, localApps, persistedEvents]
+      persistedEvents.map((ev) => ({
+        ...ev,
+        sourceListType: normalizeAttemptSource(ev.sourceListType),
+        count: ev.count ?? 1,
+      })),
+    [persistedEvents]
   );
 
-  // Métricas agregadas de la semana
+  // Métricas agregadas de la semana a partir de eventos reales
   const metrics = useMemo(
     () =>
       computeActivityMetrics(dataset, {
@@ -152,15 +293,9 @@ export function useRealAnalyticsData({
     [dataset]
   );
 
-  // 1. Mapeo de Dispositivos a AnalyticsDevice[]
+  // 1. Mapeo de Dispositivos reales a AnalyticsDevice[] (siempre incluye "Yo", nunca DEMO_DEVICES)
   const analyticsDevices: AnalyticsDevice[] = useMemo(() => {
-    // Si no hay dispositivos registrados aún, usar demostración fiel
-    if (devices.length === 0) {
-      return DEMO_DEVICES;
-    }
-
     const totalAll = Math.max(1, metrics.totalBlocks);
-
     const result: AnalyticsDevice[] = [];
 
     // Dispositivo propio del Responsable
@@ -178,6 +313,7 @@ export function useRealAnalyticsData({
       label: 'Yo',
       shortLabel: 'Yo',
       status: 'online',
+      colorIndex: 0,
       total: selfTotal,
       lotba: selfLotba,
       custom: selfCustom,
@@ -201,14 +337,18 @@ export function useRealAnalyticsData({
         .reduce((sum, e) => sum + (e.count ?? 1), 0);
       const devTotal = devLotba + devCustom;
 
-      const isInactive = dev.status === 'INACTIVE';
-      const isOnline = dev.status === 'ACTIVE' || dev.isProtected;
+      const isOnline =
+        dev.status === 'ACTIVE' ||
+        (dev.status as any)?.effectiveStatus === 'ACTIVE' ||
+        (Boolean(dev.isProtected) && dev.status !== 'INACTIVE');
+      const isInactive = !isOnline;
 
       result.push({
         id: devId,
         label: firstName,
         shortLabel: firstName,
-        status: isInactive ? 'offline' : isOnline ? 'online' : 'warning',
+        status: isInactive ? 'offline' : 'online',
+        colorIndex: dev.colorIndex ?? idx,
         total: devTotal,
         lotba: devLotba,
         custom: devCustom,
@@ -217,7 +357,6 @@ export function useRealAnalyticsData({
         alertText: isInactive
           ? `${firstName} aún no completó la vinculación con el código`
           : undefined,
-        alertTag: isInactive ? 'Inactivo' : undefined,
         mult: Number((devTotal / totalAll).toFixed(2)) || 0.1,
       });
     });
@@ -278,22 +417,20 @@ export function useRealAnalyticsData({
     }));
   }, [metrics.hourly, metrics.peakHour]);
 
-  // 4. Últimos intentos bloqueados (AttemptEvent[])
+  // 4. Últimos intentos bloqueados reales (AttemptEvent[]) con fecha (Hoy/Ayer/dd/mm/aaaa) y horario (hh:mm)
   const blockedAttempts: AttemptEvent[] = useMemo(() => {
     if (metrics.allFilteredAttempts.length === 0) {
-      return DEMO_BLOCKED_ATTEMPTS;
+      return [];
     }
 
-    return metrics.allFilteredAttempts.slice(0, 15).map((att) => {
+    return metrics.allFilteredAttempts.slice(0, 25).map((att) => {
       const isLotba = att.sourceListType !== 'CUSTOM';
-      const displayDomain = isLotba
-        ? 'Sitio no autorizado'
-        : att.attemptedDomain;
-
       return {
         id: att.id,
-        title: displayDomain,
-        meta: `${getDeviceFirstName(att.deviceName)} · ${att.relativeTime}`,
+        title: att.displayTitle,
+        meta: `${getDeviceFirstName(att.deviceName)} · ${att.formattedDateTime}`,
+        formattedDateTime: att.formattedDateTime,
+        itemType: att.itemType,
         source: isLotba ? 'lotba' : 'custom',
         badgeLabel: att.sourceLabel,
         deviceId: att.deviceId,
@@ -301,48 +438,122 @@ export function useRealAnalyticsData({
     });
   }, [metrics.allFilteredAttempts]);
 
-  // 5. Eventos Anti-bypass y auditoría de seguridad
+  // 5. Alertas de seguridad reales generadas por acciones de dispositivos protegidos
   const bypassEvents: AttemptEvent[] = useMemo(() => {
-    const list: AttemptEvent[] = [];
+    const SECURITY_EVENT_META: Record<string, { title: string; badge: string }> = {
+      PERMISSION_REVOKED: {
+        title: 'Permiso deshabilitado',
+        badge: 'PERMISOS',
+      },
+      UNINSTALL_ATTEMPT: {
+        title: 'Intento de desinstalación',
+        badge: 'DESINSTALACIÓN',
+      },
+      VPN_DISABLED: {
+        title: 'Protección VPN desactivada',
+        badge: 'VPN',
+      },
+      APP_FORCE_STOP: {
+        title: 'Intento de detener la app',
+        badge: 'DETENCIÓN',
+      },
+      DNS_TAMPERING: {
+        title: 'Cambio en configuración DNS',
+        badge: 'DNS',
+      },
+      DEVICE_REBOOT: {
+        title: 'Dispositivo reiniciado',
+        badge: 'REINICIO',
+      },
+      NETWORK_CHANGE: {
+        title: 'Cambio de red detectado',
+        badge: 'RED',
+      },
+    };
 
-    // Alertas por dispositivos inactivos o pendientes de vinculación
-    devices
-      .filter((d) => d.status === 'INACTIVE')
-      .forEach((d, idx) => {
-        list.push({
-          id: `bypass-inactive-${idx}`,
-          title: `Dispositivo ${d.childName || d.deviceName} pendiente de vincular`,
-          meta: `${d.childName || d.deviceName} · Requiere ingresar código`,
-          source: 'bypass',
-          badgeLabel: 'VINCULACIÓN',
-          deviceId: d.deviceId || d.deviceUuid,
-        });
+    const deviceNameById = new Map<string, string>();
+    devices.forEach((d) => {
+      const name = getDeviceFirstName(d.childName || d.deviceName || 'Protegido');
+      if (d.deviceId) deviceNameById.set(d.deviceId, name);
+      if (d.deviceUuid) deviceNameById.set(d.deviceUuid, name);
+    });
+
+    const list: AttemptEvent[] = persistedSecurityEvents
+      .filter((ev) => ev.deviceId !== 'self')
+      .map((ev) => {
+        const mapped = SECURITY_EVENT_META[ev.eventType?.toUpperCase()] ?? {
+          title: ev.description || 'Alerta de seguridad',
+          badge: 'SEGURIDAD',
+        };
+        const devName =
+          deviceNameById.get(ev.deviceId) ||
+          getDeviceFirstName(ev.deviceName || 'Protegido');
+        const formatted = formatAttemptDateTime(ev.occurredAt);
+        return {
+          id: ev.id,
+          title: mapped.title,
+          meta: `${devName} · ${formatted}`,
+          formattedDateTime: formatted,
+          source: 'bypass' as const,
+          badgeLabel: mapped.badge,
+          deviceId: ev.deviceId,
+          readAt: ev.readAt ?? null,
+        };
       });
 
-    // Complementar con eventos de seguridad estándar de protección
-    if (list.length < 3) {
-      list.push(...DEMO_BYPASS_EVENTS.slice(0, 3 - list.length));
-    }
+    // Si un dispositivo protegido vinculado reporta permisos revocados o bypass activo
+    // en su estado en tiempo real y no figura aún en el listado, agregar alerta real.
+    devices.forEach((d) => {
+      const devId = d.deviceId || d.deviceUuid;
+      if (!devId || devId === 'self' || d.profileType === 'Responsable') return;
+      const effectiveStatus = String(
+        (d.status as any)?.effectiveStatus || d.status || ''
+      ).toUpperCase();
+      if (effectiveStatus !== 'PERMISSION_REQUIRED' && effectiveStatus !== 'BYPASS_DETECTED') {
+        return;
+      }
+      const alreadyReported = list.some(
+        (item) => item.deviceId === devId || item.deviceId === d.deviceUuid
+      );
+      if (alreadyReported) return;
+
+      const devName = getDeviceFirstName(d.childName || d.deviceName || 'Protegido');
+      const isPerm = effectiveStatus === 'PERMISSION_REQUIRED';
+      list.push({
+        id: `sec-live-${effectiveStatus.toLowerCase()}-${devId}`,
+        title: isPerm ? 'Permiso deshabilitado' : 'Protección interrumpida',
+        meta: `${devName} · Estado actual`,
+        source: 'bypass',
+        badgeLabel: isPerm ? 'PERMISOS' : 'SEGURIDAD',
+        deviceId: devId,
+      });
+    });
 
     return list;
-  }, [devices]);
+  }, [devices, persistedSecurityEvents]);
 
   // 6. Uptime general del equipo
   const allUptime = useMemo(() => {
-    const totalDevices = devices.length + 1; // +1 por el dispositivo del responsable
+    const totalDevices = devices.length + 1;
     const activeDevices = devices.filter((d) => d.status === 'ACTIVE').length + 1;
-    if (totalDevices === 0) return '98.4%';
+    if (totalDevices === 0) return '100%';
     const pct = ((activeDevices / totalDevices) * 100).toFixed(1);
     return `${pct}%`;
   }, [devices]);
 
   return {
     devices: analyticsDevices,
+    rawDevices: devices,
+    customApps: localApps,
     weekData,
     hourlyData,
     blockedAttempts,
+    rawBlockedEvents: dataset,
     bypassEvents,
-    blocklistVersion,
+    appUsageSnapshots,
+    pasatiemposRecordsByDevice,
+    pasatiemposStreakByDevice,
+    pasatiemposWeeklyPctByDevice,
     allUptime,
     loading,
     refresh: loadData,

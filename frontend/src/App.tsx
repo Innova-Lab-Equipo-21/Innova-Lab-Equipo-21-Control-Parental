@@ -445,7 +445,7 @@ export function App(): React.JSX.Element {
         !hasSelectedResponsibleAction &&
         activeScreen !== 'PERMISSIONS' && (
           <ResponsibleActionScreen
-            userName={parentUser?.fullName || 'Tutor Responsable'}
+            userName={parentUser?.fullName || 'Yo'}
             onSelectAction={async (actionType) => {
               await markResponsibleFirstAccessCompleted(parentUser);
               setResponsibleActionType(actionType);

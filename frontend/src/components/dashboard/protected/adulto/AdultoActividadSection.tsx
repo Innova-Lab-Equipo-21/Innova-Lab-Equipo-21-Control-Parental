@@ -2,215 +2,258 @@
 // Proyecto: BA Protege+
 // Componente: AdultoActividadSection
 // Archivo: src/components/dashboard/protected/adulto/AdultoActividadSection.tsx
-// Descripción: Pestaña Actividad ("MI USO DIARIO") exclusiva del Modo Protegido
-//              Adulto, con tiempo de uso, barras por app, sitios restringidos y
-//              mensajes contextuales acompañados por Boti.
+// Descripción: Pestaña Actividad exclusiva del Modo Protegido Adulto con
+//              exactamente 3 bloques en este orden:
+//              1. Mis apps hoy
+//              2. Cuestionario diario
+//              3. Sitios y apps bloqueados (barra horizontal LOTBA vs Personalizada)
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { BlockedAppsUsageSummary } from '../../../../utils/appUsageMetrics';
+import { DailyPasatiemposRecord } from '../../../../utils/pasatiemposMetrics';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  ImageSourcePropType,
-} from 'react-native';
-import { FeedbackModal } from '../../../FeedbackModal';
-import { BOTI_ASSETS } from '../botAssets';
+  FormattedBlockedAttempt,
+  getDisplayTitleForBlockedAttempt,
+} from '../../../../utils/activityMetrics';
+import { AppsUsageCard } from '../../actividad/blocks/AppsUsageCard';
+import { SourceBadge } from '../../actividad/atomic/SourceBadge';
+import { cardStyles } from '../../actividad/card.styles';
+import { analyticsPalette as palette } from '../../actividad/palette';
 import { styles } from './AdultoActividadSection.styles';
 
-interface AdultoActividadSectionProps {
-  onOpenPinModal: () => void;
+export interface AdultoActividadSectionProps {
+  appsUsageSummary: BlockedAppsUsageSummary;
+  todayRecord: DailyPasatiemposRecord;
+  streakDays: number;
+  weeklyQuizAccuracyPct: number;
+  blockedAttempts: FormattedBlockedAttempt[];
+  onOpenQuiz?: () => void;
+  /** Prop opcional preservada por compatibilidad */
   customBlockedItems?: string[];
 }
 
 export const AdultoActividadSection: React.FC<AdultoActividadSectionProps> = ({
-  onOpenPinModal,
-  customBlockedItems = ['casino-clandestino.net', 'red-social-peligrosa.org'],
+  appsUsageSummary,
+  todayRecord,
+  streakDays,
+  weeklyQuizAccuracyPct,
+  blockedAttempts,
+  onOpenQuiz,
 }) => {
-  const [modalState, setModalState] = useState<{
-    visible: boolean;
-    imageSource: ImageSourcePropType;
-    title: string;
-    message: string;
-    requestPin?: boolean;
-  }>({
-    visible: false,
-    imageSource: BOTI_ASSETS.pensando,
-    title: '',
-    message: '',
-    requestPin: false,
-  });
+  const { quiz } = todayRecord;
+  const quizCompleted = quiz.status === 'completed';
+  const quizInProgress = quiz.status === 'in_progress';
 
-  const handleAttemptUnlock = (itemName: string) => {
-    setModalState({
-      visible: true,
-      imageSource: BOTI_ASSETS.triste,
-      title: 'PIN del tutor requerido',
-      message: `No tenés permiso para desbloquear "${itemName}". Para realizar cambios en la lista de restricciones, solicitá a tu responsable que ingrese su PIN oficial de 4 dígitos.`,
-      requestPin: true,
-    });
-  };
-
-  const handleShowUsageInfo = (title: string, message: string) => {
-    setModalState({
-      visible: true,
-      imageSource: BOTI_ASSETS.pensando,
-      title,
-      message,
-      requestPin: false,
-    });
-  };
+  // Métricas del bloque 3: Sitios y apps bloqueados (LOTBA vs Personalizada)
+  const lotbaCount = blockedAttempts
+    .filter((a) => a.sourceListType === 'LOTBA')
+    .reduce((sum, a) => sum + (a.count || 1), 0);
+  const customCount = blockedAttempts
+    .filter((a) => a.sourceListType === 'CUSTOM')
+    .reduce((sum, a) => sum + (a.count || 1), 0);
+  const totalBlockedCount = lotbaCount + customCount;
+  const lotbaPct =
+    totalBlockedCount > 0 ? Math.round((lotbaCount / totalBlockedCount) * 100) : 0;
+  const customPct = totalBlockedCount > 0 ? 100 - lotbaPct : 0;
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerBanner}>
-        <Text style={styles.headerBannerTitle}>MI USO DIARIO</Text>
-        <TouchableOpacity
-          onPress={() =>
-            handleShowUsageInfo(
-              'Control de tiempo diario',
-              'Visualización transparente del tiempo de uso acumulado en el dispositivo y límites configurados por tu responsable.'
-            )
-          }
-        >
-          <Text style={styles.headerBannerLink}>Ver más ➔</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <View style={styles.clockIconBox}>
-            <Text style={styles.clockIconText}>🕒</Text>
-          </View>
-          <View style={styles.statTextColumn}>
-            <Text style={styles.statLabel}>Tiempo de uso</Text>
-            <Text style={styles.statValueText}>3:45</Text>
-            <Text style={styles.statRestantText}>Restan 01:15hs</Text>
-          </View>
-        </View>
-
-        <View style={styles.statCard}>
-          <Image
-            source={BOTI_ASSETS.pensando}
-            style={styles.mascotIconImage}
-            resizeMode="contain"
-          />
-          <View style={styles.statTextColumn}>
-            <Text style={styles.statLabel}>Tiempo de uso</Text>
-            <Text style={styles.statValueText}>05 hs 00m</Text>
-            <Text style={styles.statRestantText}>Restan 05:00hs</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.appUsageContainer}>
-        <TouchableOpacity
-          style={styles.appItemRow}
-          onPress={() =>
-            handleShowUsageInfo(
-              'Instagram',
-              'Tiempo de pantalla usado hoy: 45 min. Límite diario: 1h 30m.'
-            )
-          }
-          activeOpacity={0.8}
-        >
-          <View style={styles.appIconCircle}>
-            <Text style={styles.appIconText}>📸</Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressBarFill, { width: '65%' }]} />
-          </View>
-          <Text style={styles.appTimeText}>00:45min ›</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.appItemRow}
-          onPress={() =>
-            handleShowUsageInfo(
-              'TikTok',
-              'Tiempo de pantalla usado hoy: 30 min. Límite diario: 1h 00m.'
-            )
-          }
-          activeOpacity={0.8}
-        >
-          <View style={styles.appIconCircle}>
-            <Text style={styles.appIconText}>🎵</Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressBarFill, { width: '45%' }]} />
-          </View>
-          <Text style={styles.appTimeText}>00:30min ›</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.appItemRow}
-          onPress={() =>
-            handleShowUsageInfo(
-              'YouTube',
-              'Tiempo de pantalla usado hoy: 20 min. Límite diario: 1h 00m.'
-            )
-          }
-          activeOpacity={0.8}
-        >
-          <View style={styles.appIconCircle}>
-            <Text style={styles.appIconText}>▶️</Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressBarFill, { width: '30%' }]} />
-          </View>
-          <Text style={styles.appTimeText}>00:20min ›</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.blockedSectionTitle}>
-        Sitios y apps bloqueadas en este dispositivo
-      </Text>
-
-      {customBlockedItems.map((item, index) => (
-        <TouchableOpacity
-          key={index}
-          style={styles.blockedCard}
-          onPress={() => handleAttemptUnlock(item)}
-          activeOpacity={0.85}
-        >
-          <View style={styles.lockIconBox}>
-            <Text style={styles.lockIconText}>🔒</Text>
-          </View>
-
-          <View style={styles.blockedTextColumn}>
-            <Text style={styles.blockedDomainTitle}>{item}</Text>
-            <Text style={styles.blockedBadgeText}>
-              🔒 Bloqueado permanentemente por responsable
-            </Text>
-            <Text style={styles.protectedLockNotice}>
-              No podés desbloquearlo. Tocá para solicitar PIN del tutor.
-            </Text>
-          </View>
-
-          <Text style={{ fontSize: 18, color: '#94A3B8' }}>🔑</Text>
-        </TouchableOpacity>
-      ))}
-
-      <FeedbackModal
-        visible={modalState.visible}
-        imageSource={modalState.imageSource}
-        title={modalState.title}
-        message={modalState.message}
-        buttonText={modalState.requestPin ? 'Ingresar PIN' : 'Entendido'}
-        secondaryButtonText={modalState.requestPin ? 'Cancelar' : undefined}
-        onSecondaryPress={() =>
-          setModalState((prev) => ({ ...prev, visible: false }))
-        }
-        onConfirm={() => {
-          const shouldOpenPin = modalState.requestPin;
-          setModalState((prev) => ({ ...prev, visible: false }));
-          if (shouldOpenPin) {
-            onOpenPinModal();
-          }
-        }}
-        onClose={() => setModalState((prev) => ({ ...prev, visible: false }))}
+      {/* 1. Mis apps hoy */}
+      <AppsUsageCard
+        summary={appsUsageSummary}
+        variant="adult"
+        title="Mis apps hoy"
       />
+
+      {/* 2. Cuestionario diario */}
+      <View style={cardStyles.card}>
+        <View style={styles.quizHeaderRow}>
+          <View style={styles.quizTitleGroup}>
+            <View
+              style={[
+                styles.quizIconBox,
+                quizCompleted && styles.quizIconBoxDone,
+              ]}
+            >
+              <Text style={styles.quizIconText}>
+                {quizCompleted ? '✓' : '?'}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.quizTitle}>Cuestionario diario</Text>
+              <Text style={styles.quizSubtitle}>Salud digital y prevención</Text>
+            </View>
+          </View>
+
+          <View
+            style={[
+              styles.statusPill,
+              quizCompleted
+                ? styles.statusPillDone
+                : quizInProgress
+                  ? styles.statusPillProgress
+                  : styles.statusPillPending,
+            ]}
+          >
+            <Text
+              style={[
+                styles.statusPillText,
+                quizCompleted
+                  ? styles.statusPillTextDone
+                  : quizInProgress
+                    ? styles.statusPillTextProgress
+                    : styles.statusPillTextPending,
+              ]}
+            >
+              {quizCompleted
+                ? '✓ Hecho hoy'
+                : quizInProgress
+                  ? 'En curso'
+                  : 'Pendiente'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.kpiRow}>
+          <View style={styles.kpiBox}>
+            <Text style={styles.kpiLabel}>Aciertos hoy</Text>
+            <Text style={styles.kpiValue}>
+              {quiz.correctAnswers} de {quiz.totalQuestions}
+            </Text>
+            <Text style={styles.kpiSub}>
+              {quiz.wrongAnswers} {quiz.wrongAnswers === 1 ? 'error' : 'errores'}
+            </Text>
+          </View>
+
+          <View style={styles.kpiBox}>
+            <Text style={styles.kpiLabel}>Racha</Text>
+            <Text style={styles.kpiValue}>
+              {streakDays} {streakDays === 1 ? 'día' : 'días'}
+            </Text>
+            <Text style={styles.kpiSub}>Días seguidos</Text>
+          </View>
+
+          <View style={styles.kpiBox}>
+            <Text style={styles.kpiLabel}>En la semana</Text>
+            <Text style={styles.kpiValue}>{weeklyQuizAccuracyPct}%</Text>
+            <Text style={styles.kpiSub}>Precisión 7d</Text>
+          </View>
+        </View>
+
+        {!quizCompleted && onOpenQuiz && (
+          <TouchableOpacity
+            style={styles.quizCtaButton}
+            onPress={onOpenQuiz}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.quizCtaText}>
+              {quizInProgress
+                ? 'Continuar cuestionario diario ➔'
+                : 'Responder cuestionario diario ➔'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* 3. Sitios y apps bloqueados */}
+      <View style={cardStyles.card}>
+        <View style={styles.blockedHeaderRow}>
+          <Text style={styles.blockedTitle}>Sitios y apps bloqueados</Text>
+          <Text style={styles.blockedSubtitleCount}>
+            {totalBlockedCount === 1
+              ? '1 intento en 7 días'
+              : `${totalBlockedCount} intentos en 7 días`}
+          </Text>
+        </View>
+
+        {/* Barra horizontal apilada: Lista LOTBA vs Lista Personalizada */}
+        <View style={styles.stackedBarTrack}>
+          {lotbaPct > 0 && (
+            <View
+              style={[styles.stackedBarLotba, { width: `${lotbaPct}%` }]}
+            />
+          )}
+          {lotbaPct > 0 && customPct > 0 && (
+            <View style={styles.stackedBarDivider} />
+          )}
+          {customPct > 0 && (
+            <View
+              style={[styles.stackedBarCustom, { width: `${customPct}%` }]}
+            />
+          )}
+        </View>
+
+        <View style={styles.legendRow}>
+          <View style={styles.legendItem}>
+            <View
+              style={[
+                styles.legendDot,
+                { backgroundColor: palette.lotbaBlue },
+              ]}
+            />
+            <Text style={styles.legendText}>
+              LOTBA <Text style={styles.legendStrong}>{lotbaCount}</Text>{' '}
+              <Text style={styles.legendPct}>{lotbaPct}%</Text>
+            </Text>
+          </View>
+
+          <View style={styles.legendItem}>
+            <View
+              style={[
+                styles.legendDot,
+                { backgroundColor: palette.customAmber },
+              ]}
+            />
+            <Text style={styles.legendText}>
+              Personalizada{' '}
+              <Text style={styles.legendStrong}>{customCount}</Text>{' '}
+              <Text style={styles.legendPct}>{customPct}%</Text>
+            </Text>
+          </View>
+        </View>
+
+        {blockedAttempts.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>
+              No se registraron intentos bloqueados en este dispositivo.
+            </Text>
+          </View>
+        ) : (
+          blockedAttempts.slice(0, 15).map((attempt, index, list) => {
+            const isLotba = attempt.sourceListType === 'LOTBA';
+            const displayTitle = getDisplayTitleForBlockedAttempt(
+              attempt.attemptedDomain,
+              attempt.sourceListType,
+              attempt.itemType
+            );
+            return (
+              <View
+                key={attempt.id}
+                style={[
+                  styles.attemptRow,
+                  index === list.length - 1 && styles.attemptRowLast,
+                ]}
+              >
+                <View style={styles.attemptInfo}>
+                  <Text style={styles.attemptTitle} numberOfLines={1}>
+                    {displayTitle}
+                  </Text>
+                  <Text style={styles.attemptDate}>
+                    {attempt.formattedDateTime}
+                  </Text>
+                </View>
+
+                <SourceBadge
+                  source={isLotba ? 'lotba' : 'custom'}
+                  label={isLotba ? 'LOTBA' : 'Personalizada'}
+                />
+              </View>
+            );
+          })
+        )}
+      </View>
     </View>
   );
 };

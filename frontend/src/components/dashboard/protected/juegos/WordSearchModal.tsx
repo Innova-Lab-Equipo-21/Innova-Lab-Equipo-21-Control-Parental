@@ -6,7 +6,7 @@
 //              selección intuitiva por toque y celebración con Beti al completar.
 // ==============================================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -28,19 +28,42 @@ import { styles } from './WordSearchModal.styles';
 
 interface WordSearchModalProps {
   visible: boolean;
+  initialFoundByBoard?: Record<string, string[]>;
   onClose: () => void;
-  onCompleteGame: () => void;
+  onProgressWordSearch?: (foundByBoard: Record<string, string[]>) => void;
+  onCompleteGame: (foundByBoard?: Record<string, string[]>) => void;
 }
 
 export const WordSearchModal: React.FC<WordSearchModalProps> = ({
   visible,
+  initialFoundByBoard,
   onClose,
+  onProgressWordSearch,
   onCompleteGame,
 }) => {
   const [boardIndex, setBoardIndex] = useState<number>(0);
   const [selectedCells, setSelectedCells] = useState<GridCellCoord[]>([]);
-  const [foundByBoard, setFoundByBoard] = useState<Record<string, string[]>>({});
+  const [foundByBoard, setFoundByBoard] = useState<Record<string, string[]>>(
+    initialFoundByBoard || {}
+  );
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
+  const [allBoardsCompletedNow, setAllBoardsCompletedNow] = useState<boolean>(false);
+
+  // Sincronizar progreso persistido al abrir el modal y posicionar en la primera sopa pendiente
+  useEffect(() => {
+    if (visible && initialFoundByBoard) {
+      setFoundByBoard(initialFoundByBoard);
+      const firstPendingIdx = WORD_SEARCH_BOARDS.findIndex((b) => {
+        const found = initialFoundByBoard[b.id] || [];
+        return found.length < b.words.length;
+      });
+      if (firstPendingIdx >= 0) {
+        setBoardIndex(firstPendingIdx);
+      }
+      setSelectedCells([]);
+      setShowCelebration(false);
+    }
+  }, [visible, initialFoundByBoard]);
 
   const currentBoard = WORD_SEARCH_BOARDS[boardIndex] || WORD_SEARCH_BOARDS[0];
   const foundWords = foundByBoard[currentBoard.id] || [];
@@ -65,16 +88,30 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
     selectedCells.some((c) => c.row === row && c.col === col);
 
   const markWordFound = (word: string) => {
-    const updated = [...foundWords, word];
-    setFoundByBoard((prev) => ({
-      ...prev,
-      [currentBoard.id]: updated,
-    }));
+    const updatedBoardWords = foundWords.includes(word)
+      ? foundWords
+      : [...foundWords, word];
+    const updatedAllBoards: Record<string, string[]> = {
+      ...foundByBoard,
+      [currentBoard.id]: updatedBoardWords,
+    };
+
+    setFoundByBoard(updatedAllBoards);
     setSelectedCells([]);
 
-    if (updated.length >= currentBoard.words.length) {
+    if (onProgressWordSearch) {
+      onProgressWordSearch(updatedAllBoards);
+    }
+
+    if (updatedBoardWords.length >= currentBoard.words.length) {
+      const completedAll = WORD_SEARCH_BOARDS.every(
+        (b) => (updatedAllBoards[b.id] || []).length >= b.words.length
+      );
+      setAllBoardsCompletedNow(completedAll);
       setShowCelebration(true);
-      onCompleteGame();
+      if (completedAll) {
+        onCompleteGame(updatedAllBoards);
+      }
     }
   };
 
@@ -148,13 +185,20 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
   };
 
   const handleFinishCelebration = () => {
-    setFoundByBoard((prev) => ({
-      ...prev,
-      [currentBoard.id]: [],
-    }));
     setSelectedCells([]);
     setShowCelebration(false);
-    onClose();
+    if (allBoardsCompletedNow) {
+      onClose();
+      return;
+    }
+    const nextPendingIdx = WORD_SEARCH_BOARDS.findIndex(
+      (b) => (foundByBoard[b.id] || []).length < b.words.length
+    );
+    if (nextPendingIdx >= 0) {
+      setBoardIndex(nextPendingIdx);
+    } else {
+      onClose();
+    }
   };
 
   return (
@@ -181,6 +225,8 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
           <View style={styles.boardTabsRow}>
             {WORD_SEARCH_BOARDS.map((b, idx) => {
               const active = idx === boardIndex;
+              const boardFoundCount = (foundByBoard[b.id] || []).length;
+              const boardDone = boardFoundCount >= b.words.length;
               return (
                 <TouchableOpacity
                   key={b.id}
@@ -192,7 +238,7 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
                     style={[styles.boardTabText, active && styles.boardTabTextActive]}
                     numberOfLines={1}
                   >
-                    {b.title}
+                    {boardDone ? `✓ ${b.title}` : b.title}
                   </Text>
                 </TouchableOpacity>
               );
@@ -301,7 +347,9 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
 
                   <Text style={styles.celebrationTitle}>¡FELICITACIONES!!</Text>
                   <Text style={styles.celebrationSubtitle}>
-                    ¡Completaste la sopa de letras!{'\n'}¡Seguí así!
+                    {allBoardsCompletedNow
+                      ? '¡Completaste las 3 sopas de letras!\n¡Excelente trabajo!'
+                      : `¡Completaste "${currentBoard.title}"!\nSeguí con la próxima sopa de letras.`}
                   </Text>
 
                   <View style={styles.celebrationIllustrationRow}>
@@ -321,7 +369,7 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
                     activeOpacity={0.85}
                   >
                     <Text style={styles.celebrationContinueText}>
-                      Continuar ➔
+                      {allBoardsCompletedNow ? 'Continuar ➔' : 'Siguiente sopa ➔'}
                     </Text>
                   </TouchableOpacity>
                 </View>

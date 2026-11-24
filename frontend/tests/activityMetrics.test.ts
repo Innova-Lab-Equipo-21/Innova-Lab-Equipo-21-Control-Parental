@@ -299,23 +299,24 @@ describe('Pestaña Actividad — Dataset consolidado, Telemetría y Estructura U
     assert.ok(orchestratorSrc.includes('useAnalyticsPanel'));
     assert.ok(orchestratorSrc.includes('<Header'));
     assert.ok(orchestratorSrc.includes('<PeriodSelector'));
-    assert.ok(
-      orchestratorSrc.includes('<DeviceSelector') ||
-        orchestratorSrc.includes('<DeviceChipsRow')
-    );
+    assert.ok(orchestratorSrc.includes('<DeviceSelector'));
     assert.ok(orchestratorSrc.includes('<TotalBlocksCard'));
     assert.ok(orchestratorSrc.includes('<BlocksBySourceCard'));
     assert.ok(orchestratorSrc.includes('<ActivityChartCard'));
+    assert.ok(orchestratorSrc.includes('<AppsUsageCard'));
+    assert.ok(orchestratorSrc.includes('<PasatiemposSummaryCard'));
     assert.ok(orchestratorSrc.includes('<AuditEventsCard'));
 
     // Verifica los componentes clave del módulo
     const moduleFiles = [
       'AnalyticsPanel.tsx',
       'blocks/PeriodSelector.tsx',
-      'blocks/DeviceChipsRow.tsx',
+      'blocks/DeviceSelector.tsx',
       'blocks/TotalBlocksCard.tsx',
       'blocks/BlocksBySourceCard.tsx',
       'blocks/ActivityChartCard.tsx',
+      'blocks/AppsUsageCard.tsx',
+      'blocks/PasatiemposSummaryCard.tsx',
       'blocks/AuditEventsCard.tsx',
     ];
     const combinedSource = moduleFiles
@@ -326,9 +327,9 @@ describe('Pestaña Actividad — Dataset consolidado, Telemetría y Estructura U
     assert.equal(combinedSource.includes('Bloqueos por fuente'), true);
     assert.equal(combinedSource.includes('Lista LOTBA'), true);
     assert.equal(combinedSource.includes('Personalizada'), true);
-    assert.equal(combinedSource.includes('Listado de bloqueos'), true);
+    assert.equal(combinedSource.includes('Sitios y apps bloqueados'), true);
     assert.equal(combinedSource.includes('Últimos bloqueos'), true);
-    assert.equal(combinedSource.includes('Eventos Anti-bypass'), true);
+    assert.equal(combinedSource.includes('Alertas de seguridad'), true);
 
     // Verifica que las pestañas antiguas de Tiempo de uso de pantalla fueron excluidas
     assert.equal(combinedSource.includes('Tiempo total de pantalla hoy'), false);

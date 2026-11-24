@@ -2,16 +2,16 @@
 // Proyecto: BA Protege+
 // Componente: PeriodSelector Styles
 // Archivo: src/components/dashboard/actividad/blocks/PeriodSelector.styles.ts
-// Descripción: Estilos para el botón selector desplegable de período y menú flotante
-//              en modal con fondo translúcido.
+// Descripción: Estilos para el dropdown inline de período / fecha, siguiendo el
+//              patrón oficial de dropdowns del app (sin modal).
 // ==============================================================================
 
 import { StyleSheet } from 'react-native';
-import { analyticsPalette as palette } from '../palette';
+import { colors } from '../../../../theme/colors';
 
 export const styles = StyleSheet.create({
   wrapper: {
-    flex: 1,
+    width: '100%',
     position: 'relative',
   },
 
@@ -19,48 +19,44 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: palette.offWhite,
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: palette.cardBorder,
+    borderColor: colors.border,
     borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    minHeight: 40,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    minHeight: 42,
+  },
+
+  triggerOpen: {
+    borderColor: colors.primary,
   },
 
   triggerText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    color: palette.textMain,
+    color: colors.textPrimary,
+    flexShrink: 1,
   },
 
   chevron: {
-    fontSize: 10,
-    color: palette.textSubtle,
-    marginLeft: 6,
+    fontSize: 11,
+    color: colors.primary,
+    fontWeight: '700',
+    paddingLeft: 4,
   },
 
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-
-  menu: {
-    width: '100%',
-    maxWidth: 280,
-    backgroundColor: palette.white,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: palette.cardBorder,
-    padding: 8,
+  dropdownMenu: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
     shadowRadius: 10,
-    elevation: 6,
+    elevation: 8,
   },
 
   menuItem: {
@@ -68,23 +64,35 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginVertical: 2,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+
+  menuItemLast: {
+    borderBottomWidth: 0,
   },
 
   menuItemActive: {
-    backgroundColor: '#E5F1FF',
+    backgroundColor: colors.primaryLight,
   },
 
   menuItemText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: palette.textSubtle,
+    fontWeight: '500',
+    color: colors.textPrimary,
+    flexShrink: 1,
   },
 
   menuItemTextActive: {
-    color: '#0369a1',
-    fontWeight: '800',
+    color: colors.primaryDark,
+    fontWeight: '700',
+  },
+
+  checkmark: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+    marginLeft: 6,
   },
 });

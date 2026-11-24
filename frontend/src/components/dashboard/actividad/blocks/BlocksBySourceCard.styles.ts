@@ -21,6 +21,10 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
+  barContainerEmpty: {
+    backgroundColor: palette.cardBorder,
+  },
+
   segmentLotba: {
     backgroundColor: palette.lotbaBlue,
     height: '100%',
@@ -74,15 +78,9 @@ export const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  legendBold: {
+  legendPct: {
     color: palette.textMain,
     fontWeight: '800',
-    fontSize: 11,
-  },
-
-  legendPct: {
-    color: palette.textMuted,
-    fontWeight: '600',
     fontSize: 11,
   },
 });

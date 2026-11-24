@@ -2,15 +2,16 @@
 // Proyecto: BA Protege+
 // Componente: DeviceSelector Styles
 // Archivo: src/components/dashboard/actividad/blocks/DeviceSelector.styles.ts
-// Descripción: Estilos para el dropdown de selección de dispositivo en Actividad.
+// Descripción: Estilos del dropdown inline de selección de dispositivo en
+//              Actividad, siguiendo el patrón oficial de dropdowns del app.
 // ==============================================================================
 
 import { StyleSheet } from 'react-native';
-import { analyticsPalette as palette } from '../palette';
+import { colors } from '../../../../theme/colors';
 
 export const styles = StyleSheet.create({
   wrapper: {
-    flex: 1,
+    width: '100%',
     position: 'relative',
   },
 
@@ -18,83 +19,76 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: palette.offWhite,
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: palette.cardBorder,
+    borderColor: colors.border,
     borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    minHeight: 40,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    minHeight: 42,
+  },
+
+  triggerOpen: {
+    borderColor: colors.primary,
   },
 
   triggerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
     flex: 1,
     marginRight: 4,
   },
 
   triggerText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    color: palette.textMain,
+    color: colors.textPrimary,
+    flexShrink: 1,
   },
 
   chevron: {
-    fontSize: 10,
-    color: palette.textSubtle,
-    marginLeft: 6,
-  },
-
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-  },
-
-  dotOnline: {
-    backgroundColor: '#10b981',
-  },
-
-  dotOffline: {
-    backgroundColor: '#ef4444',
-  },
-
-  dotWarning: {
-    backgroundColor: '#f59e0b',
-  },
-
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-
-  menu: {
-    width: '100%',
-    maxWidth: 300,
-    maxHeight: 380,
-    backgroundColor: palette.white,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: palette.cardBorder,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-
-  menuHeader: {
-    fontSize: 13,
+    fontSize: 11,
+    color: colors.primary,
     fontWeight: '700',
-    color: palette.textMain,
-    marginBottom: 8,
-    paddingHorizontal: 4,
+    paddingLeft: 4,
+  },
+
+  deviceAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+
+  allAvatar: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
+  },
+
+  deviceAvatarIcon: {
+    fontSize: 12,
+    lineHeight: 15,
+  },
+
+  dropdownMenu: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+
+  dropdownScroll: {
+    maxHeight: 240,
   },
 
   menuItem: {
@@ -103,12 +97,16 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     paddingHorizontal: 10,
-    borderRadius: 8,
-    marginVertical: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+
+  menuItemLast: {
+    borderBottomWidth: 0,
   },
 
   menuItemActive: {
-    backgroundColor: '#E5F1FF',
+    backgroundColor: colors.primaryLight,
   },
 
   menuItemLeft: {
@@ -120,19 +118,20 @@ export const styles = StyleSheet.create({
 
   menuItemText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: palette.textSubtle,
+    fontWeight: '500',
+    color: colors.textPrimary,
+    flexShrink: 1,
   },
 
   menuItemTextActive: {
-    color: '#0369a1',
-    fontWeight: '800',
+    color: colors.primaryDark,
+    fontWeight: '700',
   },
 
   checkmark: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0369a1',
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
     marginLeft: 6,
   },
 });

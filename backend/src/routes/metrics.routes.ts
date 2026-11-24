@@ -21,4 +21,16 @@ router.get('/timeline', requireAuth, validateRequest(timelineQuerySchema), (req,
   metricsController.getTimeline(req, res, next),
 );
 
+router.get('/activity', requireAuth, (req, res, next) =>
+  metricsController.getActivityOverview(req, res, next),
+);
+
+router.get('/device/:deviceUuid/activity', (req, res, next) =>
+  metricsController.getDeviceActivity(req, res, next),
+);
+
+router.patch('/security-events/:eventId/read', requireAuth, (req, res, next) =>
+  metricsController.markSecurityEventAsRead(req, res, next),
+);
+
 export const metricsRoutes = router;

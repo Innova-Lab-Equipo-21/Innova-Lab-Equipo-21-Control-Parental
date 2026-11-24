@@ -134,8 +134,10 @@ model Device {
   status         DeviceStatus?
   config         ProtectionConfig?
   pairings       DevicePairing[]
-  blockedEvents  BlockedEvent[]
-  securityEvents SecurityEvent[]
+  blockedEvents       BlockedEvent[]
+  securityEvents      SecurityEvent[]
+  pasatiempoSessions  PasatiempoSession[]
+  appUsageSnapshots   AppUsageSnapshot[]
 
   @@map("devices")
   @@schema("public")
@@ -271,6 +273,7 @@ model BlockedEvent {
   deviceId        String   @map("device_id")
   attemptedDomain String   @map("attempted_domain")
   sourceListType  String   @default("LOTBA") @map("source_list_type")
+  itemType        String   @default("SITE") @map("item_type")
   blockedAt       DateTime @default(now()) @map("blocked_at")
 
   device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
@@ -290,10 +293,12 @@ model SecurityEvent {
   description String?
   metadata    Json?
   occurredAt  DateTime          @default(now()) @map("occurred_at")
+  readAt      DateTime?         @map("read_at")
 
   device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@index([deviceId, occurredAt])
+  @@index([deviceId, readAt])
   @@map("security_events")
   @@schema("public")
 }
@@ -312,6 +317,55 @@ model AuditLog {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("audit_logs")
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: Sesiones Diarias de Pasatiempos (Quiz, Sopa de Letras, Memoria)
+// ------------------------------------------------------------------------------
+model PasatiempoSession {
+  id           String    @id @default(uuid())
+  deviceId     String    @map("device_id")
+  dateKey      String    @map("date_key")
+  gameType     String    @map("game_type")
+  status       String    @default("PENDING")
+  correctCount Int       @default(0) @map("correct_count")
+  wrongCount   Int       @default(0) @map("wrong_count")
+  totalItems   Int       @default(0) @map("total_items")
+  attempts     Int       @default(0)
+  details      Json?
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, dateKey, gameType])
+  @@index([deviceId, dateKey])
+  @@map("pasatiempo_sessions")
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: Consumo Diario de Aplicaciones Bloqueadas
+// ------------------------------------------------------------------------------
+model AppUsageSnapshot {
+  id                String   @id @default(uuid())
+  deviceId          String   @map("device_id")
+  dateKey           String   @map("date_key")
+  packageName       String   @map("package_name")
+  appName           String   @map("app_name")
+  usedMinutes       Int      @default(0) @map("used_minutes")
+  dailyLimitMinutes Int?     @map("daily_limit_minutes")
+  isBlocked         Boolean  @default(false) @map("is_blocked")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, dateKey, packageName])
+  @@index([deviceId, dateKey])
+  @@map("app_usage_snapshots")
   @@schema("public")
 }
 

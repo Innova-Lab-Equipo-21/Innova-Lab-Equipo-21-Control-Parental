@@ -1,11 +1,11 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: StackedBarChart (Gráfico de barras apiladas reutilizable)
+// Componente: StackedBarChart (Gráfico de barras apiladas horario)
 // Archivo: src/components/dashboard/actividad/atomic/StackedBarChart.tsx
 // Descripción: Renderiza barras apiladas (Ámbar Personalizada arriba / Azul
-//              LOTBA abajo) con efecto Von Restorff (opacidad 62% en barras
-//              secundarias, 100% en pico/seleccionada), crown de pico y eje X.
-//              Soporta los modos 'daily' (7 barras) y 'hourly' (24 barras).
+//              LOTBA abajo) para las 24 horas con efecto Von Restorff
+//              (opacidad 62% en barras secundarias, 100% en pico/seleccionada)
+//              y eje X horario limpio sin badges verticales.
 // ==============================================================================
 
 import React from 'react';
@@ -18,7 +18,6 @@ const MIN_BAR = 8;
 
 export interface StackedBarChartProps {
   bars: ChartBar[];
-  mode: 'daily' | 'hourly';
   selectedIndex: number;
   onSelect: (index: number) => void;
   testID?: string;
@@ -26,7 +25,6 @@ export interface StackedBarChartProps {
 
 export const StackedBarChart: React.FC<StackedBarChartProps> = ({
   bars,
-  mode,
   selectedIndex,
   onSelect,
   testID,
@@ -36,17 +34,20 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = ({
 
   const renderBar = (bar: ChartBar, index: number) => {
     const total = bar.lotba + bar.custom;
-    const barPx = Math.max(MIN_BAR, Math.round((total / maxTotal) * BAR_AREA));
+    const barPx =
+      total > 0
+        ? Math.max(MIN_BAR, Math.round((total / maxTotal) * BAR_AREA))
+        : 4;
 
-    const gap = mode === 'daily' ? 2 : 1.5;
-    const inner = Math.max(barPx - gap, 0);
+    const inner = Math.max(barPx - 1.5, 0);
     const customRatio = total > 0 ? bar.custom / total : 0;
     const customPx =
       bar.custom > 0 ? Math.max(3, Math.round(inner * customRatio)) : 0;
-    const lotbaPx = Math.max(0, inner - customPx);
+    const lotbaPx =
+      bar.lotba > 0 ? Math.max(3, inner - customPx) : 0;
 
     const isSelected = index === selectedIndex;
-    const emphasized = isSelected || Boolean(bar.isPeak) || Boolean(bar.isToday);
+    const emphasized = isSelected || Boolean(bar.isPeak);
 
     return (
       <TouchableOpacity
@@ -56,49 +57,25 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = ({
         accessibilityLabel={`${bar.fullLabel ?? bar.label ?? index}: ${total} intentos`}
         style={[styles.col, { opacity: emphasized ? 1 : 0.62 }]}
       >
-        {bar.isToday ? (
-          <View
-            style={[
-              styles.todayCrown,
-              mode === 'hourly' && styles.todayCrownHourly,
-            ]}
-          >
-            <Text
-              style={[
-                styles.todayCrownText,
-                mode === 'hourly' && styles.todayCrownTextHourly,
-              ]}
-            >
-              HOY
-            </Text>
-          </View>
-        ) : bar.isPeak ? (
-          <View style={styles.crown}>
-            <Text style={styles.crownText}>{bar.peakLabel ?? 'PICO'}</Text>
-          </View>
-        ) : null}
-
-        {mode === 'daily' ? (
-          <Text style={[styles.valueTop, emphasized && styles.valueTopEmphasis]}>
-            {total}
-          </Text>
-        ) : null}
-
         <View
           style={[
             styles.stack,
-            mode === 'hourly' && styles.stackHourly,
             isSelected && styles.stackSelected,
-            bar.isToday && styles.stackToday,
             { height: barPx },
           ]}
         >
-          {customPx > 0 ? (
-            <View style={[styles.segCustom, { height: customPx }]} />
-          ) : null}
-          {lotbaPx > 0 ? (
-            <View style={[styles.segLotba, { height: lotbaPx }]} />
-          ) : null}
+          {total === 0 ? (
+            <View style={styles.segEmpty} />
+          ) : (
+            <>
+              {customPx > 0 ? (
+                <View style={[styles.segCustom, { height: customPx }]} />
+              ) : null}
+              {lotbaPx > 0 ? (
+                <View style={[styles.segLotba, { height: lotbaPx }]} />
+              ) : null}
+            </>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -109,43 +86,13 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = ({
       <View style={styles.stage}>
         {bars.map((bar, index) => renderBar(bar, index))}
       </View>
-      {mode === 'daily' ? (
-        <View style={styles.axisDays}>
-          {bars.map((bar, index) => {
-            const isSelected = index === selectedIndex;
-            return (
-              <TouchableOpacity
-                key={`axis-${index}`}
-                activeOpacity={0.7}
-                onPress={() => onSelect(index)}
-                style={[
-                  styles.axisDayCell,
-                  isSelected && styles.axisDayCellActive,
-                  bar.isToday && !isSelected && styles.axisDayCellToday,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.axisDayLabel,
-                    isSelected && styles.axisDayLabelActive,
-                    bar.isToday && !isSelected && styles.axisDayLabelToday,
-                  ]}
-                >
-                  {bar.label ?? ''}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      ) : (
-        <View style={styles.axisHours}>
-          <Text style={styles.axisHourLabel}>0 h</Text>
-          <Text style={styles.axisHourLabel}>6 h</Text>
-          <Text style={styles.axisHourLabel}>12 h</Text>
-          <Text style={styles.axisHourLabel}>18 h</Text>
-          <Text style={styles.axisHourLabel}>23 h</Text>
-        </View>
-      )}
+      <View style={styles.axisHours}>
+        <Text style={styles.axisHourLabel}>0 h</Text>
+        <Text style={styles.axisHourLabel}>6 h</Text>
+        <Text style={styles.axisHourLabel}>12 h</Text>
+        <Text style={styles.axisHourLabel}>18 h</Text>
+        <Text style={styles.axisHourLabel}>23 h</Text>
+      </View>
     </View>
   );
 };

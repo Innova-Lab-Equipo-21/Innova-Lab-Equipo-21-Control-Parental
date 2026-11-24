@@ -5,11 +5,38 @@ import { mockDb, MockBlockedEvent, MockSecurityEvent } from '../config/mock-data
 import { AppError } from '../middlewares/error.middleware.js';
 import { HeartbeatPayload } from '../types/index.js';
 import { notificationService } from './notification.service.js';
+import {
+  activityStorageService,
+  formatDateKey,
+  PasatiempoGameType,
+  PasatiempoStatus,
+  UpsertAppUsageItemInput,
+} from './activity-storage.service.js';
+
+export interface RecordPasatiempoInput {
+  deviceUuid: string;
+  dateKey?: string;
+  gameType: PasatiempoGameType;
+  status: PasatiempoStatus;
+  correctCount: number;
+  wrongCount?: number;
+  totalItems: number;
+  attempts?: number;
+  details?: Record<string, unknown> | null;
+  completedAt?: string | null;
+}
+
+export interface RecordAppUsageInput {
+  deviceUuid: string;
+  dateKey?: string;
+  apps: UpsertAppUsageItemInput[];
+}
 
 export interface RecordBlockedEventInput {
   deviceUuid: string;
   attemptedDomain: string;
   sourceListType?: string;
+  itemType?: string;
 }
 
 export interface RecordSecurityEventInput {
@@ -161,6 +188,12 @@ export class TelemetryService {
    * Registra un evento de intento de acceso a un dominio bloqueado.
    */
   public async recordBlockedEvent(input: RecordBlockedEventInput) {
+    const rawSource = (input.sourceListType || 'LOTBA').toUpperCase();
+    const resolvedItemType =
+      input.itemType?.toUpperCase() === 'APP' || rawSource.endsWith('_APP')
+        ? 'APP'
+        : 'SITE';
+
     if (env.USE_MOCK_DATA) {
       const device = mockDb.devices.find((d) => d.deviceUuid === input.deviceUuid);
       const newEvent: MockBlockedEvent = {
@@ -168,6 +201,7 @@ export class TelemetryService {
         deviceId: device ? device.id : input.deviceUuid,
         attemptedDomain: input.attemptedDomain,
         sourceListType: input.sourceListType || 'LOTBA',
+        itemType: resolvedItemType,
         blockedAt: new Date(),
       };
       mockDb.blockedEvents.push(newEvent);
@@ -187,6 +221,7 @@ export class TelemetryService {
         deviceId: device.id,
         attemptedDomain: input.attemptedDomain,
         sourceListType: input.sourceListType || 'LOTBA',
+        itemType: resolvedItemType,
       },
     });
 
@@ -209,12 +244,12 @@ export class TelemetryService {
       };
       mockDb.securityEvents.push(newEvent);
 
-       if (device && (input.eventType === 'VPN_DISABLED' || input.eventType === 'PERMISSION_REVOKED')) {
+       if (device?.status && (input.eventType === 'VPN_DISABLED' || input.eventType === 'PERMISSION_REVOKED')) {
          device.status.effectiveStatus = input.eventType === 'VPN_DISABLED' ? 'INACTIVE' : 'PERMISSION_REQUIRED';
          device.status.vpnActive = false;
        }
 
-       if (device && device.config.notifyOnSecurity) {
+       if (device?.config?.notifyOnSecurity) {
          const description = input.description || 'Alerta de seguridad';
          notificationService.sendSecurityAlert(device.userId, device.deviceName, input.eventType, description).catch(() => {});
        }
@@ -262,6 +297,122 @@ export class TelemetryService {
      }
 
      return event;
+  }
+
+  /**
+   * Resuelve el ID interno de un dispositivo a partir de su UUID (o el propio UUID en modo mock).
+   */
+  private async resolveDeviceId(deviceUuid: string): Promise<{ deviceId: string; personType: 'MENOR' | 'ADULTO' }> {
+    if (env.USE_MOCK_DATA) {
+      const device = mockDb.devices.find(
+        (d) => d.deviceUuid === deviceUuid || d.id === deviceUuid,
+      );
+      const personType =
+        device?.personType?.toUpperCase() === 'ADULTO' ? 'ADULTO' : 'MENOR';
+      return {
+        deviceId: device ? device.id : deviceUuid,
+        personType,
+      };
+    }
+
+    const device = await prisma.device.findFirst({
+      where: {
+        OR: [{ deviceUuid }, { id: deviceUuid }],
+      },
+      select: { id: true, personType: true },
+    });
+
+    if (!device) {
+      throw new AppError('Dispositivo no encontrado', 404);
+    }
+
+    return {
+      deviceId: device.id,
+      personType: device.personType === 'ADULTO' ? 'ADULTO' : 'MENOR',
+    };
+  }
+
+  /**
+   * Registra progreso o finalización diaria de un pasatiempo (Quiz, Sopa de letras o Memoria).
+   */
+  public async recordPasatiempoProgress(input: RecordPasatiempoInput) {
+    const { deviceId, personType } = await this.resolveDeviceId(input.deviceUuid);
+    const dateKey = input.dateKey || formatDateKey();
+    const totalItems = Math.max(0, Math.round(input.totalItems));
+    const correctCount = Math.max(0, Math.round(input.correctCount));
+    const wrongCount =
+      input.wrongCount !== undefined
+        ? Math.max(0, Math.round(input.wrongCount))
+        : Math.max(0, totalItems - correctCount);
+
+    const session = await activityStorageService.upsertPasatiempoSession({
+      deviceId,
+      dateKey,
+      gameType: input.gameType,
+      status: input.status,
+      correctCount,
+      wrongCount,
+      totalItems,
+      attempts: Math.max(0, Math.round(input.attempts ?? 0)),
+      details: input.details ?? null,
+      completedAt: input.completedAt ?? null,
+    });
+
+    const history = await activityStorageService.listPasatiempoSessions([deviceId], 30);
+    const streakDays = activityStorageService.computeStreakDays(history, personType, dateKey);
+    const weeklyQuizAccuracyPct = activityStorageService.computeWeeklyQuizAccuracyPct(
+      history,
+      dateKey,
+    );
+
+    return {
+      session,
+      streakDays,
+      weeklyQuizAccuracyPct,
+    };
+  }
+
+  /**
+   * Devuelve las sesiones de pasatiempos del dispositivo (hoy + historial reciente, racha y semanal).
+   */
+  public async getDevicePasatiempos(deviceUuid: string, dateKey: string = formatDateKey()) {
+    const { deviceId, personType } = await this.resolveDeviceId(deviceUuid);
+    const history = await activityStorageService.listPasatiempoSessions([deviceId], 30);
+    const todaySessions = history.filter((s) => s.dateKey === dateKey);
+    const streakDays = activityStorageService.computeStreakDays(history, personType, dateKey);
+    const weeklyQuizAccuracyPct = activityStorageService.computeWeeklyQuizAccuracyPct(
+      history,
+      dateKey,
+    );
+
+    return {
+      deviceId,
+      dateKey,
+      profileType: personType,
+      today: todaySessions,
+      history,
+      streakDays,
+      weeklyQuizAccuracyPct,
+    };
+  }
+
+  /**
+   * Registra el consumo diario (en minutos) de las apps bloqueadas en el dispositivo.
+   */
+  public async recordAppUsageSnapshot(input: RecordAppUsageInput) {
+    const { deviceId } = await this.resolveDeviceId(input.deviceUuid);
+    const dateKey = input.dateKey || formatDateKey();
+    const snapshots = await activityStorageService.upsertAppUsageSnapshots(
+      deviceId,
+      dateKey,
+      input.apps,
+    );
+
+    return {
+      deviceId,
+      dateKey,
+      apps: snapshots,
+    };
   }
 }
 

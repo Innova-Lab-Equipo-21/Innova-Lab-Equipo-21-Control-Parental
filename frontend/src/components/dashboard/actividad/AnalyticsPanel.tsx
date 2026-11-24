@@ -1,24 +1,39 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: AnalyticsPanel (Panel de Analítica completo)
+// Componente: AnalyticsPanel (Panel de Actividad del Responsable)
 // Archivo: src/components/dashboard/actividad/AnalyticsPanel.tsx
-// Descripción: Orquestador del panel de analítica "Propuesta Superadora MVP".
-//              Compone la cabecera, el selector de dispositivos, los KPIs, el
-//              gráfico interactivo y la auditoría en bloques reutilizables.
-//              Recibe los datos por props (con datos demo por defecto) para
-//              mantenerse desacoplado del backend.
+// Descripción: Orquestador de los 6 bloques de Actividad del Responsable:
+//              1. Filtros (Dispositivos y Período)
+//              2. Bloqueos totales
+//              3. Bloqueos por fuente (Franja horaria)
+//              4. Apps (uso diario de apps de la lista de bloqueos)
+//              5. Pasatiempos (desempeño, intentos y racha de protegidos)
+//              6. Sitios y apps bloqueados
 // ==============================================================================
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
+import { CustomBlockedApp, DeviceInfo } from '../../../types';
+import { BlockedAttemptRecord } from '../../../utils/activityMetrics';
+import { getDeviceHighlight } from '../../../utils/deviceColors';
+import {
+  AppUsageRawSnapshot,
+  AppUsageTargetDevice,
+  buildBlockedAppsUsageSummary,
+} from '../../../utils/appUsageMetrics';
+import {
+  DailyPasatiemposRecord,
+  buildResponsiblePasatiemposSummary,
+} from '../../../utils/pasatiemposMetrics';
 import { Header } from '../../Header';
 import { PeriodOption, PeriodSelector } from './blocks/PeriodSelector';
 import { DeviceSelector } from './blocks/DeviceSelector';
-import { DeviceChipsRow } from './blocks/DeviceChipsRow';
 import { HeartbeatBanner } from './blocks/HeartbeatBanner';
 import { TotalBlocksCard } from './blocks/TotalBlocksCard';
 import { BlocksBySourceCard } from './blocks/BlocksBySourceCard';
 import { ActivityChartCard } from './blocks/ActivityChartCard';
+import { AppsUsageCard } from './blocks/AppsUsageCard';
+import { PasatiemposSummaryCard } from './blocks/PasatiemposSummaryCard';
 import { AuditEventsCard } from './blocks/AuditEventsCard';
 import { useAnalyticsPanel } from './hooks/useAnalyticsPanel';
 import {
@@ -45,80 +60,176 @@ export const PERIOD_OPTIONS: PeriodOption[] = [
 
 export interface AnalyticsPanelProps {
   devices?: AnalyticsDevice[];
+  rawDevices?: DeviceInfo[];
+  customApps?: CustomBlockedApp[];
   weekData?: DayBlock[];
   hourlyData?: HourBlock[];
   blockedAttempts?: AttemptEvent[];
+  rawBlockedEvents?: BlockedAttemptRecord[];
   bypassEvents?: AttemptEvent[];
-  blocklistVersion?: string;
+  appUsageSnapshots?: AppUsageRawSnapshot[];
+  pasatiemposRecordsByDevice?: Record<string, DailyPasatiemposRecord>;
+  pasatiemposStreakByDevice?: Record<string, number>;
+  pasatiemposWeeklyPctByDevice?: Record<string, number>;
   allUptime?: string;
   onBack?: () => void;
   scrollable?: boolean;
-  hideBrandHeader?: boolean;
-  hidePanelHeader?: boolean;
 }
 
 export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
   devices = DEMO_DEVICES,
+  rawDevices = [],
+  customApps = [],
   weekData = DEMO_WEEK_DATA,
   hourlyData = DEMO_HOURLY_DATA,
   blockedAttempts = DEMO_BLOCKED_ATTEMPTS,
+  rawBlockedEvents,
   bypassEvents = DEMO_BYPASS_EVENTS,
-  blocklistVersion = 'v24.11',
-  allUptime = '98.4%',
+  appUsageSnapshots = [],
+  pasatiemposRecordsByDevice = {},
+  pasatiemposStreakByDevice = {},
+  pasatiemposWeeklyPctByDevice = {},
+  allUptime = '100%',
   onBack,
   scrollable = true,
-  hideBrandHeader = false,
-  hidePanelHeader = false,
 }) => {
-  const panel = useAnalyticsPanel({ devices, weekData, hourlyData, allUptime });
+  const panel = useAnalyticsPanel({
+    devices,
+    weekData,
+    hourlyData,
+    rawBlockedEvents,
+    allUptime,
+  });
+  const [openDropdown, setOpenDropdown] = useState<'device' | 'period' | null>(null);
+
+  // Bloque 4: Uso de apps bloqueadas filtrado por dispositivo seleccionado
+  const appsUsageSummary = useMemo(() => {
+    const targetDevices: AppUsageTargetDevice[] = panel.deviceOptions.map(
+      (dev, idx) => {
+        const highlight = getDeviceHighlight(
+          dev.id,
+          dev.label,
+          dev.label,
+          dev.id === 'self' ? 0 : (dev.colorIndex ?? idx)
+        );
+        return {
+          id: dev.id,
+          label: dev.id === 'self' ? 'Yo' : dev.label,
+          color: highlight.color,
+        };
+      }
+    );
+
+    const targetDeviceIds = targetDevices.map((d) => d.id);
+    return buildBlockedAppsUsageSummary({
+      customApps,
+      usageSnapshots: appUsageSnapshots,
+      deviceId: panel.selectedDeviceId,
+      targetDeviceIds,
+      targetDevices,
+    });
+  }, [customApps, appUsageSnapshots, panel.selectedDeviceId, panel.deviceOptions]);
+
+  // Bloque 5: Pasatiempos de usuarios protegidos (Menores y Adultos) con métricas por dispositivo
+  const pasatiemposSummary = useMemo(() => {
+    const colorByDeviceId: Record<string, string> = {};
+    panel.deviceOptions.forEach((dev, idx) => {
+      const highlight = getDeviceHighlight(
+        dev.id,
+        dev.label,
+        dev.label,
+        dev.id === 'self' ? 0 : (dev.colorIndex ?? idx)
+      );
+      colorByDeviceId[dev.id] = highlight.color;
+    });
+
+    return buildResponsiblePasatiemposSummary({
+      devices: rawDevices,
+      recordsByDeviceId: pasatiemposRecordsByDevice,
+      streakByDeviceId: pasatiemposStreakByDevice,
+      weeklyQuizPctByDeviceId: pasatiemposWeeklyPctByDevice,
+      colorByDeviceId,
+      selectedDeviceId: panel.selectedDeviceId,
+    });
+  }, [
+    rawDevices,
+    pasatiemposRecordsByDevice,
+    pasatiemposStreakByDevice,
+    pasatiemposWeeklyPctByDevice,
+    panel.deviceOptions,
+    panel.selectedDeviceId,
+  ]);
+
+  // Bloque 6: Sitios y apps bloqueados filtrados por dispositivo seleccionado
+  const filteredBlockedAttempts = useMemo(() => {
+    if (panel.selectedDeviceId === 'all') return blockedAttempts;
+    return blockedAttempts.filter(
+      (ev) => !ev.deviceId || ev.deviceId === panel.selectedDeviceId
+    );
+  }, [blockedAttempts, panel.selectedDeviceId]);
+
+  const filteredBypassEvents = useMemo(() => {
+    if (panel.selectedDeviceId === 'all') return bypassEvents;
+    return bypassEvents.filter(
+      (ev) => !ev.deviceId || ev.deviceId === panel.selectedDeviceId
+    );
+  }, [bypassEvents, panel.selectedDeviceId]);
 
   const content = (
     <>
-      <Header
-        title="Actividad del sistema"
-        subtitle="Auditoría de bloqueos y eventos de protección"
-        onBack={onBack}
-      />
+      <Header title="Actividad del sistema" onBack={onBack} />
 
       <View style={styles.body}>
-        {/* Fila de Dropdowns en la misma línea: Dispositivos y Período */}
+        {/* 1. Bloco de filtros: Dispositivos y Período (dropdowns inline) */}
         <View style={styles.dropdownsRow}>
           <View style={styles.dropdownColDevice}>
             <DeviceSelector
               options={panel.deviceOptions}
               selectedId={panel.selectedDeviceId}
-              onSelect={panel.setSelectedDeviceId}
+              onSelect={(id) => {
+                panel.setSelectedDeviceId(id);
+                setOpenDropdown(null);
+              }}
               allLabel={`Todos (${devices.length})`}
+              isOpen={openDropdown === 'device'}
+              onToggle={() =>
+                setOpenDropdown((prev) => (prev === 'device' ? null : 'device'))
+              }
             />
           </View>
           <View style={styles.dropdownColPeriod}>
             <PeriodSelector
               options={PERIOD_OPTIONS}
               value={panel.period}
-              onChange={(value) => panel.changePeriod(value as AnalyticsPeriod)}
+              onChange={(value) => {
+                panel.changePeriod(value as AnalyticsPeriod);
+                setOpenDropdown(null);
+              }}
+              isOpen={openDropdown === 'period'}
+              onToggle={() =>
+                setOpenDropdown((prev) => (prev === 'period' ? null : 'period'))
+              }
             />
           </View>
         </View>
 
         {panel.showAlert ? (
-          <HeartbeatBanner text={panel.alertText ?? ''} tag={panel.alertTag} />
+          <HeartbeatBanner alerts={panel.alertDevices} />
         ) : null}
 
+        {/* 2. Bloqueos totales + Historial de intentos por dispositivo */}
         <TotalBlocksCard
           totalBlocks={panel.totalBlocks}
-          uptime={panel.uptime}
-          breakdown={panel.breakdown}
+          historySeries={panel.historySeries}
+          historyDateLabels={panel.historyDateLabels}
         />
 
+        {/* 3. Bloqueos por fuente (solo Franja horaria) */}
         <BlocksBySourceCard
-          lotbaCount={panel.lotbaCount}
-          customCount={panel.customCount}
           lotbaPct={panel.sourceLotbaPct}
           customPct={panel.sourceCustomPct}
         >
           <ActivityChartCard
-            chartView={panel.chartView}
-            onChangeChartView={panel.setChartView}
             daySelector={panel.daySelector}
             selectedDayIndex={panel.selectedDayIndex}
             onSelectDay={panel.selectDay}
@@ -131,12 +242,19 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
           />
         </BlocksBySourceCard>
 
+        {/* 4. Apps (uso diario de apps de la lista de bloqueos) */}
+        <AppsUsageCard summary={appsUsageSummary} variant="parent" />
+
+        {/* 5. Pasatiempos (Protegidos Adultos y Menores) */}
+        <PasatiemposSummaryCard summary={pasatiemposSummary} />
+
+        {/* 6. Sitios y apps bloqueados */}
         <AuditEventsCard
           auditTab={panel.auditTab}
           onChangeAuditTab={panel.setAuditTab}
-          blockedAttempts={blockedAttempts}
-          bypassEvents={bypassEvents}
-          bypassCount={bypassEvents.length}
+          blockedAttempts={filteredBlockedAttempts}
+          bypassEvents={filteredBypassEvents}
+          bypassCount={filteredBypassEvents.length}
         />
       </View>
     </>
@@ -147,7 +265,10 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
   }
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingBottom: 85 }]}>
+    <ScrollView
+      style={styles.root}
+      contentContainerStyle={[styles.content, { paddingBottom: 85 }]}
+    >
       {content}
     </ScrollView>
   );

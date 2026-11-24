@@ -27,6 +27,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.baprotege.accessibility.BlockedAppRule
 import com.baprotege.accessibility.ProtectionAccessibilityService
 import com.baprotege.vpn.LotbaFilterEngine
 import com.baprotege.vpn.ProtectionVpnService
@@ -901,6 +902,77 @@ class ProtectionModule(private val reactContext: ReactApplicationContext) :
             prefs.edit().putString("key_recent_block_events", "[]").apply()
             promise.resolve(result)
         } catch (e: Exception) {
+            promise.resolve(Arguments.createArray())
+        }
+    }
+
+    /**
+     * Calcula el tiempo real de uso de hoy (en minutos) para cada aplicación de la lista
+     * proporcionada (o las reglas actualmente sincronizadas), utilizando UsageStatsManager
+     * y el contador local acumulado del servicio de accesibilidad.
+     */
+    @ReactMethod
+    fun getBlockedAppsUsageToday(appsArray: ReadableArray?, promise: Promise) {
+        try {
+            val rulesToCheck = mutableListOf<BlockedAppRule>()
+            if (appsArray != null && appsArray.size() > 0) {
+                for (i in 0 until appsArray.size()) {
+                    if (appsArray.getType(i) == ReadableType.Map) {
+                        val map = appsArray.getMap(i) ?: continue
+                        val appName = map.getString("appName") ?: ""
+                        val packageName = map.getString("packageName") ?: ""
+                        val limit = if (map.hasKey("dailyLimitMinutes") && !map.isNull("dailyLimitMinutes")) {
+                            map.getInt("dailyLimitMinutes")
+                        } else {
+                            null
+                        }
+                        val webDomains = mutableSetOf<String>()
+                        if (map.hasKey("webDomains") && !map.isNull("webDomains")) {
+                            val wArr = map.getArray("webDomains")
+                            if (wArr != null) {
+                                for (j in 0 until wArr.size()) {
+                                    val dom = wArr.getString(j)
+                                    if (!dom.isNullOrBlank()) webDomains.add(dom.lowercase().trim())
+                                }
+                            }
+                        }
+                        rulesToCheck.add(
+                            BlockedAppRule(
+                                appName = appName,
+                                packageName = packageName,
+                                dailyLimitMinutes = limit,
+                                webDomains = webDomains
+                            )
+                        )
+                    }
+                }
+            }
+
+            val result = Arguments.createArray()
+            for (rule in rulesToCheck) {
+                val usedMinutes = ProtectionAccessibilityService.getTodayUsageMinutes(reactContext, rule).toInt()
+                val limit = rule.dailyLimitMinutes
+                val isBlocked = limit == null || limit <= 0 || usedMinutes >= limit
+                val remaining = if (limit != null && limit > 0) maxOf(0, limit - usedMinutes) else 0
+
+                val itemMap = Arguments.createMap().apply {
+                    putString("appName", rule.appName)
+                    putString("packageName", rule.packageName)
+                    putInt("usedMinutes", usedMinutes)
+                    if (limit != null) {
+                        putInt("dailyLimitMinutes", limit)
+                    } else {
+                        putNull("dailyLimitMinutes")
+                    }
+                    putInt("remainingMinutes", remaining)
+                    putBoolean("isBlocked", isBlocked)
+                }
+                result.pushMap(itemMap)
+            }
+
+            promise.resolve(result)
+        } catch (e: Exception) {
+            Log.w(MODULE_NAME, "Error consultando uso de apps bloqueadas: ${e.message}")
             promise.resolve(Arguments.createArray())
         }
     }

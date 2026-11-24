@@ -14,9 +14,6 @@ import {
   HourBlock,
 } from './types';
 
-/** Total del equipo cuando el filtro está en "Todos" (suma de dispositivos). */
-export const TEAM_TOTAL = { total: 1426, lotba: 1045, custom: 381, uptime: '98.4%' };
-
 /** Dispositivos protegidos del responsable. */
 export const DEMO_DEVICES: AnalyticsDevice[] = [
   {
@@ -24,6 +21,7 @@ export const DEMO_DEVICES: AnalyticsDevice[] = [
     label: 'Celular de Tomás',
     shortLabel: 'Tomás',
     status: 'online',
+    colorIndex: 0,
     total: 890,
     lotba: 640,
     custom: 250,
@@ -36,6 +34,7 @@ export const DEMO_DEVICES: AnalyticsDevice[] = [
     label: 'Tablet de Lucía',
     shortLabel: 'Lucía',
     status: 'online',
+    colorIndex: 1,
     total: 412,
     lotba: 310,
     custom: 102,
@@ -48,6 +47,7 @@ export const DEMO_DEVICES: AnalyticsDevice[] = [
     label: 'Celular de Mateo',
     shortLabel: 'Mateo',
     status: 'offline',
+    colorIndex: 2,
     total: 124,
     lotba: 95,
     custom: 29,

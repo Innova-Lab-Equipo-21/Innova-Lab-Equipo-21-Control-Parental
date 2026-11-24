@@ -28,16 +28,17 @@ export const styles = StyleSheet.create({
 
   dropdownsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
     marginVertical: 2,
+    zIndex: 20,
   },
 
   dropdownColDevice: {
-    flex: 1.15,
+    flex: 1,
   },
 
   dropdownColPeriod: {
-    flex: 0.85,
+    flex: 1,
   },
 });

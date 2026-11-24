@@ -44,10 +44,18 @@ export interface PreparedQuestion {
   stepBgColor: string;
 }
 
+export interface QuizProgressPayload {
+  correctAnswers: number;
+  wrongAnswers: number;
+  answeredCount: number;
+  totalQuestions: number;
+}
+
 interface QuizModalProps {
   visible: boolean;
   mode?: 'CHILD' | 'ADULT';
   onClose: () => void;
+  onProgressQuiz?: (progress: QuizProgressPayload) => void;
   onCompleteQuiz: (score: number, total: number, outdoorTip: string) => void;
 }
 
@@ -209,6 +217,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({
   visible,
   mode = 'CHILD',
   onClose,
+  onProgressQuiz,
   onCompleteQuiz,
 }) => {
   const [preparedQuestions, setPreparedQuestions] = useState<PreparedQuestion[]>([]);
@@ -227,15 +236,44 @@ export const QuizModal: React.FC<QuizModalProps> = ({
   const currentSelectedOptionIndex = selectedAnswers[currentStepIndex];
   const hasSelectedCurrent = currentSelectedOptionIndex !== undefined;
 
+  const computeCounts = (answersMap: { [qIdx: number]: number }): QuizProgressPayload => {
+    let correctAnswers = 0;
+    let wrongAnswers = 0;
+    preparedQuestions.forEach((q, qIdx) => {
+      const selIdx = answersMap[qIdx];
+      if (selIdx !== undefined) {
+        if (q.options[selIdx]?.isCorrect) {
+          correctAnswers += 1;
+        } else {
+          wrongAnswers += 1;
+        }
+      }
+    });
+    return {
+      correctAnswers,
+      wrongAnswers,
+      answeredCount: correctAnswers + wrongAnswers,
+      totalQuestions: preparedQuestions.length,
+    };
+  };
+
   const handleSelectOption = (optionIdx: number) => {
-    setSelectedAnswers((prev) => ({
-      ...prev,
+    const nextAnswers = {
+      ...selectedAnswers,
       [currentStepIndex]: optionIdx,
-    }));
+    };
+    setSelectedAnswers(nextAnswers);
+    if (onProgressQuiz) {
+      onProgressQuiz(computeCounts(nextAnswers));
+    }
   };
 
   const handleGoNext = () => {
     if (!hasSelectedCurrent) return;
+
+    if (onProgressQuiz) {
+      onProgressQuiz(computeCounts(selectedAnswers));
+    }
 
     if (currentStepIndex < preparedQuestions.length - 1) {
       setCurrentStepIndex(currentStepIndex + 1);

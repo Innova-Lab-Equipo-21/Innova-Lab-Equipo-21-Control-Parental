@@ -2,198 +2,216 @@
 // Proyecto: BA Protege+
 // Componente: MenorActividadSection Styles
 // Archivo: src/components/dashboard/protected/menor/MenorActividadSection.styles.ts
-// Descripción: Estilos para la pestaña Actividad del Modo Protegido Menor.
+// Descripción: Estilos oficiales de la pestaña Actividad del Protegido Menor
+//              con 2 bloques: Mis apps hoy y Mis pasatiempos.
 // ==============================================================================
 
 import { StyleSheet } from 'react-native';
+import { analyticsPalette as palette } from '../../actividad/palette';
 
 export const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    flex: 1,
+    paddingHorizontal: 14,
     paddingTop: 12,
-    paddingBottom: 100,
+    paddingBottom: 28,
+    backgroundColor: palette.surfaceBg,
   },
-  headerBanner: {
-    backgroundColor: '#007AFF',
-    borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+
+  // --- Bloque 2: Mis pasatiempos ---
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 5,
-    elevation: 3,
+    gap: 8,
+    marginBottom: 10,
   },
-  headerBannerTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  headerBannerLink: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#007AFF',
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  clockIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#EBF5FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  clockIconText: {
-    fontSize: 28,
-  },
-  mascotIconImage: {
-    width: 48,
-    height: 48,
-    marginRight: 8,
-  },
-  statTextColumn: {
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#007AFF',
-    marginBottom: 2,
-  },
-  statValueText: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#007AFF',
-    letterSpacing: -0.5,
-  },
-  statRestantText: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: '#007AFF',
-    marginTop: 2,
-  },
-  appUsageContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#007AFF',
-    padding: 14,
-    marginBottom: 18,
-    gap: 12,
-  },
-  appItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#007AFF',
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  appIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  appIconText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  progressTrack: {
-    flex: 1,
-    height: 10,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 5,
-    marginRight: 12,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#007AFF',
-    borderRadius: 5,
-  },
-  appTimeText: {
+
+  headerTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#007AFF',
+    color: palette.textMain,
   },
-  blockedSectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 10,
-  },
-  blockedCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    marginBottom: 10,
+
+  headerPillsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
-  lockIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FEF2F2',
-    justifyContent: 'center',
+
+  progressPill: {
+    backgroundColor: palette.lotbaBlueBg,
+    borderWidth: 1,
+    borderColor: palette.lotbaBlueBorder,
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 99,
+  },
+
+  progressPillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: palette.lotbaBlueDark,
+  },
+
+  streakPill: {
+    backgroundColor: palette.customAmberBg,
+    borderWidth: 1,
+    borderColor: palette.customAmberBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 99,
+  },
+
+  streakPillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: palette.customAmberDark,
+  },
+
+  gameSection: {
+    paddingVertical: 11,
+    borderTopWidth: 1,
+    borderTopColor: palette.surfaceBg,
+  },
+
+  gameSectionFirst: {
+    paddingTop: 2,
+    borderTopWidth: 0,
+  },
+
+  gameTopRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 8,
   },
-  lockIconText: {
-    fontSize: 18,
-  },
-  blockedTextColumn: {
+
+  gameIdentityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     flex: 1,
   },
-  blockedDomainTitle: {
+
+  gameIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  gameIconText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: palette.white,
+  },
+
+  gameTextCol: {
+    flex: 1,
+  },
+
+  gameTitle: {
     fontSize: 13.5,
     fontWeight: '800',
-    color: '#0F172A',
+    color: palette.textMain,
   },
-  blockedBadgeText: {
+
+  gameSubtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: palette.textSubtle,
+    marginTop: 2,
+  },
+
+  statusBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 99,
+    borderWidth: 1,
+  },
+
+  statusBadgeCompleted: {
+    backgroundColor: palette.successBg,
+    borderColor: palette.successBorder,
+  },
+
+  statusBadgeInProgress: {
+    backgroundColor: palette.lotbaBlueBg,
+    borderColor: palette.lotbaBlueBorder,
+  },
+
+  statusBadgePending: {
+    backgroundColor: palette.offWhite,
+    borderColor: palette.cardBorder,
+  },
+
+  statusBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
+
+  statusBadgeTextCompleted: {
+    color: palette.successDark,
+  },
+
+  statusBadgeTextInProgress: {
+    color: palette.lotbaBlueDark,
+  },
+
+  statusBadgeTextPending: {
+    color: palette.textMuted,
+  },
+
+  // Barras segmentadas
+  segmentsRow: {
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 4,
+  },
+
+  segmentPill: {
+    flex: 1,
+    height: 7,
+    borderRadius: 99,
+    backgroundColor: palette.cardBorder,
+  },
+
+  // Desglose de las 3 sopas de letras
+  boardsBreakdownContainer: {
+    marginTop: 8,
+    gap: 5,
+    backgroundColor: palette.offWhite,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 9,
+  },
+
+  boardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  boardName: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#DC2626',
-    marginTop: 2,
+    color: palette.textMain,
+    flex: 1,
   },
-  protectedLockNotice: {
+
+  boardStats: {
     fontSize: 10.5,
-    color: '#64748B',
-    marginTop: 2,
+    fontWeight: '700',
+    color: palette.textSubtle,
+  },
+
+  boardStatsDone: {
+    color: palette.successDark,
   },
 });

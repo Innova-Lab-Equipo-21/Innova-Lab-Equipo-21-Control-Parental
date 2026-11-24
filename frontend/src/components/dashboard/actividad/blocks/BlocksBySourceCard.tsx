@@ -12,25 +12,28 @@ import { cardStyles } from '../card.styles';
 import { styles } from './BlocksBySourceCard.styles';
 
 export interface BlocksBySourceCardProps {
-  lotbaCount: number;
-  customCount: number;
   lotbaPct: number;
   customPct: number;
   children?: React.ReactNode;
 }
 
 export const BlocksBySourceCard: React.FC<BlocksBySourceCardProps> = ({
-  lotbaCount,
-  customCount,
   lotbaPct,
   customPct,
   children,
 }) => {
+  const isEmpty = lotbaPct === 0 && customPct === 0;
+
   return (
     <View style={cardStyles.card}>
       <Text style={cardStyles.cardHeaderTitle}>Bloqueos por fuente</Text>
 
-      <View style={styles.barContainer}>
+      <View
+        style={[
+          styles.barContainer,
+          isEmpty && styles.barContainerEmpty,
+        ]}
+      >
         {lotbaPct > 0 ? (
           <View style={[styles.segmentLotba, { flex: lotbaPct }]} />
         ) : null}
@@ -43,19 +46,13 @@ export const BlocksBySourceCard: React.FC<BlocksBySourceCardProps> = ({
         <View style={styles.legendItem}>
           <View style={[styles.swatch, styles.swatchLotba]} />
           <Text style={styles.legendNameLotba}>Lista LOTBA</Text>
-          <Text style={styles.legendBold}>
-            {lotbaCount.toLocaleString('es-AR')}
-          </Text>
-          <Text style={styles.legendPct}>({lotbaPct}%)</Text>
+          <Text style={styles.legendPct}>{lotbaPct}%</Text>
         </View>
 
         <View style={styles.legendItem}>
           <View style={[styles.swatch, styles.swatchCustom]} />
           <Text style={styles.legendNameCustom}>Personalizada</Text>
-          <Text style={styles.legendBold}>
-            {customCount.toLocaleString('es-AR')}
-          </Text>
-          <Text style={styles.legendPct}>({customPct}%)</Text>
+          <Text style={styles.legendPct}>{customPct}%</Text>
         </View>
       </View>
 

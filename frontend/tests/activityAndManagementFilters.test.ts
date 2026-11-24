@@ -40,35 +40,45 @@ describe('1. Bloque "Listado de bloqueos" — LOTBA anónimo y Filtros', () => {
     const cardSrc = fs.readFileSync(cardPath, 'utf8');
 
     assert.ok(
-      cardSrc.includes("title: 'Sitio no autorizado'"),
-      'AuditEventsCard debe asignar "Sitio no autorizado" a los eventos LOTBA'
+      cardSrc.includes("'Sitio no autorizado'"),
+      'AuditEventsCard debe asignar "Sitio no autorizado" a los sitios LOTBA'
     );
     assert.ok(
-      cardSrc.includes("displayTitle = isLotba ? 'Sitio no autorizado' : event.title"),
-      'AttemptRow debe renderizar "Sitio no autorizado" para LOTBA'
+      cardSrc.includes("'App no autorizada'"),
+      'AuditEventsCard debe asignar "App no autorizada" a las apps LOTBA'
+    );
+    assert.ok(
+      cardSrc.includes('displayTitle = isLotba ? getLotbaDisplayTitle(event) : event.title'),
+      'AttemptRow debe renderizar "Sitio no autorizado" o "App no autorizada" para LOTBA'
     );
   });
 
-  test('AuditEventsCard contiene filtros de tipo de Lista (Todas, LOTBA, Personalizada) y Ordenar (Fecha, A-Z)', () => {
+  test('AuditEventsCard contiene dropdowns en la misma línea (Lista y Ordenar), pestaña Alertas de seguridad y lectura de alertas', () => {
     const cardPath = path.resolve(
       __dirname,
       '../src/components/dashboard/actividad/blocks/AuditEventsCard.tsx'
     );
     const cardSrc = fs.readFileSync(cardPath, 'utf8');
 
-    // Filtros de Lista
+    // Filtros de Lista y Ordenar en dropdowns inline en la misma fila
+    assert.ok(cardSrc.includes('filtersRow'));
+    assert.ok(cardSrc.includes('dropdownMenu'));
     assert.ok(cardSrc.includes("'all'"));
     assert.ok(cardSrc.includes("'lotba'"));
     assert.ok(cardSrc.includes("'custom'"));
     assert.ok(cardSrc.includes('Todas'));
     assert.ok(cardSrc.includes('LOTBA'));
     assert.ok(cardSrc.includes('Personalizada'));
-
-    // Filtros de Orden
     assert.ok(cardSrc.includes("'date'"));
     assert.ok(cardSrc.includes("'az'"));
     assert.ok(cardSrc.includes('Fecha'));
     assert.ok(cardSrc.includes('A - Z'));
+
+    // Pestaña accesible "Alertas de seguridad" con conteo decreciente al leer
+    assert.ok(cardSrc.includes('Alertas de seguridad'));
+    assert.ok(!cardSrc.includes('Eventos Anti-bypass'));
+    assert.ok(cardSrc.includes('markAlertAsRead'));
+    assert.ok(cardSrc.includes('unreadAlertCount'));
   });
 });
 
@@ -234,9 +244,19 @@ describe('4. Pestaña Actividad — Dropdowns en la misma línea', () => {
     const stylesSrc = fs.readFileSync(stylesPath, 'utf8');
     assert.ok(stylesSrc.includes("flexDirection: 'row'"));
     assert.ok(stylesSrc.includes('dropdownsRow'));
+    assert.match(stylesSrc, /dropdownColDevice:\s*\{\s*flex:\s*1,/);
+    assert.match(stylesSrc, /dropdownColPeriod:\s*\{\s*flex:\s*1,/);
+
+    const auditStylesPath = path.resolve(
+      __dirname,
+      '../src/components/dashboard/actividad/blocks/AuditEventsCard.styles.ts'
+    );
+    const auditStylesSrc = fs.readFileSync(auditStylesPath, 'utf8');
+    assert.match(auditStylesSrc, /dropdownColList:\s*\{\s*flex:\s*1,/);
+    assert.match(auditStylesSrc, /dropdownColSort:\s*\{\s*flex:\s*1,/);
   });
 
-  test('DeviceSelector implementa dropdown con estado, "Yo" y orden alfabético', () => {
+  test('DeviceSelector, PeriodSelector y AuditEventsCard usan FloatingDropdownMenu flotante por encima de los bloques', () => {
     const selectorPath = path.resolve(
       __dirname,
       '../src/components/dashboard/actividad/blocks/DeviceSelector.tsx'
@@ -244,8 +264,34 @@ describe('4. Pestaña Actividad — Dropdowns en la misma línea', () => {
     const selectorSrc = fs.readFileSync(selectorPath, 'utf8');
 
     assert.ok(selectorSrc.includes('DeviceSelector'));
-    assert.ok(selectorSrc.includes('Filtrar por dispositivo'));
-    assert.ok(selectorSrc.includes('renderStatusDot'));
-    assert.ok(selectorSrc.includes('Modal'));
+    assert.ok(selectorSrc.includes('getDeviceHighlight'));
+    assert.ok(selectorSrc.includes('dropdownMenu'));
+    assert.ok(selectorSrc.includes('FloatingDropdownMenu'));
+    assert.ok(selectorSrc.includes('measureInWindow'));
+    assert.ok(selectorSrc.includes('collapsable={false}'));
+    assert.equal(selectorSrc.includes('<Modal'), false);
+
+    const periodPath = path.resolve(
+      __dirname,
+      '../src/components/dashboard/actividad/blocks/PeriodSelector.tsx'
+    );
+    const periodSrc = fs.readFileSync(periodPath, 'utf8');
+
+    assert.ok(periodSrc.includes('PeriodSelector'));
+    assert.ok(periodSrc.includes('dropdownMenu'));
+    assert.ok(periodSrc.includes('FloatingDropdownMenu'));
+    assert.ok(periodSrc.includes('measureInWindow'));
+    assert.ok(periodSrc.includes('collapsable={false}'));
+    assert.equal(periodSrc.includes('<Modal'), false);
+
+    const auditPath = path.resolve(
+      __dirname,
+      '../src/components/dashboard/actividad/blocks/AuditEventsCard.tsx'
+    );
+    const auditSrc = fs.readFileSync(auditPath, 'utf8');
+
+    assert.ok(auditSrc.includes('FloatingDropdownMenu'));
+    assert.ok(auditSrc.includes('measureInWindow'));
+    assert.ok(auditSrc.includes('collapsable={false}'));
   });
 });

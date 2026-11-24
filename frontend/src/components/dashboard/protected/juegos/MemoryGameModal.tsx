@@ -25,21 +25,32 @@ import {
 import { BOTITO_ASSETS } from '../botAssets';
 import { styles } from './MemoryGameModal.styles';
 
+export interface MemoryProgressPayload {
+  matchedPairs: number;
+  unmatchedPairs: number;
+  totalPairs: number;
+  attempts: number;
+}
+
 export interface MemoryGameModalProps {
   visible: boolean;
+  initialAttempts?: number;
   onClose: () => void;
-  onCompleteGame: () => void;
+  onProgressMemory?: (progress: MemoryProgressPayload) => void;
+  onCompleteGame: (result?: MemoryProgressPayload) => void;
 }
 
 export const MemoryGameModal: React.FC<MemoryGameModalProps> = ({
   visible,
+  initialAttempts = 0,
   onClose,
+  onProgressMemory,
   onCompleteGame,
 }) => {
   const [deck, setDeck] = useState<MemoryCardItem[]>(() => createMemoryDeck());
   const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
   const [matchedPairIds, setMatchedPairIds] = useState<string[]>([]);
-  const [moves, setMoves] = useState<number>(0);
+  const [moves, setMoves] = useState<number>(initialAttempts);
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
 
@@ -73,19 +84,39 @@ export const MemoryGameModal: React.FC<MemoryGameModalProps> = ({
     if (flippedIndices.length === 1) {
       const firstIndex = flippedIndices[0];
       const nextFlipped = [firstIndex, cardIndex];
+      const nextMoves = moves + 1;
       setFlippedIndices(nextFlipped);
-      setMoves((prev) => prev + 1);
+      setMoves(nextMoves);
 
       if (areMemoryCardsMatching(deck, firstIndex, cardIndex)) {
         const updatedMatched = [...matchedPairIds, card.pairId];
         setMatchedPairIds(updatedMatched);
         setFlippedIndices([]);
 
+        const payload: MemoryProgressPayload = {
+          matchedPairs: updatedMatched.length,
+          unmatchedPairs: Math.max(0, MEMORY_PAIRS.length - updatedMatched.length),
+          totalPairs: MEMORY_PAIRS.length,
+          attempts: nextMoves,
+        };
+
+        if (onProgressMemory) {
+          onProgressMemory(payload);
+        }
+
         if (isMemoryGameCompleted(updatedMatched)) {
           setShowCelebration(true);
-          onCompleteGame();
+          onCompleteGame(payload);
         }
       } else {
+        if (onProgressMemory) {
+          onProgressMemory({
+            matchedPairs: matchedPairIds.length,
+            unmatchedPairs: Math.max(0, MEMORY_PAIRS.length - matchedPairIds.length),
+            totalPairs: MEMORY_PAIRS.length,
+            attempts: nextMoves,
+          });
+        }
         setIsChecking(true);
         flipTimeoutRef.current = setTimeout(() => {
           setFlippedIndices([]);

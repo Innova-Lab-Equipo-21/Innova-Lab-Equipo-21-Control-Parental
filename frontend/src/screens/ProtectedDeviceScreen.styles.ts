@@ -2,13 +2,11 @@
 // Proyecto: BA Protege+
 // Componente: ProtectedDeviceScreen Styles
 // Archivo: src/screens/ProtectedDeviceScreen.styles.ts
-// Descripción: Estilos visuales para el panel del dispositivo protegido con soporte
-//              para 3 módulos de navegación y Botón Flotante (FAB +).
+// Descripción: Estilos estructurales del marco principal del dispositivo
+//              protegido (top bar institucional, contenedor scroll y badge).
 // ==============================================================================
 
-import { StyleSheet, Platform } from 'react-native';
-import { colors } from '../theme/colors';
-import { typography } from '../theme/typography';
+import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   safeArea: {
@@ -65,95 +63,5 @@ export const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '800',
     color: '#0056B3',
-  },
-
-  // FAB Floating Action Button (+) para Bloquear Sitio/App
-  fabContainer: {
-    position: 'absolute',
-    bottom: 80,
-    right: 18,
-    zIndex: 99,
-  },
-  fabButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 28,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#007AFF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  fabIconText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '900',
-    marginRight: 6,
-    lineHeight: 22,
-  },
-  fabLabelText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-
-  // Pin Modal Overlay
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-  },
-  pinMascotImage: {
-    width: 72,
-    height: 72,
-    alignSelf: 'center',
-    marginBottom: 8,
-  },
-  modalTitle: {
-    ...typography.header,
-    color: '#0F172A',
-    textAlign: 'center',
-  },
-  modalSubtitle: {
-    ...typography.body,
-    color: '#64748B',
-    textAlign: 'center',
-    marginVertical: 8,
-    fontSize: 13,
-  },
-  pinDotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-    marginVertical: 16,
-  },
-  pinDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
-  },
-  pinDotFilled: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
   },
 });

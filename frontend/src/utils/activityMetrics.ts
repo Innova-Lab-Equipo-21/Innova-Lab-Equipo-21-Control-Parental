@@ -60,12 +60,15 @@ export interface ActivityDeviceFilterOption {
   colorIndex?: number;
 }
 
+export type BlockedItemType = 'site' | 'app';
+
 export interface BlockedAttemptRecord {
   id: string;
   deviceId: string;
   deviceName: string;
   attemptedDomain: string;
   sourceListType: AttemptSourceType;
+  itemType?: BlockedItemType;
   blockedAt: string;
   count?: number;
 }
@@ -84,9 +87,12 @@ export interface FormattedBlockedAttempt {
   attemptedDomain: string;
   sourceListType: AttemptSourceType;
   sourceLabel: 'LOTBA' | 'Personalizada';
+  itemType: BlockedItemType;
+  displayTitle: string;
   blockedAt: string;
   timestampMs: number;
   relativeTime: string;
+  formattedDateTime: string;
   count: number;
 }
 
@@ -164,6 +170,7 @@ export function normalizeAttemptSource(raw?: string | null): AttemptSourceType {
   const upper = raw.trim().toUpperCase();
   if (
     upper === 'CUSTOM' ||
+    upper === 'CUSTOM_APP' ||
     upper === 'PERSONALIZADA' ||
     upper === 'RESPONSABLE' ||
     upper === 'ADULTO_PROTEGIDO'
@@ -171,6 +178,80 @@ export function normalizeAttemptSource(raw?: string | null): AttemptSourceType {
     return 'CUSTOM';
   }
   return 'LOTBA';
+}
+
+/**
+ * Determina si el evento corresponde a una app o a un sitio web.
+ */
+export function inferBlockedItemType(
+  attemptedDomain: string,
+  sourceListType?: string | null,
+  explicitType?: BlockedItemType
+): BlockedItemType {
+  if (explicitType === 'app' || explicitType === 'site') return explicitType;
+  const rawSource = (sourceListType || '').trim().toUpperCase();
+  const target = (attemptedDomain || '').trim().toLowerCase();
+  if (
+    rawSource.endsWith('_APP') ||
+    target.includes('(app)') ||
+    target.startsWith('app:') ||
+    target === 'app no autorizada'
+  ) {
+    return 'app';
+  }
+  return 'site';
+}
+
+/**
+ * Devuelve el título visible para un intento bloqueado:
+ * - Si pertenece a la lista LOTBA: "Sitio no autorizado" o "App no autorizada".
+ * - Si pertenece a la Lista Personalizada: muestra el sitio o app normalmente.
+ */
+export function getDisplayTitleForBlockedAttempt(
+  attemptedDomain: string,
+  sourceListType: AttemptSourceType,
+  itemType: BlockedItemType = 'site'
+): string {
+  if (sourceListType === 'LOTBA') {
+    return itemType === 'app' ? 'App no autorizada' : 'Sitio no autorizado';
+  }
+  return attemptedDomain;
+}
+
+/**
+ * Formatea fecha (dd/mm/aaaa | Hoy | Ayer) y horario (hh:mm) de una tentativa de acceso.
+ * Ejemplos:
+ * - "Hoy · 21:14"
+ * - "Ayer · 18:02"
+ * - "21/11/2026 · 23:40"
+ */
+export function formatAttemptDateTime(
+  blockedAtIso: string,
+  nowMs: number = Date.now()
+): string {
+  const date = new Date(blockedAtIso);
+  if (!Number.isFinite(date.getTime())) return 'Hoy · 00:00';
+
+  const hours = String(date.getHours()).padStart(2, '0');
+  const mins = String(date.getMinutes()).padStart(2, '0');
+  const timeStr = `${hours}:${mins}`;
+
+  const now = new Date(nowMs);
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfEventDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const diffDays = Math.round((startOfToday - startOfEventDay) / DAY_MS);
+
+  if (diffDays === 0) {
+    return `Hoy · ${timeStr}`;
+  }
+  if (diffDays === 1) {
+    return `Ayer · ${timeStr}`;
+  }
+
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${dd}/${mm}/${yyyy} · ${timeStr}`;
 }
 
 /**
@@ -480,6 +561,11 @@ export function computeActivityMetrics(
     .sort((a, b) => b.ts - a.ts)
     .map((rec) => {
       const source = normalizeAttemptSource(rec.sourceListType);
+      const itemType = inferBlockedItemType(
+        rec.attemptedDomain,
+        rec.sourceListType,
+        rec.itemType
+      );
       return {
         id: rec.id,
         deviceId: rec.deviceId,
@@ -487,9 +573,16 @@ export function computeActivityMetrics(
         attemptedDomain: rec.attemptedDomain,
         sourceListType: source,
         sourceLabel: source === 'CUSTOM' ? 'Personalizada' : 'LOTBA',
+        itemType,
+        displayTitle: getDisplayTitleForBlockedAttempt(
+          rec.attemptedDomain,
+          source,
+          itemType
+        ),
         blockedAt: rec.blockedAt,
         timestampMs: rec.ts,
         relativeTime: formatRelativeAttemptTime(rec.blockedAt, nowMs),
+        formattedDateTime: formatAttemptDateTime(rec.blockedAt, nowMs),
         count: Math.max(1, Math.round(rec.count ?? 1)),
       };
     });
