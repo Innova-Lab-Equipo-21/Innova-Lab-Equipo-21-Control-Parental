@@ -45,6 +45,7 @@ export interface UpdateProfileInput {
   gender?: 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'NO_INFORMADO';
   birthDate?: string;
   phone?: string;
+  currentPassword?: string;
   password?: string;
 }
 
@@ -148,6 +149,9 @@ export class AuthService {
           id: true,
           email: true,
           fullName: true,
+          phone: true,
+          gender: true,
+          birthDate: true,
           createdAt: true,
         },
       });
@@ -218,7 +222,15 @@ export class AuthService {
         try {
           userProfile = await prisma.user.findUnique({
             where: { id: data.localId },
-            select: { id: true, email: true, fullName: true, createdAt: true },
+            select: {
+              id: true,
+              email: true,
+              fullName: true,
+              phone: true,
+              gender: true,
+              birthDate: true,
+              createdAt: true,
+            },
           });
 
           // Si el usuario existe en Firebase pero aún no en la tabla users de DB, lo creamos/sincronizamos
@@ -230,7 +242,15 @@ export class AuthService {
                 fullName: data.displayName || 'Responsable',
                 isActive: true,
               },
-              select: { id: true, email: true, fullName: true, createdAt: true },
+              select: {
+                id: true,
+                email: true,
+                fullName: true,
+                phone: true,
+                gender: true,
+                birthDate: true,
+                createdAt: true,
+              },
             });
           }
         } catch (dbErr: any) {
@@ -736,6 +756,42 @@ export class AuthService {
       }
       if (computedFullName) user.fullName = computedFullName;
       return user;
+    }
+
+    // 0. Si el usuario solicita cambiar la contraseña y envió su contraseña actual, validarla
+    if (input.password && input.password.length >= 6 && input.currentPassword) {
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, passwordHash: true },
+      });
+
+      if (!existingUser) {
+        throw new AppError('Usuario no encontrado', 404);
+      }
+
+      let currentPasswordValid = false;
+      if (
+        existingUser.passwordHash &&
+        existingUser.passwordHash !== 'GOOGLE_AUTH_FEDERATED'
+      ) {
+        currentPasswordValid = bcrypt.compareSync(
+          input.currentPassword,
+          existingUser.passwordHash,
+        );
+      }
+
+      if (!currentPasswordValid && existingUser.email) {
+        try {
+          await this.getAuthToken(existingUser.email, input.currentPassword);
+          currentPasswordValid = true;
+        } catch {
+          currentPasswordValid = false;
+        }
+      }
+
+      if (!currentPasswordValid) {
+        throw new AppError('La contraseña actual es incorrecta.', 400);
+      }
     }
 
     // 1. Sincronizar con Firebase Authentication (nombre, contraseña y teléfono)

@@ -76,7 +76,7 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
         />
       </View>
 
-      {/* 2. Subheader con botón volver, ícono volver.png y título */}
+      {/* 2. Subheader con botón volver (solo flecha, sin título) */}
       <View style={styles.subHeaderRow}>
         <View style={styles.subHeaderLeft}>
           <TouchableOpacity
@@ -92,7 +92,6 @@ export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = (
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <Text style={styles.screenTitle}>Elegir protección</Text>
         </View>
       </View>
 

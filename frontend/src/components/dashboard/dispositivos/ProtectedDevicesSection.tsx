@@ -29,6 +29,7 @@ import {
   AutocontrolModalMode,
 } from './AutocontrolConfirmationModal';
 import { FeedbackModal } from '../../FeedbackModal';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { styles } from './ProtectedDevicesSection.styles';
 
 interface ProtectedDevicesSectionProps {
@@ -85,6 +86,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
     icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
   }>({
@@ -93,9 +95,16 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
     message: '',
   });
 
-  const showFeedback = (config: { icon?: string; title: string; message: string }) => {
+  const showFeedback = (config: {
+    icon?: string;
+    imageSource?: any;
+    title: string;
+    message: string;
+  }) => {
     setFeedbackModal({
       visible: true,
+      icon: undefined,
+      imageSource: undefined,
       ...config,
     });
   };
@@ -160,10 +169,10 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
 
     if (!currentlyActive && !hasSitesOrApps) {
       showFeedback({
-        icon: '⚠️',
-        title: 'Habilitá un sitio o aplicación',
+        imageSource: BOTITO_ASSETS.nervioso,
+        title: 'Agregá un sitio o aplicación',
         message:
-          'Para activar la autoprotección, primero debés habilitar al menos un sitio web o aplicación para "Mi dispositivo".',
+          'Para activar la autoprotección, primero sumá al menos un sitio o aplicación en “Mi dispositivo”.',
       });
       return;
     }
@@ -265,20 +274,20 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
       const name = device.childName || device.deviceName;
       if (missing.length === 0) {
         showFeedback({
-          icon: '✅',
+          imageSource: BOTITO_ASSETS.feliz,
           title: 'Auditoría de permisos exitosa',
           message: `Todos los permisos (6/6) se encuentran activos y reportando correctamente en ${name}.`,
         });
       } else {
         showFeedback({
-          icon: '⚠️',
+          imageSource: BOTITO_ASSETS.pensando,
           title: 'Auditoría de permisos',
           message: `El dispositivo de ${name} reporta ${perms.grantedCount}/6 permisos concedidos.\n\nPermisos pendientes:\n• ${missing.join('\n• ')}\n\nPara reactivarlos, deben otorgarse directamente en el celular del protegido.`,
         });
       }
     } catch (e: any) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error de auditoría',
         message: e.message || 'No se pudo completar la auditoría de permisos.',
       });
@@ -289,50 +298,100 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
 
   // Guardado de Perfil del Responsable desde su Card
   const handleSaveResponsible = async (updatedUser: any) => {
-    try {
-      try {
-        await apiService.updateProfile({
-          fullName: updatedUser.fullName || `${updatedUser.firstName} ${updatedUser.lastName}`,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-          gender: updatedUser.gender,
-          birthDate: updatedUser.birthDate,
-          phone: updatedUser.phone,
-          password: updatedUser.password,
-        });
-      } catch {}
+    const updatedFullName = (
+      updatedUser.fullName ||
+      `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim()
+    ).trim();
 
-      const updatedDevice = await apiService.updateSelfDevice({
-        childName: updatedUser.fullName || `${updatedUser.firstName} ${updatedUser.lastName}`,
-        birthDate: updatedUser.birthDate,
-        gender: updatedUser.gender,
-        phone: updatedUser.phone,
-      });
-      setSelfDev(updatedDevice);
-
-      if (onUpdateUser) {
-        onUpdateUser(updatedUser);
-      }
-      setIsEditingSelf(false);
-      showFeedback({
-        icon: '✅',
-        title: 'Perfil actualizado',
-        message: 'Los datos del responsable han sido actualizados exitosamente.',
-      });
-    } catch (e: any) {
-      showFeedback({
-        icon: '⚠️',
-        title: 'Error al actualizar',
-        message: e.message || 'No se pudieron actualizar los datos del responsable.',
-      });
+    const payload: any = {
+      fullName: updatedFullName,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      gender: updatedUser.gender,
+      birthDate: updatedUser.birthDate,
+      phone: updatedUser.phone,
+    };
+    if (updatedUser.password) {
+      payload.currentPassword = updatedUser.currentPassword;
+      payload.password = updatedUser.password;
     }
+
+    try {
+      await apiService.updateProfile(payload);
+    } catch (apiErr: any) {
+      if (apiErr?.response) {
+        throw apiErr;
+      }
+    }
+
+    const updatedDevice = await apiService.updateSelfDevice({
+      childName: updatedFullName,
+      deviceName: updatedFullName,
+      birthDate: updatedUser.birthDate,
+      gender: updatedUser.gender,
+      phone: updatedUser.phone,
+    });
+    setSelfDev(updatedDevice);
+
+    const sanitizedUser = { ...updatedUser };
+    delete sanitizedUser.currentPassword;
+    delete sanitizedUser.password;
+
+    if (onUpdateUser) {
+      onUpdateUser(sanitizedUser);
+    }
+    setIsEditingSelf(false);
+    showFeedback({
+      imageSource: BOTITO_ASSETS.feliz,
+      title: '¡Tu perfil se actualizó con éxito!',
+      message: 'Guardamos los cambios que realizaste.',
+    });
   };
+
+  // Resuelve el nombre real de la persona responsable (evitando placeholders como "Yo" o "Tutor Responsable")
+  const isPlaceholderResponsibleName = (name?: string | null): boolean => {
+    const normalized = (name || '').trim().toLowerCase();
+    return !normalized || normalized === 'yo' || normalized === 'tutor responsable';
+  };
+
+  const resolveResponsibleName = (): string => {
+    const firstName = (currentUser?.firstName || '').trim();
+    const lastName = (currentUser?.lastName || '').trim();
+    const combinedName = `${firstName} ${lastName}`.trim();
+    const userFullName = (currentUser?.fullName || currentUser?.name || '').trim();
+
+    if (firstName && lastName && !isPlaceholderResponsibleName(combinedName)) {
+      return combinedName;
+    }
+    if (!isPlaceholderResponsibleName(userFullName)) {
+      return userFullName;
+    }
+    if (!isPlaceholderResponsibleName(combinedName)) {
+      return combinedName;
+    }
+    if (!isPlaceholderResponsibleName(selfDev?.childName)) {
+      return selfDev!.childName!.trim();
+    }
+    if (!isPlaceholderResponsibleName(selfDev?.deviceName)) {
+      return selfDev!.deviceName!.trim();
+    }
+    return '';
+  };
+
+  const responsibleDisplayName = resolveResponsibleName();
+  const resolvedSelfDevice: DeviceInfo | null = selfDev
+    ? {
+        ...selfDev,
+        childName: responsibleDisplayName || selfDev.childName,
+        deviceName: responsibleDisplayName || selfDev.deviceName,
+      }
+    : null;
 
   // Construcción del objeto de usuario para el modal del responsable
   const responsibleUserData = currentUser || {
-    firstName: selfDev?.childName?.split(' ')[0] || 'Tutor',
-    lastName: selfDev?.childName?.split(' ').slice(1).join(' ') || 'Responsable',
-    fullName: selfDev?.childName || 'Tutor Responsable',
+    firstName: responsibleDisplayName.split(' ')[0] || '',
+    lastName: responsibleDisplayName.split(' ').slice(1).join(' ') || '',
+    fullName: responsibleDisplayName,
     birthDate: selfDev?.birthDate || '10/03/1985',
     gender: selfDev?.gender || 'Masculino',
     phone: selfDev?.phone || '11 5544-3322',
@@ -384,15 +443,15 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
           </Pressable>
         )}
 
-        {selfDev && (
+        {resolvedSelfDevice && (
           <DeviceCard
-            device={selfDev}
+            device={resolvedSelfDevice}
             index={0}
             isSelf={true}
             onEdit={handleEditDevice}
             onUnbind={() => {}}
             onAuditPermissions={handleAuditPermissions}
-            isAuditing={auditingDeviceId === selfDev.deviceId}
+            isAuditing={auditingDeviceId === resolvedSelfDevice.deviceId}
             selfControl={resolvedSelfControl}
             isAutoproteccionDisabled={isAutoproteccionDisabled}
             onStartSelfControlFlow={handleOpenSelfControlModal}
@@ -501,7 +560,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
               onRefreshList();
             }
             showFeedback({
-              icon: '✅',
+              imageSource: BOTITO_ASSETS.feliz,
               title: 'Datos actualizados',
               message: `Los datos del protegido "${devName}" fueron actualizados correctamente.`,
             });
@@ -523,9 +582,9 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
               onRefreshList();
             }
             showFeedback({
-              icon: '📱',
+              imageSource: BOTITO_ASSETS.nervioso,
               title: 'Dispositivo desvinculado',
-              message: `El celular de "${devName}" fue desvinculado correctamente.`,
+              message: `El celular de ${devName} ya no está en tu lista de dispositivos protegidos.`,
             });
           }}
         />
@@ -546,6 +605,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
         <FeedbackModal
           visible={feedbackModal.visible}
           icon={feedbackModal.icon}
+          imageSource={feedbackModal.imageSource}
           title={feedbackModal.title}
           message={feedbackModal.message}
           buttonText="Entendido"

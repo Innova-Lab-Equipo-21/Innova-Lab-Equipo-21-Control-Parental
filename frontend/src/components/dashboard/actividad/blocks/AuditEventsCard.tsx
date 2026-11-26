@@ -8,7 +8,7 @@
 // ==============================================================================
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from '../../../../services/api.service';
 import { AnchorRect, FloatingDropdownMenu } from '../atomic/FloatingDropdownMenu';
@@ -19,19 +19,21 @@ import { cardStyles } from '../card.styles';
 import { styles } from './AuditEventsCard.styles';
 
 const READ_ALERTS_STORAGE_KEY = '@ba_protege_read_security_alerts';
+const COLLAPSED_ITEMS_LIMIT = 5;
+const SCROLL_ITEMS_THRESHOLD = 15;
 
 type ListTypeFilter = 'all' | 'lotba' | 'custom';
 type SortOrder = 'date' | 'az';
 
 const LIST_FILTER_OPTIONS: Array<{ value: ListTypeFilter; label: string; triggerLabel: string }> = [
-  { value: 'all', label: 'Todas', triggerLabel: 'Lista: Todas' },
-  { value: 'lotba', label: 'LOTBA', triggerLabel: 'Lista: LOTBA' },
-  { value: 'custom', label: 'Personalizada', triggerLabel: 'Lista: Personalizada' },
+  { value: 'all', label: 'Todas', triggerLabel: 'Todas' },
+  { value: 'lotba', label: 'LOTBA', triggerLabel: 'LOTBA' },
+  { value: 'custom', label: 'Personalizada', triggerLabel: 'Personalizada' },
 ];
 
 const SORT_OPTIONS: Array<{ value: SortOrder; label: string; triggerLabel: string }> = [
-  { value: 'date', label: 'Fecha', triggerLabel: 'Orden: Fecha' },
-  { value: 'az', label: 'A - Z', triggerLabel: 'Orden: A - Z' },
+  { value: 'date', label: 'Fecha', triggerLabel: 'Fecha' },
+  { value: 'az', label: 'A - Z', triggerLabel: 'A - Z' },
 ];
 
 export interface AuditEventsCardProps {
@@ -40,6 +42,7 @@ export interface AuditEventsCardProps {
   blockedAttempts: AttemptEvent[];
   bypassEvents: AttemptEvent[];
   bypassCount?: number;
+  embedded?: boolean;
 }
 
 const isLotbaEvent = (event: AttemptEvent): boolean =>
@@ -109,6 +112,7 @@ export const AuditEventsCard: React.FC<AuditEventsCardProps> = ({
   onChangeAuditTab,
   blockedAttempts,
   bypassEvents,
+  embedded = false,
 }) => {
   const [listTypeFilter, setListTypeFilter] = useState<ListTypeFilter>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('date');
@@ -118,6 +122,10 @@ export const AuditEventsCard: React.FC<AuditEventsCardProps> = ({
   const listTriggerRef = useRef<View>(null);
   const sortTriggerRef = useRef<View>(null);
   const [readAlertIds, setReadAlertIds] = useState<string[]>([]);
+  const [expandedListByTab, setExpandedListByTab] = useState<Record<AuditTab, boolean>>({
+    urls: false,
+    bypass: false,
+  });
 
   const toggleFilterDropdown = (target: 'list' | 'sort') => {
     if (openDropdown === target) {
@@ -219,22 +227,47 @@ export const AuditEventsCard: React.FC<AuditEventsCardProps> = ({
     return list;
   }, [rawEvents, auditTab, listTypeFilter, sortOrder]);
 
+  const isListExpanded = expandedListByTab[auditTab];
+  const hasMoreThanCollapsed = events.length > COLLAPSED_ITEMS_LIMIT;
+  const visibleEvents = isListExpanded
+    ? events
+    : events.slice(0, COLLAPSED_ITEMS_LIMIT);
+  const needsScroll = isListExpanded && events.length > SCROLL_ITEMS_THRESHOLD;
+
+  const setCurrentTabExpanded = (nextExpanded: boolean) => {
+    setExpandedListByTab((prev) => ({
+      ...prev,
+      [auditTab]: nextExpanded,
+    }));
+  };
+
   const selectedListOption =
     LIST_FILTER_OPTIONS.find((opt) => opt.value === listTypeFilter) ??
     LIST_FILTER_OPTIONS[0];
   const selectedSortOption =
     SORT_OPTIONS.find((opt) => opt.value === sortOrder) ?? SORT_OPTIONS[0];
 
+  const renderRows = () =>
+    visibleEvents.map((event) => (
+      <AttemptRow
+        key={event.id}
+        event={event}
+        isAlertTab={auditTab === 'bypass'}
+        isUnread={auditTab === 'bypass' && !isAlertAlreadyRead(event)}
+        onPressAlert={markAlertAsRead}
+      />
+    ));
+
   return (
-    <View style={cardStyles.card}>
-      <Text style={cardStyles.cardHeaderTitle}>Sitios y apps bloqueados</Text>
+    <View style={embedded ? styles.embeddedCard : cardStyles.card}>
+      <Text style={cardStyles.cardHeaderTitle}>Historial de toda la actividad</Text>
       <View style={styles.tabsWrap}>
         <SegmentedTabs
           tabs={[
-            { key: 'urls', label: 'Últimos bloqueos' },
+            { key: 'urls', label: 'Últimos intentos' },
             {
               key: 'bypass',
-              label: 'Alertas de seguridad',
+              label: 'Avisos de seguridad',
               badgeCount: unreadAlertCount,
             },
           ]}
@@ -246,11 +279,12 @@ export const AuditEventsCard: React.FC<AuditEventsCardProps> = ({
         />
       </View>
 
-      {/* Filtros flotantes (dropdown estilo app) en una misma fila: Lista y Ordenar */}
+      {/* Filtros flotantes (dropdown estilo app) en una misma fila: Por lista y Por orden */}
       {auditTab === 'urls' && (
         <View style={styles.filtersRow}>
-          {/* Dropdown Lista */}
+          {/* Dropdown Por lista */}
           <View style={styles.dropdownColList}>
+            <Text style={styles.filterLabel}>Por lista</Text>
             <View ref={listTriggerRef} collapsable={false}>
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -318,8 +352,9 @@ export const AuditEventsCard: React.FC<AuditEventsCardProps> = ({
             </FloatingDropdownMenu>
           </View>
 
-          {/* Dropdown Ordenar */}
+          {/* Dropdown Por orden */}
           <View style={styles.dropdownColSort}>
+            <Text style={styles.filterLabel}>Por orden</Text>
             <View ref={sortTriggerRef} collapsable={false}>
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -394,20 +429,48 @@ export const AuditEventsCard: React.FC<AuditEventsCardProps> = ({
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
               {auditTab === 'urls'
-                ? 'No se registraron bloqueos para los filtros seleccionados'
-                : 'No se registraron alertas de seguridad'}
+                ? 'No se registraron intentos para los filtros seleccionados'
+                : 'No se registraron avisos de seguridad'}
             </Text>
           </View>
         ) : (
-          events.map((event) => (
-            <AttemptRow
-              key={event.id}
-              event={event}
-              isAlertTab={auditTab === 'bypass'}
-              isUnread={auditTab === 'bypass' && !isAlertAlreadyRead(event)}
-              onPressAlert={markAlertAsRead}
-            />
-          ))
+          <>
+            {needsScroll ? (
+              <ScrollView
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+                style={styles.expandedScrollList}
+              >
+                {renderRows()}
+              </ScrollView>
+            ) : (
+              renderRows()
+            )}
+
+            {hasMoreThanCollapsed && !isListExpanded ? (
+              <TouchableOpacity
+                activeOpacity={0.75}
+                onPress={() => setCurrentTabExpanded(true)}
+                accessibilityRole="button"
+                style={styles.listToggleBtn}
+              >
+                <Text style={styles.listToggleBtnText}>
+                  Ver más ({events.length - COLLAPSED_ITEMS_LIMIT}) ▼
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+
+            {hasMoreThanCollapsed && isListExpanded ? (
+              <TouchableOpacity
+                activeOpacity={0.75}
+                onPress={() => setCurrentTabExpanded(false)}
+                accessibilityRole="button"
+                style={styles.listToggleBtn}
+              >
+                <Text style={styles.listToggleBtnText}>Ver menos ▲</Text>
+              </TouchableOpacity>
+            ) : null}
+          </>
         )}
       </View>
     </View>

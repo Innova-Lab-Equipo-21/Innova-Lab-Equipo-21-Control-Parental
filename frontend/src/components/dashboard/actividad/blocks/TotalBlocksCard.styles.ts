@@ -10,11 +10,51 @@ import { StyleSheet } from 'react-native';
 import { analyticsPalette as palette } from '../palette';
 
 export const styles = StyleSheet.create({
+  embeddedCard: {
+    backgroundColor: palette.offWhite,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+
+  compactCard: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 4,
+  },
+
+  headerRowCompact: {
+    marginBottom: 2,
+  },
+
   kpiLabel: {
     fontSize: 12.5,
     fontWeight: '800',
     color: palette.textMain,
-    marginBottom: 4,
+    flex: 1,
+  },
+
+  kpiLabelCompact: {
+    fontSize: 11.5,
+  },
+
+  chevron: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: palette.lotbaBlue,
+    paddingLeft: 4,
   },
 
   mainRow: {
@@ -25,12 +65,26 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
+  mainRowCompact: {
+    marginTop: 0,
+    marginBottom: 6,
+  },
+
+  mainRowCollapsed: {
+    marginBottom: 2,
+  },
+
   kpiNumber: {
     fontSize: 29,
     fontWeight: '800',
     color: palette.textMain,
     letterSpacing: -0.8,
     lineHeight: 32,
+  },
+
+  kpiNumberCompact: {
+    fontSize: 22,
+    lineHeight: 24,
   },
 
   kpiSub: {
@@ -45,6 +99,10 @@ export const styles = StyleSheet.create({
     borderTopColor: palette.cardBorder,
   },
 
+  historySectionCompact: {
+    paddingTop: 6,
+  },
+
   historyTitle: {
     fontSize: 11.5,
     fontWeight: '800',
@@ -57,6 +115,10 @@ export const styles = StyleSheet.create({
     width: '100%',
     position: 'relative',
     marginVertical: 2,
+  },
+
+  chartAreaCompact: {
+    height: 50,
   },
 
   chartBaseline: {
@@ -93,15 +155,28 @@ export const styles = StyleSheet.create({
     color: palette.textMuted,
   },
 
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: palette.surfaceBg,
+  },
+
+  footerRowCompact: {
+    marginTop: 6,
+    paddingTop: 6,
+  },
+
   legendRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 12,
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: palette.surfaceBg,
+    flex: 1,
   },
 
   legendItem: {
@@ -119,5 +194,21 @@ export const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: palette.textSubtle,
+  },
+
+  actionBtn: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+
+  actionBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#374151',
   },
 });

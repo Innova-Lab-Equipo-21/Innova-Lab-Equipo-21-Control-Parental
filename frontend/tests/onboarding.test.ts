@@ -42,7 +42,7 @@ describe('Pantalla de Onboarding y Flujo Wizard de 3 Pantallas', () => {
     assert.ok(onboardingSource.includes('[1, 2, 3].map'), 'El stepper debe mostrar 3 pasos');
   });
 
-  test('Paso 1 debe mostrar los textos oficiales del Brandbook y Botito feliz animado', () => {
+  test('Paso 1 debe mostrar los textos oficiales del Brandbook sin Botito animado', () => {
     assert.ok(
       onboardingSource.includes('¡Te damos la bienvenida a BA Protege +!'),
       'Paso 1 debe incluir el título de bienvenida'
@@ -61,10 +61,10 @@ describe('Pantalla de Onboarding y Flujo Wizard de 3 Pantallas', () => {
       onboardingSource.includes('En BA Protege + te cuidamos a vos y a los tuyos.'),
       'Paso 1 debe incluir el mensaje de cierre con voseo'
     );
-    assert.ok(
-      onboardingSource.includes('<AnimatedBotMascot') &&
-        onboardingSource.includes('mood="feliz"'),
-      'Paso 1 debe mostrar a Botito feliz animado usando AnimatedBotMascot'
+    assert.equal(
+      onboardingSource.includes('AnimatedBotMascot'),
+      false,
+      'OnboardingScreen no debe renderizar AnimatedBotMascot en los Pasos 1 y 3'
     );
   });
 
@@ -85,19 +85,30 @@ describe('Pantalla de Onboarding y Flujo Wizard de 3 Pantallas', () => {
     );
   });
 
-  test('Paso 3 debe incluir el título actualizado y el video de YouTube Shorts TiF6zxlt5fU', () => {
+  test('Paso 3 debe reproducir automáticamente hola_botito.mp4 en marco vertical con botón de pantalla completa', () => {
     assert.ok(onboardingSource.includes('¿Tenés dudas?'), 'Paso 3 debe usar el título "¿Tenés dudas?"');
     assert.ok(
-      onboardingSource.includes("ONBOARDING_YOUTUBE_VIDEO_ID = 'TiF6zxlt5fU'"),
-      'Paso 3 debe configurar el ID de YouTube Shorts TiF6zxlt5fU'
+      onboardingSource.includes("ONBOARDING_VIDEO_RESOURCE = 'hola_botito'"),
+      'Paso 3 debe configurar el recurso local hola_botito'
     );
     assert.ok(
-      onboardingSource.includes('<YouTubePlayerView'),
-      'Paso 3 debe renderizar YouTubePlayerView al reproducir'
+      onboardingSource.includes('<SplashVideoView'),
+      'Paso 3 debe renderizar SplashVideoView automáticamente'
+    );
+    assert.ok(
+      onboardingSource.includes('videoContainerVertical') &&
+        onboardingSource.includes('fullscreenCornerButton') &&
+        onboardingSource.includes('<Modal'),
+      'Paso 3 debe usar marco vertical, botón cuadrado de pantalla completa y modal'
+    );
+    assert.equal(
+      onboardingSource.includes('Ver en pantalla completa'),
+      false,
+      'Paso 3 no debe incluir el botón externo "Ver en pantalla completa"'
     );
   });
 
-  test('El módulo nativo Android registra YouTubePlayerViewManager y existe wrapper TS', () => {
+  test('El módulo nativo Android registra YouTubePlayerViewManager y SplashVideoViewManager', () => {
     assert.ok(
       youtubeWrapperSource.includes("const VIEW_NAME = 'YouTubePlayerView'"),
       'YouTubePlayerView.tsx debe apuntar al ViewManager YouTubePlayerView'
@@ -105,6 +116,10 @@ describe('Pantalla de Onboarding y Flujo Wizard de 3 Pantallas', () => {
     assert.ok(
       protectionPackageSource.includes('YouTubePlayerViewManager()'),
       'ProtectionPackage.kt debe registrar YouTubePlayerViewManager'
+    );
+    assert.ok(
+      protectionPackageSource.includes('SplashVideoViewManager()'),
+      'ProtectionPackage.kt debe registrar SplashVideoViewManager'
     );
   });
 });

@@ -7,7 +7,7 @@
 //              calificar en Google Play Store.
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import {
 import { legalStyles } from '../../auth/LegalModal.styles';
 import { ActionButton } from '../../ActionButton';
 import { FeedbackModal } from '../../FeedbackModal';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { styles as ratingStyles } from './RatingSection.styles';
 
 export interface RatingModalProps {
@@ -31,11 +32,12 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   visible,
   onClose,
 }) => {
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState(0);
+  const [ratingError, setRatingError] = useState(false);
   const [comment, setComment] = useState('');
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
-    icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
   }>({
@@ -44,7 +46,26 @@ export const RatingModal: React.FC<RatingModalProps> = ({
     message: '',
   });
 
+  useEffect(() => {
+    if (visible) {
+      setRating(0);
+      setRatingError(false);
+    }
+  }, [visible]);
+
+  const handleSelectStar = (star: number) => {
+    setRating(star);
+    if (ratingError) {
+      setRatingError(false);
+    }
+  };
+
   const handleSendReviewEmail = () => {
+    if (rating < 1) {
+      setRatingError(true);
+      return;
+    }
+
     const emailTo = 'baprotegemas@gmail.com';
     const emailSubject = encodeURIComponent(`[Evaluación de la App] ${rating} Estrellas`);
     const emailBody = encodeURIComponent(
@@ -54,7 +75,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
     Linking.openURL(`mailto:${emailTo}?subject=${emailSubject}&body=${emailBody}`).catch(() => {
       setFeedbackModal({
         visible: true,
-        icon: '⭐',
+        imageSource: BOTITO_ASSETS.feliz,
         title: 'Gracias por tu evaluación',
         message: 'Tu opinión fue enviada exitosamente a baprotegemas@gmail.com.',
       });
@@ -71,7 +92,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
       Linking.openURL(webPlayStoreUrl).catch(() => {
         setFeedbackModal({
           visible: true,
-          icon: '🏪',
+          imageSource: BOTITO_ASSETS.pensando,
           title: 'Google Play Store',
           message: 'Redirigiendo a la tienda oficial de aplicaciones...',
         });
@@ -99,7 +120,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
           <View style={legalStyles.bottomSheetHandle} />
 
           <View style={legalStyles.legalModalHeader}>
-            <Text style={legalStyles.legalModalTitle}>Evaluar la aplicación</Text>
+            <Text style={legalStyles.legalModalTitle}>Calificar la aplicación</Text>
             <TouchableOpacity
               onPress={onClose}
               style={legalStyles.legalModalCloseBtn}
@@ -109,26 +130,31 @@ export const RatingModal: React.FC<RatingModalProps> = ({
             </TouchableOpacity>
           </View>
           <Text style={legalStyles.legalModalSubtitle}>
-            BA Protege+ • Dejanos tu opinión y ayudanos a mejorar la protección
+            Dejanos tu opinión y ayudanos a mejorar la protección.
           </Text>
 
           <ScrollView
             style={legalStyles.legalModalBody}
             showsVerticalScrollIndicator={true}
           >
-            {/* 5 Estrellas Interactivas */}
+            {/* 5 Estrellas Interactivas (inician en 0 / gris y son obligatorias) */}
             <View style={ratingStyles.starsRow}>
               {[1, 2, 3, 4, 5].map((star) => (
-                <TouchableOpacity key={star} onPress={() => setRating(star)} activeOpacity={0.8}>
+                <TouchableOpacity key={star} onPress={() => handleSelectStar(star)} activeOpacity={0.8}>
                   <Text style={[ratingStyles.starIcon, star <= rating ? ratingStyles.starActive : ratingStyles.starInactive]}>
                     ★
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={[ratingStyles.ratingText, { textAlign: 'center', marginBottom: 12 }]}>
+            <Text style={[ratingStyles.ratingText, { textAlign: 'center', marginBottom: ratingError ? 4 : 12 }]}>
               {rating} de 5 estrellas
             </Text>
+            {ratingError && (
+              <Text style={ratingStyles.ratingErrorText}>
+                Seleccioná una calificación con estrellas antes de enviar.
+              </Text>
+            )}
 
             <Text style={ratingStyles.inputLabel}>Comentarios o sugerencias para el equipo</Text>
             <TextInput
@@ -136,21 +162,32 @@ export const RatingModal: React.FC<RatingModalProps> = ({
               value={comment}
               onChangeText={setComment}
               multiline
-              placeholder="Contanos tu experiencia..."
+              placeholder="Contanos tu experiencia…"
               placeholderTextColor="#94A3B8"
             />
 
-            <View style={{ gap: 10, marginTop: 16, marginBottom: 8 }}>
-              <ActionButton
-                title="Enviar reseña a baprotegemas@gmail.com"
-                variant="secondary"
-                onPress={handleSendReviewEmail}
-              />
-              <ActionButton
-                title="⭐ Calificar en Google Play Store"
-                variant="primary"
-                onPress={handleOpenPlayStore}
-              />
+            <View style={ratingStyles.ctaGroup}>
+              <View style={ratingStyles.ctaBlock}>
+                <Text style={ratingStyles.ctaHelperText}>
+                  Si lo preferís, podés enviarnos tus comentarios a nuestra casilla de correo electrónico.
+                </Text>
+                <ActionButton
+                  title="Enviar correo"
+                  variant="secondary"
+                  onPress={handleSendReviewEmail}
+                />
+              </View>
+
+              <View style={ratingStyles.ctaBlock}>
+                <Text style={ratingStyles.ctaHelperText}>
+                  También podés dejarnos tu reseña en Google Play Store.
+                </Text>
+                <ActionButton
+                  title="Dejar reseña"
+                  variant="primary"
+                  onPress={handleOpenPlayStore}
+                />
+              </View>
             </View>
           </ScrollView>
 
@@ -167,7 +204,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
       {/* Modal estándar de retroalimentación */}
       <FeedbackModal
         visible={feedbackModal.visible}
-        icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
         onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}

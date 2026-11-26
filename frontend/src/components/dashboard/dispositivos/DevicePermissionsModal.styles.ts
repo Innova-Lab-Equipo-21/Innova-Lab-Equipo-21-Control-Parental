@@ -66,7 +66,7 @@ export const styles = StyleSheet.create({
   summaryBox: {
     backgroundColor: '#F8F9FA',
     borderRadius: 10,
-    paddingVertical: 7,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 8,
     borderWidth: 1,
@@ -76,7 +76,6 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 2,
   },
   summaryTitle: {
     fontSize: 13,
@@ -87,6 +86,7 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
     lineHeight: 14,
+    marginTop: 2,
   },
   scrollBody: {
     marginVertical: 2,
@@ -94,8 +94,8 @@ export const styles = StyleSheet.create({
   permCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     marginBottom: 6,
     borderWidth: 1,
     borderColor: colors.borderLight,

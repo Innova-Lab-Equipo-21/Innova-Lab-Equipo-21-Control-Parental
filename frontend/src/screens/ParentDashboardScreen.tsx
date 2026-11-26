@@ -15,6 +15,8 @@ import {
   Modal,
   TouchableOpacity,
   AppState,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ActionButton } from '../components/ActionButton';
@@ -54,7 +56,7 @@ import {
 import { FaqModal } from '../components/dashboard/cuenta/FaqModal';
 import { FabWithTooltip } from '../components/FabWithTooltip';
 import { FeedbackModal } from '../components/FeedbackModal';
-import { getBotMascotImage } from '../components/dashboard/protected/botAssets';
+import { BOTITO_ASSETS, getBotMascotImage } from '../components/dashboard/protected/botAssets';
 import { colors } from '../theme/colors';
 import { checkRealDevicePermissions } from '../utils/permissionChecker';
 import { saveNavigationState } from '../utils/navigationSession';
@@ -94,6 +96,20 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
   // Ref para disparar el modal de agregar sitio o app desde el FAB fijo
   const siteAddHandlerRef = useRef<(() => void) | null>(null);
+
+  // Oculta la navbar y el FAB mientras el teclado está abierto para que no suban por encima del teclado
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setIsKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setIsKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // Pestaña Activa de la Navbar ('sitios' si eligió "Configurar este dispositivo", sino 'inicio')
   const [activeTab, setActiveTab] = useState<DashboardTab>(
@@ -210,11 +226,11 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       if (!isA11yActive) {
         setRuleUninstallProtection(false);
         showFeedback({
-          imageSource: getBotMascotImage('ADULT', 'pensando'),
-          title: 'Servicio de accesibilidad',
+          imageSource: BOTITO_ASSETS.pensando,
+          title: 'Protección antidesinstalación',
           message:
-            'Para activar la protección antidesinstalación, es necesario habilitar el servicio de accesibilidad de BA Protege+ en los Ajustes del sistema. ¿Deseás abrir Ajustes ahora?',
-          buttonText: 'Abrir ajustes',
+            'Para activar este permiso, tenés que habilitar BA Protege + en los ajustes de accesibilidad de tu celular. ¿Querés hacer la configuración ahora?',
+          buttonText: 'Configurar',
           secondaryButtonText: 'Cancelar',
           onConfirm: async () => {
             setFeedbackModal((prev) => ({ ...prev, visible: false }));
@@ -225,6 +241,22 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                 setRuleUninstallProtection(true);
                 await protectionService.setAntiUninstallEnabled(true);
                 refreshPermissions();
+                showFeedback({
+                  imageSource: BOTITO_ASSETS.feliz,
+                  title: '¡Antidesinstalación activada con éxito!',
+                  message:
+                    'Ya está funcionando en tu celular la protección para que la aplicación no se cierre o se elimine por error.',
+                  buttonText: 'Entendido',
+                });
+              } else {
+                setRuleUninstallProtection(false);
+                showFeedback({
+                  imageSource: BOTITO_ASSETS.pensando,
+                  title: 'La antidesinstalación sigue desactivada',
+                  message:
+                    'Sin esta protección, la aplicación podría cerrarse o eliminarse por error. Podés activarla cuando quieras desde los ajustes del sistema.',
+                  buttonText: 'Entendido',
+                });
               }
             } catch (err) {
               console.warn('[ParentDashboard] Error al abrir accesibilidad:', err);
@@ -284,6 +316,13 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       }
     }
   }, [isLoggedIn, initialAction]);
+
+  // Refrescar métricas reales de Actividad e Inicio al cambiar a esas pestañas
+  useEffect(() => {
+    if (isLoggedIn && (activeTab === 'actividad' || activeTab === 'inicio')) {
+      realAnalytics.refresh();
+    }
+  }, [isLoggedIn, activeTab]);
 
   // Actualización periódica de temporizadores de Autocontrol (espera 24hs o pase temporal)
   useEffect(() => {
@@ -383,7 +422,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       setPairingCode(fallbackCode);
       await loadDevices();
       showFeedback({
-        icon: '📱',
+        imageSource: BOTITO_ASSETS.feliz,
         title: 'Código generado',
         message: `Se generó el código de vinculación: ${fallbackCode}. Los datos del protegido se mantendrán guardados hasta el emparejamiento.`,
       });
@@ -401,7 +440,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   );
   const isAutoproteccionDisabled = !isSelfControlCurrentlyActive && !hasSitesOrApps;
 
-  const handleStartSelfControlFlow = async () => {
+  const handleStartSelfControlFlow = async (source: 'default' | 'cuenta' = 'default') => {
     let currentSc = selfControl;
     try {
       currentSc = await apiService.getSelfControlStatus();
@@ -432,12 +471,21 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     }
 
     if (!currentlyActive && !currentHasItems) {
-      showFeedback({
-        icon: '⚠️',
-        title: 'Habilitá un sitio o aplicación',
-        message:
-          'Para activar la autoprotección, primero debés habilitar al menos un sitio web o aplicación para "Mi dispositivo".',
-      });
+      if (source === 'cuenta') {
+        showFeedback({
+          imageSource: BOTITO_ASSETS.pensando,
+          title: 'Agregá un sitio o aplicación',
+          message:
+            'Para activar la autoprotección, primero sumá al menos un sitio o aplicación en este dispositivo desde la sección “Sitios y apps”.',
+        });
+      } else {
+        showFeedback({
+          imageSource: BOTITO_ASSETS.nervioso,
+          title: 'Agregá un sitio o aplicación',
+          message:
+            'Para activar la autoprotección, primero sumá al menos un sitio o aplicación en “Mi dispositivo”.',
+        });
+      }
       return;
     }
 
@@ -538,6 +586,8 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             customSitesCount={customSites.filter((s) => s.isActive !== false).length}
             blockedAppsCount={customApps.filter((a) => a.isActive !== false).length}
             grantedCount={grantedPermsCount}
+            analyticsDevices={realAnalytics.devices}
+            rawBlockedEvents={realAnalytics.rawBlockedEvents}
             onNavigateToPermissions={handleOpenPermissions}
             onNavigateToDevices={() => setActiveTab('dispositivos')}
             onAddDevice={() => {
@@ -578,7 +628,10 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               selfControl={selfControl}
               hasSitesOrApps={hasSitesOrApps}
               currentUser={currentUser}
-              onUpdateUser={(updated) => setCurrentUser(updated)}
+              onUpdateUser={(updated) => {
+                setCurrentUser(updated);
+                saveNavigationState({ parentUser: updated }).catch(() => {});
+              }}
               onUpdateSelfControl={(sc) => setSelfControl(sc)}
               onStartSelfControlFlow={handleStartSelfControlFlow}
               onDisableSelfControl={handleDisableSelfControl}
@@ -592,6 +645,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
           {devices.length < MAX_PROTECTED_DEVICES && (
             <FabWithTooltip
               label="Nuevo dispositivo"
+              hidden={isKeyboardVisible}
               onPress={() => setShowPairingModal(true)}
             />
           )}
@@ -633,6 +687,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
           {/* Botón Flotante (FAB +) con bocadillo explicativo para Bloquear sitio o app */}
           <FabWithTooltip
             label="Bloquear sitio o app"
+            hidden={isKeyboardVisible}
             onPress={() => {
               if (siteAddHandlerRef.current) {
                 siteAddHandlerRef.current();
@@ -669,7 +724,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       {activeTab === 'cuenta' && (
         <>
           <Header
-            title="Perfil y cuenta"
+            title="Mi cuenta"
             onBack={() => setActiveTab('inicio')}
           />
           <ScrollView contentContainerStyle={styles.container}>
@@ -704,7 +759,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                   handleOpenPermissions();
                 }
               }}
-              onStartSelfControlFlow={handleStartSelfControlFlow}
+              onStartSelfControlFlow={() => handleStartSelfControlFlow('cuenta')}
               onDisableSelfControl={handleDisableSelfControl}
               onOpenPermissions={handleOpenPermissions}
             />
@@ -717,7 +772,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             {/* 3, 4 & 5. Información legal y valoración (Términos, Privacidad y Evaluar la app) */}
             <LegalSection />
 
-            {/* Zona de Peligro / Eliminar Cuenta Definitivamente */}
+            {/* Eliminar cuenta */}
             <View style={{
               backgroundColor: '#FFF5F5',
               borderColor: '#FEB2B2',
@@ -727,18 +782,18 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               marginTop: 12,
               marginBottom: 12,
             }}>
-              <Text style={{ fontSize: 14, fontWeight: '800', color: '#C53030', marginBottom: 4 }}>
-                ⚠️ Zona de Peligro
+              <Text style={{ fontSize: 14, fontWeight: '800', color: '#C53030', marginBottom: 6 }}>
+                Eliminar cuenta
               </Text>
-              <Text style={{ fontSize: 12, color: '#9B2C2C', marginBottom: 12, lineHeight: 16 }}>
-                Eliminar tu cuenta borrará permanentemente todos tus datos y dispositivos vinculados. Esta acción no se puede deshacer.
+              <Text style={{ fontSize: 12, color: '#9B2C2C', marginBottom: 12, lineHeight: 18 }}>
+                Si eliminás tu cuenta, se borrarán tus datos y se desvincularán los dispositivos. Al hacerlo, se interrumpirá el cuidado digital y las personas protegidas podrán acceder a sitios y apps de apuestas ilegales no autorizados por LOTBA y los de la lista personalizada. Si de todas maneras querés eliminar tu cuenta, más adelante podés volver a descargar BA Protege + y empezar desde cero.
               </Text>
               <ActionButton
-                title="Eliminar cuenta definitivamente"
+                title="Eliminar cuenta"
                 variant="danger"
                 onPress={() => {
                   showFeedback({
-                    icon: '⚠️',
+                    imageSource: BOTITO_ASSETS.nervioso,
                     title: 'Eliminar cuenta',
                     message:
                       '¿Estás seguro de que deseas eliminar tu cuenta permanentemente? Esta acción es irreversible.',
@@ -792,10 +847,12 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       )}
 
       {/* BARRA DE NAVEGACIÓN INFERIOR (NAVBAR CON 5 OPCIONES Y DESTAQUE) */}
-      <DashboardNavbar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-      />
+      {!isKeyboardVisible && (
+        <DashboardNavbar
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+        />
+      )}
 
       {/* Modal para Vincular Nuevo Dispositivo */}
       <PairingModal
@@ -819,9 +876,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
           loadDevices();
           setShowPairingModal(false);
           showFeedback({
-            icon: '✅',
+            imageSource: BOTITO_ASSETS.feliz,
             title: 'Dispositivo guardado',
-            message: `El dispositivo de ${savedName || 'nuevo protegido'} fue guardado como inactivo hasta que se complete la vinculación con el código.`,
+            message: `${savedName || 'El dispositivo'} quedará como inactivo y se vinculará a tu cuenta cuando ingresen el código o escaneen el QR en ese dispositivo.`,
           });
         }}
       />

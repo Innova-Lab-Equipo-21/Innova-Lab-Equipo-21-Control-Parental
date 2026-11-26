@@ -5,7 +5,8 @@
 // Descripción: Flujo guiado de 3 pantallas wizard exactamente alineado al diseño oficial:
 //              Paso 1: Bienvenida, propósito de protección y capacidades clave.
 //              Paso 2: Explicación de los 2 modos operativos (Modo Responsable y Modo Protegido).
-//              Paso 3: Video explicativo paso a paso con reproductor integrado.
+//              Paso 3: Video explicativo local (hola_botito.mp4) con reproducción
+//                      automática y opción de visualización en pantalla completa.
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -15,20 +16,18 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Linking,
+  Pressable,
+  Modal,
+  StatusBar,
+  StyleSheet,
 } from 'react-native';
 import { Logo } from '../components/Logo';
 import { Icon } from '../components/Icon';
-import { AnimatedBotMascot } from '../components/AnimatedBotMascot';
-import {
-  YouTubePlayerView,
-  hasNativeYouTubePlayer,
-} from '../components/YouTubePlayerView';
+import { SplashVideoView } from '../components/SplashVideoView';
 import { AppMode } from '../types';
 import { styles } from './OnboardingScreen.styles';
 
-const ONBOARDING_YOUTUBE_VIDEO_ID = 'TiF6zxlt5fU';
-const ONBOARDING_YOUTUBE_URL = `https://www.youtube.com/shorts/${ONBOARDING_YOUTUBE_VIDEO_ID}`;
+const ONBOARDING_VIDEO_RESOURCE = 'hola_botito';
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -45,26 +44,32 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   // Estado del Wizard: Paso 1, 2 o 3
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(initialStep);
 
+  // Estados del Video (Paso 3) — reproducción automática al ingresar al Paso 3
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
   useEffect(() => {
     if (initialStep) {
       setWizardStep(initialStep);
     }
   }, [initialStep]);
 
-  // Estado del Video (Paso 3)
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-
-  const handlePlayVideo = () => {
-    if (hasNativeYouTubePlayer()) {
-      setIsPlaying(true);
-      return;
-    }
-    Linking.openURL(ONBOARDING_YOUTUBE_URL).catch(() => {});
+  const handleGoToStep = (nextStep: 1 | 2 | 3) => {
+    setIsFullscreen(false);
+    setIsPaused(false);
+    setWizardStep(nextStep);
   };
 
-  const handleVideoError = () => {
-    setIsPlaying(false);
-    Linking.openURL(ONBOARDING_YOUTUBE_URL).catch(() => {});
+  const handleTogglePause = () => {
+    setIsPaused((prev) => !prev);
+  };
+
+  const handleOpenFullscreen = () => {
+    setIsFullscreen(true);
+  };
+
+  const handleCloseFullscreen = () => {
+    setIsFullscreen(false);
   };
 
   return (
@@ -96,10 +101,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                         styles.stepCircle,
                         isActive ? styles.stepCircleActive : styles.stepCircleInactive,
                       ]}
-                      onPress={() => {
-                        setIsPlaying(false);
-                        setWizardStep(stepNum as 1 | 2 | 3);
-                      }}
+                      onPress={() => handleGoToStep(stepNum as 1 | 2 | 3)}
                       activeOpacity={0.8}
                     >
                       <Text
@@ -228,7 +230,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           )}
 
           {/* ======================================================== */}
-          {/* PASO 3: EXPLICACIÓN EN VIDEO                             */}
+          {/* PASO 3: EXPLICACIÓN EN VIDEO (hola_botito.mp4)           */}
           {/* ======================================================== */}
           {wizardStep === 3 && (
             <View style={styles.contentCardStep3}>
@@ -237,36 +239,44 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                 Te explicamos el paso a paso en este video:
               </Text>
 
-              {/* Reproductor de Video Vertical maximizando espacio */}
-              <View style={styles.videoWrapperVertical}>
+              {/* Reproductor vertical local con reproducción automática y botón de pantalla completa */}
+              <View style={styles.videoWrapperStep3}>
                 <View style={styles.videoContainerVertical}>
-                  {isPlaying ? (
-                    <YouTubePlayerView
-                      videoId={ONBOARDING_YOUTUBE_VIDEO_ID}
-                      style={styles.videoNativePlayer}
-                      onVideoEnd={() => setIsPlaying(false)}
-                      onVideoError={handleVideoError}
-                    />
-                  ) : (
-                    <>
-                      <TouchableOpacity
-                        style={styles.videoPlayCircle}
-                        onPress={handlePlayVideo}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={styles.videoPlayIcon}>▶</Text>
-                      </TouchableOpacity>
+                  <View style={styles.videoNativePlayer}>
+                    {!isFullscreen && (
+                      <SplashVideoView
+                        resourceName={ONBOARDING_VIDEO_RESOURCE}
+                        resizeMode="contain"
+                        muted={false}
+                        repeat
+                        paused={isPaused}
+                        style={styles.videoNativePlayer}
+                      />
+                    )}
+                  </View>
 
-                      <View style={styles.videoBotitoContainer} pointerEvents="none">
-                        <AnimatedBotMascot
-                          mood="feliz"
-                          size={112}
-                          restartKey={wizardStep}
-                          accessibilityLabel="Botito feliz invitándote a ver el video"
-                        />
+                  <Pressable
+                    style={styles.videoTapOverlay}
+                    onPress={handleTogglePause}
+                    accessibilityRole="button"
+                    accessibilityLabel={isPaused ? 'Reproducir video' : 'Pausar video'}
+                  >
+                    {isPaused && (
+                      <View style={styles.videoPlayCircle}>
+                        <Text style={styles.videoPlayIcon}>▶</Text>
                       </View>
-                    </>
-                  )}
+                    )}
+                  </Pressable>
+
+                  <TouchableOpacity
+                    style={styles.fullscreenCornerButton}
+                    onPress={handleOpenFullscreen}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel="Ver video en pantalla completa"
+                  >
+                    <Text style={styles.fullscreenCornerIcon}>⛶</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -274,25 +284,68 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         </View>
       </ScrollView>
 
+      {/* Modal de reproducción en pantalla completa para el video del Paso 3 */}
+      <Modal
+        visible={wizardStep === 3 && isFullscreen}
+        animationType="fade"
+        statusBarTranslucent
+        supportedOrientations={['portrait', 'landscape']}
+        onRequestClose={handleCloseFullscreen}
+      >
+        <View style={styles.fullscreenModalContainer}>
+          <StatusBar
+            hidden={isFullscreen}
+            translucent
+            backgroundColor="#000000"
+            barStyle="light-content"
+          />
+
+          <SplashVideoView
+            resourceName={ONBOARDING_VIDEO_RESOURCE}
+            resizeMode="contain"
+            muted={false}
+            repeat
+            paused={isPaused}
+            style={StyleSheet.absoluteFill}
+          />
+
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={handleTogglePause}
+            accessibilityRole="button"
+            accessibilityLabel={isPaused ? 'Reproducir video' : 'Pausar video'}
+          >
+            {isPaused && (
+              <View style={styles.fullscreenPlayOverlay}>
+                <View style={styles.videoPlayCircle}>
+                  <Text style={styles.videoPlayIcon}>▶</Text>
+                </View>
+              </View>
+            )}
+          </Pressable>
+
+          <TouchableOpacity
+            style={styles.fullscreenCloseButton}
+            onPress={handleCloseFullscreen}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar pantalla completa"
+          >
+            <Text style={styles.fullscreenCloseText}>✕ Cerrar</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
       {/* ======================================================== */}
       {/* RODAPÉ DE LA TELA (FOOTER) - BOTONES DE ACCIÓN DEL APP   */}
       {/* ======================================================== */}
       <View style={styles.footerContainer}>
         {wizardStep === 1 && (
           <View style={styles.dualButtonContainer}>
-            <View style={styles.buttonSpacerStep1}>
-              <View style={styles.botitoFloatingBottomLeft} pointerEvents="none">
-                <AnimatedBotMascot
-                  mood="feliz"
-                  size={112}
-                  restartKey={wizardStep}
-                  accessibilityLabel="Botito feliz dándote la bienvenida"
-                />
-              </View>
-            </View>
+            <View style={styles.buttonSpacer} />
             <TouchableOpacity
               style={styles.primaryButtonHalf}
-              onPress={() => setWizardStep(2)}
+              onPress={() => handleGoToStep(2)}
               activeOpacity={0.85}
             >
               <Text style={styles.primaryButtonText}>Continuar</Text>
@@ -304,7 +357,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           <View style={styles.dualButtonContainer}>
             <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={() => setWizardStep(1)}
+              onPress={() => handleGoToStep(1)}
               activeOpacity={0.85}
             >
               <Text style={styles.secondaryButtonText}>Volver</Text>
@@ -312,7 +365,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
             <TouchableOpacity
               style={styles.primaryButtonHalf}
-              onPress={() => setWizardStep(3)}
+              onPress={() => handleGoToStep(3)}
               activeOpacity={0.85}
             >
               <Text style={styles.primaryButtonText}>Continuar</Text>
@@ -324,10 +377,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           <View style={styles.dualButtonContainer}>
             <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={() => {
-                setIsPlaying(false);
-                setWizardStep(2);
-              }}
+              onPress={() => handleGoToStep(2)}
               activeOpacity={0.85}
             >
               <Text style={styles.secondaryButtonText}>Volver</Text>
@@ -336,7 +386,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
             <TouchableOpacity
               style={styles.primaryButtonHalf}
               onPress={() => {
-                setIsPlaying(false);
+                setIsFullscreen(false);
+                setIsPaused(false);
                 onComplete();
               }}
               activeOpacity={0.85}

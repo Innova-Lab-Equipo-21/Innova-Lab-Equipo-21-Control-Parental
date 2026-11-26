@@ -83,9 +83,18 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
 
   const isPermissionsEnabled = isSelf || isActive;
 
-  // Título del dispositivo: "Nombre" (ej. "Mateo", "Cesar", "Tutor Responsable")
+  const isPlaceholderSelfName = (name?: string | null) => {
+    const normalized = (name || '').trim().toLowerCase();
+    return !normalized || normalized === 'yo' || normalized === 'tutor responsable';
+  };
+
+  // Título del dispositivo: nombre real de la persona responsable o del protegido
   const deviceTitle = isSelf
-    ? (device.childName || 'Tutor Responsable')
+    ? (
+        (!isPlaceholderSelfName(device.childName) ? device.childName?.trim() : '') ||
+        (!isPlaceholderSelfName(device.deviceName) ? device.deviceName?.trim() : '') ||
+        ''
+      )
     : (device.childName || device.deviceName?.replace(/^.*?\((.*?)\)$/, '$1') || device.deviceName || 'Protegido');
 
   return (

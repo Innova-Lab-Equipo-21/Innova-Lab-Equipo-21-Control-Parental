@@ -20,14 +20,14 @@ export const LegalSection: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionHeader}>Información legal y valoración</Text>
+      <Text style={styles.sectionHeader}>Información legal</Text>
 
       <TouchableOpacity
         style={styles.legalItem}
         onPress={() => setShowTerms(true)}
         activeOpacity={0.8}
       >
-        <Text style={styles.legalItemText}>📄 Términos y condiciones</Text>
+        <Text style={styles.legalItemText}>Términos y condiciones</Text>
         <Text style={styles.legalArrow}>➔</Text>
       </TouchableOpacity>
 
@@ -36,16 +36,18 @@ export const LegalSection: React.FC = () => {
         onPress={() => setShowPrivacy(true)}
         activeOpacity={0.8}
       >
-        <Text style={styles.legalItemText}>🔒 Política de privacidad (Ley N° 25.326)</Text>
+        <Text style={styles.legalItemText}>Políticas de privacidad</Text>
         <Text style={styles.legalArrow}>➔</Text>
       </TouchableOpacity>
+
+      <Text style={styles.sectionHeader}>Dejanos tu opinión</Text>
 
       <TouchableOpacity
         style={styles.legalItem}
         onPress={() => setShowRating(true)}
         activeOpacity={0.8}
       >
-        <Text style={styles.legalItemText}>⭐ Evaluar la aplicación</Text>
+        <Text style={styles.legalItemText}>Calificar la aplicación</Text>
         <Text style={styles.legalArrow}>➔</Text>
       </TouchableOpacity>
 

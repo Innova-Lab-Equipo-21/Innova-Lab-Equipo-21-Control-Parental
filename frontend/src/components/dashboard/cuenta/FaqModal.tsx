@@ -6,7 +6,7 @@
 //              y respuestas sobre el funcionamiento de BA Protege+.
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -30,39 +30,79 @@ interface FaqItem {
 
 const FAQS: FaqItem[] = [
   {
-    question: '1. ¿Qué es BA Protege+ y cómo protege a los menores?',
+    question: '¿Qué es BA Protege + y cómo protege a las personas?',
     answer:
-      'Es la plataforma oficial del Gobierno de la Ciudad de Buenos Aires y LOTBA S.E. diseñada para prevenir la ludopatía digital infantil y juvenil. Bloquea el acceso a plataformas clandestinas y no autorizadas de apuestas mediante filtrado VPN local continuo.',
+      'Es una aplicación gratuita desarrollada en conjunto por el Gobierno de la Ciudad de Buenos Aires y la Lotería de la Ciudad (LOTBA) para proteger a las personas contra los sitios y apps de juegos y apuestas ilegales. Permite recibir avisos ante intentos de acceso a sitios y apps no autorizados por LOTBA, crear listas personalizadas de bloqueos y administrar tiempos de uso en las aplicaciones.',
   },
   {
-    question: '2. ¿Cómo se vincula un dispositivo protegido?',
-    answer:
-      'Desde la pestaña "Dispositivos" o "Inicio", tocá en "Vincular dispositivo". Podés escanear el código QR con el celular del menor o ingresar manualmente el código PIN numérico de 6 dígitos generado en pantalla.',
+    question: '¿La aplicación tiene algún costo?',
+    answer: 'No, BA Protege + es gratuita y de acceso libre.',
   },
   {
-    question: '3. ¿Cómo funciona la autoprotección de 24 horas?',
+    question: '¿En qué dispositivos se puede usar la aplicación?',
     answer:
-      'El modo autoprotección establece una protección preventiva directamente en este dispositivo con un período obligatorio de reflexión de 24 horas antes de permitir su desactivación, evitando decisiones impulsivas.',
+      'Funciona en sistemas operativos Android con versión 8.0 (Oreo) y las siguientes, tanto en celulares como en tablets.',
   },
   {
-    question: '4. ¿Por qué se requieren permisos de VPN y accesibilidad?',
+    question: '¿Qué significa “Proteger otro dispositivo”?',
     answer:
-      '• Servicio VPN: Crea un túnel seguro estrictamente local para interceptar y bloquear dominios de apuestas ilegales sin transmitir tus datos a servidores externos.\n• Accesibilidad: Previene que la aplicación sea cerrada por la fuerza o desinstalada sin la clave PIN del adulto responsable.',
+      'Que podés vincular el celular o la tablet de otra persona mediante un código QR o PIN para bloquear sitios de juegos y apuestas ilegales no autorizados por LOTBA, crear listas personalizadas de bloqueos, administrar tiempos de uso de las aplicaciones y recibir avisos de intentos de evasión de los bloqueos.',
   },
   {
-    question: '5. ¿Qué hacer si un sitio legítimo es bloqueado por error?',
+    question: '¿Qué significa “Ejercer autoprotección”?',
     answer:
-      'Podés reportarlo enviándonos un correo con la dirección web o aplicación a baprotegemas@gmail.com para que nuestro equipo técnico y legal lo evalúe y actualice las listas de excepción.',
+      'Que podés agregar sitios para bloquear y administrar el tiempo de uso de las aplicaciones en tu dispositivo para cuidar tu propio bienestar digital, con funcionalidades pensadas para evitar cambios impulsivos o sin intención. Por ejemplo, si restringís un sitio nuevo o establecés un límite de tiempo para usar una aplicación, no vas a poder cambiarlo hasta dentro de 24 horas.',
   },
   {
-    question: '6. ¿Dónde puedo solicitar soporte adicional?',
+    question: '¿Cómo funciona la autoprotección de 24 horas?',
     answer:
-      'Escribinos en cualquier momento a baprotegemas@gmail.com o comunicate con la línea de atención ciudadana 147 del Gobierno de la Ciudad de Buenos Aires.',
+      'Cuando agregás a tu lista personalizada de bloqueos un sitio nuevo o establecés un tiempo de uso de una aplicación, tenés que esperar un día para desbloquearlos. Esto es para evitar que haya cambios impulsivos y que la autoprotección sea efectiva.',
+  },
+  {
+    question: '¿Cómo se vinculan las cuentas de las personas responsables y protegidas?',
+    answer:
+      'La vinculación de los dispositivos de ambos perfiles se realiza una sola vez. La persona responsable carga los datos de la persona protegida y la app genera un código QR y un PIN de 6 dígitos. Para vincular ambas cuentas, hay que escanear el QR o ingresar el PIN en el dispositivo protegido.',
+  },
+  {
+    question: '¿Qué sitios se bloquean automáticamente al instalar la aplicación?',
+    answer:
+      'BA Protege + bloquea de forma preventiva y automática los sitios de juegos y apuestas ilegales que no están autorizados por LOTBA, es decir, aquellos que no terminan en “.bet.ar”. Además, permite agregar otros sitios a una lista personalizada de bloqueos y administrar el tiempo de uso de las aplicaciones.',
+  },
+  {
+    question: '¿Para qué es el permiso “Protección antidesinstalación”?',
+    answer:
+      'Para evitar que la aplicación se elimine por error o sin autorización, y que vos y los tuyos sigan protegidos contra los sitios y las apps de juegos y apuestas ilegales.',
+  },
+  {
+    question: '¿Para qué es el permiso “Filtro para bloquear sitios no seguros”?',
+    answer:
+      'Para restringir de forma preventiva los sitios y apps de juegos y apuestas ilegales no autorizados por LOTBA y los que agregues a tu lista personalizada.',
+  },
+  {
+    question: '¿Qué pasa si una persona protegida intenta desinstalar la app?',
+    answer:
+      'La aplicación cuenta con una protección antidesinstalación para evitar que se elimine por error o sin autorización. Además, envía un aviso ante un intento de desinstalación.',
+  },
+  {
+    question: '¿La aplicación accede a chats, fotos o mensajes privados?',
+    answer:
+      'Para nada. Solamente detecta a qué sitios web intenta conectarse el celular para impedir el acceso a sitios de juegos y apuestas ilegales no autorizados por LOTBA o aquellos que estén en la lista personalizada de bloqueos. La aplicación no está diseñada para leer mensajes, fotos, audios ni correos privados.',
+  },
+  {
+    question: '¿Qué hacer si un sitio legítimo es bloqueado por error?',
+    answer:
+      'Si un sitio o app legítimo queda restringido por error, podés escribirnos a baprotegemas@gmail.com y te responderemos enseguida.',
   },
 ];
 
 export const FaqModal: React.FC<FaqModalProps> = ({ visible, onClose }) => {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
+
+  useEffect(() => {
+    if (visible) {
+      setExpandedIndex(0);
+    }
+  }, [visible]);
 
   const toggleFaq = (index: number) => {
     setExpandedIndex(expandedIndex === index ? null : index);
@@ -92,7 +132,7 @@ export const FaqModal: React.FC<FaqModalProps> = ({ visible, onClose }) => {
           <View style={legalStyles.bottomSheetHandle} />
 
           <View style={legalStyles.legalModalHeader}>
-            <Text style={legalStyles.legalModalTitle}>Preguntas frecuentes (FAQ)</Text>
+            <Text style={legalStyles.legalModalTitle}>Preguntas frecuentes</Text>
             <TouchableOpacity
               onPress={onClose}
               style={legalStyles.legalModalCloseBtn}

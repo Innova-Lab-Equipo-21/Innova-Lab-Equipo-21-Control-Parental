@@ -1,17 +1,15 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Componente: SplashScreen (Pantalla de Apertura con Video Vertical y Logo)
+// Componente: SplashScreen (Pantalla de Apertura con Video Centrado)
 // Archivo: src/components/SplashScreen.tsx
-// Descripción: Pantalla de abertura del app que reproduce el video vertical
-//              hola_botito.mp4 a pantalla completa con logo_baprotege.png
-//              centrado en la parte superior y transición suave de salida.
+// Descripción: Pantalla de abertura del app que reproduce únicamente el video
+//              apertura.mp4 centrado con márgenes delicados sin invadir los bordes
+//              y transición suave de salida.
 // ==============================================================================
 
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   Animated,
-  Image,
-  Platform,
   StatusBar,
   StyleSheet,
   View,
@@ -22,15 +20,13 @@ interface SplashScreenProps {
   onFinish: () => void;
 }
 
-const SPLASH_VIDEO_RESOURCE = 'hola_botito';
-const FALLBACK_TIMEOUT_MS = 8500;
+const SPLASH_VIDEO_RESOURCE = 'apertura';
+const FALLBACK_TIMEOUT_MS = 11500;
 const ERROR_FALLBACK_DELAY_MS = 1800;
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const containerOpacity = useRef(new Animated.Value(1)).current;
   const videoOpacity = useRef(new Animated.Value(0)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoTranslateY = useRef(new Animated.Value(-12)).current;
 
   const hasFinishedRef = useRef<boolean>(false);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,20 +55,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   }, [containerOpacity, onFinish]);
 
   useEffect(() => {
-    // Entrada suave del logotipo centrado en la parte superior
-    Animated.parallel([
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoTranslateY, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
     // Respaldo de seguridad para garantizar que la pantalla siempre avance
     fallbackTimerRef.current = setTimeout(() => {
       finishSplash();
@@ -86,7 +68,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         clearTimeout(errorTimerRef.current);
       }
     };
-  }, [finishSplash, logoOpacity, logoTranslateY]);
+  }, [finishSplash]);
 
   const handleVideoReady = useCallback(() => {
     Animated.timing(videoOpacity, {
@@ -115,32 +97,18 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         barStyle="dark-content"
       />
 
-      {/* Video vertical de abertura a pantalla completa */}
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: videoOpacity }]}>
-        <SplashVideoView
-          resourceName={SPLASH_VIDEO_RESOURCE}
-          resizeMode="cover"
-          muted
-          repeat={false}
-          style={StyleSheet.absoluteFill}
-          onVideoReady={handleVideoReady}
-          onVideoEnd={handleVideoEnd}
-          onVideoError={handleVideoError}
-        />
-      </Animated.View>
-
-      {/* Logotipo oficial centrado en la parte superior */}
-      <View style={styles.topLogoOverlay} pointerEvents="none">
-        <Animated.View
-          style={{
-            opacity: logoOpacity,
-            transform: [{ translateY: logoTranslateY }],
-          }}
-        >
-          <Image
-            source={require('../assets/logo/logo_baprotege.png')}
-            style={styles.logoImage}
+      {/* Video de apertura centrado y proporcionado sin invadir los bordes */}
+      <View style={styles.videoCenterWrapper}>
+        <Animated.View style={[styles.videoFrame, { opacity: videoOpacity }]}>
+          <SplashVideoView
+            resourceName={SPLASH_VIDEO_RESOURCE}
             resizeMode="contain"
+            muted
+            repeat={false}
+            style={StyleSheet.absoluteFill}
+            onVideoReady={handleVideoReady}
+            onVideoEnd={handleVideoEnd}
+            onVideoError={handleVideoError}
           />
         </Animated.View>
       </View>
@@ -148,25 +116,22 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   );
 };
 
-const TOP_INSET = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 44;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  topLogoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: TOP_INSET + 28,
-    paddingHorizontal: 24,
+  videoCenterWrapper: {
+    flex: 1,
     alignItems: 'center',
-    zIndex: 2,
+    justifyContent: 'center',
+    paddingHorizontal: 48,
+    paddingVertical: 64,
   },
-  logoImage: {
-    width: 220,
-    height: 96,
+  videoFrame: {
+    width: '72%',
+    maxWidth: 280,
+    aspectRatio: 480 / 848,
+    overflow: 'hidden',
   },
 });

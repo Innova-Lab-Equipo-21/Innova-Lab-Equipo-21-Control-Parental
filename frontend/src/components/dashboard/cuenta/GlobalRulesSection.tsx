@@ -12,7 +12,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { ToggleSwitch } from '../../ToggleSwitch';
 import { FeedbackModal } from '../../FeedbackModal';
-import { getBotMascotImage } from '../protected/botAssets';
+import { BOTITO_ASSETS, getBotMascotImage } from '../protected/botAssets';
 import { SelfControlState } from '../../../types';
 import { styles } from './GlobalRulesSection.styles';
 
@@ -63,15 +63,15 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionHeader}>Reglas de protección global</Text>
+      <Text style={styles.sectionHeader}>Configuración de la protección</Text>
 
-      {/* 1. Bloqueo sitios LotBA (Inmutable / Siempre activo) */}
+      {/* 1. Bloqueo de sitios LOTBA (Inmutable / Siempre activo) */}
       <TouchableOpacity
         style={styles.ruleItem}
         activeOpacity={0.8}
         onPress={handleToggleLotba}
       >
-        <Text style={styles.ruleItemText}>🛡️ Bloqueo sitios LotBA</Text>
+        <Text style={styles.ruleItemText}>Bloqueo de sitios LOTBA</Text>
         <ToggleSwitch
           value={true}
           onValueChange={handleToggleLotba}
@@ -79,7 +79,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
         />
       </TouchableOpacity>
 
-      {/* 2. Antidesinstalación (Bloqueada en ON cuando Autoprotección está activa) */}
+      {/* 2. Protección antidesinstalación (Bloqueada en ON cuando Autoprotección está activa) */}
       <TouchableOpacity
         style={styles.ruleItem}
         activeOpacity={0.8}
@@ -91,7 +91,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
           }
         }}
       >
-        <Text style={styles.ruleItemText}>🔒 Antidesinstalación</Text>
+        <Text style={styles.ruleItemText}>Protección antidesinstalación</Text>
         <ToggleSwitch
           value={isAutoproteccionActive ? true : ruleUninstallProtection}
           onValueChange={(val) => {
@@ -118,7 +118,7 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
           activeOpacity={0.8}
           onPress={handleSelfControlPress}
         >
-          <Text style={styles.ruleItemText}>⏱️ Autoprotección</Text>
+          <Text style={styles.ruleItemText}>Autoprotección</Text>
           <ToggleSwitch
             value={isAutoproteccionActive}
             onValueChange={handleSelfControlPress}
@@ -137,16 +137,16 @@ export const GlobalRulesSection: React.FC<GlobalRulesSectionProps> = ({
           if (onOpenPermissions) onOpenPermissions();
         }}
       >
-        <Text style={styles.ruleItemText}>⚙️ Permisos</Text>
+        <Text style={styles.ruleItemText}>Permisos</Text>
         <Text style={styles.ruleArrow}>➔</Text>
       </TouchableOpacity>
 
       {/* Modal Estándar de Retroalimentación para Protección Obligatoria LOTBA */}
       <FeedbackModal
         visible={showLotbaModal}
-        imageSource={getBotMascotImage(profileType === 'CHILD' ? 'CHILD' : 'ADULT', 'pensando')}
+        imageSource={BOTITO_ASSETS.pensando}
         title="Protección obligatoria"
-        message="El bloqueo de sitios de apuestas no autorizadas por LOTBA es obligatorio y no puede desactivarse por normativa oficial."
+        message="Este bloqueo responde a una disposición oficial de LOTBA y permanece siempre activo para sitios y apps de apuestas ilegales."
         buttonText="Entendido"
         onClose={() => setShowLotbaModal(false)}
       />

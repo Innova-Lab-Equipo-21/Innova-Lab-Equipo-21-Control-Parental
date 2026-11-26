@@ -136,6 +136,7 @@ const updateProfileSchema = z.object({
         },
       ),
     phone: z.string().optional(),
+    currentPassword: z.string().optional(),
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
   }),
 });

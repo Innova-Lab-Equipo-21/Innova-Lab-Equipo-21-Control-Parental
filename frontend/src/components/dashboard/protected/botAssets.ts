@@ -14,13 +14,6 @@ import {
   getContextBotMood,
 } from '../../../utils/botMascots';
 
-export const BOTI_ASSETS: Record<BotMood, ImageSourcePropType> = {
-  feliz: require('../../../assets/icons/bot/adulto/boti_feliz.png'),
-  pensando: require('../../../assets/icons/bot/adulto/boti_pensando.png'),
-  nervioso: require('../../../assets/icons/bot/adulto/boti_nervioso.png'),
-  triste: require('../../../assets/icons/bot/adulto/boti_triste.png'),
-};
-
 export const BOTITO_ASSETS: Record<BotMood, ImageSourcePropType> = {
   feliz: require('../../../assets/icons/bot/menor/botito_feliz.png'),
   pensando: require('../../../assets/icons/bot/menor/botito_pensando.png'),
@@ -28,11 +21,13 @@ export const BOTITO_ASSETS: Record<BotMood, ImageSourcePropType> = {
   triste: require('../../../assets/icons/bot/menor/botito_triste.png'),
 };
 
+export const BOTI_ASSETS: Record<BotMood, ImageSourcePropType> = BOTITO_ASSETS;
+
 export function getBotMascotImage(
-  mode: ProtectedBotProfile,
+  _mode: ProtectedBotProfile,
   mood: BotMood
 ): ImageSourcePropType {
-  return mode === 'ADULT' ? BOTI_ASSETS[mood] : BOTITO_ASSETS[mood];
+  return BOTITO_ASSETS[mood];
 }
 
 export function getBotMascotImageForContext(

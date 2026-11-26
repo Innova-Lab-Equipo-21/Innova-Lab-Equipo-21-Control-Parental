@@ -210,7 +210,7 @@ export class AuthController {
         return;
       }
 
-      const { fullName, firstName, lastName, gender, birthDate, phone, password } = req.body;
+      const { fullName, firstName, lastName, gender, birthDate, phone, currentPassword, password } = req.body;
       const updatedUser = await authService.updateProfile(userId, {
         fullName,
         firstName,
@@ -218,6 +218,7 @@ export class AuthController {
         gender,
         birthDate,
         phone,
+        currentPassword,
         password,
       });
 

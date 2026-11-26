@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ImageSourcePropType } from 'react-native';
-import { getBotMascotImage } from '../botAssets';
+import { BOTITO_ASSETS, getBotMascotImage } from '../botAssets';
 import { protectionService } from '../../../../services/protection.service';
 import { apiService } from '../../../../services/api.service';
 
@@ -147,11 +147,11 @@ export function useAntiUninstallProtection({
           setRuleUninstallProtection(false);
           setFeedbackModal({
             visible: true,
-            imageSource: getBotMascotImage(mode, 'pensando'),
-            title: 'Servicio de accesibilidad',
+            imageSource: BOTITO_ASSETS.pensando,
+            title: 'Protección antidesinstalación',
             message:
-              'Para activar la protección antidesinstalación, es necesario habilitar el servicio de accesibilidad de BA Protege+ en los Ajustes del sistema. ¿Deseás abrir Ajustes ahora?',
-            buttonText: 'Abrir ajustes',
+              'Para activar este permiso, tenés que habilitar BA Protege + en los ajustes de accesibilidad de tu celular. ¿Querés hacer la configuración ahora?',
+            buttonText: 'Configurar',
             secondaryButtonText: 'Cancelar',
             onConfirm: async () => {
               setFeedbackModal((prev) => ({ ...prev, visible: false }));
@@ -163,6 +163,30 @@ export function useAntiUninstallProtection({
                   setRuleUninstallProtection(true);
                   await protectionService.setAntiUninstallEnabled(true);
                   onPermissionsChanged?.();
+                  setFeedbackModal({
+                    visible: true,
+                    imageSource: BOTITO_ASSETS.feliz,
+                    title: '¡Antidesinstalación activada con éxito!',
+                    message:
+                      'Ya está funcionando en tu celular la protección para que la aplicación no se cierre o se elimine por error.',
+                    buttonText: 'Entendido',
+                    onConfirm: () => {
+                      setFeedbackModal((prev) => ({ ...prev, visible: false }));
+                    },
+                  });
+                } else {
+                  setRuleUninstallProtection(false);
+                  setFeedbackModal({
+                    visible: true,
+                    imageSource: BOTITO_ASSETS.pensando,
+                    title: 'La antidesinstalación sigue desactivada',
+                    message:
+                      'Sin esta protección, la aplicación podría cerrarse o eliminarse por error. Podés activarla cuando quieras desde los ajustes del sistema.',
+                    buttonText: 'Entendido',
+                    onConfirm: () => {
+                      setFeedbackModal((prev) => ({ ...prev, visible: false }));
+                    },
+                  });
                 }
               } catch (err) {
                 console.warn('[ProtectedDevice] Error al abrir accesibilidad:', err);

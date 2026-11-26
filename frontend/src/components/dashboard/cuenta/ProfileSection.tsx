@@ -12,6 +12,7 @@ import { View, Text, Image, TouchableOpacity, ActivityIndicator } from 'react-na
 import { ActionButton } from '../../ActionButton';
 import { EditResponsibleModal } from './EditResponsibleModal';
 import { FeedbackModal } from '../../FeedbackModal';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { styles } from './ProfileSection.styles';
 import { signInWithGoogle, statusCodes } from '../../../services/googleAuth.service';
 import { apiService } from '../../../services/api.service';
@@ -46,6 +47,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
     icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
   }>({
@@ -55,9 +57,16 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   });
 
   /** Muestra un modal emergente de retroalimentación en la interfaz */
-  const showFeedback = (config: { icon?: string; title: string; message: string }) => {
+  const showFeedback = (config: {
+    icon?: string;
+    imageSource?: any;
+    title: string;
+    message: string;
+  }) => {
     setFeedbackModal({
       visible: true,
+      icon: undefined,
+      imageSource: undefined,
       ...config,
     });
   };
@@ -95,20 +104,19 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           });
         }
         showFeedback({
-          icon: '✅',
-          title: 'Vinculación exitosa',
-          message: 'Tu cuenta de BA Protege+ ha sido vinculada con Google exitosamente.',
+          imageSource: BOTITO_ASSETS.feliz,
+          title: '¡Cuenta de Google vinculada con éxito!',
+          message: 'A partir de ahora, podés ingresar a BA Protege + usando tu cuenta de Google.',
         });
       }
     } catch (error: any) {
       if (error?.code === statusCodes?.SIGN_IN_CANCELLED) {
         return;
       }
-      const msg = error.response?.data?.message || error.message || 'Error al vincular con Google.';
       showFeedback({
-        icon: '⚠️',
-        title: 'Error de vinculación',
-        message: msg,
+        imageSource: BOTITO_ASSETS.pensando,
+        title: 'No pudimos realizar la vinculación',
+        message: 'No se pudo conectar tu cuenta de Google en este momento. Podés probar de nuevo en unos minutos.',
       });
     } finally {
       setLinkingLoading(false);
@@ -118,10 +126,10 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   return (
     <View style={styles.profileCard}>
       <View style={styles.profileHeader}>
-        {/* Avatar con Imagen Beti y Color Específico (Azul para Responsable) */}
+        {/* Avatar con Imagen Botito y Color Específico (Azul para Responsable) */}
         <View style={[styles.profileAvatarContainer, { backgroundColor: userColor }]}>
           <Image
-            source={require('../../../assets/icons/bot/beti.png')}
+            source={require('../../../assets/icons/bot/menor/botito_feliz.png')}
             style={styles.avatarImage}
             resizeMode="contain"
           />
@@ -133,16 +141,13 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           {telefono ? <Text style={styles.profilePhone}>{telefono}</Text> : null}
           <View style={styles.roleBadgeContainer}>
             <View style={[styles.roleBadge, { backgroundColor: userColor }]}>
-              <Text style={styles.roleBadgeText}>RESPONSABLE</Text>
-            </View>
-            <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedBadgeText}>✓ Verificado (+18)</Text>
+              <Text style={styles.roleBadgeText}>Persona responsable</Text>
             </View>
           </View>
         </View>
       </View>
 
-      {/* Acciones del Responsable en la misma línea: Editar perfil + Vincular Google */}
+      {/* Acciones del Responsable en la misma línea: Editar perfil + Vincular con Google */}
       {isResponsible && (
         <View style={styles.actionsRow}>
           <View style={{ flex: 1 }}>
@@ -159,13 +164,13 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 activeOpacity={0.8}
                 onPress={() =>
                   showFeedback({
-                    icon: '✅',
+                    imageSource: BOTITO_ASSETS.feliz,
                     title: 'Cuenta vinculada',
                     message: `Tu cuenta se encuentra vinculada exitosamente con Google (${email}).`,
                   })
                 }
               >
-                <Text style={styles.googleLinkedButtonText}>✓ Vinculado con Google</Text>
+                <Text style={styles.googleLinkedButtonText}>Vinculado con Google</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -173,18 +178,16 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 activeOpacity={0.7}
                 onPress={handleLinkGoogle}
                 disabled={linkingLoading}
+                accessibilityLabel="Vincular con Google"
               >
                 {linkingLoading ? (
                   <ActivityIndicator size="small" color="#007AFF" />
                 ) : (
-                  <>
-                    <Image
-                      source={require('../../../assets/logo/logo_google.png')}
-                      style={styles.googleIconSmall}
-                      resizeMode="contain"
-                    />
-                    <Text style={styles.googleLinkButtonText}>Vincular Google</Text>
-                  </>
+                  <Image
+                    source={require('../../../assets/logo/logo_google.png')}
+                    style={styles.googleLogoOnly}
+                    resizeMode="contain"
+                  />
                 )}
               </TouchableOpacity>
             )}
@@ -199,23 +202,39 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         onClose={() => setIsEditing(false)}
         onSave={async (updated) => {
           try {
-            const res = await apiService.updateProfile({
+            const payload: any = {
               fullName: updated.fullName,
               firstName: updated.firstName,
               lastName: updated.lastName,
               gender: updated.gender,
               birthDate: updated.birthDate,
               phone: updated.phone,
-              password: updated.password,
-            });
-            const savedUser = res?.data ? { ...updated, ...res.data } : updated;
+            };
+            if (updated.password) {
+              payload.currentPassword = updated.currentPassword;
+              payload.password = updated.password;
+            }
+            const res = await apiService.updateProfile(payload);
+            const savedUser: any = res?.data
+              ? {
+                  ...updated,
+                  ...res.data,
+                  firstName: updated.firstName,
+                  lastName: updated.lastName,
+                  birthDate: updated.birthDate,
+                  gender: updated.gender,
+                  phone: updated.phone,
+                }
+              : { ...updated };
+            delete savedUser.currentPassword;
+            delete savedUser.password;
             if (onUpdateUser) {
               onUpdateUser(savedUser);
             }
             showFeedback({
-              icon: '✅',
-              title: 'Perfil actualizado',
-              message: 'Los datos del responsable han sido actualizados exitosamente.',
+              imageSource: BOTITO_ASSETS.feliz,
+              title: '¡Tu perfil se actualizó con éxito!',
+              message: 'Guardamos los cambios que realizaste.',
             });
           } catch (err: any) {
             throw err;
@@ -227,6 +246,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       <FeedbackModal
         visible={feedbackModal.visible}
         icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
         buttonText="Entendido"

@@ -118,13 +118,12 @@ class BlockedScreenActivity : AppCompatActivity() {
             (btnUnderstood.layoutParams as? android.widget.LinearLayout.LayoutParams)?.marginStart = 0
         }
 
-        // 1. Configurar Mascota (Botito para Menor, Boti para Adulto y Responsable)
+        // 1. Configurar Mascota (Botito unificado para todos los perfiles)
         val isMenor = (userMode == "CHILD")
+        ivMascot.setImageResource(R.drawable.src_assets_icons_bot_menor_botito_feliz)
         if (isMenor) {
-            ivMascot.setImageResource(R.drawable.src_assets_icons_bot_menor_botito_feliz)
             tvBadge.text = "🛡️ Botito te cuida • BA Protege+"
         } else {
-            ivMascot.setImageResource(R.drawable.src_assets_icons_bot_adulto_boti_feliz)
             tvBadge.text = "🛡️ Boti te cuida • BA Protege+"
         }
 

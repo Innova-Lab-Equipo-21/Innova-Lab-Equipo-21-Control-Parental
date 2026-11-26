@@ -48,14 +48,6 @@ export const styles = StyleSheet.create({
     resizeMode: 'contain',
     tintColor: '#000000',
   },
-  screenTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#000000',
-    lineHeight: 28,
-    flex: 1,
-    letterSpacing: -0.3,
-  },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,

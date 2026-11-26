@@ -10,6 +10,44 @@ import { StyleSheet } from 'react-native';
 import { analyticsPalette as palette } from '../palette';
 
 export const styles = StyleSheet.create({
+  embeddedCard: {
+    backgroundColor: palette.offWhite,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 8,
+  },
+
+  headerTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: palette.textMain,
+    flex: 1,
+  },
+
+  chevron: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: palette.lotbaBlue,
+    paddingLeft: 4,
+  },
+
+  expandedContent: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: palette.cardBorder,
+  },
+
   barContainer: {
     width: '100%',
     height: 12,

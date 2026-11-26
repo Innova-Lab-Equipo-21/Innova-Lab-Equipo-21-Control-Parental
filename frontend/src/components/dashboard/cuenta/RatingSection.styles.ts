@@ -64,17 +64,25 @@ export const styles = StyleSheet.create({
   starActive: {
     color: '#FFC107',
   },
-  /** Color gris atenuado para estrellas inactivas */
+  /** Color gris para estrellas inactivas */
   starInactive: {
-    color: '#E4E5E7',
+    color: '#CBD5E1',
   },
-  /** Texto indicador del número de estrellas seleccionadas (e.g. "5 de 5 estrellas") */
+  /** Texto indicador del número de estrellas seleccionadas (e.g. "0 de 5 estrellas") */
   ratingText: {
     fontSize: 12,
     fontWeight: '700',
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 12,
+  },
+  /** Mensaje de validación cuando el usuario intenta enviar sin elegir estrellas */
+  ratingErrorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#DC2626',
+    textAlign: 'center',
+    marginBottom: 10,
   },
   /** Etiqueta sobre el cuadro de entrada de comentarios */
   inputLabel: {
@@ -83,7 +91,7 @@ export const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: 4,
   },
-  /** Caja TextInput multiladínea para comentarios y sugerencias del usuario */
+  /** Caja TextInput multilínea para comentarios y sugerencias del usuario */
   textInput: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -96,5 +104,21 @@ export const styles = StyleSheet.create({
     height: 70,
     textAlignVertical: 'top',
     marginBottom: 8,
+  },
+  /** Contenedor de los bloques informativos + botones de acción */
+  ctaGroup: {
+    marginTop: 14,
+    marginBottom: 8,
+    gap: 14,
+  },
+  /** Bloque individual con texto introductorio y botón CTA */
+  ctaBlock: {
+    gap: 6,
+  },
+  /** Texto descriptivo sobre cada botón de acción */
+  ctaHelperText: {
+    fontSize: 12.5,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
 });

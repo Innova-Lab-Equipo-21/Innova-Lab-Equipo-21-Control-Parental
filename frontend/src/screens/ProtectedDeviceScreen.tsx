@@ -163,11 +163,11 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
             accessibilityLabel="BA Protege +"
           />
         </View>
-        <View style={styles.modeBadge}>
-          <Text style={styles.modeBadgeText}>
-            {mode === 'CHILD' ? '👦 PERFIL MENOR' : '👤 PERFIL ADULTO'}
-          </Text>
-        </View>
+        {mode === 'CHILD' && (
+          <View style={styles.modeBadge}>
+            <Text style={styles.modeBadgeText}>👦 PERFIL MENOR</Text>
+          </View>
+        )}
       </View>
 
       {/* Subheaders contextuales por pestaña */}

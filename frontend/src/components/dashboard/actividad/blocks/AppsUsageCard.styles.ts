@@ -10,6 +10,28 @@ import { StyleSheet } from 'react-native';
 import { analyticsPalette as palette } from '../palette';
 
 export const styles = StyleSheet.create({
+  accordionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 4,
+  },
+
+  accordionTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: palette.textMain,
+    flex: 1,
+  },
+
+  chevron: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: palette.lotbaBlue,
+    paddingLeft: 4,
+  },
+
   kpiLabel: {
     fontSize: 12.5,
     fontWeight: '800',
@@ -233,5 +255,61 @@ export const styles = StyleSheet.create({
     color: palette.textMuted,
     textAlign: 'center',
     lineHeight: 16,
+  },
+
+  narrativeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: palette.textSubtle,
+    lineHeight: 18,
+  },
+
+  carouselSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: palette.cardBorder,
+  },
+
+  carouselContent: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+
+  carouselCard: {
+    backgroundColor: palette.offWhite,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+  },
+
+  carouselCardSingle: {
+    width: '100%',
+  },
+
+  carouselCardActive: {
+    borderColor: palette.lotbaBlueBorder,
+  },
+
+  dotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: palette.cardBorder,
+  },
+
+  dotActive: {
+    width: 16,
+    backgroundColor: palette.lotbaBlue,
   },
 });

@@ -12,9 +12,10 @@
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, Image } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { FeedbackModal } from '../../FeedbackModal';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { SelfControlState } from '../../../types';
 import { styles } from './AutocontrolConfirmationModal.styles';
 
@@ -98,7 +99,11 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
         if (activateStep === 1) {
           return (
             <View>
-              <Text style={styles.modalEmoji}>🛡️</Text>
+              <Image
+                source={BOTITO_ASSETS.pensando}
+                style={styles.modalMascotImage}
+                resizeMode="contain"
+              />
               <Text style={styles.modalTitle}>Confirmación 1 de 2: Autoprotección</Text>
               <Text style={styles.modalBody}>
                 La función de autoprotección bloquea deshabilitar, editar o eliminar sitios y aplicaciones en tu propio dispositivo.
@@ -131,7 +136,11 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
 
         return (
           <View>
-            <Text style={styles.modalEmoji}>⚠️</Text>
+            <Image
+              source={BOTITO_ASSETS.nervioso}
+              style={styles.modalMascotImage}
+              resizeMode="contain"
+            />
             <Text style={styles.modalTitle}>Confirmación 2 de 2: Activar autoprotección</Text>
             <Text style={styles.modalBody}>
               ¿Confirmas activar la autoprotección en tu celular? No podrás desproteger sitios o apps bloqueadas en este dispositivo.
@@ -172,7 +181,11 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
         );
         return (
           <View>
-            <Text style={styles.modalEmoji}>⏳</Text>
+            <Image
+              source={BOTITO_ASSETS.nervioso}
+              style={styles.modalMascotImage}
+              resizeMode="contain"
+            />
             <Text style={styles.modalTitle}>Autoprotección activa (bloqueada)</Text>
             <Text style={styles.modalBody}>
               La función de autoprotección está activa. Restan {timeText} de protección obligatoria antes de poder desactivarla.
@@ -201,7 +214,11 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
       case 'TEMPORARILY_UNLOCKED':
         return (
           <View>
-            <Text style={styles.modalEmoji}>🔓</Text>
+            <Image
+              source={BOTITO_ASSETS.pensando}
+              style={styles.modalMascotImage}
+              resizeMode="contain"
+            />
             <Text style={styles.modalTitle}>Desactivar autoprotección</Text>
             <Text style={styles.modalBody}>
               Pasaron las 24 horas requeridas de protección obligatoria. ¿Deseas desactivar la función de autoprotección ahora?
@@ -264,7 +281,7 @@ export const AutocontrolConfirmationModal: React.FC<AutocontrolConfirmationModal
       {/* Modal estándar de error */}
       <FeedbackModal
         visible={!!errorFeedback}
-        icon="⚠️"
+        imageSource={BOTITO_ASSETS.nervioso}
         title="Error"
         message={errorFeedback || ''}
         onClose={() => setErrorFeedback(null)}

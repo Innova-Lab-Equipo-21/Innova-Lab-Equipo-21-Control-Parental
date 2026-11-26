@@ -15,6 +15,10 @@ export const styles = StyleSheet.create({
     backgroundColor: palette.white,
   },
 
+  scroll: {
+    flex: 1,
+  },
+
   content: {
     paddingBottom: 20,
   },
@@ -23,7 +27,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 10,
     paddingHorizontal: 14,
-    paddingTop: 4,
+    paddingTop: 10,
   },
 
   dropdownsRow: {
@@ -34,11 +38,51 @@ export const styles = StyleSheet.create({
     zIndex: 20,
   },
 
+  filterLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: palette.textSubtle,
+    marginBottom: 4,
+    paddingLeft: 2,
+  },
+
   dropdownColDevice: {
     flex: 1,
   },
 
   dropdownColPeriod: {
     flex: 1,
+  },
+
+  accordionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  accordionHeaderRowCollapsed: {
+    marginBottom: 0,
+  },
+
+  accordionTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: palette.textMain,
+    lineHeight: 19,
+    flex: 1,
+  },
+
+  accordionChevron: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: palette.lotbaBlue,
+    paddingLeft: 4,
+  },
+
+  subblocksStack: {
+    flexDirection: 'column',
+    gap: 10,
   },
 });

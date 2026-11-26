@@ -129,7 +129,7 @@ export const useSitesManagement = ({
   const handleAddSite = async () => {
     if (!newSiteDomain.trim() || !isValidDomainOrUrl(newSiteDomain)) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Dominio inválido',
         message: 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet o https://...).',
       });
@@ -142,7 +142,7 @@ export const useSitesManagement = ({
     );
     if (isDuplicate) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Sitio ya bloqueado',
         message: 'Este sitio web ya está en tu lista de bloqueo.',
       });
@@ -151,7 +151,7 @@ export const useSitesManagement = ({
 
     if (!newSiteApplyToAll && newSiteDeviceIds.length === 0) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Dispositivo requerido',
         message: 'Selecciona al menos un dispositivo o activa la regla global.',
       });
@@ -178,7 +178,7 @@ export const useSitesManagement = ({
       });
     } catch (e: any) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error',
         message: e.message || 'No se pudo agregar el dominio.',
       });
@@ -218,7 +218,7 @@ export const useSitesManagement = ({
     const wasAppliedToSelf = appliesToSelf(editingSite);
     if (deviceId === 'self' && isAutocontrolActive && wasAppliedToSelf && editSiteDeviceIds.includes('self')) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.',
       });
@@ -240,7 +240,7 @@ export const useSitesManagement = ({
     if (!editingSite) return;
     if (!editSiteDomain.trim() || !isValidDomainOrUrl(editSiteDomain)) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Dominio inválido',
         message: 'Ingresa una dirección o dominio válido con extensión (ejemplo: casino-ilegal.bet).',
       });
@@ -253,7 +253,7 @@ export const useSitesManagement = ({
     );
     if (isDuplicate) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Sitio ya bloqueado',
         message: 'Ya existe otro sitio web bloqueado con este dominio.',
       });
@@ -262,7 +262,7 @@ export const useSitesManagement = ({
 
     if (!editSiteApplyToAll && editSiteDeviceIds.length === 0) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Dispositivo requerido',
         message: 'Selecciona al menos un dispositivo o activa la regla global.',
       });
@@ -272,7 +272,7 @@ export const useSitesManagement = ({
     const willApplyToSelf = editSiteApplyToAll || editSiteDeviceIds.includes('self');
     if (isAutocontrolActive && wasAppliedToSelf && !willApplyToSelf) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.',
       });
@@ -289,13 +289,13 @@ export const useSitesManagement = ({
       setEditingSite(null);
       onRefreshList();
       showFeedback({
-        icon: '✅',
-        title: 'Sitio actualizado',
-        message: 'Los cambios fueron guardados.',
+        imageSource: BOTITO_ASSETS.feliz,
+        title: '¡Sitio actualizado con éxito!',
+        message: 'Guardamos los cambios en tu lista de sitios bloqueados.',
       });
     } catch (e: any) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error',
         message: e.message || 'No se pudo actualizar el dominio.',
       });
@@ -308,7 +308,7 @@ export const useSitesManagement = ({
   const handleToggleSiteActive = async (site: CustomBlockedDomain) => {
     if (isAutocontrolActive && appliesToSelf(site) && site.isActive) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés deshabilitar ni pausar bloqueos aplicados a tu propio dispositivo mientras la autoprotección esté activa.',
       });
@@ -321,7 +321,7 @@ export const useSitesManagement = ({
       onRefreshList();
     } catch (e: any) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error',
         message: e.message || 'No se pudo cambiar el estado del bloqueo.',
       });
@@ -332,7 +332,7 @@ export const useSitesManagement = ({
   const handleDeleteSite = (site: CustomBlockedDomain) => {
     if (isAutocontrolActive && appliesToSelf(site)) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras la autoprotección esté activa.',
       });
@@ -373,7 +373,7 @@ export const useSitesManagement = ({
     });
     if (isAutocontrolActive && affectedSelf) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés pausar bloqueos aplicados a tu propio dispositivo mientras la autoprotección esté activa.',
       });
@@ -393,14 +393,14 @@ export const useSitesManagement = ({
     });
     if (isAutocontrolActive && affectedSelf) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés eliminar sitios web bloqueados para tu propio dispositivo mientras la autoprotección esté activa.',
       });
       return;
     }
     showFeedback({
-      icon: '🗑️',
+      imageSource: BOTITO_ASSETS.pensando,
       title: 'Eliminar sitios seleccionados',
       message: `¿Deseas eliminar permanentemente los ${selectedSiteIds.length} sitios seleccionados?`,
       buttonText: 'Eliminar todos',

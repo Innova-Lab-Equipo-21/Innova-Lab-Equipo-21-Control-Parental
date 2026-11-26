@@ -8,9 +8,10 @@
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, Image } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { FeedbackModal } from '../../FeedbackModal';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { DeviceInfo } from '../../../types';
 import { apiService } from '../../../services/api.service';
 import { styles } from './UnbindConfirmationModal.styles';
@@ -78,18 +79,17 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
 
           {unbindStep === 1 ? (
             <View>
-              <Text style={styles.modalEmoji}>🔗</Text>
+              <Image
+                source={BOTITO_ASSETS.pensando}
+                style={styles.modalMascotImage}
+                resizeMode="contain"
+              />
               <Text style={styles.modalTitle}>
-                Confirmación 1 de 2: Desvincular
+                ¿Querés desvincular el celular de {targetName} de tu cuenta?
               </Text>
               <Text style={styles.modalBody}>
-                ¿Deseas desvincular el celular de {targetName} de tu cuenta?
+                Al desvincularlo, dejarán de estar activos los bloqueos aplicados en su dispositivo.
               </Text>
-              <View style={styles.warningBox}>
-                <Text style={styles.warningBoxText}>
-                  ⚠️ El motor de protección de red local se desactivará en dicho celular y dejará de recibir bloqueos LOTBA.
-                </Text>
-              </View>
 
               <View style={styles.buttonsRow}>
                 <View style={styles.buttonCol}>
@@ -110,18 +110,17 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
             </View>
           ) : (
             <View>
-              <Text style={styles.modalEmoji}>⚠️</Text>
+              <Image
+                source={BOTITO_ASSETS.nervioso}
+                style={styles.modalMascotImage}
+                resizeMode="contain"
+              />
               <Text style={styles.modalTitle}>
-                Confirmación 2 de 2: Desvincular
+                ¿Confirmás la desvinculación?
               </Text>
               <Text style={styles.modalBody}>
-                ¿Confirmas eliminar permanentemente el celular de {targetName}?
+                Este dispositivo ya no estará en tu lista. Si más adelante necesitás vincularlo de nuevo, vas a poder hacerlo desde el botón +.
               </Text>
-              <View style={styles.warningBox}>
-                <Text style={styles.warningBoxText}>
-                  ⚠️ Esta acción es permanente. Para supervisar este celular en el futuro, deberás vincularlo nuevamente.
-                </Text>
-              </View>
 
               <View style={styles.buttonsRow}>
                 <View style={styles.buttonCol}>
@@ -149,7 +148,7 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
       {/* Modal estándar de error */}
       <FeedbackModal
         visible={!!errorMessage}
-        icon="⚠️"
+        imageSource={BOTITO_ASSETS.nervioso}
         title="Error al desvincular"
         message={errorMessage || ''}
         onClose={() => setErrorMessage(null)}

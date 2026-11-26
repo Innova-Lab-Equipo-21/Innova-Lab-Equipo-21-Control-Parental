@@ -895,6 +895,9 @@ class ProtectionModule(private val reactContext: ReactApplicationContext) :
                     putString("type", obj.optString("type"))
                     putString("target", obj.optString("target"))
                     putDouble("timestamp", obj.optLong("timestamp").toDouble())
+                    if (obj.has("isLotba")) {
+                        putBoolean("isLotba", obj.optBoolean("isLotba", false))
+                    }
                 }
                 result.pushMap(map)
             }

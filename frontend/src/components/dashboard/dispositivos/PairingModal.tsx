@@ -19,6 +19,7 @@ import { PairingSection, PairingFormData, PairingSectionRef } from './PairingSec
 import { DevicePairingCodeModal } from './DevicePairingCodeModal';
 import { ActionButton } from '../../ActionButton';
 import { FeedbackModal } from '../../FeedbackModal';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { apiService } from '../../../services/api.service';
 import { MAX_PROTECTED_DEVICES, DeviceInfo } from '../../../types';
 import { styles } from './PairingModal.styles';
@@ -43,7 +44,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
-    icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
   }>({
@@ -67,7 +68,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
       if (!dataToSave) {
         setFeedbackModal({
           visible: true,
-          icon: '⚠️',
+          imageSource: BOTITO_ASSETS.pensando,
           title: 'Atención',
           message: 'Por favor completa todos los datos requeridos del protegido.',
         });
@@ -94,7 +95,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
     } catch (e: any) {
       setFeedbackModal({
         visible: true,
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error',
         message: e.message || 'No se pudo guardar el dispositivo.',
       });
@@ -179,7 +180,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
         {/* Modal estándar de retroalimentación */}
         <FeedbackModal
           visible={feedbackModal.visible}
-          icon={feedbackModal.icon}
+          imageSource={feedbackModal.imageSource}
           title={feedbackModal.title}
           message={feedbackModal.message}
           asOverlay={true}

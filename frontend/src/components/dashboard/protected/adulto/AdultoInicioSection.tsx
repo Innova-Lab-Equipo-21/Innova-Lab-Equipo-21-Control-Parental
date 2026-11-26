@@ -5,7 +5,7 @@
 // Descripción: Pestaña Inicio del Modo Protegido Adulto que replica la estructura
 //              de Inicio del Modo Responsable adaptada al perfil protegido:
 //              1) Saludo dinámico según horario
-//              2) Bloque "DISPOSITIVO NO PROTEGIDO" / "ESTÁS PROTEGIDO" (verifica permisos)
+//              2) Bloque "Dispositivo no protegido" / "Dispositivo protegido" (verifica permisos)
 //              3) Bloque de Quiz diario (sin opción de repetir una vez completado)
 //              4) Bloques de Sitios y Apps bloqueados (respetando plurales)
 //              5) Bloque "Tiempo de uso de mis apps" con CTA hacia Actividad
@@ -20,6 +20,7 @@ import {
   Image,
 } from 'react-native';
 import { getQuizResultMood } from '../../../../utils/botMascots';
+import { colors } from '../../../../theme/colors';
 import { BOTI_ASSETS } from '../botAssets';
 import { styles } from './AdultoInicioSection.styles';
 
@@ -56,7 +57,6 @@ export interface AdultoInicioSectionProps {
 
 export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
   adultName,
-  tutorName = 'Ana',
   grantedCount = 6,
   customSitesCount = 0,
   blockedAppsCount = 0,
@@ -70,7 +70,7 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
   onNavigateToActivity,
   onOpenFaq,
 }) => {
-  // 1. Saludo dinámico conciso según hora del día
+  // 1. Saludo conciso (solo primer nombre, sin apodos largos, replicando Responsable)
   const getGreeting = (name?: string): string => {
     const hour = new Date().getHours();
     let prefix = 'Buenos días';
@@ -81,7 +81,7 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
     }
     const sanitized = (name || '').replace(/\(.*?\)/g, '').trim();
     const firstName = sanitized.split(' ')[0];
-    return firstName ? `${prefix}, ${firstName}` : prefix;
+    return firstName ? `¡${prefix}, ${firstName}!` : `¡${prefix}!`;
   };
 
   const greeting = getGreeting(adultName);
@@ -107,7 +107,7 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
       </Text>
 
       {/* ---------------------------------------------------------------------- */}
-      {/* SECCIÓN 1: BLOQUE DE ESTADO DE PERMISOS ("DISPOSITIVO NO PROTEGIDO")   */}
+      {/* SECCIÓN 1: BLOQUE DE ESTADO DE PERMISOS (RÉPLICA DE RESPONSABLE)       */}
       {/* ---------------------------------------------------------------------- */}
       <View
         style={[
@@ -120,7 +120,7 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
             source={require('../../../../assets/icons/escudo.png')}
             style={[
               styles.statusShieldIcon,
-              !isProtected && { tintColor: '#D97706' },
+              { tintColor: isProtected ? colors.primaryDark : '#D97706' },
             ]}
           />
           <View style={styles.statusTextCol}>
@@ -131,18 +131,17 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
               ]}
               numberOfLines={1}
             >
-              {isProtected ? 'ESTÁS PROTEGIDO' : 'DISPOSITIVO NO PROTEGIDO'}
+              {isProtected ? 'Dispositivo protegido' : 'Dispositivo no protegido'}
             </Text>
             <Text
               style={[
                 styles.statusSubtitle,
                 !isProtected && styles.statusSubtitleAlert,
               ]}
-              numberOfLines={2}
             >
               {isProtected
-                ? `Estás navegando de forma segura.\nVinculado con responsable: ${tutorName}`
-                : `${pendingCount} ${pendingCount === 1 ? 'permiso pendiente' : 'permisos pendientes'} por conceder.`}
+                ? 'Bloqueamos de forma automática sitios y aplicaciones de apuestas ilegales no autorizados por LOTBA. Estás navegando de forma segura.'
+                : `${pendingCount} ${pendingCount === 1 ? 'permiso pendiente' : 'permisos pendientes'} de activación.`}
             </Text>
           </View>
         </View>
@@ -174,16 +173,16 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
               resizeMode="contain"
             />
             <View style={styles.quizTextColumn}>
-              <Text style={styles.quizTitle}>¿HACEMOS UN QUIZ?</Text>
+              <Text style={styles.quizTitle}>¿Hacemos un juego de preguntas?</Text>
               <Text style={styles.quizSubtitle}>
-                Cuestionario diario de salud digital y toma de conciencia.
+                Poné a prueba tus conocimientos sobre los cuidados digitales de forma lúdica.
               </Text>
               <TouchableOpacity
                 style={styles.quizStartButton}
                 onPress={onOpenQuiz}
                 activeOpacity={0.85}
               >
-                <Text style={styles.quizStartButtonText}>Comenzar ➔</Text>
+                <Text style={styles.quizStartButtonText}>Empezar</Text>
               </TouchableOpacity>
             </View>
           </View>

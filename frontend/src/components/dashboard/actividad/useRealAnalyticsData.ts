@@ -7,7 +7,8 @@
 //              de Pasatiempos en el modelo de datos del Panel de Actividad.
 // ==============================================================================
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import {
   CustomBlockedApp,
   CustomBlockedDomain,
@@ -97,10 +98,15 @@ export function useRealAnalyticsData({
   >({});
   const [loading, setLoading] = useState<boolean>(false);
 
-  const loadData = async () => {
+  const loadDataRef = useRef<() => Promise<void>>(async () => {});
+
+  const loadData = useCallback(async () => {
     setLoading(true);
     const todayKey = getLocalDateKey();
     try {
+      // 0. Drenar primero los eventos de bloqueo capturados nativamente en Android
+      await protectionService.flushNativeBlockEventsToTelemetry('self').catch(() => 0);
+
       const [events, storedSecurityEvents, customRes, overview] = await Promise.all([
         apiService.getBlockedEvents().catch(() => []),
         apiService.getSecurityEvents().catch(() => []),
@@ -260,11 +266,25 @@ export function useRealAnalyticsData({
     } finally {
       setLoading(false);
     }
-  };
+  }, [devices, customSites.length, customApps, localApps]);
+
+  loadDataRef.current = loadData;
 
   useEffect(() => {
-    loadData();
+    loadDataRef.current();
   }, [devices.length, customApps.length]);
+
+  // Refrescar métricas reales (bloqueos nativos y uso de apps) al volver a primer plano
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        loadDataRef.current();
+      }
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (customSites.length > 0) setLocalSites(customSites);

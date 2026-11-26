@@ -111,10 +111,4 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  botitoContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
 });

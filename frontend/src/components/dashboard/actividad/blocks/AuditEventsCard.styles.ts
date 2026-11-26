@@ -11,6 +11,15 @@ import { colors } from '../../../../theme/colors';
 import { analyticsPalette as palette } from '../palette';
 
 export const styles = StyleSheet.create({
+  embeddedCard: {
+    backgroundColor: palette.offWhite,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+
   tabsWrap: {
     marginBottom: 8,
   },
@@ -21,6 +30,14 @@ export const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 10,
     zIndex: 20,
+  },
+
+  filterLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: palette.textSubtle,
+    marginBottom: 4,
+    paddingLeft: 2,
   },
 
   dropdownColList: {
@@ -38,12 +55,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingVertical: 7,
+    borderRadius: 9,
+    paddingVertical: 5,
     paddingHorizontal: 10,
-    minHeight: 42,
+    minHeight: 35,
   },
 
   triggerOpen: {
@@ -51,14 +68,14 @@ export const styles = StyleSheet.create({
   },
 
   triggerText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.textPrimary,
     flexShrink: 1,
   },
 
   chevron: {
-    fontSize: 11,
+    fontSize: 9,
     color: colors.primary,
     fontWeight: '700',
     paddingLeft: 4,
@@ -66,8 +83,8 @@ export const styles = StyleSheet.create({
 
   dropdownMenu: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
+    borderRadius: 9,
+    borderWidth: 1,
     borderColor: colors.primary,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -81,7 +98,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
@@ -96,7 +113,7 @@ export const styles = StyleSheet.create({
   },
 
   menuItemText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     color: colors.textPrimary,
     flexShrink: 1,
@@ -108,7 +125,7 @@ export const styles = StyleSheet.create({
   },
 
   checkmark: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
     marginLeft: 6,
@@ -183,5 +200,27 @@ export const styles = StyleSheet.create({
     fontSize: 10.5,
     color: palette.textMuted,
     marginTop: 1,
+  },
+
+  expandedScrollList: {
+    maxHeight: 690,
+  },
+
+  listToggleBtn: {
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: palette.lotbaBlueBorder,
+    backgroundColor: palette.lotbaBlueBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  listToggleBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: palette.lotbaBlueDark,
   },
 });

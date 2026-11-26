@@ -78,7 +78,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Modificá el dominio o la regla de asignación del sitio restringido.
+            Cambiá la dirección web o modificá en qué dispositivos aplicar el bloqueo.
           </Text>
 
           <ScrollView
@@ -87,7 +87,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 16 }}
           >
-            <Text style={styles.inputLabel}>Dominio o URL del sitio:</Text>
+            <Text style={styles.inputLabel}>Dirección del sitio o enlace:</Text>
             <TextInput
               style={[
                 styles.formInput,
@@ -107,7 +107,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
               <View style={isDomainValid ? styles.domainFeedbackValid : styles.domainFeedbackInvalid}>
                 <Text style={isDomainValid ? styles.domainFeedbackTextValid : styles.domainFeedbackTextInvalid}>
                   {isDomainValid
-                    ? `✓ Sitio válido (se filtrará: ${normalizedDomain})`
+                    ? `✓ ¡Listo! Se bloqueará ${normalizedDomain}`
                     : '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
                 </Text>
               </View>
@@ -137,7 +137,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
 
               {/* Listado siempre visible de dispositivos registrados */}
               <View style={styles.deviceListContainer}>
-                <Text style={styles.deviceListTitle}>Seleccioná los dispositivos:</Text>
+                <Text style={styles.deviceListTitle}>Elegí los dispositivos:</Text>
 
                 {/* Mi dispositivo (Responsable) */}
                 <TouchableOpacity

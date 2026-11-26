@@ -43,6 +43,13 @@ export const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 18,
   },
+  modalMascotImage: {
+    width: 78,
+    height: 78,
+    alignSelf: 'center',
+    marginBottom: 10,
+    marginTop: 2,
+  },
   modalEmoji: {
     fontSize: 32,
     textAlign: 'center',

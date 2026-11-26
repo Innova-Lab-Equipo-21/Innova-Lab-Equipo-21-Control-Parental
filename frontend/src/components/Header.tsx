@@ -104,6 +104,8 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 4,
     marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backIcon: {
     width: 22,
@@ -113,13 +115,16 @@ const styles = StyleSheet.create({
   },
   titleColumn: {
     flex: 1,
+    justifyContent: 'center',
   },
   screenTitle: {
     fontSize: 22,
     fontWeight: '800',
     color: '#000000',
-    lineHeight: 28,
+    lineHeight: 26,
     letterSpacing: -0.3,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   subtitle: {
     fontSize: 13,

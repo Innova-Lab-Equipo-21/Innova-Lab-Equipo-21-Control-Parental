@@ -38,7 +38,7 @@ export const BlockModal: React.FC<BlockModalProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
-    icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
     onConfirm?: () => void;
@@ -53,7 +53,7 @@ export const BlockModal: React.FC<BlockModalProps> = ({
     if (!trimmed) {
       setFeedbackModal({
         visible: true,
-        icon: '⚠️',
+        imageSource: BOTI_ASSETS.pensando,
         title: 'Campo requerido',
         message: `Por favor, ingresa el ${blockType === 'SITE' ? 'sitio web (ej: casino.com)' : 'nombre de la aplicación'}.`,
       });
@@ -70,7 +70,7 @@ export const BlockModal: React.FC<BlockModalProps> = ({
 
       setFeedbackModal({
         visible: true,
-        icon: '🔒',
+        imageSource: BOTI_ASSETS.feliz,
         title: 'Bloqueo registrado',
         message: `El ${blockType === 'SITE' ? 'sitio web' : 'aplicación'} "${trimmed}" ha sido agregado a tu lista de restricciones.\n\n⚠️ RECUERDA: Únicamente tu TUTOR RESPONSABLE podrá remover este bloqueo.`,
         onConfirm: () => {
@@ -81,7 +81,7 @@ export const BlockModal: React.FC<BlockModalProps> = ({
     } catch (e: any) {
       setFeedbackModal({
         visible: true,
-        icon: '⚠️',
+        imageSource: BOTI_ASSETS.nervioso,
         title: 'Error al bloquear',
         message: e.message || 'No se pudo registrar el bloqueo.',
       });
@@ -223,7 +223,7 @@ export const BlockModal: React.FC<BlockModalProps> = ({
       {/* Modal estándar de retroalimentación */}
       <FeedbackModal
         visible={feedbackModal.visible}
-        icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
         onConfirm={feedbackModal.onConfirm}

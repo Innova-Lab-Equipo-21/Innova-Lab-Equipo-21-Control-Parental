@@ -41,10 +41,10 @@
 
   // Rutas de las imágenes de Boti según emoción
   const BOTI_IMAGES = {
-    pensando: 'assets/img/boti_pensando.png',
-    feliz: 'assets/img/boti_feliz.png',
-    triste: 'assets/img/boti_triste.png',
-    nervioso: 'assets/img/boti_nervioso.png',
+    pensando: 'assets/img/botito_pensando.png',
+    feliz: 'assets/img/botito_feliz.png',
+    triste: 'assets/img/botito_triste.png',
+    nervioso: 'assets/img/botito_nervioso.png',
   };
 
   /**

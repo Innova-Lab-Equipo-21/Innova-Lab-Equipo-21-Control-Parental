@@ -16,7 +16,7 @@ import {
 import { Logo } from '../components/Logo';
 import { Icon } from '../components/Icon';
 import { FeedbackModal } from '../components/FeedbackModal';
-import { AnimatedBotMascot } from '../components/AnimatedBotMascot';
+import { BOTITO_ASSETS } from '../components/dashboard/protected/botAssets';
 import { colors } from '../theme/colors';
 import { AppMode } from '../types';
 import { styles } from './WelcomeScreen.styles';
@@ -103,21 +103,12 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <Text style={styles.actionBtnText}>Empezar</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Botito pensando animado centrado en el área inferior */}
-        <View style={styles.botitoContainer} pointerEvents="none">
-          <AnimatedBotMascot
-            mood="pensando"
-            size={120}
-            accessibilityLabel="Botito pensando en qué modo elegir"
-          />
-        </View>
       </ScrollView>
 
       {/* Modal estándar de alerta sobre decisión de Modo Responsable */}
       <FeedbackModal
         visible={showResponsibleAlertModal}
-        icon="⚠️"
+        imageSource={BOTITO_ASSETS.pensando}
         title="¿Confirmás tu decisión?"
         message={
           'Al actuar como persona responsable, vas a poder personalizar los bloqueos de sitios y apps.\n\nSi más adelante necesitás cambiar al otro modo, vas a tener que borrar los datos de la app desde los ajustes de tu celular.'

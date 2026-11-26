@@ -11,7 +11,7 @@ import { PermissionDefinition } from './types';
 export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: 'vpn',
-    title: 'Filtro para bloquear sitios y apps no seguros',
+    title: 'Filtro para bloquear sitios y apps',
     detailedText:
       'Activá este filtro para bloquear sitios y apps poco fiables. Tus datos privados quedarán protegidos en tu celular.',
     steps: [

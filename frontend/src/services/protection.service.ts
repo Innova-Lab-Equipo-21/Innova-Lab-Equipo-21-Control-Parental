@@ -530,14 +530,81 @@ export class ProtectionService {
     return Boolean(await ProtectionModule.syncProtectionRules(domains, apps, lotbaDomains));
   }
 
+  private flushBlockEventsPromise: Promise<number> | null = null;
+
   /**
    * Obtiene eventos de bloqueo capturados nativamente por el servicio de accesibilidad.
    */
-  public async getRecentBlockEvents(): Promise<Array<{ type: string; target: string; timestamp: number }>> {
+  public async getRecentBlockEvents(): Promise<
+    Array<{ type: string; target: string; timestamp: number; isLotba?: boolean }>
+  > {
     if (Platform.OS !== 'android' || !ProtectionModule || typeof ProtectionModule.getRecentBlockEvents !== 'function') {
       return [];
     }
     return ProtectionModule.getRecentBlockEvents();
+  }
+
+  /**
+   * Drena los eventos de bloqueo almacenados nativamente en Android (SharedPreferences)
+   * y los persiste/reporta en telemetría local y remota para reflejarlos en Actividad e Inicio.
+   */
+  public async flushNativeBlockEventsToTelemetry(
+    activeDeviceId: string = 'self',
+    lotbaDomains: string[] = []
+  ): Promise<number> {
+    if (this.flushBlockEventsPromise) {
+      return this.flushBlockEventsPromise;
+    }
+
+    const task = (async () => {
+      try {
+        const recentEvents = await this.getRecentBlockEvents();
+        if (!Array.isArray(recentEvents) || recentEvents.length === 0) {
+          return 0;
+        }
+
+        const normalizedLotba = lotbaDomains.map((d) => d.toLowerCase().trim());
+        let flushed = 0;
+
+        for (const ev of recentEvents) {
+          const target = (ev?.target || '').trim();
+          if (!target) continue;
+          const cleanTarget = target.toLowerCase();
+          const isApp = ev.type === 'APP';
+          const isLotba =
+            typeof ev.isLotba === 'boolean'
+              ? ev.isLotba
+              : !isApp &&
+                normalizedLotba.some(
+                  (d) => cleanTarget === d || cleanTarget.endsWith(`.${d}`)
+                );
+
+          try {
+            await apiService.reportBlockedEvent({
+              deviceUuid: activeDeviceId,
+              deviceId: activeDeviceId,
+              deviceName: activeDeviceId === 'self' ? 'Yo' : undefined,
+              attemptedDomain: target,
+              sourceListType: isLotba ? 'LOTBA' : 'CUSTOM',
+              itemType: isApp ? 'app' : 'site',
+              blockedAt: new Date(ev.timestamp || Date.now()).toISOString(),
+            });
+            flushed += 1;
+          } catch (_) {
+            // Continuar con los eventos restantes
+          }
+        }
+
+        return flushed;
+      } catch {
+        return 0;
+      } finally {
+        this.flushBlockEventsPromise = null;
+      }
+    })();
+
+    this.flushBlockEventsPromise = task;
+    return task;
   }
 
   /**
@@ -654,20 +721,7 @@ export class ProtectionService {
       await this.syncProtectionRules(customDomainsOnly, allBlockedApps, lotbaDomains);
 
       // 6. Consultar eventos de bloqueos capturados nativamente y reportarlos a telemetría
-      const recentEvents = await this.getRecentBlockEvents();
-      if (Array.isArray(recentEvents) && recentEvents.length > 0) {
-        for (const ev of recentEvents) {
-          try {
-            await apiService.reportBlockedEvent({
-              deviceUuid: activeDeviceId,
-              deviceId: activeDeviceId,
-              attemptedDomain: ev.target,
-              sourceListType: ev.type === 'APP' ? 'CUSTOM' : (lotbaDomains.includes(ev.target) ? 'LOTBA' : 'CUSTOM'),
-              blockedAt: new Date(ev.timestamp || Date.now()).toISOString(),
-            });
-          } catch (_) {}
-        }
-      }
+      await this.flushNativeBlockEventsToTelemetry(activeDeviceId, lotbaDomains);
 
       return true;
     } catch (err) {

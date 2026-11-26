@@ -14,6 +14,7 @@ import {
   AppState,
   Platform,
   PermissionsAndroid,
+  ImageSourcePropType,
 } from 'react-native';
 import { styles } from './PermissionsScreen.styles';
 import { FeedbackModal } from '../components/FeedbackModal';
@@ -31,7 +32,7 @@ import {
   saveDevicePermissions,
 } from '../utils/permissionChecker';
 import { saveNavigationState } from '../utils/navigationSession';
-import { getBotMascotImage } from '../components/dashboard/protected/botAssets';
+import { BOTITO_ASSETS, getBotMascotImage } from '../components/dashboard/protected/botAssets';
 import { BotMood } from '../utils/botMascots';
 import {
   PermissionItemState,
@@ -129,6 +130,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     title: string;
     message: string;
     mood?: BotMood;
+    imageSource?: ImageSourcePropType;
     buttonText?: string;
     secondaryButtonText?: string;
     onConfirm?: () => void;
@@ -136,7 +138,9 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   }) => {
     setFeedbackModal({
       visible: true,
-      imageSource: getBotMascotImage(protectedProfile || 'ADULT', options.mood || 'feliz'),
+      imageSource:
+        options.imageSource ??
+        getBotMascotImage(protectedProfile || 'ADULT', options.mood || 'feliz'),
       title: options.title,
       message: options.message,
       buttonText: options.buttonText || 'Entendido',
@@ -368,18 +372,18 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       if (result.granted) {
         updatePermission('accessibility', true);
         showFeedback({
+          imageSource: BOTITO_ASSETS.feliz,
           title: '¡Antidesinstalación activada con éxito!',
           message:
             'Ya está funcionando en tu celular la protección para que la aplicación no se cierre o se elimine por error.',
-          mood: 'feliz',
         });
       } else {
         updatePermission('accessibility', false);
         showFeedback({
+          imageSource: BOTITO_ASSETS.pensando,
           title: 'La antidesinstalación sigue desactivada',
           message:
             'Sin esta protección, la aplicación podría cerrarse o eliminarse por error. Podés activarla cuando quieras desde los ajustes del sistema.',
-          mood: 'nervioso',
         });
       }
     } finally {

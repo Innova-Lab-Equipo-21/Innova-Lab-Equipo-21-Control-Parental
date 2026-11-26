@@ -101,6 +101,11 @@ export function useProtectedDeviceData({
   const loadActivityUsageAndBlocks = useCallback(async () => {
     const todayKey = getLocalDateKey();
     try {
+      // Drenar eventos de bloqueo capturados nativamente antes de leer telemetría
+      await protectionService
+        .flushNativeBlockEventsToTelemetry(storageDeviceKey)
+        .catch(() => 0);
+
       const [remoteMetrics, localBlocked] = await Promise.all([
         apiService.getDeviceActivityMetrics(storageDeviceKey, todayKey).catch(() => null),
         apiService.getBlockedEvents().catch(() => []),
@@ -194,13 +199,14 @@ export function useProtectedDeviceData({
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
         refreshPermissions();
+        loadActivityUsageAndBlocks();
         onForegroundResume?.();
       }
     });
     return () => {
       subscription.remove();
     };
-  }, [refreshPermissions, onForegroundResume]);
+  }, [refreshPermissions, loadActivityUsageAndBlocks, onForegroundResume]);
 
   // Identificación del dispositivo protegido vinculado (Menor o Adulto)
   const matchedChildDevice = useMemo(

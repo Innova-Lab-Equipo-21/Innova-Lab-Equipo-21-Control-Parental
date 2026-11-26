@@ -167,7 +167,7 @@ export const useAppsManagement = ({
   const handleAddApp = async () => {
     if (!newAppName.trim()) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Campo requerido',
         message: 'Ingresa el nombre de la aplicación.',
       });
@@ -183,7 +183,7 @@ export const useAppsManagement = ({
     );
     if (isDuplicate) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Aplicación ya restringida',
         message: 'Esta aplicación ya está en tu lista de restricción.',
       });
@@ -192,7 +192,7 @@ export const useAppsManagement = ({
 
     if (!newAppApplyToAll && newAppDeviceIds.length === 0) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Dispositivo requerido',
         message: 'Selecciona al menos un dispositivo o activa la regla global.',
       });
@@ -232,7 +232,7 @@ export const useAppsManagement = ({
       });
     } catch (e: any) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error',
         message: e.message || 'No se pudo bloquear la aplicación.',
       });
@@ -283,7 +283,7 @@ export const useAppsManagement = ({
     const wasAppliedToSelf = appliesToSelf(editingApp);
     if (deviceId === 'self' && isAutocontrolActive && wasAppliedToSelf && editAppDeviceIds.includes('self')) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.',
       });
@@ -312,7 +312,7 @@ export const useAppsManagement = ({
     if (!editingApp) return;
     if (!editAppName.trim()) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Campo requerido',
         message: 'Ingresa el nombre de la aplicación.',
       });
@@ -329,7 +329,7 @@ export const useAppsManagement = ({
     );
     if (isDuplicate) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Aplicación ya restringida',
         message: 'Ya existe otra aplicación restringida con este nombre o paquete.',
       });
@@ -338,7 +338,7 @@ export const useAppsManagement = ({
 
     if (!editAppApplyToAll && editAppDeviceIds.length === 0) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Dispositivo requerido',
         message: 'Selecciona al menos un dispositivo o activa la regla global.',
       });
@@ -348,7 +348,7 @@ export const useAppsManagement = ({
     const willApplyToSelf = editAppApplyToAll || editAppDeviceIds.includes('self');
     if (isAutocontrolActive && wasAppliedToSelf && !willApplyToSelf) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés desactivar el bloqueo en tu propio dispositivo mientras la autoprotección esté activa.',
       });
@@ -373,13 +373,13 @@ export const useAppsManagement = ({
       await loadApps();
       onRefreshList();
       showFeedback({
-        icon: '✅',
-        title: 'Aplicación actualizada',
-        message: 'Los cambios fueron guardados.',
+        imageSource: BOTITO_ASSETS.feliz,
+        title: '¡Aplicación actualizada con éxito!',
+        message: 'Guardamos los cambios en tu lista de aplicaciones bloqueadas.',
       });
     } catch (e: any) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error',
         message: e.message || 'No se pudo actualizar la aplicación.',
       });
@@ -406,13 +406,13 @@ export const useAppsManagement = ({
       setTimeLimitApp(null);
       await loadApps();
       showFeedback({
-        icon: '⏱️',
+        imageSource: BOTITO_ASSETS.feliz,
         title: 'Límite actualizado',
         message: `Límite de ${timeLimitApp.appName} configurado (${limitDesc}).`,
       });
     } catch (e: any) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error',
         message: e.message || 'No se pudo actualizar el límite de tiempo.',
       });
@@ -425,7 +425,7 @@ export const useAppsManagement = ({
   const handleToggleAppActive = async (app: CustomBlockedApp) => {
     if (isAutocontrolActive && appliesToSelf(app) && app.isActive) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés deshabilitar ni pausar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.',
       });
@@ -439,7 +439,7 @@ export const useAppsManagement = ({
       onRefreshList();
     } catch (e: any) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error',
         message: e.message || 'No se pudo cambiar el estado del bloqueo.',
       });
@@ -450,7 +450,7 @@ export const useAppsManagement = ({
   const handleDeleteApp = (app: CustomBlockedApp) => {
     if (isAutocontrolActive && appliesToSelf(app)) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés eliminar aplicaciones bloqueadas para tu propio dispositivo mientras la autoprotección esté activa.',
       });
@@ -492,7 +492,7 @@ export const useAppsManagement = ({
     });
     if (isAutocontrolActive && affectedSelf) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés pausar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.',
       });
@@ -513,14 +513,14 @@ export const useAppsManagement = ({
     });
     if (isAutocontrolActive && affectedSelf) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Autoprotección activa',
         message: 'No podés eliminar aplicaciones bloqueadas en tu propio dispositivo mientras la autoprotección esté activa.',
       });
       return;
     }
     showFeedback({
-      icon: '🗑️',
+      imageSource: BOTITO_ASSETS.pensando,
       title: 'Eliminar aplicaciones seleccionadas',
       message: `¿Deseas eliminar permanentemente las ${selectedAppIds.length} aplicaciones seleccionadas?`,
       buttonText: 'Eliminar todas',

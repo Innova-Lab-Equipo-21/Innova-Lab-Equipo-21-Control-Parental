@@ -23,6 +23,12 @@ import { Logo } from '../components/Logo';
 import { Icon } from '../components/Icon';
 import { ActionButton } from '../components/ActionButton';
 import { FeedbackModal } from '../components/FeedbackModal';
+import { BOTITO_ASSETS } from '../components/dashboard/protected/botAssets';
+import {
+  BotitoWelcomeVideoModal,
+  WelcomeVideoStatus,
+  ensureMinimumWelcomeVideoTime,
+} from '../components/BotitoWelcomeVideoModal';
 import { apiService } from '../services/api.service';
 import { styles } from './PairingScreen.styles';
 
@@ -43,7 +49,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
   const [isScanningQR, setIsScanningQR] = useState(false);
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
-    icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
     buttonText?: string;
@@ -55,6 +61,18 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
     title: '',
     message: '',
   });
+  const [welcomeVideoModal, setWelcomeVideoModal] = useState<{
+    visible: boolean;
+    status: WelcomeVideoStatus;
+    successTitle: string;
+    successMessage: string;
+    onContinue?: () => void;
+  }>({
+    visible: false,
+    status: 'loading',
+    successTitle: '',
+    successMessage: '',
+  });
 
   const isCodeComplete = code.trim().length === 6;
 
@@ -63,7 +81,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
     if (activeCode.length !== 6) {
       setFeedbackModal({
         visible: true,
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Código incompleto',
         message: 'Por favor ingresa o escanea un código numérico de 6 dígitos provisto por el responsable.',
       });
@@ -72,8 +90,20 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
 
     // Determinar perfil según el código ingresado (123456 -> MENOR, 654321 -> ADULTO)
     const pairedMode: 'CHILD' | 'ADULT' = activeCode === '654321' ? 'ADULT' : 'CHILD';
+    const successMessage =
+      pairedMode === 'ADULT'
+        ? '¡De diez, che! Botito ya activó la protección en modo Adulto para acompañarte.'
+        : '¡Genial, che! Botito ya activó el escudo y está cuidando este dispositivo en modo Menor.';
 
     setLoading(true);
+    const startedAt = Date.now();
+    setWelcomeVideoModal({
+      visible: true,
+      status: 'loading',
+      successTitle: '',
+      successMessage: '',
+    });
+
     try {
       const deviceUuid = 'dev-uuid-' + Math.random().toString(36).substring(2, 9);
 
@@ -99,13 +129,15 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         // FCM no disponible en este entorno; se omite silenciosamente
       }
 
-      setFeedbackModal({
+      await ensureMinimumWelcomeVideoTime(startedAt);
+
+      setWelcomeVideoModal({
         visible: true,
-        icon: '✅',
-        title: 'Vinculación exitosa',
-        message: `El dispositivo ha sido vinculado correctamente en perfil ${pairedMode === 'ADULT' ? 'ADULTO' : 'MENOR'}.`,
-        onConfirm: () => {
-          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+        status: 'success',
+        successTitle: '¡Chocá esos cinco! Ya estás vinculado',
+        successMessage,
+        onContinue: () => {
+          setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
           onPairingComplete(result.data.deviceId, result.data.deviceUuid, pairedMode);
         },
       });
@@ -125,13 +157,15 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
 
       // Fallback local instantáneo mientras no hay backend conectado
       const deviceUuid = 'dev-uuid-' + Math.random().toString(36).substring(2, 9);
-      setFeedbackModal({
+      await ensureMinimumWelcomeVideoTime(startedAt);
+
+      setWelcomeVideoModal({
         visible: true,
-        icon: '✅',
-        title: 'Vinculación exitosa',
-        message: `Dispositivo vinculado correctamente en perfil ${pairedMode === 'ADULT' ? 'ADULTO' : 'MENOR'} (Código: ${activeCode}).`,
-        onConfirm: () => {
-          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+        status: 'success',
+        successTitle: '¡Chocá esos cinco! Ya estás vinculado',
+        successMessage,
+        onContinue: () => {
+          setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
           onPairingComplete('dev-demo-id', deviceUuid, pairedMode);
         },
       });
@@ -147,7 +181,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       setIsScanningQR(false);
       setFeedbackModal({
         visible: true,
-        icon: '📷',
+        imageSource: BOTITO_ASSETS.feliz,
         title: 'Código QR escaneado',
         message: `Se detectó el código ${forcedCode}. Confirma para activar la protección.`,
         buttonText: 'Vincular ahora',
@@ -182,7 +216,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         } else {
           setFeedbackModal({
             visible: true,
-            icon: '⚠️',
+            imageSource: BOTITO_ASSETS.nervioso,
             title: 'Permiso denegado',
             message: 'No se concedió acceso a la cámara. Puedes utilizar el ingreso por Código de 6 dígitos.',
           });
@@ -370,7 +404,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
 
       <FeedbackModal
         visible={feedbackModal.visible}
-        icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
         buttonText={feedbackModal.buttonText || 'Entendido'}
@@ -378,6 +412,19 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         secondaryButtonText={feedbackModal.secondaryButtonText}
         onSecondaryPress={feedbackModal.onSecondaryPress}
         onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+      />
+
+      {/* Modal con video de bienvenida de Botito durante la vinculación */}
+      <BotitoWelcomeVideoModal
+        visible={welcomeVideoModal.visible}
+        status={welcomeVideoModal.status}
+        loadingTitle="Vinculando dispositivo..."
+        loadingSubtitle="Bancá un cachito, Botito está conectando la protección."
+        successBadge="✨ ¡Vinculación exitosa!"
+        successTitle={welcomeVideoModal.successTitle}
+        successMessage={welcomeVideoModal.successMessage}
+        ctaText="¡Vamos!"
+        onContinue={welcomeVideoModal.onContinue}
       />
     </SafeAreaView>
   );

@@ -46,6 +46,11 @@ class SplashVideoViewManager : SimpleViewManager<SplashVideoView>() {
         view.setRepeat(repeat)
     }
 
+    @ReactProp(name = "paused", defaultBoolean = false)
+    fun setPaused(view: SplashVideoView, paused: Boolean) {
+        view.setPaused(paused)
+    }
+
     @ReactProp(name = "resizeMode")
     fun setResizeMode(view: SplashVideoView, resizeMode: String?) {
         view.setResizeMode(resizeMode)

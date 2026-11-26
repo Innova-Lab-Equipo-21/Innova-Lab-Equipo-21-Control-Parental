@@ -5,7 +5,10 @@
 // Descripción: Estilos visuales para el flujo de onboarding (wizard de 3 pasos).
 // ==============================================================================
 
-import { StyleSheet } from 'react-native';
+import { Platform, StatusBar, StyleSheet } from 'react-native';
+
+const FULLSCREEN_TOP_INSET =
+  Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 16 : 54;
 
 export const styles = StyleSheet.create({
   safeArea: {
@@ -192,34 +195,85 @@ export const styles = StyleSheet.create({
     marginTop: 4,
     flex: 1,
   },
-  videoWrapperVertical: {
+  videoWrapperStep3: {
+    flex: 1,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
-    marginBottom: 8,
-    flex: 1,
+    marginBottom: 4,
   },
   videoContainerVertical: {
-    backgroundColor: '#000000',
-    borderRadius: 24,
+    flex: 1,
     width: '100%',
-    maxWidth: 264,
-    height: 390,
+    minHeight: 400,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  videoBotitoContainer: {
+  videoTapOverlay: {
     position: 'absolute',
-    bottom: 24,
-    alignSelf: 'center',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  fullscreenCornerButton: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenCornerIcon: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  fullscreenModalContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenPlayOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+  },
+  fullscreenCloseButton: {
+    position: 'absolute',
+    top: FULLSCREEN_TOP_INSET,
+    right: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  fullscreenCloseText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   videoNativePlayer: {
     position: 'absolute',
@@ -229,21 +283,13 @@ export const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
     height: '100%',
-    backgroundColor: '#000000',
-  },
-  videoContainer: {
-    backgroundColor: '#000000',
-    borderRadius: 16,
-    height: 220,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
+    backgroundColor: '#FFFFFF',
   },
   videoPlayCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#007AFF',
+    backgroundColor: 'rgba(0, 122, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#007AFF',
@@ -262,29 +308,11 @@ export const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 24,
     backgroundColor: '#FFFFFF',
-    overflow: 'visible',
   },
   buttonSpacer: {
     flex: 1,
     flexBasis: 0,
     minWidth: 0,
-  },
-  buttonSpacerStep1: {
-    flex: 1,
-    flexBasis: 0,
-    minWidth: 0,
-    height: 50,
-    position: 'relative',
-    overflow: 'visible',
-  },
-  botitoFloatingBottomLeft: {
-    position: 'absolute',
-    left: 4,
-    bottom: 0,
-    width: 112,
-    height: 112,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-end',
   },
   primaryButtonFull: {
     flex: 1,

@@ -18,6 +18,7 @@ interface FabWithTooltipProps {
   iconText?: string;
   accessibilityLabel?: string;
   bottomOffset?: number; // Permite personalizar la distancia del borde inferior si se requiere
+  hidden?: boolean; // Oculta visualmente el FAB (ej: mientras el teclado está abierto) sin reiniciar el tooltip
 }
 
 export const FabWithTooltip: React.FC<FabWithTooltipProps> = ({
@@ -27,6 +28,7 @@ export const FabWithTooltip: React.FC<FabWithTooltipProps> = ({
   iconText = '+',
   accessibilityLabel,
   bottomOffset,
+  hidden = false,
 }) => {
   const [visibleTooltip, setVisibleTooltip] = useState<boolean>(true);
 
@@ -47,7 +49,13 @@ export const FabWithTooltip: React.FC<FabWithTooltipProps> = ({
   };
 
   return (
-    <View style={[styles.container, bottomOffset !== undefined ? { bottom: bottomOffset } : null]}>
+    <View
+      style={[
+        styles.container,
+        bottomOffset !== undefined ? { bottom: bottomOffset } : null,
+        hidden ? { display: 'none' } : null,
+      ]}
+    >
       {/* Bocadillo de texto explicativo (Speech Bubble) que se muestra por 3 segundos */}
       {visibleTooltip && (
         <View style={styles.bubbleRow}>

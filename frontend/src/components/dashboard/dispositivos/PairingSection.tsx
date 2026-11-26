@@ -22,6 +22,7 @@ import { ActionButton } from '../../ActionButton';
 import { Icon } from '../../Icon';
 import { DatePickerModal } from '../../auth/DatePickerModal';
 import { FeedbackModal } from '../../FeedbackModal';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { colors } from '../../../theme/colors';
 import { MAX_PROTECTED_DEVICES } from '../../../types';
 import { calculateAge } from '../../../utils/age';
@@ -77,7 +78,7 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
-    icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
   }>({
@@ -258,7 +259,7 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
       if (result.action === Share.sharedAction) {
         setFeedbackModal({
           visible: true,
-          icon: '✅',
+          imageSource: BOTITO_ASSETS.feliz,
           title: 'Código compartido',
           message: 'El código de vinculación ha sido enviado.',
         });
@@ -266,7 +267,7 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
     } catch (error: any) {
       setFeedbackModal({
         visible: true,
-        icon: '📱',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Código para compartir',
         message,
       });
@@ -276,15 +277,15 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
   return (
     <View style={styles.container}>
       <Text style={styles.descText}>
-        Completa los datos requeridos para generar el código y QR de vinculación (Máximo {MAX_PROTECTED_DEVICES} dispositivos).
+        Completá estos datos para generar el código y el QR (hasta {MAX_PROTECTED_DEVICES} dispositivos).
       </Text>
 
       {/* FORMULARIO DE DATOS DEL PROTEGIDO */}
       <View style={styles.formCard}>
-        {/* Campo 1: Nombre del protegido (*) */}
+        {/* Campo 1: Nombre de la persona a proteger (*) */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>
-            Nombre del protegido<Text style={styles.requiredAsterisk}>*</Text>
+            Nombre de la persona a proteger<Text style={styles.requiredAsterisk}>*</Text>
           </Text>
           <TextInput
             style={[
@@ -439,7 +440,7 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
                       isSelected && styles.typeChipTextSelected,
                     ]}
                   >
-                    {type}
+                    {type === 'Adulto' ? 'Persona adulta' : type}
                   </Text>
                 </View>
               );
@@ -479,10 +480,10 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
           )}
         </View>
 
-        {/* Campo 6: Modelo dispositivo (Opcional) */}
+        {/* Campo 6: Modelo del dispositivo (opcional) */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>
-            Modelo dispositivo <Text style={styles.optionalText}>(Opcional)</Text>
+            Modelo del dispositivo <Text style={styles.optionalText}>(opcional)</Text>
           </Text>
           <TextInput
             style={styles.input}
@@ -511,7 +512,7 @@ export const PairingSection = React.forwardRef<PairingSectionRef, PairingSection
       {/* Modal estándar de retroalimentación */}
       <FeedbackModal
         visible={feedbackModal.visible}
-        icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
         asOverlay={true}

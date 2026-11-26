@@ -59,7 +59,7 @@ describe('Mascotas Boti (Adulto) y Botito (Menor) — Lógica de sentimientos', 
 });
 
 describe('Mascotas Boti y Botito — Recursos e integración en pantallas y modales', () => {
-  test('Existen las 8 imágenes PNG en disco y están registradas en botAssets.ts', () => {
+  test('Existen las 4 imágenes PNG de botito en disco y están registradas en botAssets.ts', () => {
     const botAssetsSource = fs.readFileSync(
       path.resolve(
         __dirname,
@@ -69,10 +69,6 @@ describe('Mascotas Boti y Botito — Recursos e integración en pantallas y moda
     );
 
     const expectedAssets = [
-      'adulto/boti_feliz.png',
-      'adulto/boti_pensando.png',
-      'adulto/boti_nervioso.png',
-      'adulto/boti_triste.png',
       'menor/botito_feliz.png',
       'menor/botito_pensando.png',
       'menor/botito_nervioso.png',
@@ -160,7 +156,7 @@ describe('Mascotas Boti y Botito — Recursos e integración en pantallas y moda
     }
   });
 
-  test('AnimatedBotMascot modulariza la animación de Botito/Boti y se reutiliza en Onboarding y Welcome', () => {
+  test('AnimatedBotMascot modulariza la animación de Botito/Boti y se omite en Onboarding y Welcome', () => {
     const mascotCompPath = path.resolve(
       __dirname,
       '../src/components/AnimatedBotMascot.tsx'
@@ -184,7 +180,7 @@ describe('Mascotas Boti y Botito — Recursos e integración en pantallas y moda
       path.resolve(__dirname, '../src/screens/WelcomeScreen.tsx'),
       'utf8'
     );
-    assert.ok(onboardingSrc.includes('AnimatedBotMascot'));
-    assert.ok(welcomeSrc.includes('AnimatedBotMascot'));
+    assert.equal(onboardingSrc.includes('AnimatedBotMascot'), false);
+    assert.equal(welcomeSrc.includes('AnimatedBotMascot'), false);
   });
 });

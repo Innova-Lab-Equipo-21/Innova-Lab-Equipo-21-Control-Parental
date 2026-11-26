@@ -10,37 +10,67 @@ import { StyleSheet } from 'react-native';
 import { analyticsPalette as palette } from '../palette';
 
 export const styles = StyleSheet.create({
-  kpiLabel: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: palette.textMain,
+  blockHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
     marginBottom: 10,
   },
 
-  tabsWrapper: {
-    marginBottom: 8,
+  blockHeaderRowCollapsed: {
+    marginBottom: 0,
   },
 
-  devicesList: {
-    flexDirection: 'column',
+  blockTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: palette.textMain,
+    flex: 1,
   },
 
-  deviceSection: {
-    paddingTop: 2,
+  chevron: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: palette.lotbaBlue,
+    paddingLeft: 4,
   },
 
-  deviceSectionDivider: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: palette.cardBorder,
+  carouselContent: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+
+  carouselCard: {
+    backgroundColor: palette.offWhite,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+  },
+
+  carouselCardSingle: {
+    width: '100%',
+  },
+
+  carouselCardActive: {
+    borderColor: palette.lotbaBlueBorder,
   },
 
   deviceHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 8,
+  },
+
+  deviceIdentity: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 7,
-    marginBottom: 4,
+    flex: 1,
   },
 
   deviceColorDot: {
@@ -57,11 +87,25 @@ export const styles = StyleSheet.create({
     flexShrink: 1,
   },
 
+  cardChevron: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: palette.lotbaBlue,
+    paddingLeft: 4,
+  },
+
+  gamesSection: {
+    marginTop: 10,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: palette.cardBorder,
+  },
+
   gameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 9,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: palette.surfaceBg,
     gap: 8,
@@ -69,7 +113,7 @@ export const styles = StyleSheet.create({
 
   gameRowLast: {
     borderBottomWidth: 0,
-    paddingBottom: 4,
+    paddingBottom: 2,
   },
 
   gameLeft: {
@@ -151,19 +195,15 @@ export const styles = StyleSheet.create({
     color: palette.successDark,
   },
 
-  // KPIs inferiores (Racha y En la semana)
+  // KPIs (Racha y En la semana) en la parte visible del card
   kpiRow: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: palette.surfaceBg,
   },
 
   kpiPill: {
     flex: 1,
-    backgroundColor: palette.offWhite,
+    backgroundColor: palette.white,
     borderWidth: 1,
     borderColor: palette.cardBorder,
     borderRadius: 10,
@@ -183,6 +223,26 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     color: palette.textMain,
+  },
+
+  dotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: palette.cardBorder,
+  },
+
+  dotActive: {
+    width: 16,
+    backgroundColor: palette.lotbaBlue,
   },
 
   emptyBox: {

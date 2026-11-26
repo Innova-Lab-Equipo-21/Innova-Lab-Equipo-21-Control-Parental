@@ -20,12 +20,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingVertical: 7,
+    borderRadius: 9,
+    paddingVertical: 5,
     paddingHorizontal: 10,
-    minHeight: 42,
+    minHeight: 35,
   },
 
   triggerOpen: {
@@ -35,29 +35,29 @@ export const styles = StyleSheet.create({
   triggerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 6,
     flex: 1,
     marginRight: 4,
   },
 
   triggerText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.textPrimary,
     flexShrink: 1,
   },
 
   chevron: {
-    fontSize: 11,
+    fontSize: 9,
     color: colors.primary,
     fontWeight: '700',
     paddingLeft: 4,
   },
 
   deviceAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -70,14 +70,14 @@ export const styles = StyleSheet.create({
   },
 
   deviceAvatarIcon: {
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 10,
+    lineHeight: 13,
   },
 
   dropdownMenu: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
+    borderRadius: 9,
+    borderWidth: 1,
     borderColor: colors.primary,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -95,7 +95,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
@@ -117,7 +117,7 @@ export const styles = StyleSheet.create({
   },
 
   menuItemText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     color: colors.textPrimary,
     flexShrink: 1,
@@ -129,7 +129,7 @@ export const styles = StyleSheet.create({
   },
 
   checkmark: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
     marginLeft: 6,

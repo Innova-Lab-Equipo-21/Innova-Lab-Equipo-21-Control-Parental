@@ -47,7 +47,6 @@ export const HeartbeatBanner: React.FC<HeartbeatBannerProps> = ({ alerts }) => {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.warningIcon}>⚠️</Text>
         <Text style={styles.headerText}>{headerText}</Text>
       </View>
 

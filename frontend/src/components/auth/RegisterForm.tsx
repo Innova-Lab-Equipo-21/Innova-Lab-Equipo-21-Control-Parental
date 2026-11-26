@@ -25,6 +25,12 @@ import { DatePickerModal } from './DatePickerModal';
 import { TermsModal } from './TermsModal';
 import { PrivacyModal } from './PrivacyModal';
 import { FeedbackModal } from '../FeedbackModal';
+import { BOTITO_ASSETS } from '../dashboard/protected/botAssets';
+import {
+  BotitoWelcomeVideoModal,
+  WelcomeVideoStatus,
+  ensureMinimumWelcomeVideoTime,
+} from '../BotitoWelcomeVideoModal';
 import { colors } from '../../theme/colors';
 import { apiService } from '../../services/api.service';
 import { safeStorage } from '../../services/api/client';
@@ -88,7 +94,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
-    icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
     onConfirm?: () => void;
@@ -96,6 +102,18 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     visible: false,
     title: '',
     message: '',
+  });
+  const [welcomeVideoModal, setWelcomeVideoModal] = useState<{
+    visible: boolean;
+    status: WelcomeVideoStatus;
+    successTitle: string;
+    successMessage: string;
+    onContinue?: () => void;
+  }>({
+    visible: false,
+    status: 'loading',
+    successTitle: '',
+    successMessage: '',
   });
 
   const handleCheckAgeAndValidate = (dateStr: string) => {
@@ -116,7 +134,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       }));
       setFeedbackModal({
         visible: true,
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Registro no verificado',
         message:
           'Solo personas adultas (+18) pueden registrarse en el Modo Responsable. Tu registro no podrá ser confirmado.',
@@ -169,6 +187,14 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         return;
       }
 
+      const startedAt = Date.now();
+      setWelcomeVideoModal({
+        visible: true,
+        status: 'loading',
+        successTitle: '',
+        successMessage: '',
+      });
+
       const res = await apiService.googleAuth({
         idToken: googleUser.idToken || undefined,
         email: googleUser.user.email,
@@ -189,9 +215,26 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           // FCM opcional
         }
 
-        onLoginSuccess(res.data.user, res.data.token);
+        await ensureMinimumWelcomeVideoTime(startedAt);
+
+        const nextUser = res.data.user;
+        const nextToken = res.data.token;
+        setWelcomeVideoModal({
+          visible: true,
+          status: 'success',
+          successTitle: '¡Listo el pollo, ya sos parte!',
+          successMessage:
+            '¡Qué alegría tenerte acá, che! Botito ya puso la pava y activó el escudo para cuidar tu entorno en BA Protege+.',
+          onContinue: () => {
+            setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
+            onLoginSuccess(nextUser, nextToken);
+          },
+        });
+      } else {
+        setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
       }
     } catch (error: any) {
+      setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
       if (error?.code === statusCodes?.SIGN_IN_CANCELLED) {
         return;
       }
@@ -234,7 +277,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     if (age !== null && age < 18) {
       setFeedbackModal({
         visible: true,
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Registro no verificado',
         message:
           'Solo personas adultas (+18) pueden registrarse en el Modo Responsable. Tu registro no podrá ser confirmado.',
@@ -249,6 +292,14 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
 
     setLoading(true);
+    const startedAt = Date.now();
+    setWelcomeVideoModal({
+      visible: true,
+      status: 'loading',
+      successTitle: '',
+      successMessage: '',
+    });
+
     try {
       const fullName = `${nombre.trim()} ${apellido.trim()}`;
       const res = await apiService.register({
@@ -278,27 +329,53 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       await safeStorage.setItem('@ba_protege_responsible_account_created', 'true');
       await safeStorage.setItem('@ba_protege_mode_locked', 'PARENT');
 
-      setFeedbackModal({
-        visible: true,
-        icon: '✅',
-        title: '¡Cuenta creada con éxito!',
-        message: `Ya sos parte de BA Protege +.`,
-        onConfirm: () => {
-          setFeedbackModal((prev) => ({ ...prev, visible: false }));
-          if (res.data?.token) {
-            onLoginSuccess(res.data.user, res.data.token);
-          }
-        },
-      });
+      let finalUser = {
+        ...(res.data?.user || {}),
+        email: res.data?.user?.email || registerEmail.trim(),
+        firstName: res.data?.user?.firstName || nombre.trim(),
+        lastName: res.data?.user?.lastName || apellido.trim(),
+        fullName: res.data?.user?.fullName || fullName,
+        gender: res.data?.user?.gender || genero,
+        birthDate: res.data?.user?.birthDate || fechaNacimiento,
+        phone: res.data?.user?.phone || telefono,
+      };
+      let finalToken: string | undefined = res.data?.token;
 
-      if (!res.data?.token) {
+      if (!finalToken) {
         const loginRes = await apiService.login({
           email: registerEmail.trim(),
           password: registerPassword,
         });
-        onLoginSuccess(loginRes.data.user, loginRes.data.token);
+        finalUser = {
+          ...(loginRes.data?.user || {}),
+          email: loginRes.data?.user?.email || registerEmail.trim(),
+          firstName: loginRes.data?.user?.firstName || nombre.trim(),
+          lastName: loginRes.data?.user?.lastName || apellido.trim(),
+          fullName: loginRes.data?.user?.fullName || fullName,
+          gender: loginRes.data?.user?.gender || genero,
+          birthDate: loginRes.data?.user?.birthDate || fechaNacimiento,
+          phone: loginRes.data?.user?.phone || telefono,
+        };
+        finalToken = loginRes.data?.token;
       }
+
+      await ensureMinimumWelcomeVideoTime(startedAt);
+
+      setWelcomeVideoModal({
+        visible: true,
+        status: 'success',
+        successTitle: '¡Listo el pollo, ya sos parte!',
+        successMessage:
+          '¡Qué alegría tenerte acá, che! Botito ya puso la pava y activó el escudo para cuidar tu entorno en BA Protege+.',
+        onContinue: () => {
+          setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
+          if (finalToken) {
+            onLoginSuccess(finalUser, finalToken);
+          }
+        },
+      });
     } catch (error: any) {
+      setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
       const msg = error.response?.data?.message || error.message || 'Error al registrar la cuenta.';
       setErrorMessage(msg);
     } finally {
@@ -318,7 +395,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           >
             <Icon name="volver" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.title}>Crear cuenta responsable</Text>
+          <Text style={styles.title}>Creá tu cuenta</Text>
         </View>
         <Text style={styles.subtitle}>
           Registrá tus datos para administrar la protección digital de tu entorno.
@@ -892,11 +969,24 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       {/* Modal estándar de retroalimentación */}
       <FeedbackModal
         visible={feedbackModal.visible}
-        icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
         onConfirm={feedbackModal.onConfirm}
         onClose={() => setFeedbackModal((prev) => ({ ...prev, visible: false }))}
+      />
+
+      {/* Modal con video de bienvenida de Botito durante la creación de la cuenta */}
+      <BotitoWelcomeVideoModal
+        visible={welcomeVideoModal.visible}
+        status={welcomeVideoModal.status}
+        loadingTitle="Creando tu cuenta..."
+        loadingSubtitle="Bancá un cachito, Botito está preparando todo para vos."
+        successBadge="✨ ¡Cuenta creada!"
+        successTitle={welcomeVideoModal.successTitle}
+        successMessage={welcomeVideoModal.successMessage}
+        ctaText="¡Empecemos!"
+        onContinue={welcomeVideoModal.onContinue}
       />
     </View>
   );

@@ -24,6 +24,7 @@ import { ActionButton } from '../../ActionButton';
 import { Icon } from '../../Icon';
 import { DatePickerModal } from '../../auth/DatePickerModal';
 import { FeedbackModal } from '../../FeedbackModal';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { colors } from '../../../theme/colors';
 import { DeviceInfo } from '../../../types';
 import { apiService } from '../../../services/api.service';
@@ -66,7 +67,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
   const [generatingCode, setGeneratingCode] = useState(false);
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
-    icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
   }>({
@@ -233,7 +234,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       if (result.action === Share.sharedAction) {
         setFeedbackModal({
           visible: true,
-          icon: '✅',
+          imageSource: BOTITO_ASSETS.feliz,
           title: 'Código compartido',
           message: 'El código de vinculación ha sido enviado.',
         });
@@ -241,7 +242,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
     } catch (error: any) {
       setFeedbackModal({
         visible: true,
-        icon: '📱',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Código para compartir',
         message,
       });
@@ -319,7 +320,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
     } catch (e: any) {
       setFeedbackModal({
         visible: true,
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error al guardar',
         message: e.message || 'No se pudieron guardar los cambios.',
       });
@@ -340,9 +341,9 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
           {/* Cabecera sin emoji */}
           <View style={styles.modalHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.modalTitle}>Editar datos del protegido</Text>
+              <Text style={styles.modalTitle}>Editar datos de la persona protegida</Text>
               <Text style={styles.modalSubtitle}>
-                Modificá los datos del menor o adulto vinculado.
+                Actualizá los datos de la persona menor o adulta vinculada a tu cuenta.
               </Text>
             </View>
             <TouchableOpacity
@@ -358,10 +359,10 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Campo 1: Nombre del protegido (*) */}
+            {/* Campo 1: Nombre de la persona a proteger (*) */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Nombre del protegido<Text style={styles.requiredAsterisk}>*</Text>
+                Nombre de la persona a proteger<Text style={styles.requiredAsterisk}>*</Text>
               </Text>
               <View
                 style={[
@@ -518,7 +519,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
                           isSelected && styles.typeChipTextSelected,
                         ]}
                       >
-                        {type === 'Menor' ? 'Menor' : 'Adulto'}
+                        {type === 'Menor' ? 'Menor' : 'Persona adulta'}
                       </Text>
                     </View>
                   );
@@ -565,10 +566,10 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
               )}
             </View>
 
-            {/* Campo 6: Modelo dispositivo (Opcional) */}
+            {/* Campo 6: Modelo del dispositivo (opcional) */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Modelo dispositivo <Text style={styles.optionalText}>(Opcional)</Text>
+                Modelo del dispositivo <Text style={styles.optionalText}>(opcional)</Text>
               </Text>
               <View
                 style={[
@@ -595,13 +596,13 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
                 <View style={styles.pairingDivider} />
                 <Text style={styles.pairingSectionTitle}>Vinculación de dispositivo</Text>
                 <Text style={styles.pairingSectionSubtitle}>
-                  Este dispositivo aún no fue vinculado. Utilizá el código y QR recuperados para vincularlo con el celular del protegido.
+                  Este dispositivo todavía no se vinculó. Usá este código o escaneá el QR desde el otro celular.
                 </Text>
 
                 <View style={styles.codeDisplayCard}>
                   <View style={styles.codeDisplay}>
                     <Text style={styles.protectedSummaryText}>
-                      Vinculando a: {protectedName.trim() || device?.childName || 'Protegido'} ({protectedType || 'Pendiente'})
+                      Código para vincular a {protectedName.trim() || device?.childName || 'Protegido'} ({protectedType === 'Adulto' ? 'persona adulta' : protectedType === 'Menor' ? 'menor' : 'pendiente'})
                     </Text>
                     {generatingCode && !pairingCode ? (
                       <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 6 }} />
@@ -615,7 +616,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
                   <View style={styles.qrCodeBox}>
                     <Text style={styles.qrTitle}>Código QR de vinculación</Text>
                     <Text style={styles.qrSubtitle}>
-                      Apunta la cámara del celular de {protectedName.trim() || device?.childName || 'del protegido'} aquí para vincular
+                      Apuntá la cámara del celular de {protectedName.trim() || device?.childName || 'la persona protegida'} acá para vincularlo.
                     </Text>
 
                     <View style={styles.qrImageContainer}>
@@ -717,7 +718,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       {/* Modal estándar de retroalimentación */}
       <FeedbackModal
         visible={feedbackModal.visible}
-        icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
         asOverlay={true}

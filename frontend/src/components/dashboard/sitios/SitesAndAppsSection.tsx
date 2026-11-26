@@ -190,7 +190,7 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
       }
     } catch (e: any) {
       showFeedback({
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Error al eliminar',
         message: e.message || 'No se pudo completar la eliminación.',
       });
@@ -234,10 +234,10 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
   const handleAutoproteccionPress = () => {
     if (isAutoproteccionDisabled) {
       showFeedback({
-        icon: '⚠️',
-        title: 'Habilitá un sitio o aplicación',
+        imageSource: BOTITO_ASSETS.nervioso,
+        title: 'Agregá un sitio o aplicación',
         message:
-          'Para activar la autoprotección, primero debés habilitar al menos un sitio web o aplicación para "Mi dispositivo".',
+          'Para activar la autoprotección, primero sumá al menos un sitio o aplicación en “Mi dispositivo”.',
       });
       return;
     }

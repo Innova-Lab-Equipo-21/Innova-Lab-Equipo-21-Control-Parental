@@ -20,6 +20,7 @@ import { ActionButton } from '../../ActionButton';
 import { Icon } from '../../Icon';
 import { DatePickerModal } from '../../auth/DatePickerModal';
 import { FeedbackModal } from '../../FeedbackModal';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { colors } from '../../../theme/colors';
 import {
   formatBirthDate,
@@ -36,6 +37,35 @@ interface EditResponsibleModalProps {
   onSave: (updatedUser: any) => Promise<void> | void;
 }
 
+const normalizeBirthDateForInput = (raw?: string | Date | null): string => {
+  if (!raw) return '';
+  const str = typeof raw === 'string' ? raw.trim() : raw.toISOString();
+  if (!str) return '';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    return str;
+  }
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+  }
+  return formatBirthDate(str);
+};
+
+const normalizeGenderForInput = (raw?: string | null): string => {
+  if (!raw) return 'No informado';
+  const normalized = raw.trim().toUpperCase().replace(/\s+/g, '_');
+  if (normalized === 'MASCULINO') return 'Masculino';
+  if (normalized === 'FEMENINO') return 'Femenino';
+  if (normalized === 'OTRO') return 'Otro';
+  return 'No informado';
+};
+
+const normalizePhoneForInput = (raw?: string | null): string => {
+  if (!raw) return '';
+  const trimmed = raw.trim().replace(/^\+54\s*9?\s*/, '');
+  return formatPhone(trimmed);
+};
+
 export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
   visible,
   currentUser,
@@ -48,10 +78,12 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
   const [genero, setGenero] = useState<string>('No informado');
   const [telefono, setTelefono] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
-  const [registerPassword, setRegisterPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
@@ -61,6 +93,7 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
     icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
   } | null>(null);
@@ -72,12 +105,16 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
     if (visible && currentUser) {
       setNombre(currentUser.firstName || currentUser.fullName?.split(' ')[0] || '');
       setApellido(currentUser.lastName || currentUser.fullName?.split(' ').slice(1).join(' ') || '');
-      setFechaNacimiento(currentUser.birthDate || '');
-      setGenero(currentUser.gender || 'No informado');
-      setTelefono(currentUser.phone || '');
+      setFechaNacimiento(normalizeBirthDateForInput(currentUser.birthDate));
+      setGenero(normalizeGenderForInput(currentUser.gender));
+      setTelefono(normalizePhoneForInput(currentUser.phone));
       setRegisterEmail(currentUser.email || '');
-      setRegisterPassword('');
+      setCurrentPassword('');
+      setNewPassword('');
       setConfirmPassword('');
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
       setFieldErrors({});
     }
   }, [visible, currentUser]);
@@ -116,8 +153,9 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
   };
 
   const handleSave = async () => {
-    const effectivePassword = registerPassword.trim() || (currentUser?.isGoogleLinked ? 'google-oauth-pwd' : currentUser?.password || 'default-pwd');
-    const effectiveConfirmPassword = confirmPassword.trim() || effectivePassword;
+    const wantsPasswordChange = Boolean(
+      currentPassword.trim() || newPassword.trim() || confirmPassword.trim()
+    );
 
     const formData = {
       nombre,
@@ -125,23 +163,38 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
       fechaNacimiento,
       telefono,
       registerEmail,
-      registerPassword: effectivePassword,
-      confirmPassword: effectiveConfirmPassword,
+      registerPassword: 'placeholder-password',
+      confirmPassword: 'placeholder-password',
     };
 
     const errors = validateRegisterFields(formData);
-    if (!registerPassword.trim()) {
-      delete errors.registerPassword;
-      delete errors.confirmPassword;
+    delete errors.registerPassword;
+    delete errors.confirmPassword;
+
+    if (wantsPasswordChange) {
+      if (!currentPassword.trim()) {
+        errors.currentPassword = 'Ingresá tu contraseña actual.';
+      }
+      if (!newPassword.trim()) {
+        errors.newPassword = 'Ingresá tu nueva contraseña.';
+      } else if (newPassword.length < 6) {
+        errors.newPassword = 'La contraseña debe tener al menos 6 caracteres.';
+      }
+      if (!confirmPassword.trim()) {
+        errors.confirmPassword = 'Repetí tu nueva contraseña.';
+      } else if (newPassword !== confirmPassword) {
+        errors.confirmPassword = 'Las contraseñas no coinciden.';
+      }
     }
+
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
       setFeedbackModal({
         visible: true,
-        icon: '⚠️',
-        title: 'Datos incompletos o inválidos',
-        message: 'Por favor revisa los campos marcados en rojo.',
+        imageSource: BOTITO_ASSETS.pensando,
+        title: 'Revisá los datos cargados',
+        message: 'Por favor, verificá los campos marcados en rojo antes de guardar.',
       });
       return;
     }
@@ -150,35 +203,48 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
     if (age !== null && age < 18) {
       setFeedbackModal({
         visible: true,
-        icon: '⚠️',
+        imageSource: BOTITO_ASSETS.nervioso,
         title: 'Validación de edad',
         message: 'Solo personas adultas (+18) pueden registrarse en el modo responsable.',
       });
       return;
     }
 
-    const updatedUser = {
+    const updatedUser: any = {
       ...currentUser,
-      firstName: nombre,
-      lastName: apellido,
-      fullName: `${nombre} ${apellido}`.trim() || currentUser?.fullName,
+      firstName: nombre.trim(),
+      lastName: apellido.trim(),
+      fullName: `${nombre.trim()} ${apellido.trim()}`.trim() || currentUser?.fullName,
       birthDate: fechaNacimiento,
       gender: genero,
       phone: telefono,
-      email: registerEmail,
-      password: registerPassword || currentUser?.password,
+      email: registerEmail.trim(),
     };
+
+    if (wantsPasswordChange) {
+      updatedUser.currentPassword = currentPassword;
+      updatedUser.password = newPassword;
+    } else {
+      delete updatedUser.currentPassword;
+      delete updatedUser.password;
+    }
 
     setIsSaving(true);
     try {
       await onSave(updatedUser);
       onClose();
     } catch (err: any) {
+      const backendMsg = err?.response?.data?.message;
+      const isWrongCurrentPassword =
+        typeof backendMsg === 'string' &&
+        backendMsg.toLowerCase().includes('contraseña actual');
       setFeedbackModal({
         visible: true,
-        icon: '⚠️',
-        title: 'Error al actualizar',
-        message: err?.response?.data?.message || err?.message || 'No se pudieron actualizar los datos del perfil.',
+        imageSource: BOTITO_ASSETS.pensando,
+        title: 'No pudimos realizar la actualización',
+        message: isWrongCurrentPassword
+          ? backendMsg
+          : 'No se pudieron guardar los cambios. Podés probar de nuevo en unos minutos o volver a iniciar sesión.',
       });
     } finally {
       setIsSaving(false);
@@ -196,8 +262,8 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.modalTitle}>Editar perfil del responsable</Text>
-              <Text style={styles.modalSubtitle}>Modificá tus datos institucionales con validación oficial.</Text>
+              <Text style={styles.modalTitle}>Editar perfil</Text>
+              <Text style={styles.modalSubtitle}>Actualizá tus datos personales y de acceso.</Text>
             </View>
             <TouchableOpacity
               onPress={onClose}
@@ -383,37 +449,65 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
               {fieldErrors.registerEmail ? <Text style={styles.fieldErrorText}>{fieldErrors.registerEmail}</Text> : null}
             </View>
 
-            {/* Contraseña con ícono Ojo oficial */}
+            {/* Contraseña actual (opcional si no cambia la clave) */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Contraseña<Text style={styles.requiredAsterisk}>*</Text></Text>
+              <Text style={styles.label}>Contraseña actual</Text>
               <View style={[
                 styles.inputContainer,
-                focusedField === 'registerPassword' && styles.inputFocusedBorder,
-                fieldErrors.registerPassword ? styles.inputErrorBorder : null,
+                focusedField === 'currentPassword' && styles.inputFocusedBorder,
+                fieldErrors.currentPassword ? styles.inputErrorBorder : null,
               ]}>
                 <TextInput
                   style={styles.input}
-                  value={registerPassword}
+                  value={currentPassword}
                   onChangeText={(t) => {
-                    setRegisterPassword(t);
-                    if (fieldErrors.registerPassword) setFieldErrors((p) => ({ ...p, registerPassword: '' }));
+                    setCurrentPassword(t);
+                    if (fieldErrors.currentPassword) setFieldErrors((p) => ({ ...p, currentPassword: '' }));
                   }}
-                  onFocus={() => setFocusedField('registerPassword')}
+                  onFocus={() => setFocusedField('currentPassword')}
                   onBlur={() => setFocusedField(null)}
-                  secureTextEntry={!showPassword}
+                  secureTextEntry={!showCurrentPassword}
+                  placeholder="Ingresá tu contraseña actual"
+                  placeholderTextColor={colors.textMuted}
+                />
+                <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)} style={{ padding: 4 }}>
+                  <Icon name="ojo" size={22} color={showCurrentPassword ? colors.primary : colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+              {fieldErrors.currentPassword ? <Text style={styles.fieldErrorText}>{fieldErrors.currentPassword}</Text> : null}
+            </View>
+
+            {/* Nueva contraseña con ícono Ojo oficial */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Nueva contraseña</Text>
+              <View style={[
+                styles.inputContainer,
+                focusedField === 'newPassword' && styles.inputFocusedBorder,
+                fieldErrors.newPassword ? styles.inputErrorBorder : null,
+              ]}>
+                <TextInput
+                  style={styles.input}
+                  value={newPassword}
+                  onChangeText={(t) => {
+                    setNewPassword(t);
+                    if (fieldErrors.newPassword) setFieldErrors((p) => ({ ...p, newPassword: '' }));
+                  }}
+                  onFocus={() => setFocusedField('newPassword')}
+                  onBlur={() => setFocusedField(null)}
+                  secureTextEntry={!showNewPassword}
                   placeholder="Mínimo 6 caracteres"
                   placeholderTextColor={colors.textMuted}
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
-                  <Icon name="ojo" size={22} color={showPassword ? colors.primary : colors.textMuted} />
+                <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)} style={{ padding: 4 }}>
+                  <Icon name="ojo" size={22} color={showNewPassword ? colors.primary : colors.textMuted} />
                 </TouchableOpacity>
               </View>
-              {fieldErrors.registerPassword ? <Text style={styles.fieldErrorText}>{fieldErrors.registerPassword}</Text> : null}
+              {fieldErrors.newPassword ? <Text style={styles.fieldErrorText}>{fieldErrors.newPassword}</Text> : null}
             </View>
 
-            {/* Confirmar contraseña con ícono Ojo oficial */}
+            {/* Repetir nueva contraseña con ícono Ojo oficial */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Confirmar contraseña<Text style={styles.requiredAsterisk}>*</Text></Text>
+              <Text style={styles.label}>Repetir nueva contraseña</Text>
               <View style={[
                 styles.inputContainer,
                 focusedField === 'confirmPassword' && styles.inputFocusedBorder,
@@ -429,7 +523,7 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
                   onFocus={() => setFocusedField('confirmPassword')}
                   onBlur={() => setFocusedField(null)}
                   secureTextEntry={!showConfirmPassword}
-                  placeholder="Repite tu contraseña"
+                  placeholder="Repetí tu nueva contraseña"
                   placeholderTextColor={colors.textMuted}
                 />
                 <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ padding: 4 }}>
@@ -478,6 +572,7 @@ export const EditResponsibleModal: React.FC<EditResponsibleModalProps> = ({
         <FeedbackModal
           visible={feedbackModal.visible}
           icon={feedbackModal.icon}
+          imageSource={feedbackModal.imageSource}
           title={feedbackModal.title}
           message={feedbackModal.message}
           buttonText="Entendido"

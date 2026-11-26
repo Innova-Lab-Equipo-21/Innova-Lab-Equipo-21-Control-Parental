@@ -683,7 +683,7 @@ class ProtectionAccessibilityService : AccessibilityService() {
             Log.e(TAG, "Error abriendo BlockedScreenActivity para app: ${e.message}")
         }
 
-        recordBlockEvent("APP", appName)
+        recordBlockEvent("APP", appName, isLotba)
     }
 
     // --------------------------------------------------------------------------
@@ -897,10 +897,10 @@ class ProtectionAccessibilityService : AccessibilityService() {
             Log.e(TAG, "Error abriendo BlockedScreenActivity para sitio: ${e.message}")
         }
 
-        recordBlockEvent("SITE", domain)
+        recordBlockEvent("SITE", domain, isLotba)
     }
 
-    private fun recordBlockEvent(type: String, target: String) {
+    private fun recordBlockEvent(type: String, target: String, isLotba: Boolean = false) {
         try {
             val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val existing = prefs.getString(KEY_RECENT_BLOCK_EVENTS, "[]")
@@ -908,6 +908,7 @@ class ProtectionAccessibilityService : AccessibilityService() {
             val eventObj = JSONObject().apply {
                 put("type", type)
                 put("target", target)
+                put("isLotba", isLotba)
                 put("timestamp", System.currentTimeMillis())
             }
             array.put(eventObj)

@@ -19,7 +19,40 @@ import {
   ImageSourcePropType,
 } from 'react-native';
 import { ActionButton } from './ActionButton';
+import { BOTITO_ASSETS } from './dashboard/protected/botAssets';
 import { styles } from './FeedbackModal.styles';
+
+const resolveBotitoImageFromIcon = (icon?: string): ImageSourcePropType => {
+  switch (icon?.trim()) {
+    case '⚠️':
+    case '⚠':
+    case '❌':
+    case '🚨':
+    case '⛔':
+      return BOTITO_ASSETS.nervioso;
+    case '😢':
+    case '😔':
+    case '💔':
+      return BOTITO_ASSETS.triste;
+    case '📱':
+    case '📷':
+    case '🏪':
+    case '⏱️':
+    case '⏳':
+    case '❓':
+    case 'ℹ️':
+    case '🗑️':
+    case '🔓':
+    case '🛡️':
+      return BOTITO_ASSETS.pensando;
+    case '✅':
+    case '⭐':
+    case '🎉':
+    case '🔒':
+    default:
+      return BOTITO_ASSETS.feliz;
+  }
+};
 
 export interface FeedbackModalProps {
   visible: boolean;
@@ -37,7 +70,7 @@ export interface FeedbackModalProps {
 
 export const FeedbackModal: React.FC<FeedbackModalProps> = ({
   visible,
-  icon = '✅',
+  icon,
   imageSource,
   title,
   message,
@@ -51,6 +84,8 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
   if (!visible) {
     return null;
   }
+
+  const resolvedImageSource = imageSource ?? resolveBotitoImageFromIcon(icon);
 
   const handlePrimaryPress = () => {
     if (onConfirm) {
@@ -81,16 +116,12 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
           <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
 
-        {/* Ilustración de mascota (Boti / Botito) o Emoji centrado identificador */}
-        {imageSource ? (
-          <Image
-            source={imageSource}
-            style={styles.modalMascotImage}
-            resizeMode="contain"
-          />
-        ) : icon ? (
-          <Text style={styles.modalEmoji}>{icon}</Text>
-        ) : null}
+        {/* Ilustración de Botito según el contexto del mensaje */}
+        <Image
+          source={resolvedImageSource}
+          style={styles.modalMascotImage}
+          resizeMode="contain"
+        />
 
         {/* Título en Sentence case */}
         <Text style={styles.modalTitle}>{title}</Text>

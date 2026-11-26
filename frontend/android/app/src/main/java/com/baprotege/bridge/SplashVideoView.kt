@@ -4,8 +4,8 @@
  * Componente: Bridge React Native <-> Android Native (Reproductor de Video Splash)
  * Archivo: SplashVideoView.kt
  * Descripción: Vista nativa liviana basada en TextureView + MediaPlayer para
- *              reproducir el video vertical de apertura (hola_botito.mp4) en
- *              pantalla completa con ajuste center-crop (cover) sin distorsión.
+ *              reproducir videos locales desde res/raw (apertura.mp4 en Splash y
+ *              hola_botito.mp4 en Onboarding) con ajuste cover o contain sin distorsión.
  * ==============================================================================
  */
 
@@ -53,6 +53,7 @@ class SplashVideoView(private val reactContext: ThemedReactContext) :
     private var resourceName: String? = null
     private var muted: Boolean = true
     private var repeat: Boolean = false
+    private var paused: Boolean = false
     private var resizeMode: String = "cover"
 
     private var videoWidth: Int = 0
@@ -84,6 +85,23 @@ class SplashVideoView(private val reactContext: ThemedReactContext) :
         repeat = shouldRepeat
         try {
             mediaPlayer?.isLooping = shouldRepeat
+        } catch (_: IllegalStateException) {
+            // Ignorar si MediaPlayer aún no está listo
+        }
+    }
+
+    fun setPaused(isPaused: Boolean) {
+        paused = isPaused
+        val player = mediaPlayer ?: return
+        if (!isPrepared) return
+        try {
+            if (isPaused) {
+                if (player.isPlaying) {
+                    player.pause()
+                }
+            } else if (!hasCompleted && !player.isPlaying) {
+                player.start()
+            }
         } catch (_: IllegalStateException) {
             // Ignorar si MediaPlayer aún no está listo
         }
@@ -161,7 +179,14 @@ class SplashVideoView(private val reactContext: ThemedReactContext) :
                 videoHeight = mp.videoHeight
                 applyVolume()
                 post { updateTextureTransform() }
-                mp.start()
+                if (!paused) {
+                    mp.start()
+                } else {
+                    try {
+                        mp.seekTo(1)
+                    } catch (_: IllegalStateException) {
+                    }
+                }
 
                 // Respaldo si el dispositivo no dispara MEDIA_INFO_VIDEO_RENDERING_START
                 postDelayed({
@@ -253,7 +278,7 @@ class SplashVideoView(private val reactContext: ThemedReactContext) :
 
     override fun onHostResume() {
         val player = mediaPlayer ?: return
-        if (isPrepared && !hasCompleted && !player.isPlaying) {
+        if (isPrepared && !hasCompleted && !paused && !player.isPlaying) {
             try {
                 player.start()
             } catch (_: IllegalStateException) {

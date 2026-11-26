@@ -32,8 +32,6 @@ export interface DevicePermissionsModalProps {
 interface PermissionDefinition {
   id: string;
   name: string;
-  desc: string;
-  icon: string;
   isGranted: boolean;
 }
 
@@ -72,44 +70,32 @@ export const DevicePermissionsModal: React.FC<DevicePermissionsModalProps> = ({
   const permissionList: PermissionDefinition[] = [
     {
       id: 'vpn',
-      name: 'Filtro de red VPN',
-      desc: 'Bloqueo preventivo de sitios no seguros',
-      icon: '🌐',
+      name: 'Filtro para bloquear sitios no seguros',
       isGranted: !!perms.vpn,
     },
     {
       id: 'accessibility',
-      name: 'Accesibilidad',
-      desc: 'Protección antidesinstalación forzada',
-      icon: '🔒',
+      name: 'Protección antidesinstalación',
       isGranted: !!perms.accessibility,
     },
     {
       id: 'notifications',
-      name: 'Notificaciones',
-      desc: 'Alertas inmediatas y estado del servicio',
-      icon: '🔔',
+      name: 'Notificaciones del sistema',
       isGranted: !!perms.notifications,
     },
     {
       id: 'batteryOptimization',
-      name: 'Optimización de batería',
-      desc: 'Ejecución continua en segundo plano',
-      icon: '🔋',
+      name: 'Protección con pantalla apagada',
       isGranted: !!perms.batteryOptimization,
     },
     {
       id: 'location',
-      name: 'Ubicación y GPS',
-      desc: 'Geolocalización familiar en tiempo real',
-      icon: '📍',
+      name: 'Ubicación y geolocalización',
       isGranted: !!perms.location,
     },
     {
       id: 'usageStats',
-      name: 'Uso de aplicaciones',
-      desc: 'Límites de tiempo en pantalla y control',
-      icon: '⏱️',
+      name: 'Estadísticas de uso de aplicaciones',
       isGranted: !!perms.usageStats,
     },
   ];
@@ -144,9 +130,9 @@ export const DevicePermissionsModal: React.FC<DevicePermissionsModalProps> = ({
               <Text style={styles.modalTitle} numberOfLines={1}>
                 {isSelf ? 'Permisos de mi dispositivo' : `Permisos de ${deviceName}`}
               </Text>
-              <Text style={styles.modalSubtitle} numberOfLines={1}>
+              <Text style={styles.modalSubtitle}>
                 {isSelf
-                  ? 'Dispositivo Responsable • Auditoría de seguridad'
+                  ? 'Para que los bloqueos y avisos funcionen de manera continua.'
                   : 'Dispositivo Protegido • Estado de supervisión'}
               </Text>
             </View>
@@ -173,11 +159,11 @@ export const DevicePermissionsModal: React.FC<DevicePermissionsModalProps> = ({
                 label={`${grantedCount}/6 activos`}
               />
             </View>
-            <Text style={styles.summaryDesc} numberOfLines={1}>
-              {isSelf
-                ? 'Supervisión y auditoría de protección familiar.'
-                : 'Permisos del menor para filtrado y control.'}
-            </Text>
+            {!isSelf && (
+              <Text style={styles.summaryDesc} numberOfLines={1}>
+                Permisos del menor para filtrado y control.
+              </Text>
+            )}
           </View>
 
           {/* Listado de los 6 Permisos */}
@@ -195,10 +181,6 @@ export const DevicePermissionsModal: React.FC<DevicePermissionsModalProps> = ({
                   !item.isGranted && styles.permCardPending,
                 ]}
               >
-                <View style={styles.permIconContainer}>
-                  <Text style={styles.permIcon}>{item.icon}</Text>
-                </View>
-
                 <View style={styles.permInfoCol}>
                   <View style={styles.permTitleRow}>
                     <Text style={styles.permName} numberOfLines={1}>{item.name}</Text>
@@ -208,7 +190,6 @@ export const DevicePermissionsModal: React.FC<DevicePermissionsModalProps> = ({
                       style={styles.badgeItem}
                     />
                   </View>
-                  <Text style={styles.permDesc} numberOfLines={1}>{item.desc}</Text>
                 </View>
               </View>
             ))}
@@ -235,7 +216,7 @@ export const DevicePermissionsModal: React.FC<DevicePermissionsModalProps> = ({
                 </View>
                 <View style={styles.footerBtnCol}>
                   <ActionButton
-                    title="Permisos"
+                    title="Ver permisos"
                     variant="primary"
                     onPress={() => {
                       onClose();

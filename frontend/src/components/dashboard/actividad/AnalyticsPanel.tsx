@@ -12,7 +12,7 @@
 // ==============================================================================
 
 import React, { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { CustomBlockedApp, DeviceInfo } from '../../../types';
 import { BlockedAttemptRecord } from '../../../utils/activityMetrics';
 import { getDeviceHighlight } from '../../../utils/deviceColors';
@@ -50,6 +50,7 @@ import {
   DayBlock,
   HourBlock,
 } from './types';
+import { cardStyles } from './card.styles';
 import { styles } from './AnalyticsPanel.styles';
 
 export const PERIOD_OPTIONS: PeriodOption[] = [
@@ -101,8 +102,15 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     allUptime,
   });
   const [openDropdown, setOpenDropdown] = useState<'device' | 'period' | null>(null);
+  const [historyBlockExpanded, setHistoryBlockExpanded] = useState<boolean>(true);
 
-  // Bloque 4: Uso de apps bloqueadas filtrado por dispositivo seleccionado
+  const selectedDeviceLabel = useMemo(() => {
+    if (panel.selectedDeviceId === 'all') return undefined;
+    const match = panel.deviceOptions.find((d) => d.id === panel.selectedDeviceId);
+    return match?.label;
+  }, [panel.deviceOptions, panel.selectedDeviceId]);
+
+  // Bloque 2: Tiempo de uso de las aplicaciones filtrado por dispositivo seleccionado
   const appsUsageSummary = useMemo(() => {
     const targetDevices: AppUsageTargetDevice[] = panel.deviceOptions.map(
       (dev, idx) => {
@@ -130,7 +138,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     });
   }, [customApps, appUsageSnapshots, panel.selectedDeviceId, panel.deviceOptions]);
 
-  // Bloque 5: Pasatiempos de usuarios protegidos (Menores y Adultos) con métricas por dispositivo
+  // Bloque 3: Pasatiempos de usuarios protegidos (Menores y Adultos) con métricas por dispositivo
   const pasatiemposSummary = useMemo(() => {
     const colorByDeviceId: Record<string, string> = {};
     panel.deviceOptions.forEach((dev, idx) => {
@@ -160,7 +168,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     panel.selectedDeviceId,
   ]);
 
-  // Bloque 6: Sitios y apps bloqueados filtrados por dispositivo seleccionado
+  // Subbloque 1c: Historial de toda la actividad filtrado por dispositivo seleccionado
   const filteredBlockedAttempts = useMemo(() => {
     if (panel.selectedDeviceId === 'all') return blockedAttempts;
     return blockedAttempts.filter(
@@ -175,101 +183,140 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     );
   }, [bypassEvents, panel.selectedDeviceId]);
 
-  const content = (
-    <>
-      <Header title="Actividad del sistema" onBack={onBack} />
-
-      <View style={styles.body}>
-        {/* 1. Bloco de filtros: Dispositivos y Período (dropdowns inline) */}
-        <View style={styles.dropdownsRow}>
-          <View style={styles.dropdownColDevice}>
-            <DeviceSelector
-              options={panel.deviceOptions}
-              selectedId={panel.selectedDeviceId}
-              onSelect={(id) => {
-                panel.setSelectedDeviceId(id);
-                setOpenDropdown(null);
-              }}
-              allLabel={`Todos (${devices.length})`}
-              isOpen={openDropdown === 'device'}
-              onToggle={() =>
-                setOpenDropdown((prev) => (prev === 'device' ? null : 'device'))
-              }
-            />
-          </View>
-          <View style={styles.dropdownColPeriod}>
-            <PeriodSelector
-              options={PERIOD_OPTIONS}
-              value={panel.period}
-              onChange={(value) => {
-                panel.changePeriod(value as AnalyticsPeriod);
-                setOpenDropdown(null);
-              }}
-              isOpen={openDropdown === 'period'}
-              onToggle={() =>
-                setOpenDropdown((prev) => (prev === 'period' ? null : 'period'))
-              }
-            />
-          </View>
-        </View>
-
-        {panel.showAlert ? (
-          <HeartbeatBanner alerts={panel.alertDevices} />
-        ) : null}
-
-        {/* 2. Bloqueos totales + Historial de intentos por dispositivo */}
-        <TotalBlocksCard
-          totalBlocks={panel.totalBlocks}
-          historySeries={panel.historySeries}
-          historyDateLabels={panel.historyDateLabels}
-        />
-
-        {/* 3. Bloqueos por fuente (solo Franja horaria) */}
-        <BlocksBySourceCard
-          lotbaPct={panel.sourceLotbaPct}
-          customPct={panel.sourceCustomPct}
-        >
-          <ActivityChartCard
-            daySelector={panel.daySelector}
-            selectedDayIndex={panel.selectedDayIndex}
-            onSelectDay={panel.selectDay}
-            peakInfo={panel.peakInfo}
-            inspector={panel.inspector}
-            chartBars={panel.chartBars}
-            selectedChartIndex={panel.selectedChartIndex}
-            onSelectChart={panel.onSelectChart}
-            embedded={true}
+  const bodyContent = (
+    <View style={styles.body}>
+      {/* Filtros principales con títulos: Por persona y Por fecha */}
+      <View style={styles.dropdownsRow}>
+        <View style={styles.dropdownColDevice}>
+          <Text style={styles.filterLabel}>Por persona</Text>
+          <DeviceSelector
+            options={panel.deviceOptions}
+            selectedId={panel.selectedDeviceId}
+            onSelect={(id) => {
+              panel.setSelectedDeviceId(id);
+              setOpenDropdown(null);
+            }}
+            allLabel={`Todos (${devices.length})`}
+            isOpen={openDropdown === 'device'}
+            onToggle={() =>
+              setOpenDropdown((prev) => (prev === 'device' ? null : 'device'))
+            }
           />
-        </BlocksBySourceCard>
-
-        {/* 4. Apps (uso diario de apps de la lista de bloqueos) */}
-        <AppsUsageCard summary={appsUsageSummary} variant="parent" />
-
-        {/* 5. Pasatiempos (Protegidos Adultos y Menores) */}
-        <PasatiemposSummaryCard summary={pasatiemposSummary} />
-
-        {/* 6. Sitios y apps bloqueados */}
-        <AuditEventsCard
-          auditTab={panel.auditTab}
-          onChangeAuditTab={panel.setAuditTab}
-          blockedAttempts={filteredBlockedAttempts}
-          bypassEvents={filteredBypassEvents}
-          bypassCount={filteredBypassEvents.length}
-        />
+        </View>
+        <View style={styles.dropdownColPeriod}>
+          <Text style={styles.filterLabel}>Por fecha</Text>
+          <PeriodSelector
+            options={PERIOD_OPTIONS}
+            value={panel.period}
+            onChange={(value) => {
+              panel.changePeriod(value as AnalyticsPeriod);
+              setOpenDropdown(null);
+            }}
+            isOpen={openDropdown === 'period'}
+            onToggle={() =>
+              setOpenDropdown((prev) => (prev === 'period' ? null : 'period'))
+            }
+          />
+        </View>
       </View>
-    </>
+
+      {panel.showAlert ? (
+        <HeartbeatBanner alerts={panel.alertDevices} />
+      ) : null}
+
+      {/* Bloque 1: Historial de intentos de acceso a sitios y apps bloqueados (Acordeón con 3 subbloques) */}
+      <View style={cardStyles.card}>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={() => setHistoryBlockExpanded((prev) => !prev)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: historyBlockExpanded }}
+          style={[
+            styles.accordionHeaderRow,
+            !historyBlockExpanded && styles.accordionHeaderRowCollapsed,
+          ]}
+        >
+          <Text style={styles.accordionTitle}>
+            Historial de intentos de acceso a sitios y apps bloqueados
+          </Text>
+          <Text style={styles.accordionChevron}>
+            {historyBlockExpanded ? '▲' : '▼'}
+          </Text>
+        </TouchableOpacity>
+
+        {historyBlockExpanded ? (
+          <View style={styles.subblocksStack}>
+            {/* Subbloque 1a: Cantidad de intentos totales */}
+            <TotalBlocksCard
+              totalBlocks={panel.totalBlocks}
+              historySeries={panel.historySeries}
+              historyDateLabels={panel.historyDateLabels}
+              embedded={true}
+            />
+
+            {/* Subbloque 1b: Cantidad de intentos según la lista */}
+            <BlocksBySourceCard
+              lotbaPct={panel.sourceLotbaPct}
+              customPct={panel.sourceCustomPct}
+              embedded={true}
+            >
+              <ActivityChartCard
+                daySelector={panel.daySelector}
+                selectedDayIndex={panel.selectedDayIndex}
+                onSelectDay={panel.selectDay}
+                peakInfo={panel.peakInfo}
+                inspector={panel.inspector}
+                chartBars={panel.chartBars}
+                selectedChartIndex={panel.selectedChartIndex}
+                onSelectChart={panel.onSelectChart}
+                embedded={true}
+              />
+            </BlocksBySourceCard>
+
+            {/* Subbloque 1c: Historial de toda la actividad */}
+            <AuditEventsCard
+              auditTab={panel.auditTab}
+              onChangeAuditTab={panel.setAuditTab}
+              blockedAttempts={filteredBlockedAttempts}
+              bypassEvents={filteredBypassEvents}
+              bypassCount={filteredBypassEvents.length}
+              embedded={true}
+            />
+          </View>
+        ) : null}
+      </View>
+
+      {/* Bloque 2: Tiempo de uso de las aplicaciones */}
+      <AppsUsageCard
+        summary={appsUsageSummary}
+        variant="parent"
+        selectedDeviceId={panel.selectedDeviceId}
+        selectedDeviceLabel={selectedDeviceLabel}
+      />
+
+      {/* Bloque 3: Pasatiempos */}
+      <PasatiemposSummaryCard summary={pasatiemposSummary} />
+    </View>
   );
 
   if (!scrollable) {
-    return <View style={styles.root}>{content}</View>;
+    return (
+      <View style={styles.root}>
+        <Header title="Actividad del sistema" onBack={onBack} />
+        {bodyContent}
+      </View>
+    );
   }
 
   return (
-    <ScrollView
-      style={styles.root}
-      contentContainerStyle={[styles.content, { paddingBottom: 85 }]}
-    >
-      {content}
-    </ScrollView>
+    <View style={styles.root}>
+      <Header title="Actividad del sistema" onBack={onBack} />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: 85 }]}
+      >
+        {bodyContent}
+      </ScrollView>
+    </View>
   );
 };

@@ -123,13 +123,13 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     marginVertical: 8,
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F2F2F2',
     borderWidth: 1.5,
     borderColor: '#DADCE0',
-    gap: 8,
+    overflow: 'hidden',
   },
   /** Texto del botón de vinculación con Google */
   googleLinkButtonText: {
@@ -160,6 +160,11 @@ export const styles = StyleSheet.create({
   googleIconSmall: {
     width: 18,
     height: 18,
+  },
+  /** Imagen oficial completa del botón de Google sin texto adicional */
+  googleLogoOnly: {
+    width: '100%',
+    height: 36,
   },
   /** Fondo semitransparente para overlays modales */
   modalOverlay: {

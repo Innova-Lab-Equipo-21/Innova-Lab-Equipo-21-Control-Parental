@@ -21,6 +21,7 @@ import {
 import { ActionButton } from '../../ActionButton';
 import { Icon } from '../../Icon';
 import { FeedbackModal } from '../../FeedbackModal';
+import { BOTITO_ASSETS } from '../protected/botAssets';
 import { apiService } from '../../../services/api.service';
 import { DeviceInfo } from '../../../types';
 import { colors } from '../../../theme/colors';
@@ -45,7 +46,7 @@ export const DevicePairingCodeModal: React.FC<DevicePairingCodeModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [feedbackModal, setFeedbackModal] = useState<{
     visible: boolean;
-    icon?: string;
+    imageSource?: any;
     title: string;
     message: string;
   }>({
@@ -62,6 +63,7 @@ export const DevicePairingCodeModal: React.FC<DevicePairingCodeModalProps> = ({
 
   const protectedName = device?.childName || device?.deviceName || 'Protegido';
   const profileType = device?.profileType || 'Menor';
+  const profileTypeLabel = profileType === 'Adulto' ? 'persona adulta' : 'menor';
 
   const formatSpacedCode = (code: string | null): string => {
     if (!code) return '------';
@@ -107,7 +109,7 @@ export const DevicePairingCodeModal: React.FC<DevicePairingCodeModalProps> = ({
       if (result.action === Share.sharedAction) {
         setFeedbackModal({
           visible: true,
-          icon: '✅',
+          imageSource: BOTITO_ASSETS.feliz,
           title: 'Código compartido',
           message: 'El código de vinculación ha sido enviado.',
         });
@@ -115,7 +117,7 @@ export const DevicePairingCodeModal: React.FC<DevicePairingCodeModalProps> = ({
     } catch (error: any) {
       setFeedbackModal({
         visible: true,
-        icon: '📱',
+        imageSource: BOTITO_ASSETS.pensando,
         title: 'Código para compartir',
         message,
       });
@@ -150,7 +152,7 @@ export const DevicePairingCodeModal: React.FC<DevicePairingCodeModalProps> = ({
               {/* Banner azul superior con nombre, tipo y código de 6 dígitos espaciado */}
               <View style={styles.codeDisplay}>
                 <Text style={styles.protectedSummaryText}>
-                  Vinculando a: {protectedName} ({profileType})
+                  Código para vincular a {protectedName} ({profileTypeLabel})
                 </Text>
                 {loading ? (
                   <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 6 }} />
@@ -165,7 +167,7 @@ export const DevicePairingCodeModal: React.FC<DevicePairingCodeModalProps> = ({
               <View style={styles.qrCodeBox}>
                 <Text style={styles.qrTitle}>Código QR de vinculación</Text>
                 <Text style={styles.qrSubtitle}>
-                  Apunta la cámara del celular de {protectedName} aquí para vincular
+                  Apuntá la cámara del celular de {protectedName} acá para vincularlo.
                 </Text>
 
                 <View style={styles.qrImageContainer}>
@@ -226,7 +228,7 @@ export const DevicePairingCodeModal: React.FC<DevicePairingCodeModalProps> = ({
 
       <FeedbackModal
         visible={feedbackModal.visible}
-        icon={feedbackModal.icon}
+        imageSource={feedbackModal.imageSource}
         title={feedbackModal.title}
         message={feedbackModal.message}
         asOverlay={true}

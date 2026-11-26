@@ -394,20 +394,42 @@ describe('Modo Protegido Adulto — Pantalla de Inicio (réplica adaptada de Res
       'utf8'
     );
 
-    // 1. Saludo dinámico
+    // 0. Sin badge PERFIL ADULTO en el encabezado
+    assert.equal(screenSource.includes('PERFIL ADULTO'), false);
+
+    // 1. Saludo dinámico replicando Responsable
     assert.equal(inicioSource.includes('Buenos días'), true);
     assert.equal(inicioSource.includes('Buenas tardes'), true);
     assert.equal(inicioSource.includes('Buenas noches'), true);
+    assert.equal(inicioSource.includes('`¡${prefix}, ${firstName}!`'), true);
 
-    // 2. Bloque "DISPOSITIVO NO PROTEGIDO" verificando permisos
-    assert.equal(inicioSource.includes('DISPOSITIVO NO PROTEGIDO'), true);
-    assert.equal(inicioSource.includes('ESTÁS PROTEGIDO'), true);
+    // 2. Bloque de permisos replicando Responsable (textos y color del escudo)
+    assert.equal(inicioSource.includes('Dispositivo protegido'), true);
+    assert.equal(inicioSource.includes('Dispositivo no protegido'), true);
+    assert.equal(
+      inicioSource.includes(
+        'Bloqueamos de forma automática sitios y aplicaciones de apuestas ilegales no autorizados por LOTBA. Estás navegando de forma segura.'
+      ),
+      true
+    );
     assert.equal(inicioSource.includes('permiso pendiente'), true);
     assert.equal(inicioSource.includes('permisos pendientes'), true);
+    assert.equal(inicioSource.includes('de activación.'), true);
+    assert.equal(
+      inicioSource.includes("{ tintColor: isProtected ? colors.primaryDark : '#D97706' }"),
+      true
+    );
 
     // 3. NO incluye "Dispositivos protegidos"; en su lugar incluye el Quiz sin opción de repetir
     assert.equal(inicioSource.includes('Dispositivos protegidos'), false);
-    assert.equal(inicioSource.includes('¿HACEMOS UN QUIZ?'), true);
+    assert.equal(inicioSource.includes('¿Hacemos un juego de preguntas?'), true);
+    assert.equal(
+      inicioSource.includes(
+        'Poné a prueba tus conocimientos sobre los cuidados digitales de forma lúdica.'
+      ),
+      true
+    );
+    assert.equal(inicioSource.includes('>Empezar<'), true);
     assert.equal(inicioSource.includes('Volver a hacer el quiz'), false);
     assert.equal(
       screenSource.includes("canPlayPasatiempoGame(completedGames, 'quiz')"),

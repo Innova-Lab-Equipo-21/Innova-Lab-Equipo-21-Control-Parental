@@ -36,6 +36,7 @@ export interface UpdateProfilePayload {
   gender?: string;
   birthDate?: string;
   phone?: string;
+  currentPassword?: string;
   password?: string;
 }
 

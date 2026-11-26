@@ -360,7 +360,7 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Modificá los dispositivos asignados y definí opcionalmente su límite de tiempo diario para cada dispositivo.
+            Cambiá en qué dispositivos aplicar el bloqueo o modificá el límite de tiempo de uso.
           </Text>
 
           <ScrollView
@@ -387,7 +387,7 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
 
             <View style={styles.deviceSelectionContainer}>
               <View style={styles.applyToAllRow}>
-                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos (regla global)</Text>
+                <Text style={styles.inputLabel}>Aplicar a todos los dispositivos</Text>
                 <ToggleSwitch
                   value={applyToAll}
                   onValueChange={onApplyToAllChange}
@@ -396,7 +396,7 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
 
               {/* Listado de dispositivos con configuración de tiempo por dispositivo */}
               <View style={styles.deviceListContainer}>
-                <Text style={styles.deviceListTitle}>Seleccioná los dispositivos:</Text>
+                <Text style={styles.deviceListTitle}>Elegí los dispositivos:</Text>
 
                 {/* Mi dispositivo (Responsable) */}
                 {renderDeviceCard('self', 'Mi dispositivo', getDeviceHighlight('self'))}

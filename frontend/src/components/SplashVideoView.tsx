@@ -24,6 +24,7 @@ export interface SplashVideoViewProps {
   resourceName: string;
   muted?: boolean;
   repeat?: boolean;
+  paused?: boolean;
   resizeMode?: 'cover' | 'contain';
   style?: StyleProp<ViewStyle>;
   onVideoReady?: () => void;
