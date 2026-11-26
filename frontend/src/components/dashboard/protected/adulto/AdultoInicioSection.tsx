@@ -187,10 +187,10 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
             />
             <View style={styles.quizCompletedTitleCol}>
               <Text style={styles.quizCompletedTitle}>
-                ¡Juego de preguntas completado! 🎯
+                ¡Completaste el juego de preguntas!
               </Text>
               <Text style={styles.completedSummaryText}>
-                Puntaje: {quizScore.score} / {quizScore.total} respuestas correctas.
+                Respondiste las 5 preguntas de hoy. ¡Excelente!
               </Text>
             </View>
             <View style={styles.completedStatusPill}>
@@ -199,11 +199,8 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
           </View>
 
           <View style={styles.outdoorPromptBox}>
-            <Text style={styles.outdoorPromptTitle}>
-              💡 Consejo de Boti para hoy:
-            </Text>
             <Text style={styles.outdoorPromptText}>
-              ¡Excelente trabajo! Te sugerimos tomar un descanso de las pantallas, salir a pasear, tomar aire fresco y disfrutar del aire libre.
+              Ahora es un buen momento para alejarse de las pantallas. Podés salir a pasear, leer un libro o distraerte con otra cosa.
             </Text>
           </View>
         </View>

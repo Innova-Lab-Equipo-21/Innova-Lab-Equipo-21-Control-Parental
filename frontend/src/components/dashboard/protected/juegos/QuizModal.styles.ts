@@ -43,16 +43,14 @@ export const styles = StyleSheet.create({
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '900',
-    lineHeight: 18,
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 22,
   },
   progressTrack: {
     height: 8,

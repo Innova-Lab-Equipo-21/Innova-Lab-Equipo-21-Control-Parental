@@ -62,7 +62,7 @@ export const AdultoCuentaSection: React.FC<AdultoCuentaSectionProps> = ({
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{displayName}</Text>
             <Text style={styles.profileSubtitle}>
-              Vinculado con responsable: {tutorName}
+              Cuenta vinculada con {tutorName}
             </Text>
             {adultPhone ? (
               <Text style={styles.profilePhone}>{adultPhone}</Text>
@@ -71,9 +71,6 @@ export const AdultoCuentaSection: React.FC<AdultoCuentaSectionProps> = ({
             <View style={styles.roleBadgeContainer}>
               <View style={styles.roleBadge}>
                 <Text style={styles.roleBadgeText}>Adulto protegido</Text>
-              </View>
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedBadgeText}>✓ Vinculado</Text>
               </View>
             </View>
           </View>

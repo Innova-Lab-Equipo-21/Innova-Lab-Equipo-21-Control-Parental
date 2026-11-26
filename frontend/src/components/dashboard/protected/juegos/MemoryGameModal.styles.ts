@@ -49,16 +49,14 @@ export const styles = StyleSheet.create({
   closeIconButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeIconText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#334155',
-    lineHeight: 17,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#64748B',
+    lineHeight: 22,
   },
   amberFrame: {
     backgroundColor: '#FBBF24',

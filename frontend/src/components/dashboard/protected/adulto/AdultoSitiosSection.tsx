@@ -23,7 +23,8 @@ import { protectionService } from '../../../../services/protection.service';
 import { isValidDomainOrUrl, cleanDomainInput } from '../../../../utils/deviceColors';
 import {
   ADULTO_APP_ADDED_FEEDBACK,
-  ADULTO_CARD_LOCK_NOTICE,
+  ADULTO_APP_CARD_LOCK_NOTICE,
+  ADULTO_SITE_CARD_LOCK_NOTICE,
   ADULTO_SITE_ADDED_FEEDBACK,
   AdultoSortOption,
   filterAndSortAdultoApps,
@@ -383,8 +384,8 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
                 </View>
 
                 <View style={styles.cardFooterRow}>
-                  <Text style={styles.lockNoticeText} numberOfLines={1}>
-                    {ADULTO_CARD_LOCK_NOTICE}
+                  <Text style={styles.lockNoticeText}>
+                    {ADULTO_SITE_CARD_LOCK_NOTICE}
                   </Text>
                 </View>
               </View>
@@ -417,8 +418,8 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
                 </View>
 
                 <View style={styles.cardFooterRow}>
-                  <Text style={styles.lockNoticeText} numberOfLines={1}>
-                    {ADULTO_CARD_LOCK_NOTICE}
+                  <Text style={styles.lockNoticeText}>
+                    {ADULTO_APP_CARD_LOCK_NOTICE}
                   </Text>
                 </View>
               </View>

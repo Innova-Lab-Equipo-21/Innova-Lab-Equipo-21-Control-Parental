@@ -134,62 +134,63 @@ const childQuestionsRaw: RawQuizQuestion[] = [
 const adultQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 1,
-    question: '¿Cuál es el beneficio de hacer pausas activas de la tecnología?',
-    description: 'Aumenta el rendimiento mental y reduce los niveles de ansiedad acumulada.',
+    question: '¿Qué ganás alejándote de las pantallas?',
+    description: 'Elegí la opción que te parezca más acertada.',
     stepBgColor: '#E05297',
     options: [
-      { text: 'Evitar el agotamiento digital', isCorrect: true },
-      { text: 'Acumular notificaciones sin leer', isCorrect: false },
-      { text: 'Gastar menos datos móviles', isCorrect: false },
+      { text: 'Bajar el cansancio', isCorrect: true },
       { text: 'Ningún beneficio directo', isCorrect: false },
+      { text: 'Acumular notificaciones sin leer', isCorrect: false },
+      { text: 'Gastar menos datos en el celular', isCorrect: false },
     ],
   },
   {
     id: 2,
-    question: '¿Qué actitud ayuda a controlar los impulsos de juego online?',
-    description: 'Identificar emociones previas evita conductas compulsivas.',
+    question: '¿Qué acciones ayudan a frenar las ganas de jugar online?',
+    description: 'Marcá la opción que consideres más acertada.',
     stepBgColor: '#38BDF8',
     options: [
-      { text: 'Pausar, respirar y buscar otra actividad', isCorrect: true },
-      { text: 'Actuar sin reflexionar', isCorrect: false },
-      { text: 'Pedir prestado dinero', isCorrect: false },
+      { text: 'Respirar y hacer otra cosa', isCorrect: true },
+      { text: 'Actuar sin pensar', isCorrect: false },
       { text: 'Ignorar las señales de estrés', isCorrect: false },
+      { text: 'Pedir plata prestada', isCorrect: false },
     ],
   },
   {
     id: 3,
-    question: '¿Qué recurso gratuito de contención 24hs ofrece la Ciudad?',
-    description: 'Línea de orientación profesional y confidencial sobre ludopatía.',
+    question:
+      'Si conocieras a alguien con un consumo problemático del juego, ¿sabés a dónde llamar?',
+    description: 'Marcá la opción que consideres más acertada.',
     stepBgColor: '#2DD4BF',
     options: [
-      { text: 'Línea 0800-444-5682', isCorrect: true },
-      { text: 'Envío de correos masivos', isCorrect: false },
-      { text: 'Encuestas automáticas', isCorrect: false },
-      { text: 'Foros anónimos sin moderador', isCorrect: false },
+      { text: '0800-666-6006 (LOTBA)', isCorrect: false },
+      { text: 'Línea 108 (opción 3)', isCorrect: false },
+      { text: '0800-333-0333 (Juego responsable)', isCorrect: false },
+      { text: 'Todas las anteriores', isCorrect: true },
     ],
   },
   {
     id: 4,
-    question: '¿Cómo podés promover hábitos de desconexión saludables en familia?',
-    description: 'El ejemplo en casa fomenta una relación equilibrada con las pantallas.',
+    question: '¿Cómo podrías fomentar momentos sin pantallas en familia?',
+    description: 'Elegí la alternativa que consideres más acertada.',
     stepBgColor: '#84CC16',
     options: [
-      { text: 'Definir momentos sin pantallas y salir a pasear', isCorrect: true },
-      { text: 'Usar el celular en la mesa comiendo', isCorrect: false },
-      { text: 'Dejar las alertas activas toda la noche', isCorrect: false },
-      { text: 'Prohibir la tecnología por completo', isCorrect: false },
+      { text: 'Prohibir la tecnología', isCorrect: false },
+      { text: 'Dejar alertas toda la noche', isCorrect: false },
+      { text: 'Usar el celular durante la cena', isCorrect: false },
+      { text: 'Acordar horarios sin pantallas', isCorrect: true },
     ],
   },
   {
     id: 5,
-    question: '¿Qué señal indica que necesitás desconectarte del celular hoy?',
-    description: 'Escuchar al cuerpo ayuda a prevenir la saturación digital.',
+    question: '¿Qué señal te indica que conviene desconectarse de las pantallas?',
+    description: 'Elegí la respuesta que te parezca correcta.',
     stepBgColor: '#EAB308',
     options: [
-      { text: 'Sensación de irritabilidad o fatiga visual', isCorrect: true },
+      { text: 'Buena señal de Wi-Fi', isCorrect: false },
+      { text: 'La actualización de una aplicación', isCorrect: false },
+      { text: 'Irritabilidad o vista cansada', isCorrect: true },
       { text: 'Tener 100% de batería restante', isCorrect: false },
-      { text: 'Tener buena señal de Wi-Fi', isCorrect: false },
-      { text: 'Recibir una actualización de app', isCorrect: false },
     ],
   },
 ];
@@ -462,35 +463,23 @@ export const QuizModal: React.FC<QuizModalProps> = ({
                 ? isHighScore
                   ? '¡Felicitaciones!'
                   : '¡Bien!'
-                : resultMood === 'feliz'
-                ? '¡Felicitaciones!'
-                : resultMood === 'pensando'
-                ? '¡Buen intento!'
-                : '¡A seguir aprendiendo!';
+                : '¡Felicitaciones!';
 
               const headerSubtitle = isChild
                 ? isHighScore
                   ? 'Completaste el juego de preguntas. ¡Muy bien!'
                   : 'Completaste el juego de preguntas.'
-                : resultMood === 'feliz'
-                ? '¡Completaste el juego de preguntas! ¡Seguí así!'
-                : resultMood === 'pensando'
-                ? 'Completaste el juego de preguntas. ¡Seguí reflexionando sobre tus hábitos!'
-                : 'Completaste el juego de preguntas. ¡Estos consejos te ayudarán a cuidarte mejor!';
+                : 'Completaste el juego de preguntas. ¡Genial!';
 
-              const scoreLabel = isChild
-                ? `Tuviste ${correctCount} de ${preparedQuestions.length} respuestas correctas.`
-                : `🎯 Obtuviste ${correctCount} de ${preparedQuestions.length} respuestas correctas`;
+              const scoreLabel = `Tuviste ${correctCount} de ${preparedQuestions.length} respuestas correctas.`;
 
-              const incentiveTitle = isChild
-                ? `Consejo de ${mascotName}:`
-                : `🌳 Consejo de ${mascotName}:`;
+              const incentiveTitle = `Consejo de ${mascotName}:`;
 
               const incentiveText = isChild
                 ? isHighScore
                   ? 'Podés charlar en casa o contarle a una persona adulta cómo te fue haciendo el juego de preguntas. ¡Y si querés, también podés salir un rato al aire libre!'
                   : 'Podés charlar en casa o contarle a una persona adulta cómo te fue y volver a intentarlo cuando quieras. ¡También podés salir un rato al aire libre!'
-                : '¡Recordá hacer pausas de las pantallas y disfrutar también de actividades al aire libre! ☀️🚶';
+                : 'Aprovechá para descansar de las pantallas o hacer algo distinto. ¡Y si querés, contá en casa cómo te fue!';
 
               return (
                 <View style={styles.completionBox}>

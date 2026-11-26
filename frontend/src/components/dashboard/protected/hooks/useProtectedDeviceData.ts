@@ -20,7 +20,6 @@ import {
 import {
   BlockedAttemptRecord,
   FormattedBlockedAttempt,
-  buildActivityDataset,
   computeActivityMetrics,
   formatAttemptDateTime,
   normalizeAttemptSource,
@@ -338,16 +337,16 @@ export function useProtectedDeviceData({
           )
         : persistedBlockedEvents;
 
-    const dataset = buildActivityDataset({
-      devices: targetDevice ? [targetDevice] : pairedDevices,
-      customSites: mode === 'ADULT' ? adultVisibleSites : customSites,
-      customApps: activeDeviceApps,
-      persistedEvents: personalPersistedEvents,
-    });
+    const dataset: BlockedAttemptRecord[] = personalPersistedEvents.map((ev) => ({
+      ...ev,
+      sourceListType: normalizeAttemptSource(ev.sourceListType),
+      count: ev.count ?? 1,
+    }));
+
     const snapshot = computeActivityMetrics(dataset, {
       deviceId: 'all',
       period: 'week',
-      recentLimit: 30,
+      recentLimit: 50,
     });
     return snapshot.allFilteredAttempts;
   }, [
@@ -356,10 +355,6 @@ export function useProtectedDeviceData({
     matchedChildDevice,
     deviceUuid,
     storageDeviceKey,
-    pairedDevices,
-    adultVisibleSites,
-    customSites,
-    activeDeviceApps,
     persistedBlockedEvents,
   ]);
 

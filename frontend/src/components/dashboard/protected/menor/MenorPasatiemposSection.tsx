@@ -136,10 +136,13 @@ export const MenorPasatiemposSection: React.FC<MenorPasatiemposSectionProps> = (
           />
           <View style={styles.offlineTextCol}>
             <Text style={styles.offlineTitle}>
-              {SCREEN_FREE_SUGGESTION.tipTitle}
+              Ya completaste todos los pasatiempos. ¡Muy bien!
+            </Text>
+            <Text style={styles.offlineSubtitle}>
+              Ahora es un buen momento para alejarse de las pantallas.
             </Text>
             <Text style={styles.offlineBody}>
-              {SCREEN_FREE_SUGGESTION.tipBody}
+              Podés salir a pasear o distraerte con otra actividad.
             </Text>
           </View>
         </View>
@@ -178,11 +181,6 @@ export const MenorPasatiemposSection: React.FC<MenorPasatiemposSectionProps> = (
                   >
                     {meta.title}
                   </Text>
-                  {isDone && (
-                    <View style={styles.completedPill}>
-                      <Text style={styles.completedPillText}>✓ Completado</Text>
-                    </View>
-                  )}
                 </View>
 
                 <Text
@@ -203,16 +201,14 @@ export const MenorPasatiemposSection: React.FC<MenorPasatiemposSectionProps> = (
                     activeOpacity={0.85}
                     accessibilityLabel={`Jugar ${meta.title}`}
                   >
-                    <Text style={styles.playButtonText}>Empezar</Text>
+                    <Text style={styles.playButtonText}>Comenzar</Text>
                   </TouchableOpacity>
                 ) : (
                   <View
-                    style={styles.inactiveStatusPill}
+                    style={styles.inactiveButton}
                     accessibilityState={{ disabled: true }}
                   >
-                    <Text style={styles.inactiveStatusPillText}>
-                      Juego completado
-                    </Text>
+                    <Text style={styles.inactiveButtonText}>Completado</Text>
                   </View>
                 )}
               </View>

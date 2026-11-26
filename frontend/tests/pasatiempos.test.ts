@@ -149,8 +149,23 @@ describe('Pasatiempos — Cabecera, orden al completar e inactivación', () => {
     assert.equal(wordSearchSource.includes('Pasatiempos cuidados'), false);
     assert.equal(memoryModalSource.includes('Pasatiempos cuidados'), false);
 
-    // Sin opción "Volver a jugar" una vez completado
+    // Sin opción "Volver a jugar", sin badge verde de completado, y botón Completado
     assert.equal(pasatiemposSource.includes('Volver a jugar'), false);
+    assert.equal(pasatiemposSource.includes('completedPill'), false);
+    assert.equal(pasatiemposSource.includes('>Completado<'), true);
+    assert.equal(pasatiemposSource.includes('>Comenzar<'), true);
+    assert.equal(
+      PASATIEMPOS_CATALOG.quiz.cardDescription,
+      'Cinco preguntas sobre cómo navegar de forma segura en internet, mantener hábitos digitales saludables y cómo protegerse de sitios y aplicaciones de apuestas ilegales.'
+    );
+    assert.equal(
+      PASATIEMPOS_CATALOG.wordsearch.cardDescription,
+      'Tres sopas temáticas para encontrar palabras sobre planetas, hábitos de salud y cualidades humanas.'
+    );
+    assert.equal(
+      PASATIEMPOS_CATALOG.memory.cardDescription,
+      'Descubrí las tarjetas y poné a prueba tu memoria encontrando los pares iguales.'
+    );
   });
 });
 
@@ -183,14 +198,17 @@ describe('Rotación dinámica de juegos en Inicio (Modo Menor)', () => {
     const allDone = { quiz: true, wordsearch: true, memory: true };
     assert.equal(areAllGamesCompleted(allDone), true);
     assert.equal(getNextAvailableGame(allDone), null);
-    assert.equal(SCREEN_FREE_SUGGESTION.title, '¡Completaste los 3 pasatiempos!');
+    assert.equal(
+      SCREEN_FREE_SUGGESTION.title,
+      'Ya completaste todos los pasatiempos. ¡Muy bien!'
+    );
     assert.equal(
       SCREEN_FREE_SUGGESTION.subtitle,
-      'Ya hiciste el juego de preguntas, la sopa de letras y el juego de la memoria. ¡Muy bien!'
+      'Ahora es un buen momento para alejarse de las pantallas.'
     );
     assert.equal(
       SCREEN_FREE_SUGGESTION.tipBody,
-      'Es un buen momento para alejarse de las pantallas. Podés salir a pasear o distraerte con otra cosa.'
+      'Podés salir a pasear o distraerte con otra actividad.'
     );
   });
 });
@@ -428,6 +446,16 @@ describe('Modo Protegido Menor — Pantalla de Inicio replicada', () => {
       true
     );
     assert.equal(
+      quizModalSource.includes('Completaste el juego de preguntas. ¡Genial!'),
+      true
+    );
+    assert.equal(
+      quizModalSource.includes(
+        'Aprovechá para descansar de las pantallas o hacer algo distinto. ¡Y si querés, contá en casa cómo te fue!'
+      ),
+      true
+    );
+    assert.equal(
       quizModalSource.includes(
         'Tuviste ${correctCount} de ${preparedQuestions.length} respuestas correctas.'
       ),
@@ -479,7 +507,7 @@ describe('Modo Protegido Menor — Pantalla de Inicio replicada', () => {
     assert.equal(wordSearchSource.includes('>Sopa de letras<'), true);
     assert.equal(wordSearchSource.includes('`✓ ${b.title}`'), false);
     assert.equal(
-      wordSearchSource.includes('Tocá la primera y la última letra de cada palabra.'),
+      wordSearchSource.includes('Deslizá sobre las letras para formar cada palabra.'),
       true
     );
     assert.equal(wordSearchSource.includes('Encontrá las palabras:'), true);
@@ -554,11 +582,14 @@ describe('Modos Protegidos (Adulto y Menor) — Pestaña Cuenta replicada de Res
       'utf8'
     );
 
-    // Header "Mi cuenta" para Menor y "Perfil y cuenta" para Adulto con botón volver a Inicio
-    assert.equal(screenSource.includes("title={mode === 'CHILD' ? 'Mi cuenta' : 'Perfil y cuenta'}"), true);
+    // Header "Mi cuenta" para ambos modos protegidos con botón volver a Inicio
+    assert.equal(screenSource.includes('title="Mi cuenta"'), true);
     assert.equal(menorCuentaSource.includes('Cuenta vinculada con {tutorName}'), true);
     assert.equal(menorCuentaSource.includes('Menor protegido'), true);
     assert.equal(menorCuentaSource.includes('✓ Vinculado'), false);
+    assert.equal(adultoCuentaSource.includes('Cuenta vinculada con {tutorName}'), true);
+    assert.equal(adultoCuentaSource.includes('Adulto protegido'), true);
+    assert.equal(adultoCuentaSource.includes('✓ Vinculado'), false);
 
     for (const source of [adultoCuentaSource, menorCuentaSource]) {
       // Secciones presentes replicadas de Responsable

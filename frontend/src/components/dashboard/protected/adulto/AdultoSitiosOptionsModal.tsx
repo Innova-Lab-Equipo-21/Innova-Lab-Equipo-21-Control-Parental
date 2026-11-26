@@ -76,7 +76,7 @@ export const AdultoSitiosOptionsModal: React.FC<AdultoSitiosOptionsModalProps> =
                 </TouchableOpacity>
               </View>
               <Text style={styles.sheetSubtitle}>
-                Buscá elementos o cambiá el orden de visualización de la lista
+                Filtrá y ordená la lista a tu manera.
               </Text>
 
               <ScrollView
@@ -90,7 +90,7 @@ export const AdultoSitiosOptionsModal: React.FC<AdultoSitiosOptionsModalProps> =
                   <TextInput
                     ref={inputRef}
                     style={styles.searchInput}
-                    placeholder="Buscar por dominio o aplicación..."
+                    placeholder="Buscar sitio o aplicación..."
                     placeholderTextColor="#94A3B8"
                     value={searchValue}
                     onChangeText={onSearchChange}
@@ -125,7 +125,7 @@ export const AdultoSitiosOptionsModal: React.FC<AdultoSitiosOptionsModalProps> =
                         sortBy === 'date' && styles.filterBadgeTextActive,
                       ]}
                     >
-                      Por fecha (recientes)
+                      Más recientes
                     </Text>
                   </TouchableOpacity>
 
@@ -145,7 +145,7 @@ export const AdultoSitiosOptionsModal: React.FC<AdultoSitiosOptionsModalProps> =
                         sortBy === 'az' && styles.filterBadgeTextActive,
                       ]}
                     >
-                      Alfabético (A - Z)
+                      Alfabético (A-Z)
                     </Text>
                   </TouchableOpacity>
                 </View>

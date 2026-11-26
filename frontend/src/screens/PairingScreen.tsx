@@ -83,7 +83,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         visible: true,
         imageSource: BOTITO_ASSETS.pensando,
         title: 'Código incompleto',
-        message: 'Por favor ingresa o escanea un código numérico de 6 dígitos provisto por el responsable.',
+        message: 'Por favor ingresá un código numérico de 6 dígitos generado por la persona responsable.',
       });
       return;
     }
@@ -142,33 +142,47 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         },
       });
     } catch (error: any) {
-      // Registrar token FCM del dispositivo para notificaciones push
-      try {
-        // @ts-ignore
-        const messagingModule: any = await import('@react-native-firebase/messaging');
-        const messaging = messagingModule.default || messagingModule;
-        const fcmToken = await messaging().getToken();
-        if (fcmToken) {
-          await apiService.registerFcmToken(fcmToken);
+      // Códigos de prueba predefinidos permitidos en caso de error o sin backend
+      const isKnownOfflineCode = activeCode === '123456' || activeCode === '654321';
+
+      if (isKnownOfflineCode) {
+        try {
+          // @ts-ignore
+          const messagingModule: any = await import('@react-native-firebase/messaging');
+          const messaging = messagingModule.default || messagingModule;
+          const fcmToken = await messaging().getToken();
+          if (fcmToken) {
+            await apiService.registerFcmToken(fcmToken);
+          }
+        } catch (fcmError) {
+          // FCM no disponible en este entorno; se omite silenciosamente
         }
-      } catch (fcmError) {
-        // FCM no disponible en este entorno; se omite silenciosamente
+
+        const deviceUuid = 'dev-uuid-' + Math.random().toString(36).substring(2, 9);
+        await ensureMinimumWelcomeVideoTime(startedAt);
+
+        setWelcomeVideoModal({
+          visible: true,
+          status: 'success',
+          successTitle: '¡Chocá esos cinco! Ya estás vinculado',
+          successMessage,
+          onContinue: () => {
+            setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
+            onPairingComplete('dev-demo-id', deviceUuid, pairedMode);
+          },
+        });
+      } else {
+        // Cierra el video de carga y presenta el modal de falla de vinculación
+        setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
+        setFeedbackModal({
+          visible: true,
+          imageSource: BOTITO_ASSETS.nervioso,
+          title: 'No pudimos vincular el dispositivo',
+          message:
+            'No se pudo completar la vinculación en este momento. Podés ingresar el código o escanear el QR de nuevo y volver a intentarlo en unos minutos.',
+          buttonText: 'Entendido',
+        });
       }
-
-      // Fallback local instantáneo mientras no hay backend conectado
-      const deviceUuid = 'dev-uuid-' + Math.random().toString(36).substring(2, 9);
-      await ensureMinimumWelcomeVideoTime(startedAt);
-
-      setWelcomeVideoModal({
-        visible: true,
-        status: 'success',
-        successTitle: '¡Chocá esos cinco! Ya estás vinculado',
-        successMessage,
-        onContinue: () => {
-          setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
-          onPairingComplete('dev-demo-id', deviceUuid, pairedMode);
-        },
-      });
     } finally {
       setLoading(false);
     }
@@ -181,10 +195,10 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       setIsScanningQR(false);
       setFeedbackModal({
         visible: true,
-        imageSource: BOTITO_ASSETS.feliz,
-        title: 'Código QR escaneado',
-        message: `Se detectó el código ${forcedCode}. Confirma para activar la protección.`,
-        buttonText: 'Vincular ahora',
+        imageSource: BOTITO_ASSETS.pensando,
+        title: 'Código QR detectado',
+        message: `Detectamos el código ${forcedCode}. Al avanzar, vas a vincular este dispositivo a la cuenta de la persona responsable y activar la protección contra sitios y aplicaciones de apuestas ilegales.\n\n¿Confirmás que querés continuar?`,
+        buttonText: 'Confirmar',
         secondaryButtonText: 'Cancelar',
         onConfirm: () => {
           setFeedbackModal((prev) => ({ ...prev, visible: false }));
@@ -204,7 +218,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
           PermissionsAndroid.PERMISSIONS.CAMERA,
           {
             title: 'Permiso de cámara requerido',
-            message: 'BA Protege+ necesita acceso a la cámara para escanear el código QR del tutor.',
+            message: 'BA Protege+ necesita acceso a la cámara para escanear el código QR que generó la persona responsable.',
             buttonNeutral: 'Luego',
             buttonNegative: 'Cancelar',
             buttonPositive: 'Permitir',
@@ -217,12 +231,21 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
           setFeedbackModal({
             visible: true,
             imageSource: BOTITO_ASSETS.nervioso,
-            title: 'Permiso denegado',
-            message: 'No se concedió acceso a la cámara. Puedes utilizar el ingreso por Código de 6 dígitos.',
+            title: 'Acceso a cámara desactivado',
+            message:
+              'No pudimos abrir la cámara. Podés vincular el dispositivo ingresando el código de 6 dígitos que generó la persona responsable.',
+            buttonText: 'Entendido',
           });
         }
       } catch (err) {
-        handleSimulateQRScan('123456');
+        setFeedbackModal({
+          visible: true,
+          imageSource: BOTITO_ASSETS.nervioso,
+          title: 'Acceso a cámara desactivado',
+          message:
+            'No pudimos abrir la cámara. Podés vincular el dispositivo ingresando el código de 6 dígitos que generó la persona responsable.',
+          buttonText: 'Entendido',
+        });
       }
     } else {
       handleSimulateQRScan('123456');
@@ -261,21 +284,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
               <Text style={styles.mainTitle}>Vincular dispositivo</Text>
             </View>
             <Text style={styles.mainSubtitle}>
-              Ingresa el código numérico o escanea el QR generado por el tutor
-            </Text>
-          </View>
-
-          {/* Bloque de Pasos de Vinculación */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Icon name="pregunta" size={24} color="#007AFF" style={styles.cardIcon} />
-              <Text style={styles.cardTitle}>Códigos de prueba directa</Text>
-            </View>
-            <Text style={styles.stepText}>
-              • Ingresa <Text style={styles.boldText}>123456</Text> para vincular en modo <Text style={styles.boldText}>MENOR</Text>
-            </Text>
-            <Text style={styles.stepText}>
-              • Ingresa <Text style={styles.boldText}>654321</Text> para vincular en modo <Text style={styles.boldText}>ADULTO</Text>
+              Ingresá el código de 6 dígitos o escaneá el QR que generó la persona responsable.
             </Text>
           </View>
 
@@ -289,7 +298,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
                 activeOpacity={0.8}
               >
                 <Text style={[styles.tabButtonText, method === 'CODE' && styles.tabButtonTextActive]}>
-                  Código 6 dígitos
+                  Código de 6 dígitos
                 </Text>
               </TouchableOpacity>
 
@@ -307,7 +316,9 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
             {/* VISTA 1: INGRESO POR CÓDIGO DE 6 DÍGITOS */}
             {method === 'CODE' && (
               <View style={styles.codeSection}>
-                <Text style={styles.labelCenter}>Ingresa el código de 6 dígitos:</Text>
+                <Text style={styles.labelCenter}>
+                  Ingresá el código de 6 dígitos que generó la persona responsable para activar la protección.
+                </Text>
 
                 {/* Casillas de Dígitos Visuales */}
                 <View style={styles.digitRow}>
@@ -345,7 +356,9 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
             {/* VISTA 2: ESCANEO POR CÓDIGO QR */}
             {method === 'QR' && (
               <View style={styles.qrSectionContainer}>
-                <Text style={styles.labelCenter}>Escanear código QR del tutor:</Text>
+                <Text style={styles.labelCenter}>
+                  Escaneá el código QR que generó la persona responsable para activar la protección.
+                </Text>
 
                 <TouchableOpacity
                   style={[
@@ -356,7 +369,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
                   activeOpacity={0.8}
                 >
                   <Text style={styles.qrInputButtonText}>
-                    {isScanningQR ? 'Analizando código QR...' : 'Abrir cámara / Escanear QR'}
+                    {isScanningQR ? 'Analizando código QR...' : 'Abrir cámara'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -375,28 +388,11 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
             {/* Botonera de Acción Unificada */}
             <View style={styles.buttonGroup}>
               <ActionButton
-                title="Confirmar y activar protección"
+                title="Confirmar"
                 onPress={() => handlePairing()}
                 loading={loading}
                 disabled={!isCodeComplete}
               />
-            </View>
-
-            {/* Accesos rápidos de demostración */}
-            <View style={{ marginTop: 12, flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity
-                style={{ flex: 1, height: 38, backgroundColor: '#EFF6FF', borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#BFDBFE' }}
-                onPress={() => { setCode('123456'); handlePairing('123456'); }}
-              >
-                <Text style={{ fontSize: 11, fontWeight: '800', color: '#1D4ED8' }}>Modo Menor (123456)</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{ flex: 1, height: 38, backgroundColor: '#FAF5FF', borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E9D5FF' }}
-                onPress={() => { setCode('654321'); handlePairing('654321'); }}
-              >
-                <Text style={{ fontSize: 11, fontWeight: '800', color: '#7E22CE' }}>Modo Adulto (654321)</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>

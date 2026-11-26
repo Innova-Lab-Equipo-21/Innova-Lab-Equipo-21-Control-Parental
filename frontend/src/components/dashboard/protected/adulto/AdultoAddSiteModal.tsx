@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  Image,
 } from 'react-native';
 import { ActionButton } from '../../../ActionButton';
 import { colors } from '../../../../theme/colors';
@@ -24,7 +23,6 @@ import { isValidDomainOrUrl, cleanDomainInput } from '../../../../utils/deviceCo
 import { validateDomainInputDetailed, getDomainAutocompleteSuggestions } from '../../../../utils/domainValidation';
 import { ADULTO_SITE_MODAL_WARNING } from '../../../../utils/adultoSitios';
 import { top15ArgentinaSites } from '../../sitios/AddSiteModal';
-import { BOTI_ASSETS } from '../botAssets';
 import { styles } from './AdultoAddSiteModal.styles';
 
 export interface AdultoAddSiteModalProps {
@@ -115,7 +113,7 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Seleccioná o ingresá el sitio web que deseás restringir en este dispositivo.
+            Elegí de la lista o escribí la dirección web que querés bloquear.
           </Text>
 
           <ScrollView
@@ -143,7 +141,7 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
                 >
                   {selectedDropdownSite
                     ? selectedDropdownSite.name
-                    : 'Seleccionar sitio de la lista (Top 15 Argentina)...'}
+                    : 'Seleccionar un sitio de la lista.'}
                 </Text>
               </View>
               <Text style={{ fontSize: 12, color: colors.primary, fontWeight: 'bold' }}>
@@ -200,13 +198,13 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
               </View>
             )}
 
-            <Text style={styles.inputLabel}>Dominio o URL del sitio:</Text>
+            <Text style={styles.inputLabel}>Dirección del sitio o enlace:</Text>
             <TextInput
               style={[
                 styles.formInput,
                 hasInput && (isDomainValid ? styles.inputValid : styles.inputInvalid),
               ]}
-              placeholder="ejemplo: casino-ilegal.bet o https://..."
+              placeholder="Ejemplo: casino-ilegal.bet o https://..."
               placeholderTextColor={colors.textSecondary}
               value={domain}
               selectTextOnFocus={true}
@@ -218,7 +216,7 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
             {/* Chips de Autocompletado Inteligente en Tiempo Real */}
             {hasInput && autocompleteItems.length > 0 && (
               <View style={styles.autocompleteContainer}>
-                <Text style={styles.autocompleteTitle}>💡 Autocompletar sitio sugerido:</Text>
+                <Text style={styles.autocompleteTitle}>Sitio sugerido:</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -233,7 +231,6 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
                       }}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.autocompleteChipIcon}>{item.icon || '🌐'}</Text>
                       <Text style={styles.autocompleteChipText}>{item.domain}</Text>
                     </TouchableOpacity>
                   ))}
@@ -258,11 +255,11 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
                   }
                 >
                   {isDuplicate
-                    ? '⚠️ Este sitio web ya se encuentra en tu lista de bloqueo.'
+                    ? 'Esta aplicación o sitio ya se encuentra en tu lista de bloqueo.'
                     : isDomainValid
-                    ? `✓ Sitio válido (se bloqueará: ${normalizedDomain})`
+                    ? `¡Listo! Se bloqueará ${normalizedDomain}`
                     : validation.message ||
-                      '⚠️ Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
+                      'Ingresá una dirección válida con extensión (ej. casino.bet, sitio.com.ar)'}
                 </Text>
                 {!isDuplicate && !isDomainValid && validation.suggestedCorrection && (
                   <TouchableOpacity
@@ -278,13 +275,8 @@ export const AdultoAddSiteModal: React.FC<AdultoAddSiteModalProps> = ({
             )}
 
             <View style={styles.warningNoticeBox}>
-              <Image
-                source={BOTI_ASSETS.nervioso}
-                style={styles.warningMascot}
-                resizeMode="contain"
-              />
               <View style={styles.warningTextCol}>
-                <Text style={styles.warningNoticeTitle}>⚠️ Aviso importante</Text>
+                <Text style={styles.warningNoticeTitle}>Aviso importante</Text>
                 <Text style={styles.warningNoticeText}>{ADULTO_SITE_MODAL_WARNING}</Text>
               </View>
             </View>

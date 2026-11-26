@@ -19,6 +19,7 @@ import {
   PASATIEMPOS_CATALOG,
   PasatiempoGameId,
 } from '../../../../utils/pasatiempos';
+import { PasatiempoVisualIcon } from '../components/PasatiempoVisualIcon';
 import { AppsUsageCard } from '../../actividad/blocks/AppsUsageCard';
 import { cardStyles } from '../../actividad/card.styles';
 import { analyticsPalette as palette } from '../../actividad/palette';
@@ -111,14 +112,7 @@ export const MenorActividadSection: React.FC<MenorActividadSectionProps> = ({
         >
           <View style={styles.gameTopRow}>
             <View style={styles.gameIdentityRow}>
-              <View
-                style={[
-                  styles.gameIconBox,
-                  { backgroundColor: PASATIEMPOS_CATALOG.quiz.bgColor },
-                ]}
-              >
-                <Text style={styles.gameIconText}>?</Text>
-              </View>
+              <PasatiempoVisualIcon gameId="quiz" size={40} />
               <View style={styles.gameTextCol}>
                 <Text style={styles.gameTitle}>Juego de preguntas</Text>
                 <Text style={styles.gameSubtitle}>
@@ -174,14 +168,7 @@ export const MenorActividadSection: React.FC<MenorActividadSectionProps> = ({
         >
           <View style={styles.gameTopRow}>
             <View style={styles.gameIdentityRow}>
-              <View
-                style={[
-                  styles.gameIconBox,
-                  { backgroundColor: PASATIEMPOS_CATALOG.wordsearch.bgColor },
-                ]}
-              >
-                <Text style={styles.gameIconText}>A</Text>
-              </View>
+              <PasatiempoVisualIcon gameId="wordsearch" size={40} />
               <View style={styles.gameTextCol}>
                 <Text style={styles.gameTitle}>Sopa de letras</Text>
                 <Text style={styles.gameSubtitle}>
@@ -260,14 +247,7 @@ export const MenorActividadSection: React.FC<MenorActividadSectionProps> = ({
         >
           <View style={styles.gameTopRow}>
             <View style={styles.gameIdentityRow}>
-              <View
-                style={[
-                  styles.gameIconBox,
-                  { backgroundColor: PASATIEMPOS_CATALOG.memory.bgColor },
-                ]}
-              >
-                <Text style={styles.gameIconText}>🃏</Text>
-              </View>
+              <PasatiempoVisualIcon gameId="memory" size={40} />
               <View style={styles.gameTextCol}>
                 <Text style={styles.gameTitle}>Juego de la memoria</Text>
                 <Text style={styles.gameSubtitle}>

@@ -148,11 +148,11 @@ describe('Modo Protegido Adulto — Buscar y Ordenar en Sitios y apps', () => {
 
 describe('Modo Protegido Adulto — Restricciones y avisos al incluir sitios/apps', () => {
   test('Los textos de advertencia informan que solo el responsable puede desactivar o eliminar', () => {
-    assert.match(ADULTO_CARD_LOCK_NOTICE, /solo el responsable puede desactivar o eliminar/i);
-    assert.match(ADULTO_SITE_MODAL_WARNING, /solo el responsable podr[aá] desactivarlo o eliminarlo/i);
-    assert.match(ADULTO_APP_MODAL_WARNING, /solo el responsable podr[aá] desactivarla o eliminarla/i);
-    assert.match(ADULTO_SITE_ADDED_FEEDBACK.message, /responsable puede desactivarlo o eliminarlo/i);
-    assert.match(ADULTO_APP_ADDED_FEEDBACK.message, /responsable puede desactivarla o eliminarla/i);
+    assert.match(ADULTO_CARD_LOCK_NOTICE, /responsable.*desbloquear o eliminar/i);
+    assert.match(ADULTO_SITE_MODAL_WARNING, /responsable.*desbloquearlo/i);
+    assert.match(ADULTO_APP_MODAL_WARNING, /responsable.*desbloquearla/i);
+    assert.match(ADULTO_SITE_ADDED_FEEDBACK.message, /responsable.*desbloquearlo/i);
+    assert.match(ADULTO_APP_ADDED_FEEDBACK.message, /responsable.*desbloquearla/i);
   });
 
   test('AdultoSitiosSection no incluye Autoprotección ni botones de editar o eliminar', () => {
@@ -180,10 +180,10 @@ describe('Modo Protegido Adulto — Restricciones y avisos al incluir sitios/app
       'utf8'
     );
 
-    assert.equal(modalSource.includes('Buscar por dominio o aplicación...'), true);
+    assert.equal(modalSource.includes('Buscar sitio o aplicación...'), true);
     assert.equal(modalSource.includes('Ordenar lista'), true);
-    assert.equal(modalSource.includes('Por fecha (recientes)'), true);
-    assert.equal(modalSource.includes('Alfabético (A - Z)'), true);
+    assert.equal(modalSource.includes('Más recientes'), true);
+    assert.equal(modalSource.includes('Alfabético (A-Z)'), true);
     assert.equal(modalSource.includes('>ORDENAR LISTA<'), false);
     assert.equal(modalSource.includes('FILTRAR POR DISPOSITIVO'), false);
     assert.equal(modalSource.includes('ACCIÓN EN LOTE'), false);

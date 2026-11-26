@@ -6,7 +6,7 @@
 //              selección intuitiva por toque y celebración con Beti al completar.
 // ==============================================================================
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  PanResponder,
+  GestureResponderEvent,
 } from 'react-native';
 import {
   WORD_SEARCH_BOARDS,
@@ -48,20 +50,29 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
   );
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
   const [allBoardsCompletedNow, setAllBoardsCompletedNow] = useState<boolean>(false);
+  const prevVisibleRef = useRef<boolean>(false);
 
-  // Sincronizar progreso persistido al abrir el modal y posicionar en la primera sopa pendiente
+  // Sincronizar progreso persistido solo al abrir el modal (cuando pasa de false a true)
   useEffect(() => {
-    if (visible && initialFoundByBoard) {
-      setFoundByBoard(initialFoundByBoard);
+    const wasVisible = prevVisibleRef.current;
+    prevVisibleRef.current = visible;
+
+    if (visible && !wasVisible) {
+      if (initialFoundByBoard) {
+        setFoundByBoard(initialFoundByBoard);
+      }
+      setSelectedCells([]);
+      setShowCelebration(false);
+
+      // Posicionar en la primera sopa pendiente únicamente en la apertura
+      const currentMap = initialFoundByBoard || {};
       const firstPendingIdx = WORD_SEARCH_BOARDS.findIndex((b) => {
-        const found = initialFoundByBoard[b.id] || [];
+        const found = currentMap[b.id] || [];
         return found.length < b.words.length;
       });
       if (firstPendingIdx >= 0) {
         setBoardIndex(firstPendingIdx);
       }
-      setSelectedCells([]);
-      setShowCelebration(false);
     }
   }, [visible, initialFoundByBoard]);
 
@@ -81,8 +92,6 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
     }
     return map;
   }, [currentBoard, foundWords]);
-
-  if (!visible) return null;
 
   const isCellSelected = (row: number, col: number): boolean =>
     selectedCells.some((c) => c.row === row && c.col === col);
@@ -216,6 +225,150 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
 
   const currentTopicPhrase = getBoardTopicPhrase(currentBoard.id, currentBoard.title);
 
+  // Referencias para el gesto de arrastre (swipe/deslizar) sobre la cuadrícula
+  const gridContainerRef = useRef<View>(null);
+  const gridLayoutRef = useRef<{ pageX: number; pageY: number; width: number; height: number } | null>(null);
+  const dragStartCellRef = useRef<GridCellCoord | null>(null);
+  const isDraggingRef = useRef<boolean>(false);
+  const currentBoardRef = useRef(currentBoard);
+  currentBoardRef.current = currentBoard;
+  const foundWordsRef = useRef(foundWords);
+  foundWordsRef.current = foundWords;
+
+  const updateGridBounds = () => {
+    gridContainerRef.current?.measureInWindow((x, y, width, height) => {
+      if (width > 0 && height > 0) {
+        gridLayoutRef.current = { pageX: x, pageY: y, width, height };
+      }
+    });
+  };
+
+  const calculateCellFromCoords = (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    clamp = false
+  ): GridCellCoord | null => {
+    if (width <= 0 || height <= 0) return null;
+    const size = currentBoardRef.current.size;
+    const cellW = width / size;
+    const cellH = height / size;
+
+    if (!clamp) {
+      if (x < 0 || x >= width || y < 0 || y >= height) return null;
+    }
+
+    const col = Math.max(0, Math.min(size - 1, Math.floor(x / cellW)));
+    const row = Math.max(0, Math.min(size - 1, Math.floor(y / cellH)));
+
+    if (row >= 0 && row < size && col >= 0 && col < size) {
+      return { row, col };
+    }
+    return null;
+  };
+
+  const gridPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3,
+        onPanResponderTerminationRequest: () => false,
+
+        onPanResponderGrant: (evt: GestureResponderEvent, gestureState) => {
+          isDraggingRef.current = false;
+          updateGridBounds();
+
+          const bounds = gridLayoutRef.current;
+          let cell: GridCellCoord | null = null;
+
+          if (bounds && bounds.width > 0 && bounds.height > 0) {
+            const touchX = gestureState.x0 - bounds.pageX;
+            const touchY = gestureState.y0 - bounds.pageY;
+            cell = calculateCellFromCoords(touchX, touchY, bounds.width, bounds.height, false);
+          }
+
+          if (!cell) {
+            const { locationX, locationY } = evt.nativeEvent;
+            const width = bounds?.width || 0;
+            const height = bounds?.height || 0;
+            cell = calculateCellFromCoords(locationX, locationY, width, height, false);
+          }
+
+          if (cell) {
+            dragStartCellRef.current = cell;
+            setSelectedCells([cell]);
+          }
+        },
+
+        onPanResponderMove: (_evt: GestureResponderEvent, gestureState) => {
+          const start = dragStartCellRef.current;
+          if (!start) return;
+
+          const bounds = gridLayoutRef.current;
+          if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
+
+          const currentX = gestureState.moveX - bounds.pageX;
+          const currentY = gestureState.moveY - bounds.pageY;
+          const currentCell = calculateCellFromCoords(
+            currentX,
+            currentY,
+            bounds.width,
+            bounds.height,
+            true
+          );
+
+          if (!currentCell) return;
+
+          if (currentCell.row !== start.row || currentCell.col !== start.col) {
+            isDraggingRef.current = true;
+            const straightLine = getStraightLineCells(start, currentCell);
+            if (straightLine && straightLine.length >= 2) {
+              setSelectedCells(straightLine);
+            }
+          }
+        },
+
+        onPanResponderRelease: () => {
+          const start = dragStartCellRef.current;
+          dragStartCellRef.current = null;
+
+          if (!start) return;
+
+          // Si fue un arrastre con línea recta, evaluar si coincide con una palabra
+          if (isDraggingRef.current) {
+            setSelectedCells((activeCells) => {
+              if (activeCells.length >= 2) {
+                const match = findMatchingWordPlacement(
+                  currentBoardRef.current,
+                  activeCells,
+                  foundWordsRef.current
+                );
+                if (match) {
+                  markWordFound(match.word);
+                  return [];
+                }
+              }
+              return [];
+            });
+          } else {
+            // Si fue un toque simple sin arrastre, delegar al flujo clásico por toques
+            handleCellPress(start.row, start.col);
+          }
+          isDraggingRef.current = false;
+        },
+
+        onPanResponderTerminate: () => {
+          dragStartCellRef.current = null;
+          isDraggingRef.current = false;
+        },
+      }),
+    [foundWords, currentBoard]
+  );
+
+  if (!visible) return null;
+
   return (
     <Modal
       visible={visible}
@@ -263,10 +416,16 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
               <View style={styles.whiteBoardSheet}>
                 <Text style={styles.boardTitle}>{currentBoard.title}</Text>
                 <Text style={styles.boardHintText}>
-                  Tocá la primera y la última letra de cada palabra.
+                  Deslizá sobre las letras para formar cada palabra.
                 </Text>
 
-                <View style={styles.gridContainer}>
+                <View
+                  ref={gridContainerRef}
+                  style={styles.gridContainer}
+                  pointerEvents="box-only"
+                  onLayout={updateGridBounds}
+                  {...gridPanResponder.panHandlers}
+                >
                   {grid.map((rowLetters, rIdx) => (
                     <View key={rIdx} style={styles.gridRow}>
                       {rowLetters.map((letter, cIdx) => {
@@ -274,15 +433,13 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
                         const foundBg = foundCellColors[`${rIdx}-${cIdx}`];
 
                         return (
-                          <TouchableOpacity
+                          <View
                             key={`${rIdx}-${cIdx}`}
                             style={[
                               styles.gridCell,
                               foundBg ? { backgroundColor: foundBg } : null,
                               selected && styles.gridCellSelected,
                             ]}
-                            onPress={() => handleCellPress(rIdx, cIdx)}
-                            activeOpacity={0.75}
                           >
                             <Text
                               style={[
@@ -293,7 +450,7 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
                             >
                               {letter}
                             </Text>
-                          </TouchableOpacity>
+                          </View>
                         );
                       })}
                     </View>

@@ -44,7 +44,7 @@ export const PASATIEMPOS_CATALOG: Record<PasatiempoGameId, PasatiempoGameMeta> =
     homeBannerSubtitle:
       'Poné a prueba tus conocimientos sobre la navegación digital de forma divertida.',
     cardDescription:
-      'Respondé preguntas interactivas sobre seguridad en internet, privacidad y hábitos saludables.',
+      'Cinco preguntas sobre cómo navegar de forma segura en internet, mantener hábitos digitales saludables y cómo protegerse de sitios y aplicaciones de apuestas ilegales.',
     bgColor: '#16A34A',
     accentTextColor: '#15803D',
     lightTextColor: '#DCFCE7',
@@ -57,7 +57,7 @@ export const PASATIEMPOS_CATALOG: Record<PasatiempoGameId, PasatiempoGameMeta> =
     homeBannerSubtitle:
       'Encontrá las palabras escondidas y divertite aprendiendo sobre los planetas, hábitos de salud y valores humanos.',
     cardDescription:
-      'Descubrí palabras ocultas sobre los planetas, hábitos de salud y valores humanos.',
+      'Tres sopas temáticas para encontrar palabras sobre planetas, hábitos de salud y cualidades humanas.',
     bgColor: '#6D28D9',
     accentTextColor: '#5B21B6',
     lightTextColor: '#EDE9FE',
@@ -70,7 +70,7 @@ export const PASATIEMPOS_CATALOG: Record<PasatiempoGameId, PasatiempoGameMeta> =
     homeBannerSubtitle:
       'Da vuelta las tarjetas y encontrá los pares iguales. ¡A ver cómo te va!',
     cardDescription:
-      'Encontrá los 6 pares ocultos entre las 12 fichas para entrenar tu atención y memoria.',
+      'Descubrí las tarjetas y poné a prueba tu memoria encontrando los pares iguales.',
     bgColor: '#F59E0B',
     accentTextColor: '#B45309',
     lightTextColor: '#FEF3C7',
@@ -161,12 +161,12 @@ export function getNextAvailableGame(
  * Mensaje de sugerencia cuando el menor completa los 3 juegos en Inicio.
  */
 export const SCREEN_FREE_SUGGESTION = {
-  title: '¡Completaste los 3 pasatiempos!',
+  title: 'Ya completaste todos los pasatiempos. ¡Muy bien!',
   subtitle:
-    'Ya hiciste el juego de preguntas, la sopa de letras y el juego de la memoria. ¡Muy bien!',
-  tipTitle: 'Sugerencia sin pantallas',
+    'Ahora es un buen momento para alejarse de las pantallas.',
+  tipTitle: 'Ya completaste todos los pasatiempos. ¡Muy bien!',
   tipBody:
-    'Es un buen momento para alejarse de las pantallas. Podés salir a pasear o distraerte con otra cosa.',
+    'Podés salir a pasear o distraerte con otra actividad.',
 };
 
 // ==============================================================================

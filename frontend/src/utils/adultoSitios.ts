@@ -18,24 +18,30 @@ import {
 export type AdultoSortOption = 'date' | 'az';
 
 export const ADULTO_CARD_LOCK_NOTICE =
-  'Solo el responsable puede desactivar o eliminar';
+  'Solo la persona responsable de tu cuenta puede desbloquear o eliminar este sitio.';
+
+export const ADULTO_SITE_CARD_LOCK_NOTICE =
+  'Solo la persona responsable de tu cuenta puede desbloquear o eliminar este sitio.';
+
+export const ADULTO_APP_CARD_LOCK_NOTICE =
+  'Solo la persona responsable de tu cuenta puede desbloquear o eliminar esta aplicación.';
 
 export const ADULTO_SITE_MODAL_WARNING =
-  'Una vez agregado este sitio web, quedará bloqueado en tu dispositivo y solo el responsable podrá desactivarlo o eliminarlo.';
+  'Una vez que agregues este sitio a tu lista personalizada, quedará bloqueado y únicamente la persona responsable de tu cuenta podrá desbloquearlo.';
 
 export const ADULTO_APP_MODAL_WARNING =
-  'Una vez agregada esta aplicación, quedará bloqueada en tu dispositivo y solo el responsable podrá desactivarla o eliminarla.';
+  'Una vez que agregues esta aplicación a tu lista personalizada, quedará bloqueada y únicamente la persona responsable de tu cuenta podrá desbloquearla.';
 
 export const ADULTO_SITE_ADDED_FEEDBACK = {
-  title: 'Sitio bloqueado',
+  title: '¡Sitio bloqueado con éxito!',
   message:
-    'El sitio web fue agregado a la lista de bloqueo. Recordá que únicamente el responsable puede desactivarlo o eliminarlo.',
+    'Sumamos el sitio web a tu lista de bloqueos. Recordá que solamente la persona responsable de tu cuenta podrá desbloquearlo.',
 };
 
 export const ADULTO_APP_ADDED_FEEDBACK = {
-  title: 'Aplicación bloqueada',
+  title: '¡Aplicación bloqueada con éxito!',
   message:
-    'La aplicación fue agregada a la lista de bloqueo. Recordá que únicamente el responsable puede desactivarla o eliminarla.',
+    'Sumamos la app a tu lista de bloqueos. Recordá que solamente la persona responsable de tu cuenta podrá desbloquearla.',
 };
 
 /**

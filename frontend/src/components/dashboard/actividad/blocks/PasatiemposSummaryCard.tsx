@@ -24,6 +24,7 @@ import {
   ResponsiblePasatiemposSummary,
 } from '../../../../utils/pasatiemposMetrics';
 import { PASATIEMPOS_CATALOG } from '../../../../utils/pasatiempos';
+import { PasatiempoVisualIcon } from '../../protected/components/PasatiempoVisualIcon';
 import { analyticsPalette as palette } from '../palette';
 import { cardStyles } from '../card.styles';
 import { styles } from './PasatiemposSummaryCard.styles';
@@ -185,14 +186,7 @@ export const PasatiemposSummaryCard: React.FC<PasatiemposSummaryCardProps> = ({
                 {/* 1. Juego de preguntas */}
                 <View style={styles.gameRow}>
                   <View style={styles.gameLeft}>
-                    <View
-                      style={[
-                        styles.gameIconBox,
-                        { backgroundColor: PASATIEMPOS_CATALOG.quiz.bgColor },
-                      ]}
-                    >
-                      <Text style={styles.gameIconText}>?</Text>
-                    </View>
+                    <PasatiempoVisualIcon gameId="quiz" size={38} />
                     <View style={styles.gameInfo}>
                       <Text style={styles.gameName}>Juego de preguntas</Text>
                       <Text style={styles.gameSubDetail}>
@@ -209,17 +203,7 @@ export const PasatiemposSummaryCard: React.FC<PasatiemposSummaryCardProps> = ({
                 {/* 2. Sopa de letras */}
                 <View style={styles.gameRow}>
                   <View style={styles.gameLeft}>
-                    <View
-                      style={[
-                        styles.gameIconBox,
-                        {
-                          backgroundColor:
-                            PASATIEMPOS_CATALOG.wordsearch.bgColor,
-                        },
-                      ]}
-                    >
-                      <Text style={styles.gameIconText}>A</Text>
-                    </View>
+                    <PasatiempoVisualIcon gameId="wordsearch" size={38} />
                     <View style={styles.gameInfo}>
                       <Text style={styles.gameName}>Sopa de letras</Text>
                       <Text style={styles.gameSubDetail}>
@@ -240,16 +224,7 @@ export const PasatiemposSummaryCard: React.FC<PasatiemposSummaryCardProps> = ({
                 {/* 3. Juego de la memoria */}
                 <View style={[styles.gameRow, styles.gameRowLast]}>
                   <View style={styles.gameLeft}>
-                    <View
-                      style={[
-                        styles.gameIconBox,
-                        {
-                          backgroundColor: PASATIEMPOS_CATALOG.memory.bgColor,
-                        },
-                      ]}
-                    >
-                      <Text style={styles.gameIconText}>🃏</Text>
-                    </View>
+                    <PasatiempoVisualIcon gameId="memory" size={38} />
                     <View style={styles.gameInfo}>
                       <Text style={styles.gameName}>Juego de la memoria</Text>
                       <Text style={styles.gameSubDetail}>
@@ -271,14 +246,7 @@ export const PasatiemposSummaryCard: React.FC<PasatiemposSummaryCardProps> = ({
               /* Cuestionario diario (Mayores) */
               <View style={[styles.gameRow, styles.gameRowLast]}>
                 <View style={styles.gameLeft}>
-                  <View
-                    style={[
-                      styles.gameIconBox,
-                      { backgroundColor: palette.lotbaBlue },
-                    ]}
-                  >
-                    <Text style={styles.gameIconText}>✓</Text>
-                  </View>
+                  <PasatiempoVisualIcon gameId="quiz" size={38} />
                   <View style={styles.gameInfo}>
                     <Text style={styles.gameName}>Juego de preguntas</Text>
                     <Text style={styles.gameSubDetail}>

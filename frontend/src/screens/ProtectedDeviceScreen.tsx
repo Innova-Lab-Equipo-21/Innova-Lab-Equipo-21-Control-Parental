@@ -193,7 +193,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
       {activeTab === 'cuenta' && (
         <Header
           showTopLogo={false}
-          title={mode === 'CHILD' ? 'Mi cuenta' : 'Perfil y cuenta'}
+          title="Mi cuenta"
           onBack={() => setActiveTab('inicio')}
         />
       )}

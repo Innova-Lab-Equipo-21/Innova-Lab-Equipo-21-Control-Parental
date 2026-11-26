@@ -188,17 +188,19 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  inactiveStatusPill: {
+  inactiveButton: {
     backgroundColor: '#CBD5E1',
-    borderRadius: 20,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
     alignSelf: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  inactiveStatusPillText: {
-    fontSize: 12,
+  inactiveButtonText: {
+    fontSize: 14,
     fontWeight: '700',
-    color: '#475569',
+    color: '#64748B',
   },
   offlineSuggestionCard: {
     backgroundColor: '#ECFDF5',
@@ -222,7 +224,13 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#065F46',
-    marginBottom: 3,
+    marginBottom: 2,
+  },
+  offlineSubtitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#047857',
+    marginBottom: 2,
   },
   offlineBody: {
     fontSize: 12,

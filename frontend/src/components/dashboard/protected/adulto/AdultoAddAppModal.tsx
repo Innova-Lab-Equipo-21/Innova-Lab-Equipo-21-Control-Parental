@@ -15,14 +15,12 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  Image,
 } from 'react-native';
 import { ActionButton } from '../../../ActionButton';
 import { colors } from '../../../../theme/colors';
 import { CustomBlockedApp } from '../../../../types';
 import { top15PlayStoreApps } from '../../sitios/AddAppModal';
 import { ADULTO_APP_MODAL_WARNING } from '../../../../utils/adultoSitios';
-import { BOTI_ASSETS } from '../botAssets';
 import { styles } from './AdultoAddAppModal.styles';
 
 export interface AdultoAddAppModalProps {
@@ -213,13 +211,8 @@ export const AdultoAddAppModal: React.FC<AdultoAddAppModalProps> = ({
             )}
 
             <View style={styles.warningNoticeBox}>
-              <Image
-                source={BOTI_ASSETS.nervioso}
-                style={styles.warningMascot}
-                resizeMode="contain"
-              />
               <View style={styles.warningTextCol}>
-                <Text style={styles.warningNoticeTitle}>⚠️ Aviso importante</Text>
+                <Text style={styles.warningNoticeTitle}>Aviso importante</Text>
                 <Text style={styles.warningNoticeText}>{ADULTO_APP_MODAL_WARNING}</Text>
               </View>
             </View>

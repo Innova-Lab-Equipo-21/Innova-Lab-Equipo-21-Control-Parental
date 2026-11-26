@@ -43,14 +43,12 @@ export const styles = StyleSheet.create({
   closeButton: {
     width: 30,
     height: 30,
-    borderRadius: 15,
-    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#64748B',
   },
   tabRow: {

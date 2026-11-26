@@ -85,7 +85,7 @@ export const AdultoActividadSection: React.FC<AdultoActividadSectionProps> = ({
   // Resumen personal de Pasatiempos (solo el adulto protegido actual)
   const personalPasatiemposSummary = useMemo(() => {
     const resolvedId = deviceId || todayRecord.deviceId || 'adult-self';
-    const resolvedLabel = getDeviceFirstName(adultName || 'Mi perfil');
+    const resolvedLabel = 'Yo';
     const highlight = getDeviceHighlight(
       resolvedId,
       resolvedLabel,
