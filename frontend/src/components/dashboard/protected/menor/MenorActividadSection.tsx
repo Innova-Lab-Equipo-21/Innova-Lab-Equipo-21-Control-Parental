@@ -46,10 +46,6 @@ export const MenorActividadSection: React.FC<MenorActividadSectionProps> = ({
   onOpenGame,
 }) => {
   const { quiz, wordsearch, memory } = todayRecord;
-  const completedCount =
-    (quiz.status === 'completed' ? 1 : 0) +
-    (wordsearch.status === 'completed' ? 1 : 0) +
-    (memory.status === 'completed' ? 1 : 0);
 
   const handlePressGame = (gameId: PasatiempoGameId, status: PasatiempoGameStatus) => {
     if (status === 'completed') return;
@@ -95,23 +91,18 @@ export const MenorActividadSection: React.FC<MenorActividadSectionProps> = ({
       <View style={cardStyles.card}>
         <View style={styles.headerRow}>
           <Text style={styles.headerTitle}>Mis pasatiempos</Text>
-          <View style={styles.headerPillsRow}>
-            {streakDays > 0 && (
+          {streakDays > 0 && (
+            <View style={styles.headerPillsRow}>
               <View style={styles.streakPill}>
                 <Text style={styles.streakPillText}>
                   🔥 {streakDays} {streakDays === 1 ? 'día' : 'días'}
                 </Text>
               </View>
-            )}
-            <View style={styles.progressPill}>
-              <Text style={styles.progressPillText}>
-                {completedCount}/3 completados
-              </Text>
             </View>
-          </View>
+          )}
         </View>
 
-        {/* Juego 1: Quiz (correctas e incorrectas) */}
+        {/* Juego 1: Juego de preguntas (correctas e incorrectas) */}
         <TouchableOpacity
           style={[styles.gameSection, styles.gameSectionFirst]}
           activeOpacity={quiz.status === 'completed' ? 1 : 0.8}
@@ -129,10 +120,12 @@ export const MenorActividadSection: React.FC<MenorActividadSectionProps> = ({
                 <Text style={styles.gameIconText}>?</Text>
               </View>
               <View style={styles.gameTextCol}>
-                <Text style={styles.gameTitle}>Quiz</Text>
+                <Text style={styles.gameTitle}>Juego de preguntas</Text>
                 <Text style={styles.gameSubtitle}>
-                  {quiz.correctAnswers} de {quiz.totalQuestions} correctas ·{' '}
-                  {quiz.wrongAnswers} incorrectas
+                  {quiz.correctAnswers}{' '}
+                  {quiz.correctAnswers === 1 ? 'correcta' : 'correctas'} ·{' '}
+                  {quiz.wrongAnswers}{' '}
+                  {quiz.wrongAnswers === 1 ? 'incorrecta' : 'incorrectas'}
                 </Text>
               </View>
             </View>
@@ -192,8 +185,10 @@ export const MenorActividadSection: React.FC<MenorActividadSectionProps> = ({
               <View style={styles.gameTextCol}>
                 <Text style={styles.gameTitle}>Sopa de letras</Text>
                 <Text style={styles.gameSubtitle}>
-                  {wordsearch.foundWordsTotal} de {wordsearch.totalWords} encontradas ·{' '}
-                  {wordsearch.missingWordsTotal} faltantes
+                  {wordsearch.foundWordsTotal}{' '}
+                  {wordsearch.foundWordsTotal === 1 ? 'encontrada' : 'encontradas'} ·{' '}
+                  {wordsearch.missingWordsTotal}{' '}
+                  {wordsearch.missingWordsTotal === 1 ? 'faltante' : 'faltantes'}
                 </Text>
               </View>
             </View>
@@ -246,8 +241,10 @@ export const MenorActividadSection: React.FC<MenorActividadSectionProps> = ({
                     board.completed && styles.boardStatsDone,
                   ]}
                 >
-                  {board.foundCount}/{board.totalWords} encontradas ·{' '}
-                  {board.missingCount} faltantes
+                  {board.foundCount}{' '}
+                  {board.foundCount === 1 ? 'encontrada' : 'encontradas'} ·{' '}
+                  {board.missingCount}{' '}
+                  {board.missingCount === 1 ? 'faltante' : 'faltantes'}
                 </Text>
               </View>
             ))}
@@ -274,8 +271,12 @@ export const MenorActividadSection: React.FC<MenorActividadSectionProps> = ({
               <View style={styles.gameTextCol}>
                 <Text style={styles.gameTitle}>Juego de la memoria</Text>
                 <Text style={styles.gameSubtitle}>
-                  {memory.matchedPairs} de {memory.totalPairs} pares ·{' '}
-                  {memory.unmatchedPairs} faltantes · {memory.attempts} intentos
+                  {memory.matchedPairs}{' '}
+                  {memory.matchedPairs === 1 ? 'par encontrado' : 'pares encontrados'} ·{' '}
+                  {memory.unmatchedPairs}{' '}
+                  {memory.unmatchedPairs === 1 ? 'faltante' : 'faltantes'} ·{' '}
+                  {memory.attempts}{' '}
+                  {memory.attempts === 1 ? 'intento' : 'intentos'}
                 </Text>
               </View>
             </View>

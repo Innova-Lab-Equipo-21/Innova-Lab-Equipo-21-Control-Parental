@@ -446,7 +446,7 @@ describe('4. Estructura y orden de bloques en Actividad (Responsable, Adulto y M
     assert.equal(chartSrc.includes('Pico: ${peakInfo.range}'), true);
   });
 
-  test('Protegido Adulto contiene exactamente 3 bloques en orden: Mis apps hoy, Cuestionario diario, Sitios y apps bloqueados', () => {
+  test('Protegido Adulto contiene exactamente 3 bloques en orden estilo Responsable: Tiempo de uso de las aplicaciones, Historial (solo Historial de toda la actividad) y Pasatiempos', () => {
     const adultSrc = fs.readFileSync(
       path.resolve(
         __dirname,
@@ -454,25 +454,57 @@ describe('4. Estructura y orden de bloques en Actividad (Responsable, Adulto y M
       ),
       'utf8'
     );
+    const appsCardSrc = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        '../src/components/dashboard/actividad/blocks/AppsUsageCard.tsx'
+      ),
+      'utf8'
+    );
     const jsxStart = adultSrc.indexOf('return (');
     const jsxBody = adultSrc.slice(jsxStart);
 
-    const idxApps = jsxBody.indexOf('title="Mis apps hoy"');
-    const idxQuiz = jsxBody.indexOf('>Cuestionario diario<');
-    const idxBlocked = jsxBody.indexOf('>Sitios y apps bloqueados<');
+    const idxApps = jsxBody.indexOf('title="Tiempo de uso de las aplicaciones"');
+    const idxHistory = jsxBody.indexOf(
+      'Historial de intentos de acceso a sitios y apps bloqueados'
+    );
+    const idxAudit = jsxBody.indexOf('<AuditEventsCard');
+    const idxPasatiempos = jsxBody.indexOf('<PasatiemposSummaryCard');
 
     assert.ok(idxApps > 0);
-    assert.ok(idxApps < idxQuiz);
-    assert.ok(idxQuiz < idxBlocked);
-    assert.ok(jsxBody.includes('stackedBarLotba'));
-    assert.ok(jsxBody.includes('stackedBarCustom'));
+    assert.ok(idxApps < idxHistory);
+    assert.ok(idxHistory < idxAudit);
+    assert.ok(idxAudit < idxPasatiempos);
+    assert.equal(jsxBody.includes('TotalBlocksCard'), false);
+    assert.equal(jsxBody.includes('BlocksBySourceCard'), false);
+
+    // Copys específicos de Protegido Adulto en AppsUsageCard
+    assert.equal(
+      appsCardSrc.includes(
+        'Todavía no estableciste un límite de tiempo de uso para las aplicaciones. Podés hacerlo desde “Sitios y apps”.'
+      ),
+      true
+    );
+    assert.equal(
+      appsCardSrc.includes(
+        'Hoy usaste ${activeApp.appName} durante ${usedText}. Dentro de ${remainingText} se bloqueará la aplicación para mantener activa la protección.'
+      ),
+      true
+    );
   });
 
-  test('Protegido Menor contiene exactamente 2 bloques en orden: Mis apps hoy y Mis pasatiempos', () => {
+  test('Protegido Menor contiene exactamente 2 bloques en orden: Mis apps hoy (estilo Responsable) y Mis pasatiempos', () => {
     const childSrc = fs.readFileSync(
       path.resolve(
         __dirname,
         '../src/components/dashboard/protected/menor/MenorActividadSection.tsx'
+      ),
+      'utf8'
+    );
+    const appsCardSrc = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        '../src/components/dashboard/actividad/blocks/AppsUsageCard.tsx'
       ),
       'utf8'
     );
@@ -485,8 +517,31 @@ describe('4. Estructura y orden de bloques en Actividad (Responsable, Adulto y M
     assert.ok(idxApps > 0);
     assert.ok(idxApps < idxPasatiempos);
     assert.equal(jsxBody.includes('Sitios y apps bloqueados'), false);
+    assert.equal(jsxBody.includes('/3 completados'), false);
+    assert.equal(jsxBody.includes('>Quiz<'), false);
+    assert.ok(jsxBody.includes('>Juego de preguntas<'));
     assert.ok(jsxBody.includes('Sopa de letras'));
     assert.ok(jsxBody.includes('Juego de la memoria'));
     assert.ok(jsxBody.includes('wordsearch.boards.map'));
+    assert.ok(jsxBody.includes("? 'correcta' : 'correctas'"));
+    assert.ok(jsxBody.includes("? 'incorrecta' : 'incorrectas'"));
+    assert.ok(jsxBody.includes("? 'encontrada' : 'encontradas'"));
+    assert.ok(jsxBody.includes("? 'faltante' : 'faltantes'"));
+    assert.ok(jsxBody.includes("? 'par encontrado' : 'pares encontrados'"));
+    assert.ok(jsxBody.includes("? 'intento' : 'intentos'"));
+
+    // Copys específicos de Protegido Menor en AppsUsageCard
+    assert.equal(
+      appsCardSrc.includes(
+        'La persona responsable de tu cuenta todavía no estableció un límite de tiempo de uso para las aplicaciones.'
+      ),
+      true
+    );
+    assert.equal(
+      appsCardSrc.includes(
+        'Hoy usaste ${activeApp.appName} durante ${usedText}. Dentro de ${remainingText} se bloqueará la aplicación para cuidar tu bienestar digital.'
+      ),
+      true
+    );
   });
 });

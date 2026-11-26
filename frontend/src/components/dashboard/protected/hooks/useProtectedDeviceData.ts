@@ -22,11 +22,15 @@ import {
   FormattedBlockedAttempt,
   buildActivityDataset,
   computeActivityMetrics,
+  formatAttemptDateTime,
   normalizeAttemptSource,
 } from '../../../../utils/activityMetrics';
 import { getLocalDateKey } from '../../../../utils/pasatiemposMetrics';
+import { getNavigationState } from '../../../../utils/navigationSession';
 import { protectionService } from '../../../../services/protection.service';
 import { apiService } from '../../../../services/api.service';
+import { SecurityEventOverviewItem } from '../../../../services/api/telemetry.api';
+import { AttemptEvent } from '../../actividad/types';
 
 export interface UseProtectedDeviceDataParams {
   deviceUuid: string;
@@ -43,6 +47,7 @@ export interface UseProtectedDeviceDataResult {
   loadCustomBlockedList: () => Promise<void>;
   loadActivityUsageAndBlocks: () => Promise<void>;
 
+  resolvedTutorName: string;
   resolvedChildName?: string;
   resolvedChildPhone?: string;
   resolvedAdultDeviceId: string;
@@ -54,7 +59,18 @@ export interface UseProtectedDeviceDataResult {
 
   appsUsageSummary: BlockedAppsUsageSummary;
   deviceBlockedAttempts: FormattedBlockedAttempt[];
+  deviceBypassEvents: AttemptEvent[];
 }
+
+const SECURITY_EVENT_META: Record<string, { title: string; badge: string }> = {
+  PERMISSION_REVOKED: { title: 'Permiso deshabilitado', badge: 'PERMISOS' },
+  UNINSTALL_ATTEMPT: { title: 'Intento de desinstalación', badge: 'DESINSTALACIÓN' },
+  VPN_DISABLED: { title: 'Protección VPN desactivada', badge: 'VPN' },
+  APP_FORCE_STOP: { title: 'Intento de detener la app', badge: 'DETENCIÓN' },
+  DNS_TAMPERING: { title: 'Cambio en configuración DNS', badge: 'DNS' },
+  DEVICE_REBOOT: { title: 'Dispositivo reiniciado', badge: 'REINICIO' },
+  NETWORK_CHANGE: { title: 'Cambio de red detectado', badge: 'RED' },
+};
 
 export function useProtectedDeviceData({
   deviceUuid,
@@ -66,11 +82,15 @@ export function useProtectedDeviceData({
   const [customSites, setCustomSites] = useState<CustomBlockedDomain[]>([]);
   const [customApps, setCustomApps] = useState<CustomBlockedApp[]>([]);
   const [pairedDevices, setPairedDevices] = useState<DeviceInfo[]>([]);
+  const [resolvedTutorName, setResolvedTutorName] = useState<string>('Ana');
   const [grantedPermsCount, setGrantedPermsCount] = useState<number>(6);
   const [appUsageSnapshots, setAppUsageSnapshots] = useState<AppUsageRawSnapshot[]>([]);
   const [persistedBlockedEvents, setPersistedBlockedEvents] = useState<BlockedAttemptRecord[]>(
     []
   );
+  const [persistedSecurityEvents, setPersistedSecurityEvents] = useState<
+    SecurityEventOverviewItem[]
+  >([]);
 
   const refreshPermissions = useCallback(async () => {
     try {
@@ -83,15 +103,39 @@ export function useProtectedDeviceData({
 
   const loadCustomBlockedList = useCallback(async () => {
     try {
-      const [res, devRes] = await Promise.all([
+      const [res, devRes, selfDev, navState] = await Promise.all([
         apiService.getCustomBlocklist(),
         apiService.listDevices().catch(() => null),
+        apiService.getSelfDevice().catch(() => null),
+        getNavigationState().catch(() => null),
       ]);
       setCustomSites(res.data?.domains || []);
       setCustomApps(res.data?.apps || []);
       if (devRes?.data && Array.isArray(devRes.data)) {
         setPairedDevices(devRes.data);
       }
+
+      const isPlaceholder = (name?: string | null): boolean => {
+        const normalized = (name || '').trim().toLowerCase();
+        return (
+          !normalized ||
+          normalized === 'yo' ||
+          normalized === 'tutor responsable' ||
+          normalized === 'responsable'
+        );
+      };
+      const navUser = navState?.parentUser;
+      const navCombined = `${navUser?.firstName || ''} ${navUser?.lastName || ''}`.trim();
+      const candidateTutor = [
+        navUser?.fullName,
+        navCombined,
+        selfDev?.childName,
+        selfDev?.deviceName,
+      ].find((candidate) => !isPlaceholder(candidate));
+      if (candidateTutor) {
+        setResolvedTutorName(candidateTutor.trim());
+      }
+
       await protectionService.syncProtectionRulesWithNative(deviceUuid || 'self', mode);
     } catch {
       // Mantener estado actual ante error de red
@@ -106,10 +150,12 @@ export function useProtectedDeviceData({
         .flushNativeBlockEventsToTelemetry(storageDeviceKey)
         .catch(() => 0);
 
-      const [remoteMetrics, localBlocked] = await Promise.all([
+      const [remoteMetrics, localBlocked, localSecurity] = await Promise.all([
         apiService.getDeviceActivityMetrics(storageDeviceKey, todayKey).catch(() => null),
         apiService.getBlockedEvents().catch(() => []),
+        apiService.getSecurityEvents().catch(() => []),
       ]);
+      setPersistedSecurityEvents(Array.isArray(localSecurity) ? localSecurity : []);
 
       // 1. Combinar eventos bloqueados remotos y locales
       const mergedEvents = new Map<string, BlockedAttemptRecord>();
@@ -277,15 +323,29 @@ export function useProtectedDeviceData({
 
   const deviceBlockedAttempts = useMemo(() => {
     const targetDevice = mode === 'ADULT' ? matchedAdultDevice : matchedChildDevice;
+    const personalIds = new Set(
+      [
+        targetDevice?.deviceId,
+        targetDevice?.deviceUuid,
+        deviceUuid,
+        storageDeviceKey,
+      ].filter((id): id is string => Boolean(id))
+    );
+    const personalPersistedEvents =
+      personalIds.size > 0
+        ? persistedBlockedEvents.filter(
+            (ev) => !ev.deviceId || personalIds.has(ev.deviceId)
+          )
+        : persistedBlockedEvents;
+
     const dataset = buildActivityDataset({
       devices: targetDevice ? [targetDevice] : pairedDevices,
       customSites: mode === 'ADULT' ? adultVisibleSites : customSites,
       customApps: activeDeviceApps,
-      persistedEvents: persistedBlockedEvents,
+      persistedEvents: personalPersistedEvents,
     });
-    const filterId = targetDevice?.deviceId || targetDevice?.deviceUuid || 'all';
     const snapshot = computeActivityMetrics(dataset, {
-      deviceId: filterId,
+      deviceId: 'all',
       period: 'week',
       recentLimit: 30,
     });
@@ -294,11 +354,52 @@ export function useProtectedDeviceData({
     mode,
     matchedAdultDevice,
     matchedChildDevice,
+    deviceUuid,
+    storageDeviceKey,
     pairedDevices,
     adultVisibleSites,
     customSites,
     activeDeviceApps,
     persistedBlockedEvents,
+  ]);
+
+  const deviceBypassEvents: AttemptEvent[] = useMemo(() => {
+    const targetDevice = mode === 'ADULT' ? matchedAdultDevice : matchedChildDevice;
+    const personalIds = new Set(
+      [
+        targetDevice?.deviceId,
+        targetDevice?.deviceUuid,
+        deviceUuid,
+        storageDeviceKey,
+      ].filter((id): id is string => Boolean(id))
+    );
+
+    return persistedSecurityEvents
+      .filter((ev) => ev.deviceId && personalIds.has(ev.deviceId))
+      .map((ev) => {
+        const mapped = SECURITY_EVENT_META[ev.eventType?.toUpperCase()] ?? {
+          title: ev.description || 'Alerta de seguridad',
+          badge: 'SEGURIDAD',
+        };
+        const formatted = formatAttemptDateTime(ev.occurredAt);
+        return {
+          id: ev.id,
+          title: mapped.title,
+          meta: formatted,
+          formattedDateTime: formatted,
+          source: 'bypass' as const,
+          badgeLabel: mapped.badge,
+          deviceId: ev.deviceId,
+          readAt: ev.readAt ?? null,
+        };
+      });
+  }, [
+    mode,
+    matchedAdultDevice,
+    matchedChildDevice,
+    deviceUuid,
+    storageDeviceKey,
+    persistedSecurityEvents,
   ]);
 
   return {
@@ -310,6 +411,7 @@ export function useProtectedDeviceData({
     loadCustomBlockedList,
     loadActivityUsageAndBlocks,
 
+    resolvedTutorName,
     resolvedChildName,
     resolvedChildPhone,
     resolvedAdultDeviceId,
@@ -321,5 +423,6 @@ export function useProtectedDeviceData({
 
     appsUsageSummary,
     deviceBlockedAttempts,
+    deviceBypassEvents,
   };
 }

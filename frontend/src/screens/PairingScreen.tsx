@@ -365,7 +365,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
             {/* Resumen / Tarjeta de Confirmación de Datos cuando el código está listo */}
             {isCodeComplete && (
               <View style={styles.verifiedCard}>
-                <Text style={styles.verifiedTitle}>✅ Código de vinculación listo</Text>
+                <Text style={styles.verifiedTitle}>Código de vinculación listo</Text>
                 <Text style={styles.verifiedSubtitle}>
                   Código: <Text style={styles.boldText}>{code}</Text> • Modo: <Text style={styles.boldText}>{code === '654321' ? 'ADULTO' : 'MENOR'}</Text>
                 </Text>
@@ -420,7 +420,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         status={welcomeVideoModal.status}
         loadingTitle="Vinculando dispositivo..."
         loadingSubtitle="Bancá un cachito, Botito está conectando la protección."
-        successBadge="✨ ¡Vinculación exitosa!"
+        successBadge="¡Vinculación exitosa!"
         successTitle={welcomeVideoModal.successTitle}
         successMessage={welcomeVideoModal.successMessage}
         ctaText="¡Vamos!"

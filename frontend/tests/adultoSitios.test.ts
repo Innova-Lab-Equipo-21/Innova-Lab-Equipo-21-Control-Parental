@@ -181,9 +181,10 @@ describe('Modo Protegido Adulto — Restricciones y avisos al incluir sitios/app
     );
 
     assert.equal(modalSource.includes('Buscar por dominio o aplicación...'), true);
-    assert.equal(modalSource.includes('ORDENAR LISTA'), true);
-    assert.equal(modalSource.includes('Por fecha (Recientes)'), true);
+    assert.equal(modalSource.includes('Ordenar lista'), true);
+    assert.equal(modalSource.includes('Por fecha (recientes)'), true);
     assert.equal(modalSource.includes('Alfabético (A - Z)'), true);
+    assert.equal(modalSource.includes('>ORDENAR LISTA<'), false);
     assert.equal(modalSource.includes('FILTRAR POR DISPOSITIVO'), false);
     assert.equal(modalSource.includes('ACCIÓN EN LOTE'), false);
     assert.equal(modalSource.includes('Selección múltiple'), false);
@@ -442,11 +443,13 @@ describe('Modo Protegido Adulto — Pantalla de Inicio (réplica adaptada de Res
     assert.equal(inicioSource.includes("'App' : 'Apps'"), true);
     assert.equal(inicioSource.includes("'bloqueada' : 'bloqueadas'"), true);
 
-    // 5. Reemplaza Historial de intentos por Tiempo de uso de mis apps con CTA a Actividad
+    // 5. Reemplaza el card final por el Bloque 1 (Tiempo de uso de las aplicaciones) con CTA Ver más a Actividad
     assert.equal(inicioSource.includes('Historial de intentos'), false);
-    assert.equal(inicioSource.includes('Tiempo de uso de mis apps'), true);
-    assert.equal(inicioSource.includes('onNavigateToActivity'), true);
-    assert.equal(inicioSource.includes('Ver más'), true);
+    assert.equal(inicioSource.includes('<AppsUsageCard'), true);
+    assert.equal(inicioSource.includes('variant="adult"'), true);
+    assert.equal(inicioSource.includes('title="Tiempo de uso de las aplicaciones"'), true);
+    assert.equal(inicioSource.includes('actionLabel="Ver más"'), true);
+    assert.equal(inicioSource.includes('onActionPress={onNavigateToActivity}'), true);
 
     // 6. Incluye Ver preguntas frecuentes conectado a FaqModal
     assert.equal(inicioSource.includes('Ver preguntas frecuentes'), true);

@@ -8,7 +8,7 @@
 //              2) Bloque "Dispositivo no protegido" / "Dispositivo protegido" (verifica permisos)
 //              3) Bloque de Quiz diario (sin opción de repetir una vez completado)
 //              4) Bloques de Sitios y Apps bloqueados (respetando plurales)
-//              5) Bloque "Tiempo de uso de mis apps" con CTA hacia Actividad
+//              5) Bloque "Tiempo de uso de las aplicaciones" (AppsUsageCard) con CTA "Ver más" hacia Actividad
 //              6) Enlace "Ver preguntas frecuentes" al final
 // ==============================================================================
 
@@ -20,23 +20,22 @@ import {
   Image,
 } from 'react-native';
 import { getQuizResultMood } from '../../../../utils/botMascots';
+import { BlockedAppsUsageSummary } from '../../../../utils/appUsageMetrics';
 import { colors } from '../../../../theme/colors';
+import { AppsUsageCard } from '../../actividad/blocks/AppsUsageCard';
 import { BOTI_ASSETS } from '../botAssets';
 import { styles } from './AdultoInicioSection.styles';
 
-export interface AdultoUsagePreviewItem {
-  id: string;
-  appName: string;
-  minutes: number;
-  fillPercent: number;
-  barColor: string;
-}
-
-const DEFAULT_USAGE_PREVIEW: AdultoUsagePreviewItem[] = [
-  { id: 'u1', appName: 'Instagram', minutes: 45, fillPercent: 65, barColor: '#0072CE' },
-  { id: 'u2', appName: 'TikTok', minutes: 30, fillPercent: 45, barColor: '#3B82F6' },
-  { id: 'u3', appName: 'YouTube', minutes: 20, fillPercent: 30, barColor: '#60A5FA' },
-];
+const EMPTY_USAGE_SUMMARY: BlockedAppsUsageSummary = {
+  items: [],
+  appsCount: 0,
+  totalUsedMinutes: 0,
+  totalLimitMinutes: 0,
+  totalRemainingMinutes: 0,
+  hasAnyTimeLimit: false,
+  totalProgressPct: 0,
+  appNamesLabel: '',
+};
 
 export interface AdultoInicioSectionProps {
   adultName?: string;
@@ -46,7 +45,7 @@ export interface AdultoInicioSectionProps {
   blockedAppsCount?: number;
   quizCompleted?: boolean;
   quizScore?: { score: number; total: number };
-  usagePreview?: AdultoUsagePreviewItem[];
+  appsUsageSummary?: BlockedAppsUsageSummary;
   onNavigateToPermissions: () => void;
   onOpenQuiz: () => void;
   onNavigateToSites: () => void;
@@ -62,7 +61,7 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
   blockedAppsCount = 0,
   quizCompleted = false,
   quizScore = { score: 0, total: 5 },
-  usagePreview = DEFAULT_USAGE_PREVIEW,
+  appsUsageSummary = EMPTY_USAGE_SUMMARY,
   onNavigateToPermissions,
   onOpenQuiz,
   onNavigateToSites,
@@ -89,15 +88,6 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
   // 2. Estado de permisos del dispositivo (6/6 para estar protegido)
   const isProtected = grantedCount >= 6;
   const pendingCount = Math.max(0, 6 - grantedCount);
-
-  // Suma total de minutos de uso mostrados en el resumen
-  const totalMinutes = usagePreview.reduce((acc, item) => acc + item.minutes, 0);
-  const totalHoursPart = Math.floor(totalMinutes / 60);
-  const totalMinsPart = totalMinutes % 60;
-  const formattedTotalUsage =
-    totalHoursPart > 0
-      ? `${totalHoursPart}h ${totalMinsPart > 0 ? `${totalMinsPart}m` : ''}`.trim()
-      : `${totalMinsPart} min`;
 
   return (
     <View style={styles.container}>
@@ -197,7 +187,7 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
             />
             <View style={styles.quizCompletedTitleCol}>
               <Text style={styles.quizCompletedTitle}>
-                ¡Quiz diario completado! 🎯
+                ¡Juego de preguntas completado! 🎯
               </Text>
               <Text style={styles.completedSummaryText}>
                 Puntaje: {quizScore.score} / {quizScore.total} respuestas correctas.
@@ -263,50 +253,15 @@ export const AdultoInicioSection: React.FC<AdultoInicioSectionProps> = ({
       </View>
 
       {/* ---------------------------------------------------------------------- */}
-      {/* SECCIÓN 4: TIEMPO DE USO DE MIS APPS (CON CTA A ACTIVIDAD)             */}
+      {/* SECCIÓN 4: TIEMPO DE USO DE LAS APLICACIONES (CON CTA A ACTIVIDAD)     */}
       {/* ---------------------------------------------------------------------- */}
-      <View style={styles.usageCard}>
-        <View style={styles.usageHeaderRow}>
-          <Text style={styles.usageTitle}>Tiempo de uso de mis apps</Text>
-        </View>
-
-        <View style={styles.usageListContainer}>
-          {usagePreview.map((item) => (
-            <View key={item.id} style={styles.usageItemRow}>
-              <Text style={styles.usageAppName} numberOfLines={1}>
-                {item.appName}
-              </Text>
-              <View style={styles.usageProgressTrack}>
-                <View
-                  style={[
-                    styles.usageProgressFill,
-                    {
-                      width: `${Math.min(100, Math.max(8, item.fillPercent))}%`,
-                      backgroundColor: item.barColor,
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={styles.usageDurationText}>{item.minutes} min</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.usageFooter}>
-          <Text style={styles.usageSummaryText}>
-            Hoy: {formattedTotalUsage} • Límite diario: 3h
-          </Text>
-
-          <TouchableOpacity
-            style={styles.usageMoreBtn}
-            onPress={onNavigateToActivity}
-            activeOpacity={0.8}
-            accessibilityLabel="Ver actividad y tiempo de uso"
-          >
-            <Text style={styles.usageMoreText}>Ver más</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AppsUsageCard
+        summary={appsUsageSummary}
+        variant="adult"
+        title="Tiempo de uso de las aplicaciones"
+        actionLabel="Ver más"
+        onActionPress={onNavigateToActivity}
+      />
 
       {/* ---------------------------------------------------------------------- */}
       {/* SECCIÓN 5: VER PREGUNTAS FRECUENTES                                    */}

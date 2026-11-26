@@ -62,7 +62,7 @@ export const MenorCuentaSection: React.FC<MenorCuentaSectionProps> = ({
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{displayName}</Text>
             <Text style={styles.profileSubtitle}>
-              Vinculado con responsable: {tutorName}
+              Cuenta vinculada con {tutorName}
             </Text>
             {childPhone ? (
               <Text style={styles.profilePhone}>{childPhone}</Text>
@@ -70,10 +70,7 @@ export const MenorCuentaSection: React.FC<MenorCuentaSectionProps> = ({
 
             <View style={styles.roleBadgeContainer}>
               <View style={styles.roleBadge}>
-                <Text style={styles.roleBadgeText}>MENOR PROTEGIDO</Text>
-              </View>
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedBadgeText}>✓ Vinculado</Text>
+                <Text style={styles.roleBadgeText}>Menor protegido</Text>
               </View>
             </View>
           </View>

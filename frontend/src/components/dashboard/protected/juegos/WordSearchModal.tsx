@@ -184,6 +184,19 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
     setShowCelebration(false);
   };
 
+  const getBoardTopicPhrase = (boardId: string, fallbackTitle: string): string => {
+    if (boardId === 'planetas') return 'los planetas';
+    if (boardId === 'salud') return 'hábitos de salud';
+    if (boardId === 'valores') return 'los valores humanos';
+    return fallbackTitle.toLowerCase();
+  };
+
+  const handleCloseLater = () => {
+    setSelectedCells([]);
+    setShowCelebration(false);
+    onClose();
+  };
+
   const handleFinishCelebration = () => {
     setSelectedCells([]);
     setShowCelebration(false);
@@ -201,6 +214,8 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
     }
   };
 
+  const currentTopicPhrase = getBoardTopicPhrase(currentBoard.id, currentBoard.title);
+
   return (
     <Modal
       visible={visible}
@@ -211,7 +226,7 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.outerWrapper}>
           <View style={styles.topHeaderRow}>
-            <Text style={styles.screenTitle}>Pasatiempos</Text>
+            <Text style={styles.screenTitle}>Sopa de letras</Text>
             <TouchableOpacity
               style={styles.closeIconButton}
               onPress={onClose}
@@ -225,8 +240,6 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
           <View style={styles.boardTabsRow}>
             {WORD_SEARCH_BOARDS.map((b, idx) => {
               const active = idx === boardIndex;
-              const boardFoundCount = (foundByBoard[b.id] || []).length;
-              const boardDone = boardFoundCount >= b.words.length;
               return (
                 <TouchableOpacity
                   key={b.id}
@@ -238,7 +251,7 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
                     style={[styles.boardTabText, active && styles.boardTabTextActive]}
                     numberOfLines={1}
                   >
-                    {boardDone ? `✓ ${b.title}` : b.title}
+                    {b.title}
                   </Text>
                 </TouchableOpacity>
               );
@@ -250,7 +263,7 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
               <View style={styles.whiteBoardSheet}>
                 <Text style={styles.boardTitle}>{currentBoard.title}</Text>
                 <Text style={styles.boardHintText}>
-                  Tocá la primera y la última letra de cada palabra
+                  Tocá la primera y la última letra de cada palabra.
                 </Text>
 
                 <View style={styles.gridContainer}>
@@ -290,7 +303,7 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
                 <View style={styles.wordsSection}>
                   <View style={styles.wordsHeaderRow}>
                     <Text style={styles.wordsSectionTitle}>
-                      Encuentra las palabras:
+                      Encontrá las palabras:
                     </Text>
                     <Text style={styles.wordsCounterBadge}>
                       {foundWords.length}/{currentBoard.words.length}
@@ -339,17 +352,15 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
                 <View style={styles.celebrationCardInner}>
                   <TouchableOpacity
                     style={styles.celebrationCloseBtn}
-                    onPress={handleFinishCelebration}
+                    onPress={handleCloseLater}
                     accessibilityLabel="Cerrar felicitación"
                   >
                     <Text style={styles.celebrationCloseText}>✕</Text>
                   </TouchableOpacity>
 
-                  <Text style={styles.celebrationTitle}>¡FELICITACIONES!!</Text>
+                  <Text style={styles.celebrationTitle}>¡Felicitaciones!</Text>
                   <Text style={styles.celebrationSubtitle}>
-                    {allBoardsCompletedNow
-                      ? '¡Completaste las 3 sopas de letras!\n¡Excelente trabajo!'
-                      : `¡Completaste "${currentBoard.title}"!\nSeguí con la próxima sopa de letras.`}
+                    Completaste la sopa de letras sobre {currentTopicPhrase}. ¡Muy bien!
                   </Text>
 
                   <View style={styles.celebrationIllustrationRow}>
@@ -363,15 +374,46 @@ export const WordSearchModal: React.FC<WordSearchModalProps> = ({
                     </View>
                   </View>
 
-                  <TouchableOpacity
-                    style={styles.celebrationContinueBtn}
-                    onPress={handleFinishCelebration}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.celebrationContinueText}>
-                      {allBoardsCompletedNow ? 'Continuar ➔' : 'Siguiente sopa ➔'}
+                  <View style={styles.celebrationScoreBadge}>
+                    <Text style={styles.celebrationScoreText}>
+                      Encontraste {foundWords.length} de {currentBoard.words.length} palabras escondidas.
                     </Text>
-                  </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.celebrationMessageBox}>
+                    <Text style={styles.celebrationMessageText}>
+                      {allBoardsCompletedNow
+                        ? 'Podés charlar en casa o contarle a una persona adulta cómo te fue haciendo las diferentes sopas de letras. ¡Y si querés, también podés salir un rato al aire libre!'
+                        : '¿Querés hacer otra sopa de letras ahora o preferís volver más tarde?'}
+                    </Text>
+                  </View>
+
+                  {allBoardsCompletedNow ? (
+                    <TouchableOpacity
+                      style={styles.celebrationContinueBtn}
+                      onPress={handleFinishCelebration}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.celebrationContinueText}>Continuar</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.celebrationButtonsRow}>
+                      <TouchableOpacity
+                        style={styles.celebrationSecondaryBtn}
+                        onPress={handleCloseLater}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.celebrationSecondaryText}>Más tarde</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.celebrationPrimaryBtn}
+                        onPress={handleFinishCelebration}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.celebrationContinueText}>Ahora</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </View>
             </View>

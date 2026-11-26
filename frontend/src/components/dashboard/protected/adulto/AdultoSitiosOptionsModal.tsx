@@ -107,7 +107,7 @@ export const AdultoSitiosOptionsModal: React.FC<AdultoSitiosOptionsModalProps> =
                 </View>
 
                 {/* 2. ORDENAR LISTA (Única opción adicional permitida en Modo Protegido Adulto) */}
-                <Text style={styles.sheetSectionTitle}>ORDENAR LISTA</Text>
+                <Text style={styles.sheetSectionTitle}>Ordenar lista</Text>
                 <View style={styles.badgeRow}>
                   <TouchableOpacity
                     style={[
@@ -125,7 +125,7 @@ export const AdultoSitiosOptionsModal: React.FC<AdultoSitiosOptionsModalProps> =
                         sortBy === 'date' && styles.filterBadgeTextActive,
                       ]}
                     >
-                      Por fecha (Recientes)
+                      Por fecha (recientes)
                     </Text>
                   </TouchableOpacity>
 

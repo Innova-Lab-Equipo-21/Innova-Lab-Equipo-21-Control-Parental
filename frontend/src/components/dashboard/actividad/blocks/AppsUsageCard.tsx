@@ -36,6 +36,8 @@ export interface AppsUsageCardProps {
   selectedDeviceId?: string;
   selectedDeviceLabel?: string;
   initialExpanded?: boolean;
+  actionLabel?: string;
+  onActionPress?: () => void;
 }
 
 const CAROUSEL_GAP = 8;
@@ -90,6 +92,8 @@ export const AppsUsageCard: React.FC<AppsUsageCardProps> = ({
   selectedDeviceId = 'all',
   selectedDeviceLabel,
   initialExpanded = false,
+  actionLabel,
+  onActionPress,
 }) => {
   const [expanded, setExpanded] = useState<boolean>(initialExpanded);
   const [activeAppIndex, setActiveAppIndex] = useState<number>(0);
@@ -97,17 +101,18 @@ export const AppsUsageCard: React.FC<AppsUsageCardProps> = ({
 
   const resolvedTitle =
     title ||
-    (variant === 'parent'
-      ? 'Tiempo de uso de las aplicaciones'
-      : 'Mis apps hoy');
+    (variant === 'child'
+      ? 'Mis apps hoy'
+      : 'Tiempo de uso de las aplicaciones');
 
-  // En modo Responsable: carrusel horizontal en orden alfabético A-Z
-  const sortedItems = useMemo(() => {
-    if (variant !== 'parent') return summary.items;
-    return [...summary.items].sort((a, b) =>
-      a.appName.localeCompare(b.appName, 'es', { sensitivity: 'base' })
-    );
-  }, [summary.items, variant]);
+  // Carrusel horizontal en orden alfabético A-Z (Responsable, Protegido Adulto y Menor)
+  const sortedItems = useMemo(
+    () =>
+      [...summary.items].sort((a, b) =>
+        a.appName.localeCompare(b.appName, 'es', { sensitivity: 'base' })
+      ),
+    [summary.items]
+  );
 
   useEffect(() => {
     if (activeAppIndex >= sortedItems.length) {
@@ -120,7 +125,45 @@ export const AppsUsageCard: React.FC<AppsUsageCardProps> = ({
       ? sortedItems[Math.min(activeAppIndex, sortedItems.length - 1)]
       : null;
 
-  const buildParentNarrative = (): string => {
+  const buildNarrative = (): string => {
+    if (variant === 'child') {
+      if (!activeApp) {
+        return 'La persona responsable de tu cuenta todavía no estableció un límite de tiempo de uso para las aplicaciones.';
+      }
+
+      const usedText = formatLongDuration(activeApp.usedMinutes);
+      const remainingText = formatLongDuration(activeApp.remainingMinutes);
+
+      if (!activeApp.isTotalBlock && activeApp.remainingMinutes > 0) {
+        return `Hoy usaste ${activeApp.appName} durante ${usedText}. Dentro de ${remainingText} se bloqueará la aplicación para cuidar tu bienestar digital.`;
+      }
+
+      if (activeApp.isTotalBlock) {
+        return `Hoy usaste ${activeApp.appName} durante ${usedText}. La aplicación permanece bloqueada para cuidar tu bienestar digital.`;
+      }
+
+      return `Hoy usaste ${activeApp.appName} durante ${usedText}. La aplicación alcanzó su límite diario y permanecerá bloqueada para cuidar tu bienestar digital.`;
+    }
+
+    if (variant === 'adult') {
+      if (!activeApp) {
+        return 'Todavía no estableciste un límite de tiempo de uso para las aplicaciones. Podés hacerlo desde “Sitios y apps”.';
+      }
+
+      const usedText = formatLongDuration(activeApp.usedMinutes);
+      const remainingText = formatLongDuration(activeApp.remainingMinutes);
+
+      if (!activeApp.isTotalBlock && activeApp.remainingMinutes > 0) {
+        return `Hoy usaste ${activeApp.appName} durante ${usedText}. Dentro de ${remainingText} se bloqueará la aplicación para mantener activa la protección.`;
+      }
+
+      if (activeApp.isTotalBlock) {
+        return `Hoy usaste ${activeApp.appName} durante ${usedText}. La aplicación permanece bloqueada para mantener activa la protección.`;
+      }
+
+      return `Hoy usaste ${activeApp.appName} durante ${usedText}. La aplicación alcanzó su límite diario y permanecerá bloqueada para mantener activa la protección.`;
+    }
+
     if (!activeApp) {
       return 'Todavía no se aplicó un límite de tiempo de uso para las aplicaciones. Podés realizar la configuración cuando quieras desde “Sitios y apps”.';
     }
@@ -306,163 +349,137 @@ export const AppsUsageCard: React.FC<AppsUsageCardProps> = ({
     );
   };
 
-  if (variant === 'parent') {
-    const canExpand = sortedItems.length > 0;
-    const isSingleItem = sortedItems.length === 1;
-    const carouselItemWidth =
-      carouselWidth > 0
-        ? Math.max(220, Math.round(carouselWidth * 0.93))
-        : 295;
+  const canExpand = sortedItems.length > 0;
+  const isSingleItem = sortedItems.length === 1;
+  const carouselItemWidth =
+    carouselWidth > 0
+      ? Math.max(220, Math.round(carouselWidth * 0.93))
+      : 295;
 
-    const handleCarouselScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetX = e.nativeEvent.contentOffset.x;
-      const step = carouselItemWidth + CAROUSEL_GAP;
-      if (step > 0) {
-        const idx = Math.round(offsetX / step);
-        const clamped = Math.max(0, Math.min(sortedItems.length - 1, idx));
-        if (clamped !== activeAppIndex) {
-          setActiveAppIndex(clamped);
-        }
+  const handleCarouselScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const step = carouselItemWidth + CAROUSEL_GAP;
+    if (step > 0) {
+      const idx = Math.round(offsetX / step);
+      const clamped = Math.max(0, Math.min(sortedItems.length - 1, idx));
+      if (clamped !== activeAppIndex) {
+        setActiveAppIndex(clamped);
       }
-    };
-
-    return (
-      <View
-        style={cardStyles.card}
-        onLayout={(e: LayoutChangeEvent) => {
-          const innerWidth = Math.max(0, Math.floor(e.nativeEvent.layout.width - 29));
-          if (innerWidth > 0 && carouselWidth === 0) {
-            setCarouselWidth(innerWidth);
-          }
-        }}
-      >
-        <TouchableOpacity
-          activeOpacity={canExpand ? 0.75 : 1}
-          disabled={!canExpand}
-          onPress={() => setExpanded((prev) => !prev)}
-          accessibilityRole="button"
-          accessibilityState={{ expanded }}
-        >
-          <View style={styles.accordionHeaderRow}>
-            <Text style={styles.accordionTitle}>{resolvedTitle}</Text>
-            {canExpand ? (
-              <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
-            ) : null}
-          </View>
-
-          <View style={styles.mainRow}>
-            <Text style={styles.kpiNumber}>
-              {formatDurationMinutes(summary.totalUsedMinutes)}
-            </Text>
-            <Text style={styles.kpiSub}>consumidos hoy</Text>
-          </View>
-
-          <Text style={styles.narrativeText}>{buildParentNarrative()}</Text>
-        </TouchableOpacity>
-
-        {expanded && sortedItems.length > 0 ? (
-          <View
-            style={styles.carouselSection}
-            onLayout={(e: LayoutChangeEvent) => {
-              const exactWidth = Math.max(0, Math.floor(e.nativeEvent.layout.width));
-              if (exactWidth > 0 && Math.abs(exactWidth - carouselWidth) > 1) {
-                setCarouselWidth(exactWidth);
-              }
-            }}
-          >
-            {isSingleItem ? (
-              <View
-                style={[
-                  styles.carouselCard,
-                  styles.carouselCardSingle,
-                  styles.carouselCardActive,
-                ]}
-              >
-                {renderAppDetails(sortedItems[0])}
-              </View>
-            ) : (
-              <>
-                <ScrollView
-                  horizontal
-                  nestedScrollEnabled
-                  showsHorizontalScrollIndicator={false}
-                  decelerationRate="fast"
-                  snapToInterval={carouselItemWidth + CAROUSEL_GAP}
-                  snapToAlignment="start"
-                  onMomentumScrollEnd={handleCarouselScroll}
-                  onScrollEndDrag={handleCarouselScroll}
-                  contentContainerStyle={styles.carouselContent}
-                >
-                  {sortedItems.map((item, idx) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      activeOpacity={0.92}
-                      onPress={() => setActiveAppIndex(idx)}
-                      style={[
-                        styles.carouselCard,
-                        { width: carouselItemWidth },
-                        idx === activeAppIndex && styles.carouselCardActive,
-                      ]}
-                    >
-                      {renderAppDetails(item)}
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                <View style={styles.dotsRow}>
-                  {sortedItems.map((item, idx) => (
-                    <View
-                      key={`dot-${item.id}`}
-                      style={[
-                        styles.dot,
-                        idx === activeAppIndex && styles.dotActive,
-                      ]}
-                    />
-                  ))}
-                </View>
-              </>
-            )}
-          </View>
-        ) : null}
-      </View>
-    );
-  }
+    }
+  };
 
   return (
-    <View style={cardStyles.card}>
-      {/* Título */}
-      <Text style={styles.kpiLabel}>{resolvedTitle}</Text>
-
-      {summary.items.length === 0 ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>Sin apps con límite de tiempo</Text>
-          <Text style={styles.emptySubtitle}>
-            Todavía no se aplicó un límite de tiempo de uso para las aplicaciones. Podés realizar la configuración cuando quieras desde “Sitios y apps”.
-          </Text>
+    <View
+      style={cardStyles.card}
+      onLayout={(e: LayoutChangeEvent) => {
+        const innerWidth = Math.max(0, Math.floor(e.nativeEvent.layout.width - 29));
+        if (innerWidth > 0 && carouselWidth === 0) {
+          setCarouselWidth(innerWidth);
+        }
+      }}
+    >
+      <TouchableOpacity
+        activeOpacity={canExpand ? 0.75 : 1}
+        disabled={!canExpand}
+        onPress={() => setExpanded((prev) => !prev)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+      >
+        <View style={styles.accordionHeaderRow}>
+          <Text style={styles.accordionTitle}>{resolvedTitle}</Text>
+          {canExpand ? (
+            <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
+          ) : null}
         </View>
-      ) : (
-        <>
-          {/* Total en destaque */}
-          <View style={styles.mainRow}>
-            <Text style={styles.kpiNumber}>
-              {formatDurationMinutes(summary.totalUsedMinutes)}
-            </Text>
-            <Text style={styles.kpiSub}>consumidos hoy</Text>
-          </View>
 
-          {/* Listado ordenado */}
-          <View style={styles.listContainer}>
-            {summary.items.map((item, idx) => (
-              <View
-                key={item.id}
-                style={[styles.appRow, idx === 0 && styles.appRowFirst]}
+        <View style={styles.mainRow}>
+          <Text style={styles.kpiNumber}>
+            {formatDurationMinutes(summary.totalUsedMinutes)}
+          </Text>
+          <Text style={styles.kpiSub}>consumidos hoy</Text>
+        </View>
+
+        <Text style={styles.narrativeText}>{buildNarrative()}</Text>
+      </TouchableOpacity>
+
+      {expanded && sortedItems.length > 0 ? (
+        <View
+          style={styles.carouselSection}
+          onLayout={(e: LayoutChangeEvent) => {
+            const exactWidth = Math.max(0, Math.floor(e.nativeEvent.layout.width));
+            if (exactWidth > 0 && Math.abs(exactWidth - carouselWidth) > 1) {
+              setCarouselWidth(exactWidth);
+            }
+          }}
+        >
+          {isSingleItem ? (
+            <View
+              style={[
+                styles.carouselCard,
+                styles.carouselCardSingle,
+                styles.carouselCardActive,
+              ]}
+            >
+              {renderAppDetails(sortedItems[0])}
+            </View>
+          ) : (
+            <>
+              <ScrollView
+                horizontal
+                nestedScrollEnabled
+                showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                snapToInterval={carouselItemWidth + CAROUSEL_GAP}
+                snapToAlignment="start"
+                onMomentumScrollEnd={handleCarouselScroll}
+                onScrollEndDrag={handleCarouselScroll}
+                contentContainerStyle={styles.carouselContent}
               >
-                {renderAppDetails(item)}
+                {sortedItems.map((item, idx) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    activeOpacity={0.92}
+                    onPress={() => setActiveAppIndex(idx)}
+                    style={[
+                      styles.carouselCard,
+                      { width: carouselItemWidth },
+                      idx === activeAppIndex && styles.carouselCardActive,
+                    ]}
+                  >
+                    {renderAppDetails(item)}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <View style={styles.dotsRow}>
+                {sortedItems.map((item, idx) => (
+                  <View
+                    key={`dot-${item.id}`}
+                    style={[
+                      styles.dot,
+                      idx === activeAppIndex && styles.dotActive,
+                    ]}
+                  />
+                ))}
               </View>
-            ))}
-          </View>
-        </>
-      )}
+            </>
+          )}
+        </View>
+      ) : null}
+
+      {actionLabel && onActionPress ? (
+        <View style={styles.actionFooterRow}>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={onActionPress}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={actionLabel}
+          >
+            <Text style={styles.actionBtnText}>{actionLabel}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 };

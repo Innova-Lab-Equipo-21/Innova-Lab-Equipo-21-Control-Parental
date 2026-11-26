@@ -196,8 +196,10 @@ export const PasatiemposSummaryCard: React.FC<PasatiemposSummaryCardProps> = ({
                     <View style={styles.gameInfo}>
                       <Text style={styles.gameName}>Juego de preguntas</Text>
                       <Text style={styles.gameSubDetail}>
-                        {item.data.quiz.correctAnswers} correctas ·{' '}
-                        {item.data.quiz.wrongAnswers} incorrectas
+                        {item.data.quiz.correctAnswers}{' '}
+                        {item.data.quiz.correctAnswers === 1 ? 'correcta' : 'correctas'} ·{' '}
+                        {item.data.quiz.wrongAnswers}{' '}
+                        {item.data.quiz.wrongAnswers === 1 ? 'incorrecta' : 'incorrectas'}
                       </Text>
                     </View>
                   </View>
@@ -221,8 +223,14 @@ export const PasatiemposSummaryCard: React.FC<PasatiemposSummaryCardProps> = ({
                     <View style={styles.gameInfo}>
                       <Text style={styles.gameName}>Sopa de letras</Text>
                       <Text style={styles.gameSubDetail}>
-                        {item.data.wordsearch.foundWordsTotal} encontradas ·{' '}
-                        {item.data.wordsearch.missingWordsTotal} faltantes
+                        {item.data.wordsearch.foundWordsTotal}{' '}
+                        {item.data.wordsearch.foundWordsTotal === 1
+                          ? 'encontrada'
+                          : 'encontradas'}{' '}
+                        · {item.data.wordsearch.missingWordsTotal}{' '}
+                        {item.data.wordsearch.missingWordsTotal === 1
+                          ? 'faltante'
+                          : 'faltantes'}
                       </Text>
                     </View>
                   </View>
@@ -245,8 +253,14 @@ export const PasatiemposSummaryCard: React.FC<PasatiemposSummaryCardProps> = ({
                     <View style={styles.gameInfo}>
                       <Text style={styles.gameName}>Juego de la memoria</Text>
                       <Text style={styles.gameSubDetail}>
-                        {item.data.memory.matchedPairs} pares encontrados ·{' '}
-                        {item.data.memory.unmatchedPairs} faltantes
+                        {item.data.memory.matchedPairs}{' '}
+                        {item.data.memory.matchedPairs === 1
+                          ? 'par encontrado'
+                          : 'pares encontrados'}{' '}
+                        · {item.data.memory.unmatchedPairs}{' '}
+                        {item.data.memory.unmatchedPairs === 1
+                          ? 'faltante'
+                          : 'faltantes'}
                       </Text>
                     </View>
                   </View>
@@ -268,8 +282,10 @@ export const PasatiemposSummaryCard: React.FC<PasatiemposSummaryCardProps> = ({
                   <View style={styles.gameInfo}>
                     <Text style={styles.gameName}>Juego de preguntas</Text>
                     <Text style={styles.gameSubDetail}>
-                      {item.data.correctToday} correctas · {item.data.wrongToday}{' '}
-                      incorrectas
+                      {item.data.correctToday}{' '}
+                      {item.data.correctToday === 1 ? 'correcta' : 'correctas'} ·{' '}
+                      {item.data.wrongToday}{' '}
+                      {item.data.wrongToday === 1 ? 'incorrecta' : 'incorrectas'}
                     </Text>
                   </View>
                 </View>

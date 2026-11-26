@@ -72,7 +72,7 @@ export const BlockModal: React.FC<BlockModalProps> = ({
         visible: true,
         imageSource: BOTI_ASSETS.feliz,
         title: 'Bloqueo registrado',
-        message: `El ${blockType === 'SITE' ? 'sitio web' : 'aplicación'} "${trimmed}" ha sido agregado a tu lista de restricciones.\n\n⚠️ RECUERDA: Únicamente tu TUTOR RESPONSABLE podrá remover este bloqueo.`,
+        message: `El ${blockType === 'SITE' ? 'sitio web' : 'aplicación'} "${trimmed}" ha sido agregado a tu lista de restricciones.\n\n⚠️ Recordá: únicamente tu tutor responsable podrá remover este bloqueo.`,
         onConfirm: () => {
           setFeedbackModal((prev) => ({ ...prev, visible: false }));
           handleCloseModal(true, trimmed);
@@ -198,7 +198,7 @@ export const BlockModal: React.FC<BlockModalProps> = ({
                 </Text>
               </View>
               <Text style={styles.restrictionWarningText}>
-                Una vez confirmado este bloqueo para tu dispositivo, <Text style={{ fontWeight: '800' }}>NO podrás revertirlo o desbloquearlo por tu cuenta</Text>. Solamente tu <Text style={{ fontWeight: '800' }}>TUTOR RESPONSABLE</Text> podrá autorizar la remoción ingresando su PIN oficial.
+                Una vez confirmado este bloqueo para tu dispositivo, <Text style={{ fontWeight: '800' }}>no podrás revertirlo o desbloquearlo por tu cuenta</Text>. Solamente tu <Text style={{ fontWeight: '800' }}>tutor responsable</Text> podrá autorizar la remoción ingresando su PIN oficial.
               </Text>
             </View>
           </View>

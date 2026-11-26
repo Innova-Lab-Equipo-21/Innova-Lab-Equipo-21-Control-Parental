@@ -10,7 +10,7 @@
 // ==============================================================================
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { Image, SafeAreaView, ScrollView, View } from 'react-native';
 import {
   AdultoActividadSection,
   AdultoCuentaSection,
@@ -153,7 +153,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* 1. TOP HEADER INSTITUCIONAL (#EAF3FF) CON LOGO Y BADGE DE MODO */}
+      {/* 1. TOP HEADER INSTITUCIONAL (#EAF3FF) CON LOGO */}
       <View style={styles.topHeaderBar}>
         <View style={styles.topHeaderLeft}>
           <Image
@@ -163,11 +163,6 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
             accessibilityLabel="BA Protege +"
           />
         </View>
-        {mode === 'CHILD' && (
-          <View style={styles.modeBadge}>
-            <Text style={styles.modeBadgeText}>👦 PERFIL MENOR</Text>
-          </View>
-        )}
       </View>
 
       {/* Subheaders contextuales por pestaña */}
@@ -176,13 +171,6 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
           showTopLogo={false}
           title="Pasatiempos"
           onBack={() => setActiveTab('inicio')}
-          rightElement={
-            <View style={styles.pasatiemposProgressPill}>
-              <Text style={styles.pasatiemposProgressPillText}>
-                {pasatiempos.completedCount}/3 completados
-              </Text>
-            </View>
-          }
         />
       )}
 
@@ -205,7 +193,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
       {activeTab === 'cuenta' && (
         <Header
           showTopLogo={false}
-          title="Perfil y cuenta"
+          title={mode === 'CHILD' ? 'Mi cuenta' : 'Perfil y cuenta'}
           onBack={() => setActiveTab('inicio')}
         />
       )}
@@ -222,9 +210,10 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
               {activeTab === 'inicio' && (
                 <MenorInicioSection
                   childName={deviceData.resolvedChildName}
-                  tutorName="Ana"
+                  tutorName={deviceData.resolvedTutorName}
                   grantedCount={deviceData.grantedPermsCount}
                   completedGames={completedGames}
+                  appsUsageSummary={deviceData.appsUsageSummary}
                   onOpenGame={pasatiempos.handleOpenChildGame}
                   onNavigateToPermissions={handleOpenPermissions}
                   onNavigateToPasatiempos={() => setActiveTab('pasatiempos')}
@@ -256,7 +245,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
                   deviceUuid={deviceUuid}
                   childName={deviceData.resolvedChildName}
                   childPhone={deviceData.resolvedChildPhone}
-                  tutorName="Ana"
+                  tutorName={deviceData.resolvedTutorName}
                   ruleUninstallProtection={ruleUninstallProtection}
                   onToggleUninstallProtection={handleToggleUninstallProtection}
                   onOpenPermissions={handleOpenPermissions}
@@ -270,12 +259,13 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
               {activeTab === 'inicio' && (
                 <AdultoInicioSection
                   adultName={deviceData.resolvedAdultName}
-                  tutorName="Ana"
+                  tutorName={deviceData.resolvedTutorName}
                   grantedCount={deviceData.grantedPermsCount}
                   customSitesCount={deviceData.adultVisibleSites.length}
                   blockedAppsCount={deviceData.adultVisibleApps.length}
                   quizCompleted={completedGames.quiz}
                   quizScore={pasatiempos.quizScore}
+                  appsUsageSummary={deviceData.appsUsageSummary}
                   onNavigateToPermissions={handleOpenPermissions}
                   onOpenQuiz={handleOpenAdultQuiz}
                   onNavigateToSites={() => {
@@ -316,6 +306,9 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
                   streakDays={pasatiempos.streakDays}
                   weeklyQuizAccuracyPct={pasatiempos.weeklyQuizAccuracyPct}
                   blockedAttempts={deviceData.deviceBlockedAttempts}
+                  bypassEvents={deviceData.deviceBypassEvents}
+                  adultName={deviceData.resolvedAdultName}
+                  deviceId={deviceData.resolvedAdultDeviceId}
                   onOpenQuiz={handleOpenAdultQuiz}
                   customBlockedItems={deviceData.customBlockedItems}
                 />
@@ -326,7 +319,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
                   deviceUuid={deviceUuid}
                   adultName={deviceData.resolvedAdultName}
                   adultPhone={deviceData.resolvedAdultPhone}
-                  tutorName="Ana"
+                  tutorName={deviceData.resolvedTutorName}
                   ruleUninstallProtection={ruleUninstallProtection}
                   onToggleUninstallProtection={handleToggleUninstallProtection}
                   onOpenPermissions={handleOpenPermissions}

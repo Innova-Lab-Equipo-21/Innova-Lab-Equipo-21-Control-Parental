@@ -203,14 +203,7 @@ export const MenorPasatiemposSection: React.FC<MenorPasatiemposSectionProps> = (
                     activeOpacity={0.85}
                     accessibilityLabel={`Jugar ${meta.title}`}
                   >
-                    <Text
-                      style={[
-                        styles.playButtonText,
-                        { color: meta.accentTextColor },
-                      ]}
-                    >
-                      Comenzar ➔
-                    </Text>
+                    <Text style={styles.playButtonText}>Empezar</Text>
                   </TouchableOpacity>
                 ) : (
                   <View

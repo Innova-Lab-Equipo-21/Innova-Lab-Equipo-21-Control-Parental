@@ -312,4 +312,29 @@ export const styles = StyleSheet.create({
     width: 16,
     backgroundColor: palette.lotbaBlue,
   },
+
+  actionFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: palette.surfaceBg,
+  },
+
+  actionBtn: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  actionBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
 });

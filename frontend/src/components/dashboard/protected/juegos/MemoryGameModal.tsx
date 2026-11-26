@@ -165,7 +165,7 @@ export const MemoryGameModal: React.FC<MemoryGameModalProps> = ({
               <View style={styles.whiteBoardSheet}>
                 <Text style={styles.boardTitle}>Juego de la memoria</Text>
                 <Text style={styles.boardHintText}>
-                  Dá vuelta dos fichas para encontrar los 6 pares iguales
+                  Da vuelta dos tarjetas para encontrar los 6 pares iguales.
                 </Text>
 
                 <View style={styles.gridContainer}>
@@ -243,9 +243,9 @@ export const MemoryGameModal: React.FC<MemoryGameModalProps> = ({
                     <Text style={styles.celebrationCloseText}>✕</Text>
                   </TouchableOpacity>
 
-                  <Text style={styles.celebrationTitle}>¡FELICITACIONES!!</Text>
+                  <Text style={styles.celebrationTitle}>¡Felicitaciones!</Text>
                   <Text style={styles.celebrationSubtitle}>
-                    ¡Completaste el juego de la memoria!{'\n'}¡Seguí así!
+                    Completaste el juego de la memoria. ¡Muy bien!
                   </Text>
 
                   <View style={styles.celebrationIllustrationRow}>
@@ -259,13 +259,25 @@ export const MemoryGameModal: React.FC<MemoryGameModalProps> = ({
                     </View>
                   </View>
 
+                  <View style={styles.celebrationScoreBadge}>
+                    <Text style={styles.celebrationScoreText}>
+                      Encontraste todos los pares.
+                    </Text>
+                  </View>
+
+                  <View style={styles.celebrationMessageBox}>
+                    <Text style={styles.celebrationMessageText}>
+                      Si querés, podés compartir en casa cómo te fue o hacer una pausa y salir al aire libre.
+                    </Text>
+                  </View>
+
                   <TouchableOpacity
                     style={styles.celebrationContinueBtn}
                     onPress={handleFinishCelebration}
                     activeOpacity={0.85}
                   >
                     <Text style={styles.celebrationContinueText}>
-                      Continuar ➔
+                      Continuar
                     </Text>
                   </TouchableOpacity>
                 </View>

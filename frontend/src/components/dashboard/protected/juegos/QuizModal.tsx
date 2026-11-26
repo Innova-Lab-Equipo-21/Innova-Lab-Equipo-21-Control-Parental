@@ -64,10 +64,14 @@ const childQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 1,
     question: '¿Qué hacés si un desconocido te escribe pidiendo datos o fotos?',
-    description: 'Navegar seguro significa proteger tu información personal en internet.',
+    description:
+      'Recordá que navegar en internet de forma segura implica proteger tu información personal.',
     stepBgColor: '#E05297',
     options: [
-      { text: 'No respondo y le aviso a mi tutor', isCorrect: true },
+      {
+        text: 'No respondo y le aviso a una persona adulta de confianza.',
+        isCorrect: true,
+      },
       { text: 'Se los envío rápido', isCorrect: false },
       { text: 'Se los paso a un amigo', isCorrect: false },
       { text: 'Invento un secreto', isCorrect: false },
@@ -76,7 +80,7 @@ const childQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 2,
     question: '¿Por qué es importante tener un límite de tiempo en el celular?',
-    description: 'Descansar de las pantallas cuida tu vista y tu bienestar diario.',
+    description: 'Recordá qué ganás cuando te alejás un momento del celular.',
     stepBgColor: '#38BDF8',
     options: [
       { text: 'Para salir a jugar al aire libre', isCorrect: true },
@@ -87,11 +91,12 @@ const childQuestionsRaw: RawQuizQuestion[] = [
   },
   {
     id: 3,
-    question: '¿Las casas de apuestas online están permitidas para menores?',
-    description: 'En Argentina, la ley protege la salud de los menores de 18 años.',
+    question:
+      '¿Se puede jugar a apostar plata en páginas de internet y aplicaciones cuando uno es menor de 18 años?',
+    description: 'Recordá que hay espacios pensados según la edad de cada persona.',
     stepBgColor: '#2DD4BF',
     options: [
-      { text: 'No, están estrictamente prohibidas', isCorrect: true },
+      { text: 'No, está prohibido', isCorrect: true },
       { text: 'Sí, en cualquier momento', isCorrect: false },
       { text: 'Sí, con permiso de un amigo', isCorrect: false },
       { text: 'Solo los fines de semana', isCorrect: false },
@@ -99,8 +104,9 @@ const childQuestionsRaw: RawQuizQuestion[] = [
   },
   {
     id: 4,
-    question: '¿Qué podés hacer si te sentís cansado o ansioso por usar el celular?',
-    description: 'Tomar pausas te ayuda a sentirte con más energía y buen humor.',
+    question: '¿Qué podés hacer si te sentís cansado o con ganas de dejar el celular?',
+    description:
+      'Pensá qué actividades te ayudan a sentirte mejor después de estar un rato largo mirando la pantalla.',
     stepBgColor: '#84CC16',
     options: [
       { text: 'Apagar la pantalla y salir a caminar', isCorrect: true },
@@ -111,14 +117,15 @@ const childQuestionsRaw: RawQuizQuestion[] = [
   },
   {
     id: 5,
-    question: '¿Cuáles de estos datos son PRIVADOS y NUNCA se comparten en internet?',
-    description: 'Cuidar tus datos privados evita riesgos en redes sociales.',
+    question:
+      'Si alguien te manda un mensaje con una oferta que promete plata o premios rápidos, ¿qué es mejor hacer?',
+    description: 'Pensá en cómo cuidarte antes de hacer clic.',
     stepBgColor: '#EAB308',
     options: [
-      { text: 'Tu nombre, dirección y contraseñas', isCorrect: true },
-      { text: 'Tu color de remera favorito', isCorrect: false },
-      { text: 'El nombre de un superhéroe', isCorrect: false },
-      { text: 'Tu deporte preferido', isCorrect: false },
+      { text: 'Pasar mis datos', isCorrect: false },
+      { text: 'No entrar ni compartir datos y avisar en casa', isCorrect: true },
+      { text: 'Reenviarlo a todos mis contactos', isCorrect: false },
+      { text: 'Aceptar todo sin leer', isCorrect: false },
     ],
   },
 ];
@@ -327,13 +334,13 @@ export const QuizModal: React.FC<QuizModalProps> = ({
           >
             <View style={styles.headerRow}>
               <Text style={styles.stepCounterText}>
-                PREGUNTA {currentStepIndex + 1} DE {preparedQuestions.length}
+                Pregunta {currentStepIndex + 1} de {preparedQuestions.length}
               </Text>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={handleCloseModal}
                 activeOpacity={0.8}
-                accessibilityLabel="Cerrar quiz"
+                accessibilityLabel="Cerrar juego de preguntas"
               >
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
@@ -405,7 +412,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({
                 disabled={currentStepIndex === 0}
                 activeOpacity={0.8}
               >
-                <Text style={styles.navButtonText}>◄ Volver</Text>
+                <Text style={styles.navButtonText}>Volver</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -419,7 +426,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({
                 activeOpacity={0.85}
               >
                 <Text style={[styles.navButtonText, styles.navButtonPrimaryText]}>
-                  {currentStepIndex === preparedQuestions.length - 1 ? 'Finalizar ➔' : 'Avanzar ►'}
+                  {currentStepIndex === preparedQuestions.length - 1 ? 'Finalizar' : 'Avanzar'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -427,7 +434,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({
         ) : (
           <View style={[styles.quizContainer, { backgroundColor: '#15803D' }]}>
             <View style={styles.headerRow}>
-              <Text style={styles.stepCounterText}>¡QUIZ COMPLETADO!</Text>
+              <Text style={styles.stepCounterText}>Juego de preguntas completado</Text>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={handleFinishQuiz}
@@ -448,18 +455,42 @@ export const QuizModal: React.FC<QuizModalProps> = ({
 
               const resultMood = getQuizResultMood(correctCount, preparedQuestions.length);
               const mascotName = getBotMascotName(mode);
-              const headerTitle =
-                resultMood === 'feliz'
-                  ? '¡FELICITACIONES!!'
-                  : resultMood === 'pensando'
-                  ? '¡BUEN INTENTO!'
-                  : '¡A SEGUIR APRENDIENDO!';
-              const headerSubtitle =
-                resultMood === 'feliz'
-                  ? '¡Completaste el quiz diario! ¡Seguí así!'
-                  : resultMood === 'pensando'
-                  ? 'Completaste el quiz diario. ¡Seguí reflexionando sobre tus hábitos!'
-                  : 'Completaste el quiz diario. ¡Estos consejos te ayudarán a cuidarte mejor!';
+              const isChild = mode === 'CHILD';
+              const isHighScore = resultMood === 'feliz';
+
+              const headerTitle = isChild
+                ? isHighScore
+                  ? '¡Felicitaciones!'
+                  : '¡Bien!'
+                : resultMood === 'feliz'
+                ? '¡Felicitaciones!'
+                : resultMood === 'pensando'
+                ? '¡Buen intento!'
+                : '¡A seguir aprendiendo!';
+
+              const headerSubtitle = isChild
+                ? isHighScore
+                  ? 'Completaste el juego de preguntas. ¡Muy bien!'
+                  : 'Completaste el juego de preguntas.'
+                : resultMood === 'feliz'
+                ? '¡Completaste el juego de preguntas! ¡Seguí así!'
+                : resultMood === 'pensando'
+                ? 'Completaste el juego de preguntas. ¡Seguí reflexionando sobre tus hábitos!'
+                : 'Completaste el juego de preguntas. ¡Estos consejos te ayudarán a cuidarte mejor!';
+
+              const scoreLabel = isChild
+                ? `Tuviste ${correctCount} de ${preparedQuestions.length} respuestas correctas.`
+                : `🎯 Obtuviste ${correctCount} de ${preparedQuestions.length} respuestas correctas`;
+
+              const incentiveTitle = isChild
+                ? `Consejo de ${mascotName}:`
+                : `🌳 Consejo de ${mascotName}:`;
+
+              const incentiveText = isChild
+                ? isHighScore
+                  ? 'Podés charlar en casa o contarle a una persona adulta cómo te fue haciendo el juego de preguntas. ¡Y si querés, también podés salir un rato al aire libre!'
+                  : 'Podés charlar en casa o contarle a una persona adulta cómo te fue y volver a intentarlo cuando quieras. ¡También podés salir un rato al aire libre!'
+                : '¡Recordá hacer pausas de las pantallas y disfrutar también de actividades al aire libre! ☀️🚶';
 
               return (
                 <View style={styles.completionBox}>
@@ -478,18 +509,12 @@ export const QuizModal: React.FC<QuizModalProps> = ({
                   </View>
 
                   <View style={styles.scoreBadge}>
-                    <Text style={styles.scoreBadgeText}>
-                      🎯 Obtuviste {correctCount} de {preparedQuestions.length} respuestas correctas
-                    </Text>
+                    <Text style={styles.scoreBadgeText}>{scoreLabel}</Text>
                   </View>
 
                   <View style={styles.outdoorIncentiveBox}>
-                    <Text style={styles.outdoorIncentiveTitle}>
-                      🌳 Consejo de {mascotName}:
-                    </Text>
-                    <Text style={styles.outdoorIncentiveText}>
-                      ¡Recordá hacer pausas de las pantallas y disfrutar también de actividades al aire libre! ☀️🚶
-                    </Text>
+                    <Text style={styles.outdoorIncentiveTitle}>{incentiveTitle}</Text>
+                    <Text style={styles.outdoorIncentiveText}>{incentiveText}</Text>
                   </View>
 
                   <TouchableOpacity
@@ -497,7 +522,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({
                     onPress={handleFinishQuiz}
                     activeOpacity={0.85}
                   >
-                    <Text style={styles.finishButtonText}>Continuar ➔</Text>
+                    <Text style={styles.finishButtonText}>Continuar</Text>
                   </TouchableOpacity>
                 </View>
               );

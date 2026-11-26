@@ -39,10 +39,10 @@ export const PASATIEMPOS_ORDER: PasatiempoGameId[] = ['quiz', 'wordsearch', 'mem
 export const PASATIEMPOS_CATALOG: Record<PasatiempoGameId, PasatiempoGameMeta> = {
   quiz: {
     id: 'quiz',
-    title: 'Quiz',
-    homeBannerTitle: '¿HACEMOS UN QUIZ?',
+    title: 'Juego de preguntas',
+    homeBannerTitle: '¿Hacemos un juego de preguntas?',
     homeBannerSubtitle:
-      'Poné a prueba tus conocimientos sobre seguridad digital de forma divertida.',
+      'Poné a prueba tus conocimientos sobre la navegación digital de forma divertida.',
     cardDescription:
       'Respondé preguntas interactivas sobre seguridad en internet, privacidad y hábitos saludables.',
     bgColor: '#16A34A',
@@ -53,11 +53,11 @@ export const PASATIEMPOS_CATALOG: Record<PasatiempoGameId, PasatiempoGameMeta> =
   wordsearch: {
     id: 'wordsearch',
     title: 'Sopa de letras',
-    homeBannerTitle: '¿JUGAMOS A LA SOPA DE LETRAS?',
+    homeBannerTitle: '¿Jugamos una sopa de letras?',
     homeBannerSubtitle:
-      'Encontrá las palabras escondidas en el tablero y entrená tu atención.',
+      'Encontrá las palabras escondidas y divertite aprendiendo sobre los planetas, hábitos de salud y valores humanos.',
     cardDescription:
-      'Descubrí palabras ocultas sobre los planetas, la salud y valores positivos.',
+      'Descubrí palabras ocultas sobre los planetas, hábitos de salud y valores humanos.',
     bgColor: '#6D28D9',
     accentTextColor: '#5B21B6',
     lightTextColor: '#EDE9FE',
@@ -66,9 +66,9 @@ export const PASATIEMPOS_CATALOG: Record<PasatiempoGameId, PasatiempoGameMeta> =
   memory: {
     id: 'memory',
     title: 'Juego de la memoria',
-    homeBannerTitle: '¿JUGAMOS A LA MEMORIA?',
+    homeBannerTitle: '¿Hacemos el juego de la memoria?',
     homeBannerSubtitle:
-      'Dá vuelta las 12 fichas, encontrá los 6 pares iguales y entrená tu memoria.',
+      'Da vuelta las tarjetas y encontrá los pares iguales. ¡A ver cómo te va!',
     cardDescription:
       'Encontrá los 6 pares ocultos entre las 12 fichas para entrenar tu atención y memoria.',
     bgColor: '#F59E0B',
@@ -163,10 +163,10 @@ export function getNextAvailableGame(
 export const SCREEN_FREE_SUGGESTION = {
   title: '¡Completaste los 3 pasatiempos!',
   subtitle:
-    '¡Increíble trabajo hoy! Ya superaste el Quiz, la Sopa de letras y el Juego de la memoria.',
-  tipTitle: '💡 Sugerencia de Botito sin pantallas:',
+    'Ya hiciste el juego de preguntas, la sopa de letras y el juego de la memoria. ¡Muy bien!',
+  tipTitle: 'Sugerencia sin pantallas',
   tipBody:
-    '¡Es un gran momento para descansar la vista! Te sugerimos salir a pasear con amigos o hacer tareas y actividades divertidas sin usar pantallas.',
+    'Es un buen momento para alejarse de las pantallas. Podés salir a pasear o distraerte con otra cosa.',
 };
 
 // ==============================================================================
@@ -212,7 +212,7 @@ export const WORD_SEARCH_BOARDS: WordSearchBoard[] = [
   },
   {
     id: 'salud',
-    title: 'Salud y bienestar',
+    title: 'Hábitos de salud',
     subtitle: 'Hábitos saludables para tu día a día',
     size: 9,
     words: [
@@ -226,7 +226,7 @@ export const WORD_SEARCH_BOARDS: WordSearchBoard[] = [
   },
   {
     id: 'valores',
-    title: 'Valores y amistad',
+    title: 'Valores humanos',
     subtitle: 'Palabras positivas para compartir',
     size: 9,
     words: [

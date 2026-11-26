@@ -78,17 +78,6 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  verifiedBadge: {
-    backgroundColor: '#D1E7DD',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 6,
-  },
-  verifiedBadgeText: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#0F5132',
-  },
   footer: {
     marginTop: 12,
     marginBottom: 12,
