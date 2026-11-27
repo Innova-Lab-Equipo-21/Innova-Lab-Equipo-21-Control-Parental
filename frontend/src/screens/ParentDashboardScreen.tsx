@@ -17,6 +17,7 @@ import {
   AppState,
   Keyboard,
   Platform,
+  Linking,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ActionButton } from '../components/ActionButton';
@@ -77,6 +78,7 @@ interface ParentDashboardScreenProps {
   permissions?: PermissionItemState;
   initialAction?: ResponsibleInitialAction;
   initialShowPermissionsModal?: boolean;
+  initialTab?: DashboardTab;
 }
 
 export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
@@ -87,6 +89,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   permissions,
   initialAction,
   initialShowPermissionsModal,
+  initialTab,
 }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!initialToken);
   const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
@@ -118,6 +121,72 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const [redirectHomeOnSelfControl, setRedirectHomeOnSelfControl] = useState<boolean>(
     initialAction === 'SELF_CONTROL'
   );
+
+  // Helper para normalizar el destino de deep linking (ej: baprotege://actividad)
+  const parseDeepLinkTab = (url: string | null): DashboardTab | null => {
+    if (!url) return null;
+    try {
+      const clean = url
+        .replace(/^[a-zA-Z0-9]+:\/\//, '')
+        .split('?')[0]
+        .replace(/^\/+|\/+$/g, '')
+        .toLowerCase();
+      if (
+        clean === 'actividad' ||
+        clean === 'activity' ||
+        clean === 'alertas' ||
+        clean === 'eventos' ||
+        clean === 'alert'
+      ) {
+        return 'actividad';
+      }
+      if (clean === 'dispositivos' || clean === 'devices') {
+        return 'dispositivos';
+      }
+      if (clean === 'sitios' || clean === 'apps' || clean === 'bloqueos' || clean === 'sites') {
+        return 'sitios';
+      }
+      if (clean === 'cuenta' || clean === 'perfil' || clean === 'ayuda' || clean === 'account') {
+        return 'cuenta';
+      }
+      if (clean === 'inicio' || clean === 'home') {
+        return 'inicio';
+      }
+    } catch (_) {}
+    return null;
+  };
+
+  // Reaccionar a cambios en initialTab
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  // Manejador de Deep Linking para redirigir a la pestaña correspondiente al hacer clic en enlaces de email
+  useEffect(() => {
+    // 1. URL que inició la aplicación
+    Linking.getInitialURL()
+      .then((url) => {
+        const tab = parseDeepLinkTab(url);
+        if (tab) {
+          setActiveTab(tab);
+        }
+      })
+      .catch(() => {});
+
+    // 2. URL recibida en caliente con la app abierta o en segundo plano
+    const sub = Linking.addEventListener('url', (event) => {
+      const tab = parseDeepLinkTab(event.url);
+      if (tab) {
+        setActiveTab(tab);
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, []);
 
   // Modal de Permisos del Dispositivo local del Responsable
   const [showPermissionsModal, setShowPermissionsModal] = useState(

@@ -10,7 +10,7 @@
 // ==============================================================================
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, SafeAreaView, ScrollView, View } from 'react-native';
+import { Image, SafeAreaView, ScrollView, View, Linking } from 'react-native';
 import {
   AdultoActividadSection,
   AdultoCuentaSection,
@@ -61,6 +61,62 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
   const [showPermissionsModal, setShowPermissionsModal] = useState<boolean>(false);
   const [showFaqModal, setShowFaqModal] = useState<boolean>(false);
   const [showOnboardingFlow, setShowOnboardingFlow] = useState<boolean>(false);
+
+  // Deep linking para navegar a pestañas al abrir enlaces baprotege://
+  useEffect(() => {
+    const parseTab = (url: string | null): ProtectedTab | null => {
+      if (!url) return null;
+      try {
+        const clean = url
+          .replace(/^[a-zA-Z0-9]+:\/\//, '')
+          .split('?')[0]
+          .replace(/^\/+|\/+$/g, '')
+          .toLowerCase();
+        if (
+          clean === 'actividad' ||
+          clean === 'activity' ||
+          clean === 'alertas' ||
+          clean === 'eventos' ||
+          clean === 'alert'
+        ) {
+          return 'actividad';
+        }
+        if (clean === 'sitios' || clean === 'apps' || clean === 'bloqueos' || clean === 'sites') {
+          return mode === 'ADULT' ? 'sitios' : null;
+        }
+        if (clean === 'pasatiempos' || clean === 'juegos' || clean === 'games') {
+          return mode === 'CHILD' ? 'pasatiempos' : null;
+        }
+        if (clean === 'cuenta' || clean === 'perfil' || clean === 'ayuda' || clean === 'account') {
+          return 'cuenta';
+        }
+        if (clean === 'inicio' || clean === 'home') {
+          return 'inicio';
+        }
+      } catch (_) {}
+      return null;
+    };
+
+    Linking.getInitialURL()
+      .then((url) => {
+        const tab = parseTab(url);
+        if (tab) {
+          setActiveTab(normalizeProtectedTabForMode(tab, mode));
+        }
+      })
+      .catch(() => {});
+
+    const sub = Linking.addEventListener('url', (event) => {
+      const tab = parseTab(event.url);
+      if (tab) {
+        setActiveTab(normalizeProtectedTabForMode(tab, mode));
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, [mode]);
 
   const adultoAddHandlerRef = useRef<(() => void) | null>(null);
   const syncAntiUninstallRef = useRef<(() => void) | null>(null);
