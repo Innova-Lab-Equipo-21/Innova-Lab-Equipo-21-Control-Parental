@@ -1,0 +1,87 @@
+{
+  "responsable": {
+    "lotba_blocked_site": {
+      "title": "{{protectedName}} necesita protección",
+      "body": "Intentó acceder a un sitio no autorizado por LOTBA. Podés ver el detalle en “Actividad” y acompañar su navegación.",
+      "cta": "Ver actividad",
+      "data": {
+        "type": "lotba_blocked_site",
+        "screen": "activity"
+      }
+    },
+    "custom_blocked_site": {
+      "title": "{{protectedName}} necesita protección",
+      "body": "Intentó acceder a un sitio de tu lista personalizada de bloqueos. Podés ver el registro en la app.",
+      "cta": "Ver actividad",
+      "data": {
+        "type": "custom_blocked_site",
+        "screen": "activity"
+      }
+    },
+    "blocked_app_attempt": {
+      "title": "{{protectedName}} intentó abrir {{appName}}",
+      "body": "Esta app está bloqueada en su celular. Consultá el detalle en “Actividad”.",
+      "cta": "Ver actividad",
+      "data": {
+        "type": "blocked_app_attempt",
+        "screen": "activity"
+      }
+    },
+    "permission_disabled": {
+      "title": "Revisá la configuración de {{protectedName}}",
+      "body": "Se desactivó un permiso en su dispositivo. Ingresá a la app para volver a activarlo.",
+      "cta": "Ver detalles",
+      "data": {
+        "type": "permission_disabled",
+        "screen": "settings"
+      }
+    },
+    "uninstall_attempt": {
+      "title": "Se intentó desinstalar la app",
+      "body": "Hubo un intento de eliminar BA Protege + en el celular de {{protectedName}}, pero la protección sigue activa.",
+      "cta": "Ver actividad",
+      "data": {
+        "type": "uninstall_attempt",
+        "screen": "activity"
+      }
+    },
+    "self_protection_blocked_site": {
+      "title": "Intentaste entrar a un sitio bloqueado",
+      "body": "Recordá que habías restringido ese sitio. Podés modificar tu lista personalizada de bloqueos cuando quieras.",
+      "cta": "Ver lista",
+      "data": {
+        "type": "self_protection_blocked_site",
+        "screen": "sites_and_apps"
+      }
+    },
+    "self_protection_time_limit": {
+      "title": "Casi superás el tiempo en {{appName}}",
+      "body": "¿Querés hacer una pausa y retomar mañana? Recordá que podés aplicar nuevos límites de uso desde la app.",
+      "cta": "Ver límites",
+      "data": {
+        "type": "self_protection_time_limit",
+        "screen": "limits"
+      }
+    }
+  },
+  "protegido_mayor": {
+    "self_care_blocked_site": {
+      "title": "Recordá tu autocuidado",
+      "body": "Habías bloqueado {{siteName}} para cuidarte. Si necesitás modificar la lista de bloqueos, podés pedírselo a la persona responsable.",
+      "cta": "Ver lista",
+      "data": {
+        "type": "self_care_blocked_site",
+        "screen": "blocked_sites"
+      }
+    },
+    "self_care_time_limit": {
+      "title": "Casi superás el tiempo en {{appName}}",
+      "body": "¿Y si aprovechás para desconectarte? Recordá que los cambios en los tiempos de uso de las apps los realiza la persona responsable.",
+      "cta": "Ver mi actividad",
+      "data": {
+        "type": "self_care_time_limit",
+        "screen": "activity"
+      }
+    }
+  }
+}
