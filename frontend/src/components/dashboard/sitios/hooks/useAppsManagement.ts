@@ -6,7 +6,7 @@
 //              restricciones de autoprotección y operaciones CRUD/masivas para apps.
 // ==============================================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   BlockOriginFilter,
   CustomBlockedApp,
@@ -76,6 +76,7 @@ export const useAppsManagement = ({
   // Modal de límite de tiempo rápido
   const [timeLimitApp, setTimeLimitApp] = useState<CustomBlockedApp | null>(null);
   const [loadingApp, setLoadingApp] = useState(false);
+  const isSubmittingAppRef = useRef<boolean>(false);
 
   // Helpers de verificación
   const getAllDeviceIds = () => ['self', ...devices.map((d) => d.deviceId)];
@@ -198,6 +199,9 @@ export const useAppsManagement = ({
       });
       return;
     }
+    if (isSubmittingAppRef.current || loadingApp) return;
+
+    isSubmittingAppRef.current = true;
     setLoadingApp(true);
     try {
       const pkg = newAppPackage.trim() || `com.${newAppName.toLowerCase().replace(/\s+/g, '')}.app`;
@@ -231,12 +235,21 @@ export const useAppsManagement = ({
         buttonText: 'Entendido',
       });
     } catch (e: any) {
+      const rawMsg = e?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
       showFeedback({
         imageSource: BOTITO_ASSETS.nervioso,
-        title: 'Error',
-        message: e.message || 'No se pudo bloquear la aplicación.',
+        title: 'No pudimos bloquear la aplicación',
+        message: isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al conectar con el servidor. Por favor, comprobá tu conexión a internet e intentá nuevamente.'
+          : rawMsg,
       });
     } finally {
+      isSubmittingAppRef.current = false;
       setLoadingApp(false);
     }
   };
@@ -354,6 +367,9 @@ export const useAppsManagement = ({
       });
       return;
     }
+    if (isSubmittingAppRef.current || loadingApp) return;
+
+    isSubmittingAppRef.current = true;
     setLoadingApp(true);
     try {
       const definedLimits = Object.entries(editAppDeviceLimits)
@@ -378,12 +394,21 @@ export const useAppsManagement = ({
         message: 'Guardamos los cambios en tu lista de aplicaciones bloqueadas.',
       });
     } catch (e: any) {
+      const rawMsg = e?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
       showFeedback({
         imageSource: BOTITO_ASSETS.nervioso,
-        title: 'Error',
-        message: e.message || 'No se pudo actualizar la aplicación.',
+        title: 'No pudimos actualizar la aplicación',
+        message: isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al conectar con el servidor. Por favor, comprobá tu conexión a internet e intentá nuevamente.'
+          : rawMsg,
       });
     } finally {
+      isSubmittingAppRef.current = false;
       setLoadingApp(false);
     }
   };

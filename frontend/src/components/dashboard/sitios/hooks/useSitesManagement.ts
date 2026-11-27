@@ -6,7 +6,7 @@
 //              autoprotección y operaciones CRUD/masivas para sitios web bloqueados.
 // ==============================================================================
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   BlockOriginFilter,
   CustomBlockedDomain,
@@ -71,6 +71,7 @@ export const useSitesManagement = ({
   const [editSiteDeviceIds, setEditSiteDeviceIds] = useState<string[]>([]);
 
   const [loadingSite, setLoadingSite] = useState(false);
+  const isSubmittingSiteRef = useRef<boolean>(false);
 
   // Helpers de verificación
   const getAllDeviceIds = () => ['self', ...devices.map((d) => d.deviceId)];
@@ -157,6 +158,9 @@ export const useSitesManagement = ({
       });
       return;
     }
+    if (isSubmittingSiteRef.current || loadingSite) return;
+
+    isSubmittingSiteRef.current = true;
     setLoadingSite(true);
     try {
       await apiService.addCustomBlockedSite(
@@ -177,12 +181,21 @@ export const useSitesManagement = ({
         buttonText: 'Entendido',
       });
     } catch (e: any) {
+      const rawMsg = e?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
       showFeedback({
         imageSource: BOTITO_ASSETS.nervioso,
-        title: 'Error',
-        message: e.message || 'No se pudo agregar el dominio.',
+        title: 'No pudimos agregar el sitio',
+        message: isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al conectar con el servidor. Por favor, comprobá tu conexión a internet e intentá nuevamente.'
+          : rawMsg,
       });
     } finally {
+      isSubmittingSiteRef.current = false;
       setLoadingSite(false);
     }
   };
@@ -278,6 +291,9 @@ export const useSitesManagement = ({
       });
       return;
     }
+    if (isSubmittingSiteRef.current || loadingSite) return;
+
+    isSubmittingSiteRef.current = true;
     setLoadingSite(true);
     try {
       await apiService.updateCustomBlockedSite(editingSite.id, {
@@ -294,12 +310,21 @@ export const useSitesManagement = ({
         message: 'Guardamos los cambios en tu lista de sitios bloqueados.',
       });
     } catch (e: any) {
+      const rawMsg = e?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
       showFeedback({
         imageSource: BOTITO_ASSETS.nervioso,
-        title: 'Error',
-        message: e.message || 'No se pudo actualizar el dominio.',
+        title: 'No pudimos actualizar el sitio',
+        message: isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al conectar con el servidor. Por favor, comprobá tu conexión a internet e intentá nuevamente.'
+          : rawMsg,
       });
     } finally {
+      isSubmittingSiteRef.current = false;
       setLoadingSite(false);
     }
   };

@@ -6,7 +6,7 @@
 //              visual y pulido de EditResponsibleModal (sin fondo gris ni ícono de lápiz).
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -63,6 +63,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef<boolean>(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [generatingCode, setGeneratingCode] = useState(false);
   const [feedbackModal, setFeedbackModal] = useState<{
@@ -304,7 +305,12 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       return;
     }
 
+    if (isSubmittingRef.current || loading) {
+      return;
+    }
+
     const trimmedName = protectedName.trim();
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await apiService.updateDevice(device.deviceId, {
@@ -319,13 +325,24 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       onSaveSuccess(trimmedName);
       onClose();
     } catch (e: any) {
+      const rawMsg = e?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
+      const friendlyMessage = isTechnicalOrNetwork
+        ? 'Tuvimos un inconveniente al guardar los cambios. Por favor, comprobá tu conexión a internet e intentá nuevamente en unos instantes.'
+        : rawMsg;
+
       setFeedbackModal({
         visible: true,
         imageSource: BOTITO_ASSETS.nervioso,
-        title: 'Error al guardar',
-        message: e.message || 'No se pudieron guardar los cambios.',
+        title: 'No pudimos guardar los cambios',
+        message: friendlyMessage,
       });
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };

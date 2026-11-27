@@ -151,11 +151,23 @@ function normalizeBackendDevice(
 }
 
 function extractApiErrorMessage(err: any, fallback: string): string {
-  const apiMessage = err?.response?.data?.message;
-  if (typeof apiMessage === 'string' && apiMessage.trim().length > 0) {
+  const apiMessage = err?.response?.data?.message || err?.response?.data?.error;
+  if (
+    typeof apiMessage === 'string' &&
+    apiMessage.trim().length > 0 &&
+    !/application failed to respond|status code|timeout|network error|failed to fetch|bad gateway/i.test(
+      apiMessage
+    )
+  ) {
     return apiMessage.trim();
   }
-  if (typeof err?.message === 'string' && err.message.trim().length > 0 && !err.message.includes('status code')) {
+  if (
+    typeof err?.message === 'string' &&
+    err.message.trim().length > 0 &&
+    !/application failed to respond|status code|timeout|network error|failed to fetch|bad gateway/i.test(
+      err.message
+    )
+  ) {
     return err.message.trim();
   }
   return fallback;

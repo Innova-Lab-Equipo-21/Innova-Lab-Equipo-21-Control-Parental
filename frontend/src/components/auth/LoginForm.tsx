@@ -50,9 +50,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   // Refs para navegación fluida con tecla Enter
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
+  const isSubmittingRef = useRef<boolean>(false);
 
   const handleSubmit = async () => {
     setErrorMessage(null);
+
+    if (isSubmittingRef.current || loading) {
+      return;
+    }
 
     if (!email.trim()) {
       setErrorMessage('Por favor, ingresá tu correo electrónico.');
@@ -67,6 +72,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       return;
     }
 
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       const res = await apiService.login({
@@ -80,14 +86,29 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         throw new Error('Credenciales inválidas.');
       }
     } catch (error: any) {
-      const msg = error.response?.data?.message || error.message || 'Error al iniciar sesión.';
-      setErrorMessage(msg);
+      const rawMsg = error.response?.data?.message || error.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
+      setErrorMessage(
+        isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al conectar con el servidor. Comprobá tu conexión a internet e intentá nuevamente.'
+          : rawMsg || 'Error al iniciar sesión.'
+      );
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
+    if (isSubmittingRef.current || loading) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setLoading(true);
     setErrorMessage(null);
     try {
@@ -122,9 +143,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       if (error?.code === statusCodes?.SIGN_IN_CANCELLED) {
         return;
       }
-      const msg = error.response?.data?.message || error.message || 'Error al iniciar sesión con Google.';
-      setErrorMessage(msg);
+      const rawMsg = error.response?.data?.message || error.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
+      setErrorMessage(
+        isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al conectar con Google. Comprobá tu conexión a internet e intentá nuevamente.'
+          : rawMsg || 'Error al iniciar sesión con Google.'
+      );
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };

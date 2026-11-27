@@ -7,7 +7,7 @@
 //              2: Volver/Desvincular), botón X de cierre y altura idéntica entre pasos.
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Modal, TouchableOpacity, Image } from 'react-native';
 import { ActionButton } from '../../ActionButton';
 import { FeedbackModal } from '../../FeedbackModal';
@@ -32,19 +32,22 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
   const [unbindStep, setUnbindStep] = useState<1 | 2>(1);
   const [loadingUnbind, setLoadingUnbind] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isSubmittingRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (visible) {
       setUnbindStep(1);
       setErrorMessage(null);
+      isSubmittingRef.current = false;
     }
   }, [visible]);
 
   const targetName = device?.childName || device?.deviceName || 'este dispositivo';
 
   const handleFinalUnbind = async () => {
-    if (!device) return;
+    if (!device || isSubmittingRef.current || loadingUnbind) return;
 
+    isSubmittingRef.current = true;
     setLoadingUnbind(true);
     try {
       await apiService.unbindDevice(device.deviceId);
@@ -52,8 +55,19 @@ export const UnbindConfirmationModal: React.FC<UnbindConfirmationModalProps> = (
       onSuccess(device.deviceId);
       onClose();
     } catch (error: any) {
-      setErrorMessage(error.message || 'No se pudo desvincular el dispositivo.');
+      const rawMsg = error?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
+      setErrorMessage(
+        isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al desvincular el dispositivo. Por favor, comprobá tu conexión a internet e intentá nuevamente.'
+          : rawMsg
+      );
     } finally {
+      isSubmittingRef.current = false;
       setLoadingUnbind(false);
     }
   };

@@ -9,7 +9,7 @@
 //              queda invalidado y se emite uno nuevo hacia el responsable.
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -45,12 +45,20 @@ export const AntiUninstallCodeModal: React.FC<AntiUninstallCodeModalProps> = ({
 }) => {
   const [code, setCode] = useState<string>('');
   const [isFocused, setIsFocused] = useState<boolean>(false);
+  const isSubmittingRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (visible) {
       setCode('');
+      isSubmittingRef.current = false;
     }
   }, [visible]);
+
+  useEffect(() => {
+    if (!loading) {
+      isSubmittingRef.current = false;
+    }
+  }, [loading]);
 
   if (!visible) {
     return null;
@@ -62,7 +70,8 @@ export const AntiUninstallCodeModal: React.FC<AntiUninstallCodeModalProps> = ({
   };
 
   const handleConfirmPress = () => {
-    if (code.length === 6 && !loading) {
+    if (code.length === 6 && !loading && !isSubmittingRef.current) {
+      isSubmittingRef.current = true;
       onConfirm(code);
     }
   };

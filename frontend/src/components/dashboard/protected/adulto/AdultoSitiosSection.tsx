@@ -9,7 +9,7 @@
 //              que solo el responsable puede desactivarlo o eliminarlo.
 // ==============================================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -90,6 +90,7 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
   const [newAppPackage, setNewAppPackage] = useState('');
   const [newAppCategory, setNewAppCategory] = useState('Personalizado');
   const [loadingApp, setLoadingApp] = useState(false);
+  const isSubmittingRef = useRef<boolean>(false);
 
   // Modal estándar de retroalimentación con emociones de Boti
   const [feedbackModal, setFeedbackModal] = useState<{
@@ -173,6 +174,9 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
       return;
     }
 
+    if (isSubmittingRef.current || loadingSite) return;
+
+    isSubmittingRef.current = true;
     setLoadingSite(true);
     try {
       await apiService.addDeviceBlockedSite(
@@ -190,13 +194,22 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
         message: ADULTO_SITE_ADDED_FEEDBACK.message,
       });
     } catch (e: any) {
+      const rawMsg = e?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
       setFeedbackModal({
         visible: true,
         imageSource: BOTI_ASSETS.triste,
         title: 'No se pudo bloquear el sitio',
-        message: e.message || 'No se pudo agregar el dominio.',
+        message: isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al conectar con el servidor. Por favor, comprobá tu conexión a internet e intentá nuevamente.'
+          : rawMsg,
       });
     } finally {
+      isSubmittingRef.current = false;
       setLoadingSite(false);
     }
   };
@@ -244,6 +257,9 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
       return;
     }
 
+    if (isSubmittingRef.current || loadingApp) return;
+
+    isSubmittingRef.current = true;
     setLoadingApp(true);
     try {
       await apiService.addDeviceBlockedApp(
@@ -264,13 +280,22 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
         message: ADULTO_APP_ADDED_FEEDBACK.message,
       });
     } catch (e: any) {
+      const rawMsg = e?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
       setFeedbackModal({
         visible: true,
         imageSource: BOTI_ASSETS.triste,
         title: 'No se pudo bloquear la aplicación',
-        message: e.message || 'No se pudo bloquear la aplicación.',
+        message: isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al conectar con el servidor. Por favor, comprobá tu conexión a internet e intentá nuevamente.'
+          : rawMsg,
       });
     } finally {
+      isSubmittingRef.current = false;
       setLoadingApp(false);
     }
   };

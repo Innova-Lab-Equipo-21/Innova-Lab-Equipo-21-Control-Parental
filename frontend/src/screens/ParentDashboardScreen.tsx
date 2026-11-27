@@ -363,6 +363,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   const [showHomeFaqModal, setShowHomeFaqModal] = useState<boolean>(false);
   const [sitesInitialSubTab, setSitesInitialSubTab] = useState<'sites' | 'apps'>('sites');
   const [currentSitiosSubTab, setCurrentSitiosSubTab] = useState<'sites' | 'apps'>('sites');
+  const isSubmittingSelfControlRef = useRef<boolean>(false);
 
   // Métricas reales para el Panel de Analítica (Propuesta Superadora MVP)
   const realAnalytics = useRealAnalyticsData({
@@ -577,6 +578,9 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   };
 
   const handleFinalSelfControlActivation = async () => {
+    if (isSubmittingSelfControlRef.current) return;
+
+    isSubmittingSelfControlRef.current = true;
     try {
       const res = await apiService.enableSelfControl();
       setSelfControl(res);
@@ -592,32 +596,52 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
       }
     } catch (err: any) {
       setShowSelfControlModal(false);
+      const rawMsg = err?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
       showFeedback({
         imageSource: getBotMascotImage('ADULT', 'nervioso'),
         title: 'No se pudo activar la autoprotección',
-        message:
-          err?.message ||
-          'Verificá tu conexión a internet e intentá nuevamente en unos minutos.',
+        message: isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al conectar con el servidor. Comprobá tu conexión a internet e intentá nuevamente en unos minutos.'
+          : rawMsg,
         buttonText: 'Entendido',
       });
+    } finally {
+      isSubmittingSelfControlRef.current = false;
     }
   };
 
   const handleConfirmDeactivation = async () => {
+    if (isSubmittingSelfControlRef.current) return;
+
+    isSubmittingSelfControlRef.current = true;
     try {
       const res = await apiService.disableSelfControl();
       setSelfControl(res);
       setShowSelfControlModal(false);
     } catch (err: any) {
       setShowSelfControlModal(false);
+      const rawMsg = err?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
       showFeedback({
         imageSource: getBotMascotImage('ADULT', 'nervioso'),
         title: 'No se pudo desactivar la autoprotección',
-        message:
-          err?.message ||
-          'La desactivación solo está disponible una vez cumplidas las 24 horas.',
+        message: isTechnicalOrNetwork
+          ? 'Tuvimos un inconveniente al conectar con el servidor. Comprobá tu conexión a internet e intentá nuevamente.'
+          : rawMsg ||
+            'La desactivación solo está disponible una vez cumplidas las 24 horas.',
         buttonText: 'Entendido',
       });
+    } finally {
+      isSubmittingSelfControlRef.current = false;
     }
   };
 

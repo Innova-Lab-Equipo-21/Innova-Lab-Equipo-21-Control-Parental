@@ -31,11 +31,23 @@ function extractApiErrorMessage(err: any, fallback: string): string {
     err?.response?.data?.message ||
     err?.response?.data?.error ||
     (Array.isArray(err?.response?.data?.errors) ? err.response.data.errors[0]?.message : null);
-  if (typeof serverMsg === 'string' && serverMsg.trim().length > 0) {
+  if (
+    typeof serverMsg === 'string' &&
+    serverMsg.trim().length > 0 &&
+    !/application failed to respond|status code|timeout|network error|failed to fetch|bad gateway/i.test(
+      serverMsg
+    )
+  ) {
     return serverMsg.trim();
   }
-  if (err?.message && !/timeout|network error|status code/i.test(err.message)) {
-    return err.message;
+  if (
+    typeof err?.message === 'string' &&
+    err.message.trim().length > 0 &&
+    !/application failed to respond|status code|timeout|network error|failed to fetch|bad gateway/i.test(
+      err.message
+    )
+  ) {
+    return err.message.trim();
   }
   return fallback;
 }

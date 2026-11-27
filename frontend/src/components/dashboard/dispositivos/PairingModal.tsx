@@ -53,8 +53,11 @@ export const PairingModal: React.FC<PairingModalProps> = ({
     message: '',
   });
   const pairingSectionRef = useRef<PairingSectionRef>(null);
+  const isSubmittingRef = useRef<boolean>(false);
 
   const handleClose = () => {
+    isSubmittingRef.current = false;
+    setSaving(false);
     setCreatedDevice(null);
     setShowCodeModal(false);
     pairingSectionRef.current?.reset();
@@ -62,6 +65,10 @@ export const PairingModal: React.FC<PairingModalProps> = ({
   };
 
   const handleSave = async () => {
+    if (isSubmittingRef.current || saving) {
+      return;
+    }
+
     try {
       const dataToSave: PairingFormData | null = pairingSectionRef.current?.submit() ?? null;
 
@@ -69,12 +76,13 @@ export const PairingModal: React.FC<PairingModalProps> = ({
         setFeedbackModal({
           visible: true,
           imageSource: BOTITO_ASSETS.pensando,
-          title: 'Atención',
-          message: 'Por favor completa todos los datos requeridos del protegido.',
+          title: 'Faltan datos requeridos',
+          message: 'Por favor, completá todos los campos obligatorios para continuar.',
         });
         return;
       }
 
+      isSubmittingRef.current = true;
       setSaving(true);
       const res = await apiService.addDevice({
         childName: dataToSave.protectedName,
@@ -93,13 +101,24 @@ export const PairingModal: React.FC<PairingModalProps> = ({
       onDeviceCreated?.(savedDevice);
       setShowCodeModal(true);
     } catch (e: any) {
+      const rawMsg = e?.message || '';
+      const isTechnicalOrNetwork =
+        !rawMsg ||
+        /application failed to respond|network error|timeout|status code|failed to fetch|econnrefused|enotfound|bad gateway/i.test(
+          rawMsg
+        );
+      const friendlyMessage = isTechnicalOrNetwork
+        ? 'Tuvimos un inconveniente al conectar con el servidor. Por favor, comprobá tu conexión a internet e intentá nuevamente en unos instantes.'
+        : rawMsg;
+
       setFeedbackModal({
         visible: true,
         imageSource: BOTITO_ASSETS.nervioso,
-        title: 'Error',
-        message: e.message || 'No se pudo guardar el dispositivo.',
+        title: 'No pudimos vincular el dispositivo',
+        message: friendlyMessage,
       });
     } finally {
+      isSubmittingRef.current = false;
       setSaving(false);
     }
   };
