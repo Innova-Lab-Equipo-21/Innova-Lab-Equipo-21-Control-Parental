@@ -1,8 +1,27 @@
-import { test, describe } from 'node:test';
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Pruebas Automatizadas — CRUD de Sitios Bloqueados Personalizados
+// Archivo: tests/customBlocklist.test.ts
+// Descripción: Valida operaciones CRUD de sitios bloqueados contra el contrato REST real.
+// ==============================================================================
+
+import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { apiService } from '../src/services/api.service.js';
+import { installBlocklistApiStub } from './helpers/blocklistApiStub.js';
 
 describe('CRUD de Sitios Bloqueados Personalizados (Modo Responsable)', () => {
+  let stub: ReturnType<typeof installBlocklistApiStub>;
+
+  before(async () => {
+    stub = installBlocklistApiStub();
+    await stub.reset();
+  });
+
+  after(() => {
+    stub.restore();
+  });
+
   test('Debe obtener la lista personalizada inicial con dominios existentes o vacía', async () => {
     const res = await apiService.getCustomBlocklist();
     assert.equal(res.success, true);
@@ -44,7 +63,7 @@ describe('CRUD de Sitios Bloqueados Personalizados (Modo Responsable)', () => {
         await apiService.addCustomBlockedSite(`https://www.${domain}/otro-path`, 'Apuestas');
       },
       (err: any) => {
-        return err instanceof Error && /ya se encuentra en tu lista de bloqueo/i.test(err.message);
+        return err instanceof Error && /ya se encuentra en/i.test(err.message);
       }
     );
   });

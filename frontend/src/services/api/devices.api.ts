@@ -841,4 +841,32 @@ export const devicesApi = {
       );
     }
   },
+
+  async getDevicePublicProfile(deviceUuid: string): Promise<{
+    deviceId: string;
+    deviceUuid: string;
+    deviceName: string;
+    childName: string;
+    personType: 'MENOR' | 'ADULTO';
+    tutorName: string | null;
+    isActive: boolean;
+  }> {
+    try {
+      const response = await apiClient.get(
+        `/devices/by-uuid/${encodeURIComponent(deviceUuid)}/profile`
+      );
+      const payload = response.data?.data;
+      if (!payload) {
+        throw new Error('Perfil de dispositivo no encontrado.');
+      }
+      return payload;
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo obtener el perfil del dispositivo vinculado.'
+        )
+      );
+    }
+  },
 };

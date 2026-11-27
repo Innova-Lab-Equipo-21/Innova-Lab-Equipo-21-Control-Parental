@@ -81,6 +81,14 @@ export function useProtectedDeviceData({
   const [customSites, setCustomSites] = useState<CustomBlockedDomain[]>([]);
   const [customApps, setCustomApps] = useState<CustomBlockedApp[]>([]);
   const [pairedDevices, setPairedDevices] = useState<DeviceInfo[]>([]);
+  const [publicProfile, setPublicProfile] = useState<{
+    deviceId: string;
+    deviceUuid: string;
+    deviceName: string;
+    childName: string;
+    personType: 'MENOR' | 'ADULTO';
+    tutorName: string | null;
+  } | null>(null);
   const [resolvedTutorName, setResolvedTutorName] = useState<string>('Ana');
   const [grantedPermsCount, setGrantedPermsCount] = useState<number>(6);
   const [appUsageSnapshots, setAppUsageSnapshots] = useState<AppUsageRawSnapshot[]>([]);
@@ -102,6 +110,49 @@ export function useProtectedDeviceData({
 
   const loadCustomBlockedList = useCallback(async () => {
     try {
+      const hasRealUuid =
+        Boolean(deviceUuid) && deviceUuid !== 'local' && deviceUuid !== 'self';
+
+      if (hasRealUuid) {
+        const [deviceBlocklistRes, profileRes, navState] = await Promise.all([
+          apiService.getDeviceBlocklist(deviceUuid).catch(() => null),
+          apiService.getDevicePublicProfile(deviceUuid).catch(() => null),
+          getNavigationState().catch(() => null),
+        ]);
+
+        if (deviceBlocklistRes?.data) {
+          setCustomSites(deviceBlocklistRes.data.customDomains || []);
+          setCustomApps(deviceBlocklistRes.data.customApps || []);
+        }
+
+        if (profileRes) {
+          setPublicProfile(profileRes);
+        }
+
+        const isPlaceholder = (name?: string | null): boolean => {
+          const normalized = (name || '').trim().toLowerCase();
+          return (
+            !normalized ||
+            normalized === 'yo' ||
+            normalized === 'tutor responsable' ||
+            normalized === 'responsable'
+          );
+        };
+        const navUser = navState?.parentUser;
+        const navCombined = `${navUser?.firstName || ''} ${navUser?.lastName || ''}`.trim();
+        const candidateTutor = [
+          profileRes?.tutorName,
+          navUser?.fullName,
+          navCombined,
+        ].find((candidate) => !isPlaceholder(candidate));
+        if (candidateTutor) {
+          setResolvedTutorName(candidateTutor.trim());
+        }
+
+        await protectionService.syncProtectionRulesWithNative(deviceUuid, mode);
+        return;
+      }
+
       const [res, devRes, selfDev, navState] = await Promise.all([
         apiService.getCustomBlocklist(),
         apiService.listDevices().catch(() => null),
@@ -273,12 +324,19 @@ export function useProtectedDeviceData({
   );
 
   const resolvedChildName =
-    matchedChildDevice?.childName || matchedChildDevice?.deviceName || undefined;
+    (mode === 'CHILD' ? publicProfile?.childName : undefined) ||
+    matchedChildDevice?.childName ||
+    matchedChildDevice?.deviceName ||
+    undefined;
   const resolvedChildPhone = matchedChildDevice?.phone || undefined;
 
-  const resolvedAdultDeviceId = matchedAdultDevice?.deviceId || deviceUuid;
+  const resolvedAdultDeviceId =
+    publicProfile?.deviceId || matchedAdultDevice?.deviceId || deviceUuid;
   const resolvedAdultName =
-    matchedAdultDevice?.childName || matchedAdultDevice?.deviceName || undefined;
+    (mode === 'ADULT' ? publicProfile?.childName : undefined) ||
+    matchedAdultDevice?.childName ||
+    matchedAdultDevice?.deviceName ||
+    undefined;
   const resolvedAdultPhone = matchedAdultDevice?.phone || undefined;
 
   const adultVisibleSites = useMemo(
@@ -305,7 +363,8 @@ export function useProtectedDeviceData({
     [customSites, customApps]
   );
 
-  const resolvedChildDeviceId = matchedChildDevice?.deviceId || deviceUuid || 'all';
+  const resolvedChildDeviceId =
+    publicProfile?.deviceId || matchedChildDevice?.deviceId || deviceUuid || 'all';
   const activeDeviceApps = mode === 'ADULT' ? adultVisibleApps : customApps;
   const activeDeviceFilterId =
     mode === 'ADULT' ? resolvedAdultDeviceId || 'all' : resolvedChildDeviceId;

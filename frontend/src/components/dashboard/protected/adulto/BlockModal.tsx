@@ -23,12 +23,14 @@ import { styles } from './BlockModal.styles';
 
 interface BlockModalProps {
   visible: boolean;
+  deviceUuid?: string;
   onClose: () => void;
   onBlockSuccess: (item: { domainOrApp: string; type: 'SITE' | 'APP' }) => void;
 }
 
 export const BlockModal: React.FC<BlockModalProps> = ({
   visible,
+  deviceUuid,
   onClose,
   onBlockSuccess,
 }) => {
@@ -62,10 +64,16 @@ export const BlockModal: React.FC<BlockModalProps> = ({
 
     setLoading(true);
     try {
-      if (blockType === 'SITE') {
+      if (deviceUuid) {
+        if (blockType === 'SITE') {
+          await apiService.addDeviceBlockedSite(deviceUuid, trimmed, category);
+        } else {
+          await apiService.addDeviceBlockedApp(deviceUuid, trimmed, undefined, category);
+        }
+      } else if (blockType === 'SITE') {
         await apiService.addCustomBlockedSite(trimmed, category, true, []);
       } else {
-        await apiService.addCustomBlockedSite(`${trimmed.toLowerCase().replace(/\s+/g, '')}.app`, category, true, []);
+        await apiService.addCustomBlockedApp(trimmed, '', category, true, []);
       }
 
       setFeedbackModal({

@@ -288,6 +288,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
                   customSites={deviceData.customSites}
                   customApps={deviceData.customApps}
                   onRefreshList={deviceData.loadCustomBlockedList}
+                  deviceUuid={deviceUuid}
                   sourceDeviceId={deviceData.resolvedAdultDeviceId}
                   adultName={deviceData.resolvedAdultName}
                   hideInternalFab={true}

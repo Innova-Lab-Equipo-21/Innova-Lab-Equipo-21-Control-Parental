@@ -19,7 +19,6 @@ import {
 } from 'react-native';
 import { CustomBlockedApp, CustomBlockedDomain } from '../../../../types';
 import { apiService } from '../../../../services/api.service';
-import { protectionService } from '../../../../services/protection.service';
 import { isValidDomainOrUrl, cleanDomainInput } from '../../../../utils/deviceColors';
 import {
   ADULTO_APP_ADDED_FEEDBACK,
@@ -45,6 +44,7 @@ export interface AdultoSitiosSectionProps {
   customSites: CustomBlockedDomain[];
   customApps: CustomBlockedApp[];
   onRefreshList: () => void;
+  deviceUuid?: string;
   sourceDeviceId?: string;
   adultName?: string;
   hideInternalFab?: boolean;
@@ -57,6 +57,7 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
   customSites,
   customApps,
   onRefreshList,
+  deviceUuid,
   sourceDeviceId,
   adultName,
   hideInternalFab = false,
@@ -132,7 +133,7 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
     }
   }, [activeSubTab, onSetAddHandler, handleOpenAddSite, handleOpenAddApp]);
 
-  const targetDeviceId = sourceDeviceId || 'dev-adult-default';
+  const effectiveDeviceIdentifier = deviceUuid || sourceDeviceId || '';
 
   const handleAddSite = async () => {
     if (!newSiteDomain.trim() || !isValidDomainOrUrl(newSiteDomain)) {
@@ -162,20 +163,23 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
       return;
     }
 
+    if (!effectiveDeviceIdentifier) {
+      setFeedbackModal({
+        visible: true,
+        imageSource: BOTI_ASSETS.triste,
+        title: 'Dispositivo no vinculado',
+        message: 'Este dispositivo debe estar vinculado a un responsable para registrar bloqueos.',
+      });
+      return;
+    }
+
     setLoadingSite(true);
     try {
-      await apiService.addCustomBlockedSite(
+      await apiService.addDeviceBlockedSite(
+        effectiveDeviceIdentifier,
         cleaned,
-        'Personalizado',
-        false,
-        [targetDeviceId],
-        {
-          createdBy: 'ADULTO_PROTEGIDO',
-          createdByName: adultName,
-          sourceDeviceId: targetDeviceId,
-        }
+        'Personalizado'
       );
-      protectionService.updateBlocklist(5, [cleaned]);
       setNewSiteDomain('');
       setShowAddSiteModal(false);
       onRefreshList();
@@ -230,24 +234,23 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
       return;
     }
 
+    if (!effectiveDeviceIdentifier) {
+      setFeedbackModal({
+        visible: true,
+        imageSource: BOTI_ASSETS.triste,
+        title: 'Dispositivo no vinculado',
+        message: 'Este dispositivo debe estar vinculado a un responsable para registrar bloqueos.',
+      });
+      return;
+    }
+
     setLoadingApp(true);
     try {
-      const pkg =
-        newAppPackage.trim() ||
-        `com.${trimmedName.toLowerCase().replace(/\s+/g, '')}.app`;
-      await apiService.addCustomBlockedApp(
+      await apiService.addDeviceBlockedApp(
+        effectiveDeviceIdentifier,
         trimmedName,
         pkg,
-        newAppCategory,
-        false,
-        [targetDeviceId],
-        undefined,
-        undefined,
-        {
-          createdBy: 'ADULTO_PROTEGIDO',
-          createdByName: adultName,
-          sourceDeviceId: targetDeviceId,
-        }
+        newAppCategory
       );
       setNewAppName('');
       setNewAppPackage('');

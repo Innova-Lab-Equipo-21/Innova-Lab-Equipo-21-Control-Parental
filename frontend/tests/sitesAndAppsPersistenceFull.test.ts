@@ -16,12 +16,24 @@
 //              10. Selección múltiple (Pausar y Eliminar en lote)
 // ==============================================================================
 
-import { test, describe } from 'node:test';
+import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { apiService } from '../src/services/api.service';
 import { selfControlApi } from '../src/services/api/selfControl.api';
+import { installBlocklistApiStub } from './helpers/blocklistApiStub.js';
 
 describe('Pruebas de Persistencia — Sitios y Apps', () => {
+  let stub: ReturnType<typeof installBlocklistApiStub>;
+
+  before(async () => {
+    stub = installBlocklistApiStub();
+    await stub.reset();
+  });
+
+  after(() => {
+    stub.restore();
+  });
+
   const timestamp = Date.now();
   let createdSiteId: string = '';
   let createdAppId: string = '';

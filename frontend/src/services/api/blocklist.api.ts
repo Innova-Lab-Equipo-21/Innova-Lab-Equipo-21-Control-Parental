@@ -2,7 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: Listas de Bloqueo, Sitios y Aplicaciones (Blocklist API)
 // Archivo: src/services/api/blocklist.api.ts
-// Descripción: Consumo de la lista oficial LOTBA y CRUD sincronizado de sitios web y aplicaciones bloqueadas.
+// Descripción: Consumo 100% real en PostgreSQL de la lista oficial LOTBA,
+//              CRUD sincronizado de sitios/apps personalizadas y reglas de Adulto Protegido.
 // ==============================================================================
 
 import {
@@ -14,84 +15,246 @@ import {
 } from '../../types';
 import { apiClient, safeStorage } from './client';
 
+export interface DeviceEffectiveBlocklistData {
+  version: number;
+  lotbaVersion: number;
+  customVersion: number;
+  lotbaDomains: string[];
+  domains: string[];
+  customDomains: CustomBlockedDomain[];
+  customApps: CustomBlockedApp[];
+  totalCount: number;
+}
+
+function extractApiErrorMessage(err: any, fallback: string): string {
+  const serverMsg =
+    err?.response?.data?.message ||
+    err?.response?.data?.error ||
+    (Array.isArray(err?.response?.data?.errors) ? err.response.data.errors[0]?.message : null);
+  if (typeof serverMsg === 'string' && serverMsg.trim().length > 0) {
+    return serverMsg.trim();
+  }
+  if (err?.message && !/timeout|network error|status code/i.test(err.message)) {
+    return err.message;
+  }
+  return fallback;
+}
+
+function normalizeDomainInput(domain: string): string {
+  return domain
+    .toLowerCase()
+    .trim()
+    .replace(/^(https?:\/\/)?(www\.)?/, '')
+    .replace(/\/.*$/, '');
+}
+
+function mapServerDomain(raw: any): CustomBlockedDomain {
+  return {
+    id: String(raw.id),
+    domain: String(raw.domain || '').toLowerCase().trim(),
+    category: raw.category || 'Personalizado',
+    isActive: raw.isActive !== false,
+    applyToAll: raw.applyToAll !== false,
+    deviceIds: Array.isArray(raw.deviceIds) ? raw.deviceIds : [],
+    createdAt: raw.createdAt ? new Date(raw.createdAt).toISOString() : new Date().toISOString(),
+    ...(raw.createdBy ? { createdBy: raw.createdBy } : {}),
+    ...(raw.createdByName ? { createdByName: raw.createdByName } : {}),
+    ...(raw.sourceDeviceId ? { sourceDeviceId: raw.sourceDeviceId } : {}),
+  };
+}
+
+function mapServerApp(raw: any): CustomBlockedApp {
+  return {
+    id: String(raw.id),
+    appName: String(raw.appName || ''),
+    packageName: String(raw.packageName || ''),
+    category: raw.category || 'Personalizado',
+    isActive: raw.isActive !== false,
+    applyToAll: raw.applyToAll !== false,
+    deviceIds: Array.isArray(raw.deviceIds) ? raw.deviceIds : [],
+    dailyLimitMinutes:
+      typeof raw.dailyLimitMinutes === 'number' && raw.dailyLimitMinutes > 0
+        ? raw.dailyLimitMinutes
+        : undefined,
+    deviceLimits:
+      raw.deviceLimits && typeof raw.deviceLimits === 'object' ? raw.deviceLimits : undefined,
+    createdAt: raw.createdAt ? new Date(raw.createdAt).toISOString() : new Date().toISOString(),
+    ...(raw.createdBy ? { createdBy: raw.createdBy } : {}),
+    ...(raw.createdByName ? { createdByName: raw.createdByName } : {}),
+    ...(raw.sourceDeviceId ? { sourceDeviceId: raw.sourceDeviceId } : {}),
+  };
+}
+
+async function syncCachedList(updater: (list: CustomBlocklist) => CustomBlocklist): Promise<void> {
+  try {
+    const raw = await safeStorage.getItem('@ba_protege_custom_blocklist');
+    if (!raw) return;
+    const parsed: CustomBlocklist = JSON.parse(raw);
+    const updated = updater({
+      ...parsed,
+      domains: Array.isArray(parsed.domains) ? [...parsed.domains] : [],
+      apps: Array.isArray(parsed.apps) ? [...parsed.apps] : [],
+    });
+    await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(updated));
+  } catch {
+    // El caché local es solo auxiliar de lectura; la fuente única es PostgreSQL
+  }
+}
+
 export const blocklistApi = {
   // --------------------------------------------------------------------------
-  // Listas Oficiales LOTBA y por Dispositivo
+  // Listas Oficiales LOTBA y Reglas Efectivas por Dispositivo Protegido
   // --------------------------------------------------------------------------
   async getOfficialLotbaList() {
-    const response = await apiClient.get('/blocklist/official');
-    return response.data;
-  },
-
-  async getDeviceBlocklist(deviceUuid: string) {
-    const response = await apiClient.get(`/blocklist/device/${deviceUuid}`);
-    return response.data;
-  },
-
-  // --------------------------------------------------------------------------
-  // Lista Personalizada de Sitios y Aplicaciones del Tutor
-  // --------------------------------------------------------------------------
-  async getCustomBlocklist(): Promise<{ success: boolean; data: CustomBlocklist }> {
     try {
-      const response = await apiClient.get('/blocklist/custom', { timeout: 12000 });
-      if (response.data?.data) {
-        // Preservar aplicaciones bloqueadas locales para evitar que la respuesta del backend las sobreescriba
-        const cached = await safeStorage.getItem('@ba_protege_custom_blocklist');
-        const cachedList: CustomBlocklist | null = cached ? JSON.parse(cached) : null;
-        const localDomains = cachedList?.domains || [];
-        const serverDomains: CustomBlockedDomain[] = (response.data.data.domains || []).map(
-          (serverDomain: CustomBlockedDomain) => {
-            const cachedDomain = localDomains.find(
-              (local) => local.id === serverDomain.id || local.domain === serverDomain.domain
-            );
-            if (!cachedDomain) return serverDomain;
-            return {
-              ...serverDomain,
-              createdBy: serverDomain.createdBy ?? cachedDomain.createdBy,
-              createdByName: serverDomain.createdByName ?? cachedDomain.createdByName,
-              sourceDeviceId: serverDomain.sourceDeviceId ?? cachedDomain.sourceDeviceId,
-            };
-          }
-        );
-
-        const localApps = cachedList?.apps || [];
-        const serverApps = response.data.data.apps || [];
-        const mergedApps = serverApps.length > 0 ? serverApps : localApps;
-
-        const mergedData: CustomBlocklist = {
-          ...response.data.data,
-          domains: serverDomains,
-          apps: mergedApps,
-        };
-
-        await safeStorage.setItem(
-          '@ba_protege_custom_blocklist',
-          JSON.stringify(mergedData)
-        );
-        return { success: true, data: mergedData };
-      }
+      const response = await apiClient.get('/blocklist/official');
       return response.data;
-    } catch (e) {
-      // Fallback a almacenamiento local / caché para demo offline
-      const cached = await safeStorage.getItem('@ba_protege_custom_blocklist');
-      if (cached) {
-        return { success: true, data: JSON.parse(cached) };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(err, 'No se pudo obtener la lista oficial de LOTBA.')
+      );
+    }
+  },
+
+  async getDeviceBlocklist(
+    deviceUuid: string
+  ): Promise<{ success: boolean; data: DeviceEffectiveBlocklistData }> {
+    try {
+      const response = await apiClient.get(
+        `/blocklist/device/${encodeURIComponent(deviceUuid)}`
+      );
+      const raw = response.data?.data;
+      if (!raw) {
+        throw new Error('No se recibieron reglas de bloqueo para este dispositivo.');
       }
-      const initialList: CustomBlocklist = {
-        id: 'custom-local-list',
-        name: 'Lista Personalizada del Tutor',
-        type: 'CUSTOM',
-        version: 1,
-        domains: [],
-        apps: [],
+
+      const data: DeviceEffectiveBlocklistData = {
+        version: Number(raw.version) || 1,
+        lotbaVersion: Number(raw.lotbaVersion) || 1,
+        customVersion: Number(raw.customVersion) || 1,
+        lotbaDomains: Array.isArray(raw.lotbaDomains) ? raw.lotbaDomains : [],
+        domains: Array.isArray(raw.domains) ? raw.domains : [],
+        customDomains: Array.isArray(raw.customDomains)
+          ? raw.customDomains.map(mapServerDomain)
+          : [],
+        customApps: Array.isArray(raw.customApps) ? raw.customApps.map(mapServerApp) : [],
+        totalCount: Number(raw.totalCount) || (Array.isArray(raw.domains) ? raw.domains.length : 0),
       };
-      await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(initialList));
-      return { success: true, data: initialList };
+
+      return { success: true, data };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudieron sincronizar las reglas de bloqueo del dispositivo.'
+        )
+      );
     }
   },
 
   // --------------------------------------------------------------------------
-  // Sitios Web Bloqueados (CRUD)
+  // Inserción desde Modo Protegido Adulto (Solo inserción; no permite desbloquear)
+  // --------------------------------------------------------------------------
+  async addDeviceBlockedSite(
+    deviceUuid: string,
+    domain: string,
+    category: string = 'Personalizado'
+  ): Promise<{ success: boolean; data: CustomBlockedDomain }> {
+    const cleanDomain = normalizeDomainInput(domain);
+    if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
+      throw new Error('Formato de dominio no válido (ejemplo: sitio.com)');
+    }
+
+    try {
+      const response = await apiClient.post(
+        `/blocklist/device/${encodeURIComponent(deviceUuid)}/domains`,
+        { domain: cleanDomain, category }
+      );
+      return {
+        success: true,
+        data: mapServerDomain(response.data?.data),
+      };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo bloquear el sitio en el servidor. Verificá tu conexión.'
+        )
+      );
+    }
+  },
+
+  async addDeviceBlockedApp(
+    deviceUuid: string,
+    appName: string,
+    packageName?: string,
+    category: string = 'Personalizado'
+  ): Promise<{ success: boolean; data: CustomBlockedApp }> {
+    const trimmedName = appName.trim();
+    if (!trimmedName) {
+      throw new Error('El nombre de la aplicación es requerido');
+    }
+
+    try {
+      const response = await apiClient.post(
+        `/blocklist/device/${encodeURIComponent(deviceUuid)}/apps`,
+        {
+          appName: trimmedName,
+          ...(packageName ? { packageName: packageName.trim() } : {}),
+          category,
+        }
+      );
+      return {
+        success: true,
+        data: mapServerApp(response.data?.data),
+      };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo bloquear la aplicación en el servidor. Verificá tu conexión.'
+        )
+      );
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // Lista Personalizada de Sitios y Aplicaciones del Responsable (PostgreSQL)
+  // --------------------------------------------------------------------------
+  async getCustomBlocklist(): Promise<{ success: boolean; data: CustomBlocklist }> {
+    try {
+      const response = await apiClient.get('/blocklist/custom');
+      const raw = response.data?.data;
+      if (!raw) {
+        throw new Error('Respuesta inválida al consultar la lista personalizada.');
+      }
+
+      const normalized: CustomBlocklist = {
+        id: String(raw.id),
+        name: raw.name || 'Mi Lista Personalizada',
+        type: raw.type || 'CUSTOM',
+        version: Number(raw.version) || 1,
+        domains: Array.isArray(raw.domains) ? raw.domains.map(mapServerDomain) : [],
+        apps: Array.isArray(raw.apps) ? raw.apps.map(mapServerApp) : [],
+      };
+
+      await safeStorage
+        .setItem('@ba_protege_custom_blocklist', JSON.stringify(normalized))
+        .catch(() => {});
+
+      return { success: true, data: normalized };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo cargar tu lista personalizada desde el servidor. Verificá tu conexión.'
+        )
+      );
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // Sitios Web Bloqueados (CRUD en PostgreSQL)
   // --------------------------------------------------------------------------
   async addCustomBlockedSite(
     domain: string,
@@ -100,143 +263,107 @@ export const blocklistApi = {
     deviceIds: string[] = [],
     originMeta?: BlockOriginMeta
   ): Promise<{ success: boolean; data: CustomBlockedDomain }> {
-    const cleanDomain = domain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+    const cleanDomain = normalizeDomainInput(domain);
     if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
       throw new Error('Formato de dominio no válido (ejemplo: sitio.com)');
     }
 
-    // Verificar si el dominio ya existe en la lista para evitar duplicados
-    const currentListRes = await this.getCustomBlocklist();
-    const existingList = currentListRes?.data?.domains || [];
-    if (existingList.some((d) => d.domain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '') === cleanDomain)) {
-      throw new Error('El sitio web ya se encuentra en tu lista de bloqueo');
-    }
-
-    const originFields: Partial<CustomBlockedDomain> = {
-      ...(originMeta?.createdBy ? { createdBy: originMeta.createdBy } : {}),
-      ...(originMeta?.createdByName ? { createdByName: originMeta.createdByName } : {}),
-      ...(originMeta?.sourceDeviceId ? { sourceDeviceId: originMeta.sourceDeviceId } : {}),
-    };
-
     try {
-      const response = await apiClient.post(
-        '/blocklist/custom/domains',
-        {
-          domain: cleanDomain,
-          category,
-          applyToAll,
-          deviceIds,
-          ...originFields,
-        },
-        { timeout: 300 }
-      );
-      if (response.data?.data && Object.keys(originFields).length > 0) {
-        const enrichedDomain: CustomBlockedDomain = {
-          ...originFields,
-          ...response.data.data,
-        };
-        const cached = await safeStorage.getItem('@ba_protege_custom_blocklist');
-        if (cached) {
-          const cachedList: CustomBlocklist = JSON.parse(cached);
-          const existingIdx = cachedList.domains.findIndex(
-            (d) => d.id === enrichedDomain.id || d.domain === enrichedDomain.domain
-          );
-          if (existingIdx >= 0) {
-            cachedList.domains[existingIdx] = enrichedDomain;
-          } else {
-            cachedList.domains.unshift(enrichedDomain);
-          }
-          await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(cachedList));
-        }
-        return { ...response.data, data: enrichedDomain };
-      }
-      return response.data;
-    } catch (e: any) {
-      // Fallback offline
-      const currentListRes = await this.getCustomBlocklist();
-      const list = currentListRes.data;
-      if (list.domains.some((d) => d.domain === cleanDomain)) {
-        throw new Error('El dominio ya se encuentra en tu lista de sitios bloqueados');
-      }
-      const newDomain: CustomBlockedDomain = {
-        id: `dom-${Date.now()}`,
+      const response = await apiClient.post('/blocklist/custom/domains', {
         domain: cleanDomain,
         category,
-        isActive: true,
         applyToAll,
         deviceIds,
-        createdAt: new Date().toISOString(),
-        ...originFields,
-      };
-      list.domains.unshift(newDomain);
-      list.version += 1;
-      await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));
-      return { success: true, data: newDomain };
+        ...(originMeta?.createdBy ? { createdBy: originMeta.createdBy } : {}),
+        ...(originMeta?.createdByName ? { createdByName: originMeta.createdByName } : {}),
+        ...(originMeta?.sourceDeviceId ? { sourceDeviceId: originMeta.sourceDeviceId } : {}),
+      });
+
+      const created = mapServerDomain(response.data?.data);
+      await syncCachedList((list) => {
+        list.domains = [created, ...list.domains.filter((d) => d.id !== created.id)];
+        list.version += 1;
+        return list;
+      });
+      return { success: true, data: created };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo agregar el sitio web a la lista de bloqueo. Verificá tu conexión.'
+        )
+      );
     }
   },
 
   async updateCustomBlockedSite(
     domainId: string,
-    data: { domain?: string; category?: string; isActive?: boolean; applyToAll?: boolean; deviceIds?: string[] }
+    data: {
+      domain?: string;
+      category?: string;
+      isActive?: boolean;
+      applyToAll?: boolean;
+      deviceIds?: string[];
+    }
   ): Promise<{ success: boolean; data: CustomBlockedDomain }> {
     let cleanDomain: string | undefined;
-    if (data.domain) {
-      cleanDomain = data.domain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+    if (data.domain !== undefined) {
+      cleanDomain = normalizeDomainInput(data.domain);
       if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
         throw new Error('Formato de dominio no válido (ejemplo: sitio.com)');
       }
     }
 
     try {
-      const response = await apiClient.put(
-        `/blocklist/custom/domains/${domainId}`,
-        {
-          ...(cleanDomain ? { domain: cleanDomain } : {}),
-          ...(data.category !== undefined ? { category: data.category } : {}),
-          ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
-          ...(data.applyToAll !== undefined ? { applyToAll: data.applyToAll } : {}),
-          ...(data.deviceIds !== undefined ? { deviceIds: data.deviceIds } : {}),
-        },
-        { timeout: 300 }
+      const response = await apiClient.put(`/blocklist/custom/domains/${domainId}`, {
+        ...(cleanDomain !== undefined ? { domain: cleanDomain } : {}),
+        ...(data.category !== undefined ? { category: data.category } : {}),
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        ...(data.applyToAll !== undefined ? { applyToAll: data.applyToAll } : {}),
+        ...(data.deviceIds !== undefined ? { deviceIds: data.deviceIds } : {}),
+      });
+
+      const updated = mapServerDomain(response.data?.data);
+      await syncCachedList((list) => {
+        list.domains = list.domains.map((d) => (d.id === updated.id ? updated : d));
+        list.version += 1;
+        return list;
+      });
+      return { success: true, data: updated };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo actualizar el sitio bloqueado. Verificá tu conexión.'
+        )
       );
-      return response.data;
-    } catch (e: any) {
-      // Fallback offline
-      const currentListRes = await this.getCustomBlocklist();
-      const list = currentListRes.data;
-      const item = list.domains.find((d) => d.id === domainId);
-      if (!item) throw new Error('Dominio no encontrado');
-      if (cleanDomain) item.domain = cleanDomain;
-      if (data.category !== undefined) item.category = data.category;
-      if (data.isActive !== undefined) item.isActive = data.isActive;
-      if (data.applyToAll !== undefined) item.applyToAll = data.applyToAll;
-      if (data.deviceIds !== undefined) item.deviceIds = data.deviceIds;
-      list.version += 1;
-      await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));
-      return { success: true, data: item };
     }
   },
 
   async deleteCustomBlockedSite(domainId: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await apiClient.delete(`/blocklist/custom/domains/${domainId}`, { timeout: 300 });
-      return response.data;
-    } catch (e: any) {
-      // Fallback offline
-      const currentListRes = await this.getCustomBlocklist();
-      const list = currentListRes.data;
-      const idx = list.domains.findIndex((d) => d.id === domainId);
-      if (idx !== -1) {
-        list.domains.splice(idx, 1);
+      const response = await apiClient.delete(`/blocklist/custom/domains/${domainId}`);
+      await syncCachedList((list) => {
+        list.domains = list.domains.filter((d) => d.id !== domainId);
         list.version += 1;
-        await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));
-      }
-      return { success: true, message: 'Sitio eliminado correctamente' };
+        return list;
+      });
+      return {
+        success: true,
+        message: response.data?.message || 'Dominio eliminado correctamente',
+      };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo eliminar el sitio bloqueado. Verificá tu conexión.'
+        )
+      );
     }
   },
 
   // --------------------------------------------------------------------------
-  // Aplicaciones Bloqueadas y Tiempo de Uso (CRUD)
+  // Aplicaciones Bloqueadas y Límites Diarios (CRUD en PostgreSQL)
   // --------------------------------------------------------------------------
   async addCustomBlockedApp(
     appName: string,
@@ -248,101 +375,139 @@ export const blocklistApi = {
     deviceLimits?: Record<string, number | undefined>,
     originMeta?: BlockOriginMeta
   ): Promise<{ success: boolean; data: CustomBlockedApp }> {
-    const listRes = await this.getCustomBlocklist();
-    const list = listRes.data;
-    if (!list.apps) list.apps = [];
-
-    const trimmedName = appName.trim().toLowerCase();
-    const normalizedPkg = packageName?.trim().toLowerCase();
-    if (
-      list.apps.some(
-        (a) =>
-          a.appName.trim().toLowerCase() === trimmedName ||
-          (Boolean(normalizedPkg) && Boolean(a.packageName) && a.packageName.trim().toLowerCase() === normalizedPkg)
-      )
-    ) {
-      throw new Error('La aplicación ya se encuentra en tu lista de restricción');
+    const trimmedName = appName.trim();
+    if (!trimmedName) {
+      throw new Error('El nombre de la aplicación es requerido');
     }
 
-    const originFields: Partial<CustomBlockedApp> = {
-      ...(originMeta?.createdBy ? { createdBy: originMeta.createdBy } : {}),
-      ...(originMeta?.createdByName ? { createdByName: originMeta.createdByName } : {}),
-      ...(originMeta?.sourceDeviceId ? { sourceDeviceId: originMeta.sourceDeviceId } : {}),
-    };
+    try {
+      const response = await apiClient.post('/blocklist/custom/apps', {
+        appName: trimmedName,
+        packageName: packageName?.trim() || undefined,
+        category,
+        applyToAll,
+        deviceIds,
+        dailyLimitMinutes: typeof dailyLimitMinutes === 'number' ? dailyLimitMinutes : null,
+        ...(deviceLimits !== undefined ? { deviceLimits } : {}),
+        ...(originMeta?.createdBy ? { createdBy: originMeta.createdBy } : {}),
+        ...(originMeta?.createdByName ? { createdByName: originMeta.createdByName } : {}),
+        ...(originMeta?.sourceDeviceId ? { sourceDeviceId: originMeta.sourceDeviceId } : {}),
+      });
 
-    const newApp: CustomBlockedApp = {
-      id: `app-${Date.now()}`,
-      appName,
-      packageName,
-      category,
-      isActive: true,
-      applyToAll,
-      deviceIds,
-      dailyLimitMinutes,
-      deviceLimits,
-      createdAt: new Date().toISOString(),
-      ...originFields,
-    };
-
-    list.apps.unshift(newApp);
-    list.version += 1;
-    await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));
-    return { success: true, data: newApp };
+      const created = mapServerApp(response.data?.data);
+      await syncCachedList((list) => {
+        list.apps = [created, ...(list.apps || []).filter((a) => a.id !== created.id)];
+        list.version += 1;
+        return list;
+      });
+      return { success: true, data: created };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo bloquear la aplicación en el servidor. Verificá tu conexión.'
+        )
+      );
+    }
   },
 
   async updateCustomBlockedApp(
     appId: string,
     data: {
       appName?: string;
+      packageName?: string;
       category?: string;
       isActive?: boolean;
       applyToAll?: boolean;
       deviceIds?: string[];
-      dailyLimitMinutes?: number;
-      deviceLimits?: Record<string, number | undefined>;
+      dailyLimitMinutes?: number | null;
+      deviceLimits?: Record<string, number | undefined> | null;
     }
   ): Promise<{ success: boolean; data: CustomBlockedApp }> {
-    const listRes = await this.getCustomBlocklist();
-    const list = listRes.data;
-    if (!list.apps) list.apps = [];
+    try {
+      const payload: Record<string, unknown> = {
+        ...(data.appName !== undefined ? { appName: data.appName.trim() } : {}),
+        ...(data.packageName !== undefined ? { packageName: data.packageName.trim() } : {}),
+        ...(data.category !== undefined ? { category: data.category } : {}),
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        ...(data.applyToAll !== undefined ? { applyToAll: data.applyToAll } : {}),
+        ...(data.deviceIds !== undefined ? { deviceIds: data.deviceIds } : {}),
+      };
+      if ('dailyLimitMinutes' in data) {
+        payload.dailyLimitMinutes =
+          typeof data.dailyLimitMinutes === 'number' && data.dailyLimitMinutes > 0
+            ? data.dailyLimitMinutes
+            : null;
+      }
+      if ('deviceLimits' in data) {
+        payload.deviceLimits = data.deviceLimits ?? null;
+      }
 
-    const item = list.apps.find((a) => a.id === appId);
-    if (!item) throw new Error('Aplicación no encontrada');
-
-    if (data.appName) item.appName = data.appName;
-    if (data.category !== undefined) item.category = data.category;
-    if (data.isActive !== undefined) item.isActive = data.isActive;
-    if (data.applyToAll !== undefined) item.applyToAll = data.applyToAll;
-    if (data.deviceIds !== undefined) item.deviceIds = data.deviceIds;
-    if ('dailyLimitMinutes' in data) item.dailyLimitMinutes = data.dailyLimitMinutes;
-    if ('deviceLimits' in data) item.deviceLimits = data.deviceLimits;
-
-    list.version += 1;
-    await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));
-    return { success: true, data: item };
+      const response = await apiClient.put(`/blocklist/custom/apps/${appId}`, payload);
+      const updated = mapServerApp(response.data?.data);
+      await syncCachedList((list) => {
+        list.apps = (list.apps || []).map((a) => (a.id === updated.id ? updated : a));
+        list.version += 1;
+        return list;
+      });
+      return { success: true, data: updated };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo actualizar la aplicación bloqueada. Verificá tu conexión.'
+        )
+      );
+    }
   },
 
   async deleteCustomBlockedApp(appId: string): Promise<{ success: boolean; message: string }> {
-    const listRes = await this.getCustomBlocklist();
-    const list = listRes.data;
-    if (!list.apps) list.apps = [];
-
-    const idx = list.apps.findIndex((a) => a.id === appId);
-    if (idx !== -1) {
-      list.apps.splice(idx, 1);
-      list.version += 1;
-      await safeStorage.setItem('@ba_protege_custom_blocklist', JSON.stringify(list));
+    try {
+      const response = await apiClient.delete(`/blocklist/custom/apps/${appId}`);
+      await syncCachedList((list) => {
+        list.apps = (list.apps || []).filter((a) => a.id !== appId);
+        list.version += 1;
+        return list;
+      });
+      return {
+        success: true,
+        message: response.data?.message || 'Aplicación eliminada correctamente',
+      };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo eliminar la aplicación bloqueada. Verificá tu conexión.'
+        )
+      );
     }
-    return { success: true, message: 'Aplicación eliminada correctamente' };
   },
 
-  async getAppUsageStats(_deviceId: string): Promise<AppUsageItem[]> {
-    return [
-      { id: 'u1', appName: 'Instagram', packageName: 'com.instagram.android', category: 'Redes sociales', timeInMinutes: 85 },
-      { id: 'u2', appName: 'TikTok', packageName: 'com.zhiliaoapp.musically', category: 'Redes sociales', timeInMinutes: 62 },
-      { id: 'u3', appName: 'Free Fire', packageName: 'com.dts.freefireth', category: 'Juegos', timeInMinutes: 45 },
-      { id: 'u4', appName: 'YouTube', packageName: 'com.google.android.youtube', category: 'Entretenimiento', timeInMinutes: 38 },
-      { id: 'u5', appName: 'Bet365 Mobile', packageName: 'com.bet365.mobile', category: 'Apuestas', timeInMinutes: 15 },
-    ];
+  // --------------------------------------------------------------------------
+  // Estadísticas Reales de Uso de Aplicaciones (PostgreSQL)
+  // --------------------------------------------------------------------------
+  async getAppUsageStats(deviceId: string): Promise<AppUsageItem[]> {
+    try {
+      const response = await apiClient.get(
+        `/metrics/device/${encodeURIComponent(deviceId)}/activity`
+      );
+      const snapshots = response.data?.data?.appUsage;
+      if (!Array.isArray(snapshots)) return [];
+      return snapshots.map((item: any, idx: number) => ({
+        id: String(item.id || `${item.packageName || 'app'}-${idx}`),
+        appName: String(item.appName || item.packageName || ''),
+        packageName: String(item.packageName || ''),
+        category: item.category || 'Aplicación',
+        timeInMinutes: Number(item.usedMinutes) || 0,
+        lastUsed: item.updatedAt ? new Date(item.updatedAt).toISOString() : undefined,
+      }));
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo obtener el tiempo de uso de aplicaciones desde el servidor.'
+        )
+      );
+    }
   },
 };

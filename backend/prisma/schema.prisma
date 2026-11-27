@@ -224,6 +224,7 @@ model Blocklist {
 
   user    User?             @relation("UserCustomLists", fields: [userId], references: [id], onDelete: Cascade)
   domains BlocklistDomain[]
+  apps    BlocklistApp[]
 
   @@map("blocklists")
   @@schema("public")
@@ -249,19 +250,49 @@ model AllowedSite {
 // Modelo: Dominios en Listas de Bloqueo
 // ------------------------------------------------------------------------------
 model BlocklistDomain {
-  id          String   @id @default(uuid())
-  blocklistId String   @map("blocklist_id")
-  domain      String
-  category    String?  @default("GAMBLING")
-  isActive    Boolean  @default(true) @map("is_active")
-  applyToAll  Boolean  @default(true) @map("apply_to_all")
-  deviceIds   String[] @map("device_ids")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  blocklistId    String   @map("blocklist_id")
+  domain         String
+  category       String?  @default("GAMBLING")
+  isActive       Boolean  @default(true) @map("is_active")
+  applyToAll     Boolean  @default(true) @map("apply_to_all")
+  deviceIds      String[] @default([]) @map("device_ids")
+  createdBy      String?  @map("created_by")
+  createdByName  String?  @map("created_by_name")
+  sourceDeviceId String?  @map("source_device_id")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   blocklist Blocklist @relation(fields: [blocklistId], references: [id], onDelete: Cascade)
 
   @@unique([blocklistId, domain])
   @@map("blocklist_domains")
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: Aplicaciones en Listas de Bloqueo Personalizadas
+// ------------------------------------------------------------------------------
+model BlocklistApp {
+  id                String   @id @default(uuid())
+  blocklistId       String   @map("blocklist_id")
+  appName           String   @map("app_name")
+  packageName       String   @map("package_name")
+  category          String?  @default("Personalizado")
+  isActive          Boolean  @default(true) @map("is_active")
+  applyToAll        Boolean  @default(true) @map("apply_to_all")
+  deviceIds         String[] @default([]) @map("device_ids")
+  dailyLimitMinutes Int?     @map("daily_limit_minutes")
+  deviceLimits      Json?    @map("device_limits")
+  createdBy         String?  @map("created_by")
+  createdByName     String?  @map("created_by_name")
+  sourceDeviceId    String?  @map("source_device_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  blocklist Blocklist @relation(fields: [blocklistId], references: [id], onDelete: Cascade)
+
+  @@unique([blocklistId, packageName])
+  @@map("blocklist_apps")
   @@schema("public")
 }
 

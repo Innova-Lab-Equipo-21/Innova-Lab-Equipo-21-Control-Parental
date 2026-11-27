@@ -1,8 +1,37 @@
-import { test, describe } from 'node:test';
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Pruebas Automatizadas — Gestión y Bloqueo de Aplicaciones
+// Archivo: tests/customApps.test.ts
+// Descripción: Valida CRUD de aplicaciones bloqueadas, límites por dispositivo y uso real vía REST.
+// ==============================================================================
+
+import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { apiService } from '../src/services/api.service.js';
+import { installBlocklistApiStub } from './helpers/blocklistApiStub.js';
 
 describe('Gestión y Bloqueo de Aplicaciones (Modo Responsable)', () => {
+  let stub: ReturnType<typeof installBlocklistApiStub>;
+
+  before(async () => {
+    stub = installBlocklistApiStub();
+    await stub.reset();
+    stub.state.usageByDevice.set('dev-real-123', [
+      {
+        id: 'snap-1',
+        appName: 'TikTok',
+        packageName: 'com.zhiliaoapp.musically',
+        usedMinutes: 25,
+        dailyLimitMinutes: 60,
+        isBlocked: false,
+      },
+    ]);
+  });
+
+  after(() => {
+    stub.restore();
+  });
+
   test('GET: Debe obtener la lista de aplicaciones bloqueadas inicial', async () => {
     const res = await apiService.getCustomBlocklist();
     assert.equal(res.success, true);
@@ -181,11 +210,14 @@ describe('Gestión y Bloqueo de Aplicaciones (Modo Responsable)', () => {
     assert.equal(updated.data.deviceLimits?.['dev-1'], undefined);
   });
 
-  test('USAGE STATS: Debe consultar las estadísticas de tiempo de uso de aplicaciones', async () => {
-    const stats = await apiService.getAppUsageStats('dev-mateo-123');
+  test('USAGE STATS: Debe consultar las estadísticas reales de tiempo de uso desde el backend', async () => {
+    const stats = await apiService.getAppUsageStats('dev-real-123');
     assert.ok(Array.isArray(stats));
-    assert.ok(stats.length > 0);
-    assert.ok(stats[0].appName);
-    assert.ok(typeof stats[0].timeInMinutes === 'number');
+    assert.equal(stats.length, 1);
+    assert.equal(stats[0].appName, 'TikTok');
+    assert.equal(stats[0].timeInMinutes, 25);
+
+    const emptyStats = await apiService.getAppUsageStats('dev-sin-uso');
+    assert.deepEqual(emptyStats, []);
   });
 });

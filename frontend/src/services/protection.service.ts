@@ -668,7 +668,10 @@ export class ProtectionService {
   }
 
   /**
-   * Sincroniza integralmente las reglas de dominios bloqueados y aplicaciones restringidas con Android nativo.
+   * Sincroniza integralmente las reglas de dominios bloqueados (LOTBA + personalizados)
+   * y aplicaciones restringidas con Android nativo.
+   * - En modo CHILD/ADULT (dispositivo protegido): descarga desde GET /blocklist/device/:deviceUuid.
+   * - En modo PARENT (dispositivo del responsable): descarga desde GET /blocklist/custom + /blocklist/official.
    */
   public async syncProtectionRulesWithNative(
     activeDeviceId: string = 'self',
@@ -682,57 +685,110 @@ export class ProtectionService {
       if (userMode) {
         await this.setUserMode(userMode);
       }
-      // 1. Obtener lista personalizada
-      const customRes = await apiService.getCustomBlocklist();
-      const customList = customRes?.data || { domains: [], apps: [] };
 
-      // 2. Obtener lista oficial LOTBA
+      const isProtectedDeviceMode =
+        (userMode === 'CHILD' || userMode === 'ADULT') &&
+        Boolean(activeDeviceId) &&
+        activeDeviceId !== 'self' &&
+        activeDeviceId !== 'local';
+
       let lotbaDomains: string[] = [];
-      try {
-        const lotbaRes = await apiService.getOfficialLotbaList();
-        lotbaDomains = (lotbaRes?.data?.domains || []).map((d: any) => typeof d === 'string' ? d : d.domain);
-      } catch (_) {}
+      let activeCustomDomains: string[] = [];
+      let activeCustomApps: Array<{
+        appName: string;
+        packageName: string;
+        dailyLimitMinutes?: number;
+        webDomains: string[];
+      }> = [];
 
-      // 3. Filtrar dominios activos aplicables a este dispositivo ('self')
-      const activeCustomDomains = (customList.domains || [])
-        .filter(
-          (d: any) =>
-            d.isActive !== false &&
-            (d.applyToAll === true ||
-              (Array.isArray(d.deviceIds) && d.deviceIds.includes(activeDeviceId)))
-        )
-        .map((d: any) => d.domain.toLowerCase().trim());
+      if (isProtectedDeviceMode) {
+        // Dispositivo protegido: descarga directa y filtrada desde PostgreSQL por deviceUuid
+        const deviceRes = await apiService.getDeviceBlocklist(activeDeviceId);
+        const payload = deviceRes?.data;
 
-      // 4. Filtrar aplicaciones activas aplicables a este dispositivo ('self') con límites y dominios web
-      const activeCustomApps = (customList.apps || [])
-        .filter(
-          (a: any) =>
-            a.isActive !== false &&
-            (a.applyToAll === true ||
-              (Array.isArray(a.deviceIds) && a.deviceIds.includes(activeDeviceId)))
-        )
-        .map((a: any) => {
-          const limit = a.deviceLimits?.[activeDeviceId] !== undefined
-            ? a.deviceLimits[activeDeviceId]
-            : a.dailyLimitMinutes;
-          const webDomains = this.getWebDomainsForApp(a.appName, a.packageName);
-          return {
-            appName: a.appName || '',
-            packageName: a.packageName || '',
-            dailyLimitMinutes: typeof limit === 'number' ? limit : undefined,
-            webDomains,
-          };
-        });
+        lotbaDomains = Array.isArray(payload?.lotbaDomains)
+          ? payload.lotbaDomains.map((d: string) => d.toLowerCase().trim())
+          : [];
+
+        if (lotbaDomains.length === 0) {
+          try {
+            const lotbaRes = await apiService.getOfficialLotbaList();
+            lotbaDomains = (lotbaRes?.data?.domains || []).map((d: any) =>
+              (typeof d === 'string' ? d : d.domain).toLowerCase().trim()
+            );
+          } catch (_) {}
+        }
+
+        activeCustomDomains = (payload?.customDomains || [])
+          .filter((d: any) => d.isActive !== false)
+          .map((d: any) => d.domain.toLowerCase().trim());
+
+        activeCustomApps = (payload?.customApps || [])
+          .filter((a: any) => a.isActive !== false)
+          .map((a: any) => {
+            const limit =
+              typeof a.dailyLimitMinutes === 'number' && a.dailyLimitMinutes > 0
+                ? a.dailyLimitMinutes
+                : undefined;
+            const webDomains = this.getWebDomainsForApp(a.appName, a.packageName);
+            return {
+              appName: a.appName || '',
+              packageName: a.packageName || '',
+              dailyLimitMinutes: limit,
+              webDomains,
+            };
+          });
+      } else {
+        // Modo Responsable ('self'): descarga lista personalizada del tutor + LOTBA oficial
+        const customRes = await apiService.getCustomBlocklist();
+        const customList = customRes?.data || { domains: [], apps: [] };
+
+        try {
+          const lotbaRes = await apiService.getOfficialLotbaList();
+          lotbaDomains = (lotbaRes?.data?.domains || []).map((d: any) =>
+            (typeof d === 'string' ? d : d.domain).toLowerCase().trim()
+          );
+        } catch (_) {}
+
+        activeCustomDomains = (customList.domains || [])
+          .filter(
+            (d: any) =>
+              d.isActive !== false &&
+              (d.applyToAll === true ||
+                (Array.isArray(d.deviceIds) && d.deviceIds.includes(activeDeviceId)))
+          )
+          .map((d: any) => d.domain.toLowerCase().trim());
+
+        activeCustomApps = (customList.apps || [])
+          .filter(
+            (a: any) =>
+              a.isActive !== false &&
+              (a.applyToAll === true ||
+                (Array.isArray(a.deviceIds) && a.deviceIds.includes(activeDeviceId)))
+          )
+          .map((a: any) => {
+            const limit =
+              a.deviceLimits?.[activeDeviceId] !== undefined
+                ? a.deviceLimits[activeDeviceId]
+                : a.dailyLimitMinutes;
+            const webDomains = this.getWebDomainsForApp(a.appName, a.packageName);
+            return {
+              appName: a.appName || '',
+              packageName: a.packageName || '',
+              dailyLimitMinutes: typeof limit === 'number' && limit > 0 ? limit : undefined,
+              webDomains,
+            };
+          });
+      }
 
       // 1. Incluir en los dominios personalizados los sitios web de apps con Bloqueo Total
       const appDomainsForTotalBlock = activeCustomApps
-        .filter((a: any) => a.dailyLimitMinutes === undefined || a.dailyLimitMinutes <= 0)
-        .flatMap((a: any) => a.webDomains || []);
+        .filter((a) => a.dailyLimitMinutes === undefined || a.dailyLimitMinutes <= 0)
+        .flatMap((a) => a.webDomains || []);
 
-      const customDomainsOnly = Array.from(new Set([
-        ...activeCustomDomains,
-        ...appDomainsForTotalBlock,
-      ]));
+      const customDomainsOnly = Array.from(
+        new Set([...activeCustomDomains, ...appDomainsForTotalBlock])
+      );
 
       // 2. Incluir en las aplicaciones bloqueadas las aplicaciones correspondientes a sitios web bloqueados (reciprocidad)
       const appsFromBlockedSites = this.getAppsForWebDomains(activeCustomDomains);
@@ -741,18 +797,18 @@ export class ProtectionService {
       for (const derivedApp of appsFromBlockedSites) {
         const existingIdx = allBlockedApps.findIndex(
           (app) =>
-            (app.packageName && derivedApp.packageName && app.packageName.toLowerCase() === derivedApp.packageName.toLowerCase()) ||
+            (app.packageName &&
+              derivedApp.packageName &&
+              app.packageName.toLowerCase() === derivedApp.packageName.toLowerCase()) ||
             app.appName.toLowerCase() === derivedApp.appName.toLowerCase()
         );
         if (existingIdx >= 0) {
-          // Si el sitio web está explícitamente bloqueado, asegurar bloqueo total en la app
           allBlockedApps[existingIdx] = {
             ...allBlockedApps[existingIdx],
             dailyLimitMinutes: undefined,
-            webDomains: Array.from(new Set([
-              ...(allBlockedApps[existingIdx].webDomains || []),
-              ...derivedApp.webDomains,
-            ])),
+            webDomains: Array.from(
+              new Set([...(allBlockedApps[existingIdx].webDomains || []), ...derivedApp.webDomains])
+            ),
           };
         } else {
           allBlockedApps.push({
@@ -762,10 +818,10 @@ export class ProtectionService {
         }
       }
 
-      // 5. Enviar a Android Native diferenciando lista personalizada y lista oficial LOTBA
+      // 3. Enviar a Android Native diferenciando lista personalizada y lista oficial LOTBA
       await this.syncProtectionRules(customDomainsOnly, allBlockedApps, lotbaDomains);
 
-      // 6. Consultar eventos de bloqueos capturados nativamente y reportarlos a telemetría
+      // 4. Consultar eventos de bloqueos capturados nativamente y reportarlos a telemetría
       await this.flushNativeBlockEventsToTelemetry(activeDeviceId, lotbaDomains);
 
       return true;
@@ -821,7 +877,7 @@ export class ProtectionService {
    */
   public async getBlocklistInfo(): Promise<NativeBlocklistInfo> {
     if (Platform.OS !== 'android' || !ProtectionModule) {
-      return { version: 1, totalDomains: 4 };
+      return { version: 0, totalDomains: 0 };
     }
     return ProtectionModule.getBlocklistInfo();
   }

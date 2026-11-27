@@ -1,4 +1,11 @@
-import { test, describe } from 'node:test';
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Pruebas Automatizadas — Primer Acceso del Responsable
+// Archivo: tests/responsibleFirstAccess.test.ts
+// Descripción: Valida flujo de primer acceso, lista inicial vacía desde backend y avisos de Autoprotección.
+// ==============================================================================
+
+import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,8 +21,19 @@ import {
 } from '../src/utils/responsibleFirstAccess.js';
 import { safeStorage } from '../src/services/api/client.js';
 import { apiService } from '../src/services/api.service.js';
+import { installBlocklistApiStub } from './helpers/blocklistApiStub.js';
 
 describe('Pantalla "Elegir protección" y flujo inicial del Responsable', () => {
+  let stub: ReturnType<typeof installBlocklistApiStub>;
+
+  before(async () => {
+    stub = installBlocklistApiStub();
+    await stub.reset();
+  });
+
+  after(() => {
+    stub.restore();
+  });
   test('PRIMER ACCESO: "Elegir protección" aparece solo la primera vez por usuario Responsable', async () => {
     const user = { id: 'user-resp-1', email: 'Tutor.Test@BAProtege.gob.ar' };
     await resetResponsibleFirstAccess(user);

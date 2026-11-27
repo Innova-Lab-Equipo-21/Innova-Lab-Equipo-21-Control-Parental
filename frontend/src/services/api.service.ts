@@ -68,6 +68,7 @@ export const apiService = {
   updateDevice: devicesApi.updateDevice.bind(devicesApi),
   addDevice: devicesApi.addDevice.bind(devicesApi),
   getDeviceDetail: devicesApi.getDeviceDetail.bind(devicesApi),
+  getDevicePublicProfile: devicesApi.getDevicePublicProfile.bind(devicesApi),
   auditDevicePermissions: devicesApi.auditDevicePermissions.bind(devicesApi),
   updateDevicePermissions: devicesApi.updateDevicePermissions.bind(devicesApi),
   unbindDevice: devicesApi.unbindDevice.bind(devicesApi),
@@ -90,6 +91,8 @@ export const apiService = {
   // --------------------------------------------------------------------------
   getOfficialLotbaList: blocklistApi.getOfficialLotbaList.bind(blocklistApi),
   getDeviceBlocklist: blocklistApi.getDeviceBlocklist.bind(blocklistApi),
+  addDeviceBlockedSite: blocklistApi.addDeviceBlockedSite.bind(blocklistApi),
+  addDeviceBlockedApp: blocklistApi.addDeviceBlockedApp.bind(blocklistApi),
   getCustomBlocklist: blocklistApi.getCustomBlocklist.bind(blocklistApi),
   addCustomBlockedSite: blocklistApi.addCustomBlockedSite.bind(blocklistApi),
   updateCustomBlockedSite: blocklistApi.updateCustomBlockedSite.bind(blocklistApi),

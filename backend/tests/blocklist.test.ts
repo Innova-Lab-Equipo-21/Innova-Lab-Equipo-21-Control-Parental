@@ -225,4 +225,133 @@ describe('Módulo de Listas de Bloqueo (Blocklist API)', () => {
     assert.ok(effective.domains.includes(activo), 'El dominio activo debe aplicarse');
     assert.ok(!effective.domains.includes(desactivado), 'El dominio desactivado no debe aplicarse');
   });
+
+  test('CRUD de aplicaciones bloqueadas + límites diarios + alcance por dispositivo + Adulto Protegido', async () => {
+    const ts = Date.now();
+
+    // 1. Vincular un Adulto Protegido y un Menor Protegido
+    const genAdult = await fetch(`${baseUrl}/api/devices/pair/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({
+        childName: 'Carlos Adulto',
+        gender: 'MASCULINO',
+        personType: 'ADULTO',
+        birthDate: '1970-03-10',
+      }),
+    });
+    const adultCode = (await genAdult.json()).data.pairingCode;
+    const adultUuid = `dev-adult-${ts}`;
+    const confirmAdult = await fetch(`${baseUrl}/api/devices/pair/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pairingCode: adultCode,
+        deviceUuid: adultUuid,
+        deviceName: 'Celular Carlos',
+      }),
+    });
+    assert.equal(confirmAdult.status, 200);
+    const adultDeviceId = (await confirmAdult.json()).data.deviceId;
+
+    const genMinor = await fetch(`${baseUrl}/api/devices/pair/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({
+        childName: 'Mateo Menor',
+        gender: 'MASCULINO',
+        personType: 'MENOR',
+        birthDate: '2014-05-10',
+      }),
+    });
+    const minorCode = (await genMinor.json()).data.pairingCode;
+    const minorUuid = `dev-minor-${ts}`;
+    const confirmMinor = await fetch(`${baseUrl}/api/devices/pair/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pairingCode: minorCode,
+        deviceUuid: minorUuid,
+        deviceName: 'Celular Mateo',
+      }),
+    });
+    assert.equal(confirmMinor.status, 200);
+    const minorDeviceId = (await confirmMinor.json()).data.deviceId;
+
+    // 2. Responsable agrega una app con límite específico para el Menor y sin aplicar al Adulto
+    const addAppRes = await fetch(`${baseUrl}/api/blocklist/custom/apps`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({
+        appName: `TikTok ${ts}`,
+        packageName: `com.tiktok.test.${ts}`,
+        category: 'Redes sociales',
+        applyToAll: false,
+        deviceIds: [minorDeviceId],
+        dailyLimitMinutes: 45,
+        deviceLimits: { [minorDeviceId]: 30 },
+      }),
+    });
+    assert.equal(addAppRes.status, 201);
+    const createdApp = (await addAppRes.json()).data;
+    assert.equal(createdApp.applyToAll, false);
+    assert.deepEqual(createdApp.deviceIds, [minorDeviceId]);
+
+    // 3. El dispositivo Menor recibe esa app con límite efectivo 30 min; el Adulto NO la recibe
+    const minorRules = await (await fetch(`${baseUrl}/api/blocklist/device/${minorUuid}`)).json();
+    const adultRulesBefore = await (
+      await fetch(`${baseUrl}/api/blocklist/device/${adultUuid}`)
+    ).json();
+    const foundMinorApp = minorRules.data.customApps.find((a: any) => a.id === createdApp.id);
+    assert.ok(foundMinorApp);
+    assert.equal(foundMinorApp.dailyLimitMinutes, 30);
+    assert.ok(!adultRulesBefore.data.customApps.some((a: any) => a.id === createdApp.id));
+
+    // 4. Adulto Protegido agrega sitio y app desde su dispositivo (sin JWT de tutor)
+    const adultAddSite = await fetch(`${baseUrl}/api/blocklist/device/${adultUuid}/domains`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: `casino-adulto-${ts}.bet`, category: 'Personalizado' }),
+    });
+    assert.equal(adultAddSite.status, 201);
+    const adultSite = (await adultAddSite.json()).data;
+    assert.equal(adultSite.createdBy, 'ADULTO_PROTEGIDO');
+    assert.equal(adultSite.sourceDeviceId, adultDeviceId);
+
+    const adultAddApp = await fetch(`${baseUrl}/api/blocklist/device/${adultUuid}/apps`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        appName: `BetApp Adulto ${ts}`,
+        packageName: `com.betapp.adulto.${ts}`,
+        category: 'Apuestas',
+      }),
+    });
+    assert.equal(adultAddApp.status, 201);
+    const adultApp = (await adultAddApp.json()).data;
+    assert.equal(adultApp.createdBy, 'ADULTO_PROTEGIDO');
+
+    // 5. Menor Protegido NO puede agregar bloqueos desde su dispositivo (403)
+    const minorForbidden = await fetch(`${baseUrl}/api/blocklist/device/${minorUuid}/domains`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: `intento-menor-${ts}.com` }),
+    });
+    assert.equal(minorForbidden.status, 403);
+
+    // 6. Responsable ve las reglas del Adulto y puede eliminarlas
+    const customList = await (
+      await fetch(`${baseUrl}/api/blocklist/custom`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      })
+    ).json();
+    assert.ok(customList.data.domains.some((d: any) => d.id === adultSite.id));
+    assert.ok(customList.data.apps.some((a: any) => a.id === adultApp.id));
+
+    const delAppRes = await fetch(`${baseUrl}/api/blocklist/custom/apps/${adultApp.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    assert.equal(delAppRes.status, 200);
+  });
 });

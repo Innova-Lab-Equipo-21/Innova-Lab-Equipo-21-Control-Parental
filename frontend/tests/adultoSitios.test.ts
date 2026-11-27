@@ -10,7 +10,7 @@
 //              - Opciones de gestión limitadas a Buscar y Ordenar (fecha / A-Z).
 // ==============================================================================
 
-import { test, describe } from 'node:test';
+import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -29,6 +29,7 @@ import {
   matchesBlockOriginFilter,
 } from '../src/utils/adultoSitios.js';
 import { apiService } from '../src/services/api.service.js';
+import { installBlocklistApiStub } from './helpers/blocklistApiStub.js';
 import type {
   CustomBlockedApp,
   CustomBlockedDomain,
@@ -192,18 +193,23 @@ describe('Modo Protegido Adulto — Restricciones y avisos al incluir sitios/app
 });
 
 describe('Identificación de Origen (Adulto Protegido -> Panel del Responsable)', () => {
-  test('Persiste metadatos de origen (ADULTO_PROTEGIDO) al bloquear sitios y apps', async () => {
+  let stub: ReturnType<typeof installBlocklistApiStub>;
+
+  before(async () => {
+    stub = installBlocklistApiStub();
+    await stub.reset();
+  });
+
+  after(() => {
+    stub.restore();
+  });
+
+  test('Persiste metadatos de origen (ADULTO_PROTEGIDO) al bloquear sitios y apps vía endpoints de dispositivo y tutor', async () => {
     const uniqueDomain = `auto-bloqueo-adulto-${Date.now()}.bet`;
-    const siteRes = await apiService.addCustomBlockedSite(
+    const siteRes = await apiService.addDeviceBlockedSite(
+      'dev-adult-1',
       uniqueDomain,
-      'Personalizado',
-      false,
-      ['dev-adult-1'],
-      {
-        createdBy: 'ADULTO_PROTEGIDO',
-        createdByName: 'Carlos',
-        sourceDeviceId: 'dev-adult-1',
-      }
+      'Personalizado'
     );
 
     assert.equal(siteRes.success, true);

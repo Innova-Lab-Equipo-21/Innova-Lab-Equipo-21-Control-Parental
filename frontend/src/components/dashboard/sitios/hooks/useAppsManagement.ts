@@ -107,7 +107,7 @@ export const useAppsManagement = ({
 
   // Sincronización reactiva cuando initialApps se actualiza desde el contenedor principal
   useEffect(() => {
-    if (initialApps && initialApps.length > 0) {
+    if (Array.isArray(initialApps)) {
       setCustomApps(initialApps);
     }
   }, [initialApps]);
@@ -398,13 +398,14 @@ export const useAppsManagement = ({
     setLoadingApp(true);
     try {
       await apiService.updateCustomBlockedApp(timeLimitApp.id, {
-        dailyLimitMinutes: limit,
+        dailyLimitMinutes: limit ?? null,
       });
       const limitDesc = limit
         ? (limit >= 60 ? `${limit / 60}h diarias` : `${limit} min diarios`)
         : 'sin límite diario';
       setTimeLimitApp(null);
       await loadApps();
+      onRefreshList();
       showFeedback({
         imageSource: BOTITO_ASSETS.feliz,
         title: 'Límite actualizado',

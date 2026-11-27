@@ -66,7 +66,30 @@ export interface MockBlocklist {
     id: string;
     domain: string;
     category: string;
+    isActive?: boolean;
+    applyToAll?: boolean;
+    deviceIds?: string[];
+    createdBy?: string | null;
+    createdByName?: string | null;
+    sourceDeviceId?: string | null;
     createdAt: Date;
+  }>;
+  apps?: Array<{
+    id: string;
+    blocklistId?: string;
+    appName: string;
+    packageName: string;
+    category: string;
+    isActive: boolean;
+    applyToAll: boolean;
+    deviceIds: string[];
+    dailyLimitMinutes?: number | null;
+    deviceLimits?: Record<string, number | undefined> | null;
+    createdBy?: string | null;
+    createdByName?: string | null;
+    sourceDeviceId?: string | null;
+    createdAt: Date;
+    updatedAt?: Date;
   }>;
 }
 
