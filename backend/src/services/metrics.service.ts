@@ -595,7 +595,9 @@ export class MetricsService {
       deviceUuid: string;
       deviceName: string;
       childName: string | null;
+      phone: string | null;
       personType: 'MENOR' | 'ADULTO';
+      tutorName: string | null;
     } | null = null;
     let rawBlockedEvents: Array<{
       id: string;
@@ -619,12 +621,15 @@ export class MetricsService {
         (d) => d.deviceUuid === deviceUuid || d.id === deviceUuid,
       );
       if (found) {
+        const owner = mockDb.users.find((u) => u.id === found.userId);
         device = {
           id: found.id,
           deviceUuid: found.deviceUuid,
           deviceName: found.deviceName,
           childName: found.childName || null,
+          phone: found.phone || null,
           personType: found.personType?.toUpperCase() === 'ADULTO' ? 'ADULTO' : 'MENOR',
+          tutorName: owner?.fullName || null,
         };
         rawBlockedEvents = mockDb.blockedEvents
           .filter((e) => e.deviceId === found.id)
@@ -651,7 +656,13 @@ export class MetricsService {
           deviceUuid: true,
           deviceName: true,
           childName: true,
+          phone: true,
           personType: true,
+          user: {
+            select: {
+              fullName: true,
+            },
+          },
         },
       });
       if (!found) {
@@ -662,7 +673,9 @@ export class MetricsService {
         deviceUuid: found.deviceUuid,
         deviceName: found.deviceName,
         childName: found.childName,
+        phone: found.phone || null,
         personType: found.personType === 'ADULTO' ? 'ADULTO' : 'MENOR',
+        tutorName: found.user?.fullName || null,
       };
       const [dbBlocked, dbSecurity] = await Promise.all([
         prisma.blockedEvent.findMany({
@@ -740,6 +753,9 @@ export class MetricsService {
       dateKey,
       deviceId: resolvedId,
       profileType,
+      childName: device?.childName || device?.deviceName || null,
+      phone: device?.phone || null,
+      tutorName: device?.tutorName || null,
       pasatiempos: {
         today: todaySessions,
         streakDays,

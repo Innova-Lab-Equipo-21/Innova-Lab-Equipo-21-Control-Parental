@@ -143,7 +143,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       const rawPersonType = String(pairedData.personType || 'MENOR').toUpperCase();
       const pairedMode: 'CHILD' | 'ADULT' = rawPersonType === 'ADULTO' ? 'ADULT' : 'CHILD';
 
-      // Guardar perfil real recibido del backend (nombre del protegido, tipo y responsable)
+      // Guardar perfil real recibido del backend (nombre del protegido, teléfono, tipo y responsable)
       await safeStorage
         .setItem(
           '@ba_protege_paired_profile',
@@ -151,6 +151,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
             deviceId: pairedData.deviceId,
             deviceUuid: pairedData.deviceUuid,
             childName: pairedData.childName || pairedData.deviceName || '',
+            phone: pairedData.phone || '',
             tutorName: pairedData.tutorName || '',
             personType: rawPersonType,
           })
@@ -173,16 +174,14 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       }
 
       const successMessage =
-        pairedMode === 'ADULT'
-          ? '¡De diez, che! Botito ya activó la protección en modo Adulto para acompañarte.'
-          : '¡Genial, che! Botito ya activó el escudo y está cuidando este dispositivo en modo Menor.';
+        'Ya sos parte de mi aplicación y te voy a estar acompañando.';
 
       await ensureMinimumWelcomeVideoTime(startedAt);
 
       setWelcomeVideoModal({
         visible: true,
         status: 'success',
-        successTitle: '¡Chocá esos cinco! Ya estás vinculado',
+        successTitle: '¡Chocá esos cinco!',
         successMessage,
         onContinue: () => {
           setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
@@ -461,9 +460,9 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       <BotitoWelcomeVideoModal
         visible={welcomeVideoModal.visible}
         status={welcomeVideoModal.status}
-        loadingTitle="Vinculando dispositivo..."
-        loadingSubtitle="Bancá un cachito, Botito está conectando la protección."
-        successBadge="¡Vinculación exitosa!"
+        loadingTitle="¡Hola! Soy Botito."
+        loadingSubtitle={'Estoy vinculando tu cuenta...\n\n¿Me bancás un cachito?'}
+        successBadge=""
         successTitle={welcomeVideoModal.successTitle}
         successMessage={welcomeVideoModal.successMessage}
         ctaText="¡Vamos!"

@@ -847,6 +847,7 @@ export const devicesApi = {
     deviceUuid: string;
     deviceName: string;
     childName: string;
+    phone?: string | null;
     personType: 'MENOR' | 'ADULTO';
     tutorName: string | null;
     isActive: boolean;

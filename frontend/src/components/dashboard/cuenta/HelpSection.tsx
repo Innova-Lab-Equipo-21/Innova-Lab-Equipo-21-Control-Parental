@@ -94,7 +94,9 @@ export const HelpSection: React.FC<HelpSectionProps> = ({ onOpenOnboarding }) =>
               Podés escribirnos a{' '}
               <Text
                 style={styles.infoModalLink}
-                onPress={() => Linking.openURL('mailto:baprotegemas@gmail.com')}
+                onPress={() => {
+                  Linking.openURL('mailto:baprotegemas@gmail.com').catch(() => {});
+                }}
               >
                 baprotegemas@gmail.com
               </Text>{' '}
@@ -141,21 +143,27 @@ export const HelpSection: React.FC<HelpSectionProps> = ({ onOpenOnboarding }) =>
               Si estás atravesando una situación de consumo problemático del juego, podés comunicarte con el{' '}
               <Text
                 style={styles.infoModalLink}
-                onPress={() => Linking.openURL('tel:08006666006')}
+                onPress={() => {
+                  Linking.openURL('tel:08006666006').catch(() => {});
+                }}
               >
                 0800-666-6006
               </Text>{' '}
               (de la Lotería de la Ciudad) o con la{' '}
               <Text
                 style={styles.infoModalLink}
-                onPress={() => Linking.openURL('tel:108')}
+                onPress={() => {
+                  Linking.openURL('tel:108').catch(() => {});
+                }}
               >
                 Línea 108
               </Text>{' '}
               (opción 3). También podés llamar al{' '}
               <Text
                 style={styles.infoModalLink}
-                onPress={() => Linking.openURL('tel:08003330333')}
+                onPress={() => {
+                  Linking.openURL('tel:08003330333').catch(() => {});
+                }}
               >
                 0800-333-0333
               </Text>{' '}

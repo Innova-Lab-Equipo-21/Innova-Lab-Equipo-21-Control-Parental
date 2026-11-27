@@ -190,7 +190,7 @@ describe('Actividad Backend — Pasatiempos, Uso de Apps y Métricas', () => {
     });
     assert.equal(blockRes.status, 201);
 
-    // Endpoint de dispositivo protegido
+    // Endpoint de dispositivo protegido (incluye perfil real del responsable y protegido)
     const devAct = await req(
       'GET',
       `/api/metrics/device/${minorDeviceUuid}/activity?dateKey=2026-11-23`
@@ -200,6 +200,17 @@ describe('Actividad Backend — Pasatiempos, Uso de Apps y Métricas', () => {
     assert.equal(devAct.data.data.appUsage.length, 2);
     assert.equal(devAct.data.data.blockedEvents[0].itemType, 'app');
     assert.equal(devAct.data.data.blockedEvents[0].sourceListType, 'LOTBA');
+    assert.ok(typeof devAct.data.data.tutorName === 'string' && devAct.data.data.tutorName.length > 0);
+    assert.ok(typeof devAct.data.data.childName === 'string' && devAct.data.data.childName.length > 0);
+
+    // Perfil público por UUID (retorna tutorName real y phone)
+    const pubProfile = await req(
+      'GET',
+      `/api/devices/by-uuid/${minorDeviceUuid}/profile`
+    );
+    assert.equal(pubProfile.status, 200);
+    assert.equal(pubProfile.data.data.tutorName, devAct.data.data.tutorName);
+    assert.ok('phone' in pubProfile.data.data);
 
     // Endpoint consolidado del Responsable
     const parentAct = await req(

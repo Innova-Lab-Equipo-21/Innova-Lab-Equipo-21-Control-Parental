@@ -33,8 +33,22 @@ import { getLocalDateKey } from '../../../../utils/pasatiemposMetrics';
 import { getNavigationState } from '../../../../utils/navigationSession';
 import { protectionService } from '../../../../services/protection.service';
 import { apiService } from '../../../../services/api.service';
+import { safeStorage } from '../../../../services/api/client';
 import { SecurityEventOverviewItem } from '../../../../services/api/telemetry.api';
 import { AttemptEvent } from '../../actividad/types';
+
+const PAIRED_PROFILE_STORAGE_KEY = '@ba_protege_paired_profile';
+const DEFAULT_TUTOR_FALLBACK = 'tu responsable';
+
+function isPlaceholderTutorName(name?: string | null): boolean {
+  const normalized = (name || '').trim().toLowerCase();
+  return (
+    !normalized ||
+    normalized === 'yo' ||
+    normalized === 'tutor responsable' ||
+    normalized === 'responsable'
+  );
+}
 
 export interface UseProtectedDeviceDataParams {
   deviceUuid: string;
@@ -91,10 +105,11 @@ export function useProtectedDeviceData({
     deviceUuid: string;
     deviceName: string;
     childName: string;
+    phone?: string | null;
     personType: 'MENOR' | 'ADULTO';
     tutorName: string | null;
   } | null>(null);
-  const [resolvedTutorName, setResolvedTutorName] = useState<string>('Ana');
+  const [resolvedTutorName, setResolvedTutorName] = useState<string>(DEFAULT_TUTOR_FALLBACK);
   const [grantedPermsCount, setGrantedPermsCount] = useState<number>(6);
   const [appUsageSnapshots, setAppUsageSnapshots] = useState<AppUsageRawSnapshot[]>([]);
   const [persistedBlockedEvents, setPersistedBlockedEvents] = useState<BlockedAttemptRecord[]>(
@@ -179,24 +194,28 @@ export function useProtectedDeviceData({
 
         if (profileRes) {
           setPublicProfile(profileRes);
+          safeStorage
+            .setItem(
+              PAIRED_PROFILE_STORAGE_KEY,
+              JSON.stringify({
+                deviceId: profileRes.deviceId,
+                deviceUuid: profileRes.deviceUuid,
+                childName: profileRes.childName || profileRes.deviceName || '',
+                phone: profileRes.phone || '',
+                tutorName: profileRes.tutorName || '',
+                personType: profileRes.personType,
+              })
+            )
+            .catch(() => {});
         }
 
-        const isPlaceholder = (name?: string | null): boolean => {
-          const normalized = (name || '').trim().toLowerCase();
-          return (
-            !normalized ||
-            normalized === 'yo' ||
-            normalized === 'tutor responsable' ||
-            normalized === 'responsable'
-          );
-        };
         const navUser = navState?.parentUser;
         const navCombined = `${navUser?.firstName || ''} ${navUser?.lastName || ''}`.trim();
         const candidateTutor = [
           profileRes?.tutorName,
           navUser?.fullName,
           navCombined,
-        ].find((candidate) => !isPlaceholder(candidate));
+        ].find((candidate) => !isPlaceholderTutorName(candidate));
         if (candidateTutor) {
           setResolvedTutorName(candidateTutor.trim());
         }
@@ -217,15 +236,6 @@ export function useProtectedDeviceData({
         setPairedDevices(devRes.data);
       }
 
-      const isPlaceholder = (name?: string | null): boolean => {
-        const normalized = (name || '').trim().toLowerCase();
-        return (
-          !normalized ||
-          normalized === 'yo' ||
-          normalized === 'tutor responsable' ||
-          normalized === 'responsable'
-        );
-      };
       const navUser = navState?.parentUser;
       const navCombined = `${navUser?.firstName || ''} ${navUser?.lastName || ''}`.trim();
       const candidateTutor = [
@@ -233,7 +243,7 @@ export function useProtectedDeviceData({
         navCombined,
         selfDev?.childName,
         selfDev?.deviceName,
-      ].find((candidate) => !isPlaceholder(candidate));
+      ].find((candidate) => !isPlaceholderTutorName(candidate));
       if (candidateTutor) {
         setResolvedTutorName(candidateTutor.trim());
       }
@@ -258,6 +268,25 @@ export function useProtectedDeviceData({
       const remoteMetrics = hasRealUuid
         ? await apiService.getDeviceActivityMetrics(deviceUuid, todayKey).catch(() => null)
         : null;
+
+      // 0.5. Refrescar perfil real (tutor, nombre y teléfono) desde /metrics/device/:uuid/activity
+      if (remoteMetrics) {
+        if (!isPlaceholderTutorName(remoteMetrics.tutorName)) {
+          setResolvedTutorName(remoteMetrics.tutorName!.trim());
+        }
+        if (remoteMetrics.childName || remoteMetrics.phone || remoteMetrics.tutorName) {
+          setPublicProfile((prev) => ({
+            deviceId: remoteMetrics.deviceId || prev?.deviceId || deviceUuid,
+            deviceUuid,
+            deviceName: remoteMetrics.childName || prev?.deviceName || '',
+            childName: remoteMetrics.childName || prev?.childName || '',
+            phone:
+              remoteMetrics.phone !== undefined ? remoteMetrics.phone : prev?.phone ?? null,
+            personType: remoteMetrics.profileType || prev?.personType || (mode === 'ADULT' ? 'ADULTO' : 'MENOR'),
+            tutorName: remoteMetrics.tutorName || prev?.tutorName || null,
+          }));
+        }
+      }
 
       // 1. Alertas de seguridad reales desde PostgreSQL (fuente de verdad)
       if (remoteMetrics && Array.isArray(remoteMetrics.securityEvents)) {
@@ -332,6 +361,42 @@ export function useProtectedDeviceData({
     }
   }, [deviceUuid, hasRealUuid, publicProfile?.deviceId, storageDeviceKey, customApps]);
 
+  // Hidratación inmediata del perfil real guardado durante el pareamiento (@ba_protege_paired_profile)
+  useEffect(() => {
+    let active = true;
+    safeStorage
+      .getItem(PAIRED_PROFILE_STORAGE_KEY)
+      .then((raw) => {
+        if (!active || !raw) return;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return;
+        if (hasRealUuid && parsed.deviceUuid && parsed.deviceUuid !== deviceUuid) return;
+
+        setPublicProfile((prev) =>
+          prev || {
+            deviceId: parsed.deviceId || deviceUuid,
+            deviceUuid: parsed.deviceUuid || deviceUuid,
+            deviceName: parsed.childName || parsed.deviceName || '',
+            childName: parsed.childName || parsed.deviceName || '',
+            phone: parsed.phone || null,
+            personType:
+              String(parsed.personType || '').toUpperCase() === 'ADULTO'
+                ? 'ADULTO'
+                : 'MENOR',
+            tutorName: parsed.tutorName || null,
+          }
+        );
+
+        if (!isPlaceholderTutorName(parsed.tutorName)) {
+          setResolvedTutorName(String(parsed.tutorName).trim());
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [deviceUuid, hasRealUuid]);
+
   // Carga inicial de VPN, blocklist, permisos y heartbeat real
   useEffect(() => {
     protectionService.isProtectionActive().catch(() => {
@@ -399,7 +464,10 @@ export function useProtectedDeviceData({
     matchedChildDevice?.childName ||
     matchedChildDevice?.deviceName ||
     undefined;
-  const resolvedChildPhone = matchedChildDevice?.phone || undefined;
+  const resolvedChildPhone =
+    (mode === 'CHILD' ? publicProfile?.phone || undefined : undefined) ||
+    matchedChildDevice?.phone ||
+    undefined;
 
   const resolvedAdultDeviceId =
     publicProfile?.deviceId || matchedAdultDevice?.deviceId || deviceUuid;
@@ -408,7 +476,10 @@ export function useProtectedDeviceData({
     matchedAdultDevice?.childName ||
     matchedAdultDevice?.deviceName ||
     undefined;
-  const resolvedAdultPhone = matchedAdultDevice?.phone || undefined;
+  const resolvedAdultPhone =
+    (mode === 'ADULT' ? publicProfile?.phone || undefined : undefined) ||
+    matchedAdultDevice?.phone ||
+    undefined;
 
   const adultVisibleSites = useMemo(
     () =>

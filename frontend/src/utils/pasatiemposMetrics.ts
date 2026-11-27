@@ -516,9 +516,13 @@ export function hydrateDailyRecordFromSessions(
   sessions: BackendPasatiempoSessionDTO[]
 ): DailyPasatiemposRecord {
   let record = createEmptyDailyPasatiemposRecord(deviceId, profileType, dateKey);
+  let latestUpdatedAt: string | null = null;
 
   for (const s of sessions) {
     if (s.dateKey !== dateKey) continue;
+    if (s.updatedAt && (!latestUpdatedAt || s.updatedAt > latestUpdatedAt)) {
+      latestUpdatedAt = s.updatedAt;
+    }
     const game = s.gameType.toUpperCase();
     if (game === 'QUIZ') {
       record = updateQuizMetrics(record, {
@@ -527,13 +531,35 @@ export function hydrateDailyRecordFromSessions(
         totalQuestions: s.totalItems || DEFAULT_QUIZ_TOTAL,
         completed: s.status === 'COMPLETED',
       });
+      if (s.completedAt) {
+        record = {
+          ...record,
+          quiz: {
+            ...record.quiz,
+            completedAt: s.completedAt,
+          },
+        };
+      }
     } else if (game === 'WORDSEARCH') {
       const boardsDetail = s.details?.foundByBoard as Record<string, string[]> | undefined;
       if (boardsDetail && typeof boardsDetail === 'object') {
         record = updateWordSearchMetrics(record, boardsDetail);
-      } else if (s.correctCount > 0) {
+        if (s.status === 'COMPLETED' || s.completedAt) {
+          record = {
+            ...record,
+            wordsearch: {
+              ...record.wordsearch,
+              status: s.status === 'COMPLETED' ? 'completed' : record.wordsearch.status,
+              completedAt: s.completedAt || record.wordsearch.completedAt,
+            },
+          };
+        }
+      } else if (s.status === 'COMPLETED' || s.correctCount > 0) {
         const totalWords = s.totalItems || DEFAULT_WORDSEARCH_TOTAL_WORDS;
-        const foundTotal = Math.min(totalWords, s.correctCount);
+        const foundTotal =
+          s.status === 'COMPLETED' && s.correctCount === 0
+            ? totalWords
+            : Math.min(totalWords, s.correctCount);
         record = {
           ...record,
           wordsearch: {
@@ -547,8 +573,12 @@ export function hydrateDailyRecordFromSessions(
             foundWordsTotal: foundTotal,
             missingWordsTotal: Math.max(0, totalWords - foundTotal),
             totalWords,
+            completedBoardsCount:
+              s.status === 'COMPLETED'
+                ? record.wordsearch.totalBoardsCount
+                : record.wordsearch.completedBoardsCount,
             accuracyPct: totalWords > 0 ? Math.round((foundTotal / totalWords) * 100) : 0,
-            completedAt: s.completedAt || undefined,
+            completedAt: s.completedAt || (s.status === 'COMPLETED' ? s.updatedAt || record.updatedAt : undefined),
           },
         };
       }
@@ -559,7 +589,20 @@ export function hydrateDailyRecordFromSessions(
         attempts: s.attempts,
         completed: s.status === 'COMPLETED',
       });
+      if (s.completedAt) {
+        record = {
+          ...record,
+          memory: {
+            ...record.memory,
+            completedAt: s.completedAt,
+          },
+        };
+      }
     }
+  }
+
+  if (latestUpdatedAt) {
+    record = { ...record, updatedAt: latestUpdatedAt };
   }
 
   return record;

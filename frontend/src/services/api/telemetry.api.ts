@@ -121,6 +121,9 @@ export interface ActivityOverviewResponse {
 export interface DeviceActivityMetricsResponse {
   dateKey: string;
   deviceId: string;
+  childName?: string | null;
+  phone?: string | null;
+  tutorName?: string | null;
   profileType: 'MENOR' | 'ADULTO';
   pasatiempos: {
     today: BackendPasatiempoSessionDTO[];
@@ -312,51 +315,72 @@ export const telemetryApi = {
   ): Promise<{
     todayRecord: DailyPasatiemposRecord;
     history: DailyPasatiemposRecord[];
+    streakDays?: number;
+    weeklyQuizAccuracyPct?: number;
   }> {
-    const localHistory = await this.getLocalPasatiemposHistory(deviceUuid);
-    let mergedHistory = [...localHistory];
+    const hasRealUuid =
+      Boolean(deviceUuid) && deviceUuid !== 'local' && deviceUuid !== 'self';
 
-    const response = await apiClient.get(
-      `/telemetry/pasatiempos/${encodeURIComponent(deviceUuid)}`,
-      { params: { dateKey: todayKey } }
-    );
-    const remoteSessions: BackendPasatiempoSessionDTO[] =
-      response.data?.data?.history || response.data?.data?.today || [];
-
-    if (Array.isArray(remoteSessions) && remoteSessions.length > 0) {
-      const byDate = new Map<string, BackendPasatiempoSessionDTO[]>();
-      for (const s of remoteSessions) {
-        const list = byDate.get(s.dateKey) || [];
-        list.push(s);
-        byDate.set(s.dateKey, list);
-      }
-
-      const mergedByDate = new Map<string, DailyPasatiemposRecord>();
-      for (const loc of localHistory) {
-        mergedByDate.set(loc.dateKey, loc);
-      }
-      for (const [dKey, sessions] of byDate.entries()) {
-        const remoteRec = hydrateDailyRecordFromSessions(
-          deviceUuid,
-          profileType,
-          dKey,
-          sessions
+    if (hasRealUuid) {
+      try {
+        const response = await apiClient.get(
+          `/telemetry/pasatiempos/${encodeURIComponent(deviceUuid)}`,
+          { params: { dateKey: todayKey } }
         );
-        const localRec = mergedByDate.get(dKey);
-        if (!localRec || remoteRec.updatedAt >= localRec.updatedAt) {
-          mergedByDate.set(dKey, remoteRec);
+        const payload = response.data?.data;
+        const remoteSessions: BackendPasatiempoSessionDTO[] = Array.isArray(payload?.history)
+          ? payload.history
+          : Array.isArray(payload?.today)
+            ? payload.today
+            : [];
+
+        const byDate = new Map<string, BackendPasatiempoSessionDTO[]>();
+        for (const s of remoteSessions) {
+          const list = byDate.get(s.dateKey) || [];
+          list.push(s);
+          byDate.set(s.dateKey, list);
+        }
+
+        const remoteHistory: DailyPasatiemposRecord[] = Array.from(byDate.entries())
+          .map(([dKey, sessions]) =>
+            hydrateDailyRecordFromSessions(deviceUuid, profileType, dKey, sessions)
+          )
+          .sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+
+        // Sincronizar caché local con la fuente de verdad en PostgreSQL
+        const cacheKey = `${PASATIEMPOS_HISTORY_KEY_PREFIX}${deviceUuid}`;
+        await safeStorage
+          .setItem(cacheKey, JSON.stringify(remoteHistory.slice(0, 60)))
+          .catch(() => {});
+
+        const todayRecord =
+          remoteHistory.find((r) => r.dateKey === todayKey) ||
+          createEmptyDailyPasatiemposRecord(deviceUuid, profileType, todayKey);
+
+        return {
+          todayRecord,
+          history: remoteHistory,
+          streakDays:
+            typeof payload?.streakDays === 'number' ? payload.streakDays : undefined,
+          weeklyQuizAccuracyPct:
+            typeof payload?.weeklyQuizAccuracyPct === 'number'
+              ? payload.weeklyQuizAccuracyPct
+              : undefined,
+        };
+      } catch (err: any) {
+        // Solo usar caché local si no hubo respuesta del servidor (sin red)
+        if (err?.response) {
+          throw err;
         }
       }
-      mergedHistory = Array.from(mergedByDate.values()).sort((a, b) =>
-        b.dateKey.localeCompare(a.dateKey)
-      );
     }
 
+    const localHistory = await this.getLocalPasatiemposHistory(deviceUuid);
     const todayRecord =
-      mergedHistory.find((r) => r.dateKey === todayKey) ||
+      localHistory.find((r) => r.dateKey === todayKey) ||
       createEmptyDailyPasatiemposRecord(deviceUuid, profileType, todayKey);
 
-    return { todayRecord, history: mergedHistory };
+    return { todayRecord, history: localHistory };
   },
 
   // --------------------------------------------------------------------------

@@ -74,7 +74,7 @@ const FAQS: FaqItem[] = [
       'Para evitar que la aplicación se elimine por error o sin autorización, y que vos y los tuyos sigan protegidos contra los sitios y las apps de juegos y apuestas ilegales.',
   },
   {
-    question: '¿Para qué es el permiso “Filtro para bloquear sitios no seguros”?',
+    question: '¿Para qué es el permiso “Filtro para bloquear sitios y apps”?',
     answer:
       'Para restringir de forma preventiva los sitios y apps de juegos y apuestas ilegales no autorizados por LOTBA y los que agregues a tu lista personalizada.',
   },
@@ -109,7 +109,9 @@ export const FaqModal: React.FC<FaqModalProps> = ({ visible, onClose }) => {
   };
 
   const handleContactEmail = () => {
-    Linking.openURL('mailto:baprotegemas@gmail.com?subject=Consulta%20Soporte%20BA%20Protege%2B');
+    Linking.openURL(
+      'mailto:baprotegemas@gmail.com?subject=Consulta%20Soporte%20BA%20Protege%2B'
+    ).catch(() => {});
   };
 
   return (
@@ -141,9 +143,6 @@ export const FaqModal: React.FC<FaqModalProps> = ({ visible, onClose }) => {
               <Text style={legalStyles.legalModalCloseText}>✕</Text>
             </TouchableOpacity>
           </View>
-          <Text style={legalStyles.legalModalSubtitle}>
-            BA Protege+ • Centro de Ayuda y Soporte Oficial
-          </Text>
 
           <ScrollView
             style={legalStyles.legalModalBody}

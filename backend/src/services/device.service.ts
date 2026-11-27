@@ -549,10 +549,16 @@ export class DeviceService {
       pairing.isUsed = true;
       pairing.deviceId = device.id;
 
+      const mockUser = mockDb.users.find((u) => u.id === pairing.userId);
       return {
         message: 'Dispositivo vinculado con éxito',
         deviceId: device.id,
         deviceUuid: device.deviceUuid,
+        deviceName: device.deviceName,
+        childName: device.childName || device.deviceName,
+        phone: device.phone || null,
+        personType: device.personType || 'MENOR',
+        tutorName: mockUser?.fullName || null,
       };
     }
 
@@ -689,6 +695,7 @@ export class DeviceService {
       deviceUuid: device.deviceUuid,
       deviceName: device.deviceName,
       childName: device.childName || device.deviceName,
+      phone: device.phone || null,
       personType: device.personType || pairing.personType || 'MENOR',
       tutorName: user?.fullName || null,
     };
@@ -1007,6 +1014,7 @@ export class DeviceService {
         deviceUuid: device.deviceUuid,
         deviceName: device.deviceName,
         childName: device.childName || device.deviceName,
+        phone: device.phone || null,
         personType: device.personType || 'MENOR',
         tutorName: user?.fullName || null,
         isActive: device.isActive,
@@ -1035,6 +1043,7 @@ export class DeviceService {
       deviceUuid: device.deviceUuid,
       deviceName: device.deviceName,
       childName: device.childName || device.deviceName,
+      phone: device.phone || null,
       personType: device.personType || 'MENOR',
       tutorName: device.user?.fullName || null,
       isActive: device.isActive,

@@ -37,7 +37,7 @@ export interface AdultoCuentaSectionProps {
 export const AdultoCuentaSection: React.FC<AdultoCuentaSectionProps> = ({
   adultName,
   adultPhone,
-  tutorName = 'Ana',
+  tutorName = 'tu responsable',
   ruleUninstallProtection = true,
   onToggleUninstallProtection = () => {},
   onOpenPermissions = () => {},
@@ -67,12 +67,6 @@ export const AdultoCuentaSection: React.FC<AdultoCuentaSectionProps> = ({
             {adultPhone ? (
               <Text style={styles.profilePhone}>{adultPhone}</Text>
             ) : null}
-
-            <View style={styles.roleBadgeContainer}>
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleBadgeText}>Adulto protegido</Text>
-              </View>
-            </View>
           </View>
         </View>
       </View>

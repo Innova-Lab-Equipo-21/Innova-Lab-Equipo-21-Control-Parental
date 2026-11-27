@@ -37,7 +37,7 @@ export interface MenorCuentaSectionProps {
 export const MenorCuentaSection: React.FC<MenorCuentaSectionProps> = ({
   childName,
   childPhone,
-  tutorName = 'Ana',
+  tutorName = 'tu responsable',
   ruleUninstallProtection = true,
   onToggleUninstallProtection = () => {},
   onOpenPermissions = () => {},
@@ -67,12 +67,6 @@ export const MenorCuentaSection: React.FC<MenorCuentaSectionProps> = ({
             {childPhone ? (
               <Text style={styles.profilePhone}>{childPhone}</Text>
             ) : null}
-
-            <View style={styles.roleBadgeContainer}>
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleBadgeText}>Menor protegido</Text>
-              </View>
-            </View>
           </View>
         </View>
       </View>

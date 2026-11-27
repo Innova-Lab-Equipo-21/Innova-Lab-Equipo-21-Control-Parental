@@ -8,6 +8,7 @@
 // ==============================================================================
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import {
   CompletedGamesState,
   INITIAL_COMPLETED_GAMES,
@@ -30,6 +31,40 @@ import {
 import { QuizProgressPayload } from '../juegos/QuizModal';
 import { MemoryProgressPayload } from '../juegos/MemoryGameModal';
 import { apiService } from '../../../../services/api.service';
+
+function deriveCompletedGamesOrder(record: DailyPasatiemposRecord): PasatiempoGameId[] {
+  const entries: Array<{ id: PasatiempoGameId; completedAt: string; fallbackIdx: number }> = [];
+  if (record.quiz.status === 'completed') {
+    entries.push({
+      id: 'quiz',
+      completedAt: record.quiz.completedAt || '',
+      fallbackIdx: 0,
+    });
+  }
+  if (record.wordsearch.status === 'completed') {
+    entries.push({
+      id: 'wordsearch',
+      completedAt: record.wordsearch.completedAt || '',
+      fallbackIdx: 1,
+    });
+  }
+  if (record.memory.status === 'completed') {
+    entries.push({
+      id: 'memory',
+      completedAt: record.memory.completedAt || '',
+      fallbackIdx: 2,
+    });
+  }
+
+  entries.sort((a, b) => {
+    if (a.completedAt && b.completedAt && a.completedAt !== b.completedAt) {
+      return a.completedAt.localeCompare(b.completedAt);
+    }
+    return a.fallbackIdx - b.fallbackIdx;
+  });
+
+  return entries.map((e) => e.id);
+}
 
 export interface UseProtectedPasatiemposParams {
   deviceUuid: string;
@@ -77,6 +112,10 @@ export function useProtectedPasatiempos({
     createEmptyDailyPasatiemposRecord(storageDeviceKey, profileKey)
   );
   const [pasatiemposHistory, setPasatiemposHistory] = useState<DailyPasatiemposRecord[]>([]);
+  const [remoteStreakDays, setRemoteStreakDays] = useState<number | null>(null);
+  const [remoteWeeklyQuizAccuracyPct, setRemoteWeeklyQuizAccuracyPct] = useState<number | null>(
+    null
+  );
 
   const loadPasatiemposHistory = useCallback(async () => {
     const todayKey = getLocalDateKey();
@@ -89,10 +128,19 @@ export function useProtectedPasatiempos({
       setTodayRecord(res.todayRecord);
       setPasatiemposHistory(res.history);
       setCompletedGames(toCompletedGamesState(res.todayRecord));
+      setCompletedGamesOrder(deriveCompletedGamesOrder(res.todayRecord));
       setQuizScore({
         score: res.todayRecord.quiz.correctAnswers,
         total: res.todayRecord.quiz.totalQuestions,
       });
+      setRemoteStreakDays(
+        typeof res.streakDays === 'number' ? res.streakDays : null
+      );
+      setRemoteWeeklyQuizAccuracyPct(
+        typeof res.weeklyQuizAccuracyPct === 'number'
+          ? res.weeklyQuizAccuracyPct
+          : null
+      );
     } catch {
       // Mantener datos en memoria
     }
@@ -100,6 +148,17 @@ export function useProtectedPasatiempos({
 
   useEffect(() => {
     loadPasatiemposHistory();
+  }, [loadPasatiemposHistory]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        loadPasatiemposHistory();
+      }
+    });
+    return () => {
+      subscription.remove();
+    };
   }, [loadPasatiemposHistory]);
 
   const persistPasatiemposUpdate = useCallback(
@@ -122,6 +181,8 @@ export function useProtectedPasatiempos({
         score: nextRecord.quiz.correctAnswers,
         total: nextRecord.quiz.totalQuestions,
       });
+      setRemoteStreakDays(null);
+      setRemoteWeeklyQuizAccuracyPct(null);
 
       apiService
         .saveLocalDailyPasatiempos(storageDeviceKey, nextRecord)
@@ -136,6 +197,15 @@ export function useProtectedPasatiempos({
             deviceUuid: storageDeviceKey,
             dateKey: nextRecord.dateKey,
             ...syncPayload,
+          })
+          .then((res) => {
+            const payload = res?.data;
+            if (typeof payload?.streakDays === 'number') {
+              setRemoteStreakDays(payload.streakDays);
+            }
+            if (typeof payload?.weeklyQuizAccuracyPct === 'number') {
+              setRemoteWeeklyQuizAccuracyPct(payload.weeklyQuizAccuracyPct);
+            }
           })
           .catch(() => {});
       }
@@ -232,12 +302,40 @@ export function useProtectedPasatiempos({
 
   const handleCompleteWordSearch = useCallback(
     (foundByBoard?: Record<string, string[]>) => {
-      if (foundByBoard) {
-        handleProgressWordSearch(foundByBoard);
-      }
+      const completedIso = todayRecord.wordsearch.completedAt || new Date().toISOString();
+      const baseNext = foundByBoard
+        ? updateWordSearchMetrics(todayRecord, foundByBoard)
+        : todayRecord;
+      const next: DailyPasatiemposRecord = {
+        ...baseNext,
+        wordsearch: {
+          ...baseNext.wordsearch,
+          status: 'completed',
+          foundWordsTotal: foundByBoard
+            ? baseNext.wordsearch.foundWordsTotal
+            : baseNext.wordsearch.totalWords,
+          missingWordsTotal: foundByBoard
+            ? baseNext.wordsearch.missingWordsTotal
+            : 0,
+          completedBoardsCount: baseNext.wordsearch.totalBoardsCount,
+          accuracyPct: foundByBoard ? baseNext.wordsearch.accuracyPct : 100,
+          completedAt: baseNext.wordsearch.completedAt || completedIso,
+        },
+        updatedAt: new Date().toISOString(),
+      };
+      persistPasatiemposUpdate(next, {
+        gameType: 'WORDSEARCH',
+        status: 'COMPLETED',
+        correctCount: next.wordsearch.foundWordsTotal,
+        wrongCount: next.wordsearch.missingWordsTotal,
+        totalItems: next.wordsearch.totalWords,
+        attempts: next.wordsearch.foundWordsTotal,
+        details: foundByBoard ? { foundByBoard } : { foundByBoard: extractFoundByBoardMap(next) },
+        completedAt: next.wordsearch.completedAt || completedIso,
+      });
       handleMarkGameCompleted('wordsearch');
     },
-    [handleProgressWordSearch, handleMarkGameCompleted]
+    [todayRecord, persistPasatiemposUpdate, handleMarkGameCompleted]
   );
 
   const handleProgressMemory = useCallback(
@@ -264,36 +362,45 @@ export function useProtectedPasatiempos({
 
   const handleCompleteMemory = useCallback(
     (payload?: MemoryProgressPayload) => {
-      if (payload) {
-        const next = updateMemoryMetrics(todayRecord, {
-          matchedPairs: payload.matchedPairs,
-          totalPairs: payload.totalPairs,
-          attempts: payload.attempts,
-          completed: true,
-        });
-        persistPasatiemposUpdate(next, {
-          gameType: 'MEMORY',
-          status: 'COMPLETED',
-          correctCount: next.memory.matchedPairs,
-          wrongCount: next.memory.unmatchedPairs,
-          totalItems: next.memory.totalPairs,
-          attempts: next.memory.attempts,
-          completedAt: next.memory.completedAt || new Date().toISOString(),
-        });
-      }
+      const effectivePayload = payload || {
+        matchedPairs: todayRecord.memory.totalPairs,
+        totalPairs: todayRecord.memory.totalPairs,
+        attempts: Math.max(todayRecord.memory.attempts, todayRecord.memory.totalPairs),
+      };
+      const next = updateMemoryMetrics(todayRecord, {
+        matchedPairs: effectivePayload.matchedPairs,
+        totalPairs: effectivePayload.totalPairs,
+        attempts: effectivePayload.attempts,
+        completed: true,
+      });
+      persistPasatiemposUpdate(next, {
+        gameType: 'MEMORY',
+        status: 'COMPLETED',
+        correctCount: next.memory.matchedPairs,
+        wrongCount: next.memory.unmatchedPairs,
+        totalItems: next.memory.totalPairs,
+        attempts: next.memory.attempts,
+        completedAt: next.memory.completedAt || new Date().toISOString(),
+      });
       handleMarkGameCompleted('memory');
     },
     [todayRecord, persistPasatiemposUpdate, handleMarkGameCompleted]
   );
 
   const streakDays = useMemo(
-    () => computePasatiemposStreakDays(pasatiemposHistory, profileKey),
-    [pasatiemposHistory, profileKey]
+    () =>
+      remoteStreakDays !== null
+        ? remoteStreakDays
+        : computePasatiemposStreakDays(pasatiemposHistory, profileKey),
+    [remoteStreakDays, pasatiemposHistory, profileKey]
   );
 
   const weeklyQuizAccuracyPct = useMemo(
-    () => computeWeeklyQuizAccuracyPct(pasatiemposHistory),
-    [pasatiemposHistory]
+    () =>
+      remoteWeeklyQuizAccuracyPct !== null
+        ? remoteWeeklyQuizAccuracyPct
+        : computeWeeklyQuizAccuracyPct(pasatiemposHistory),
+    [remoteWeeklyQuizAccuracyPct, pasatiemposHistory]
   );
 
   const initialWordSearchFoundByBoard = useMemo(
