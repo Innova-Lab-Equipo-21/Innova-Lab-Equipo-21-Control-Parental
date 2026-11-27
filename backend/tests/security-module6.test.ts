@@ -163,4 +163,60 @@ describe('Módulo 6 Backend — Autocontrol, Antidesinstalación OTP y Permisos 
       /no hay un código activo|invalidado/i,
     );
   });
+
+  test('4. EmailService: prioriza Brevo HTTPS API cuando BREVO_API_KEY está configurada y resuelve sender', async () => {
+    const { EmailService } = await import('../src/services/email.service.js');
+
+    const svc = new EmailService({
+      brevoApiKey: 'test-brevo-key',
+      brevoSenderEmail: '',
+      brevoSenderName: 'BA Protege+',
+      smtpFrom: '"BA Protege+" <baprotegemas@gmail.com>',
+      smtpUser: 'fallback@gmail.com',
+    });
+
+    assert.deepEqual(svc.resolveSender(), {
+      name: 'BA Protege+',
+      email: 'baprotegemas@gmail.com',
+    });
+
+    let capturedUrl = '';
+    let capturedHeaders: Record<string, string> = {};
+    let capturedBody: any = null;
+    const originalFetch = globalThis.fetch;
+
+    globalThis.fetch = (async (input: any, init?: any) => {
+      capturedUrl = String(input);
+      capturedHeaders = (init?.headers || {}) as Record<string, string>;
+      capturedBody = JSON.parse(String(init?.body || '{}'));
+      return new Response(JSON.stringify({ messageId: '<ok@brevo>' }), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch;
+
+    try {
+      const okRes = await svc.sendEmail('dest@test.com', 'Asunto OTP', 'Tu código es 123456');
+      assert.equal(okRes.success, true);
+      assert.equal(okRes.provider, 'brevo');
+      assert.equal(capturedUrl, 'https://api.brevo.com/v3/smtp/email');
+      assert.equal(capturedHeaders['api-key'], 'test-brevo-key');
+      assert.equal(capturedBody.sender.email, 'baprotegemas@gmail.com');
+      assert.equal(capturedBody.to[0].email, 'dest@test.com');
+      assert.equal(capturedBody.textContent, 'Tu código es 123456');
+
+      // Simular error HTTP 401 de Brevo
+      globalThis.fetch = (async () =>
+        new Response(JSON.stringify({ code: 'unauthorized', message: 'Key not found' }), {
+          status: 401,
+        })) as typeof fetch;
+
+      const failRes = await svc.sendEmail('dest@test.com', 'Asunto OTP', 'Tu código es 123456');
+      assert.equal(failRes.success, false);
+      assert.equal(failRes.provider, 'brevo');
+      assert.match(failRes.error || '', /401/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

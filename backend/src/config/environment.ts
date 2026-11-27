@@ -27,6 +27,9 @@ const environmentSchema = z.object({
   SMTP_USER: z.string().default(''),
   SMTP_PASS: z.string().default(''),
   SMTP_FROM: z.string().default(''),
+  BREVO_API_KEY: z.string().default(''),
+  BREVO_SENDER_EMAIL: z.string().default(''),
+  BREVO_SENDER_NAME: z.string().default('BA Protege+'),
 });
 
 // Validar y parsear las variables de entorno actuales
