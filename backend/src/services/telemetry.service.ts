@@ -13,6 +13,7 @@ import { mockDb, MockBlockedEvent, MockSecurityEvent } from '../config/mock-data
 import { AppError } from '../middlewares/error.middleware.js';
 import { HeartbeatPayload } from '../types/index.js';
 import { notificationService } from './notification.service.js';
+import { emailService } from './email.service.js';
 import {
   activityStorageService,
   formatDateKey,
@@ -20,6 +21,17 @@ import {
   PasatiempoStatus,
   UpsertAppUsageItemInput,
 } from './activity-storage.service.js';
+import {
+  getBlockedSiteAlertEmail,
+  getCustomBlockedSiteAlertEmail,
+  getBlockedAppAlertEmail,
+  getPermissionDisabledAlertEmail,
+  getSelfProtectionSiteReminderEmail,
+  getSelfProtectionAppLimitEmail,
+  getAdultProtectedSiteReminderEmail,
+  getAdultProtectedAppLimitEmail,
+  getUninstallAttemptAlertEmail,
+} from '../templates/emails/index.js';
 
 export interface RecordPasatiempoInput {
   deviceUuid: string;
@@ -119,6 +131,7 @@ export class TelemetryService {
       }
 
       const now = new Date();
+      const previousDetail = device.status?.permissionsDetail as Record<string, boolean> | null;
       device.status = {
         effectiveStatus,
         vpnActive: payload.vpnActive,
@@ -131,6 +144,11 @@ export class TelemetryService {
         lastHeartbeatAt: now,
       };
       device.lastSeenAt = now;
+
+      // Detectar cambios en permisos en modo mock
+      if (device.config?.notifyOnSecurity && previousDetail && normalizedPermissionsDetail) {
+        this.checkAndNotifyPermissionChanges(device as any, payload, { permissionsDetail: previousDetail }).catch(() => {});
+      }
 
       return {
         status: 'OK',
@@ -166,6 +184,11 @@ export class TelemetryService {
     }
 
     const now = new Date();
+
+    // Obtener estado anterior para detectar cambios en permisos
+    const previousStatus = await prisma.deviceStatus.findUnique({
+      where: { deviceId: device.id },
+    });
 
     // Actualizar o crear registro de estado (incluyendo detalle granular de los 6 permisos)
     const status = await prisma.deviceStatus.upsert({
@@ -208,6 +231,11 @@ export class TelemetryService {
       },
     });
 
+    // Detectar cambios en permisos y notificar si alguno se desactivó
+    if (device.config?.notifyOnSecurity) {
+      this.checkAndNotifyPermissionChanges(device, payload, previousStatus).catch(() => {});
+    }
+
     return {
       status: 'OK',
       effectiveStatus: status.effectiveStatus,
@@ -237,6 +265,12 @@ export class TelemetryService {
         blockedAt: new Date(),
       };
       mockDb.blockedEvents.push(newEvent);
+
+      // Enviar notificaciones en modo mock
+      if (device?.config?.notifyOnBlock && device.userId) {
+        (device as any).user = mockDb.users.find((u) => u.id === device.userId);
+        this.sendBlockedEventNotifications(device, input.attemptedDomain, rawSource, resolvedItemType).catch(() => {});
+      }
       return newEvent;
     }
 
@@ -244,6 +278,7 @@ export class TelemetryService {
       where: {
         OR: [{ deviceUuid: input.deviceUuid }, { id: input.deviceUuid }],
       },
+      include: { user: true, config: true },
     });
 
     if (!device) {
@@ -259,7 +294,109 @@ export class TelemetryService {
       },
     });
 
+    // Enviar notificaciones si está habilitado
+    if (device.config?.notifyOnBlock && device.userId) {
+      this.sendBlockedEventNotifications(device, input.attemptedDomain, rawSource, resolvedItemType).catch(() => {});
+    }
+
     return event;
+  }
+
+  /**
+   * Envía notificaciones (push + email) para eventos de bloqueo
+   */
+  private async sendBlockedEventNotifications(
+    device: { id: string; userId: string; childName?: string | null; deviceName: string; personType?: string | null; user?: { email: string; fullName: string } | null; config?: { notifyOnBlock: boolean } | null },
+    attemptedDomain: string,
+    sourceListType: string,
+    itemType: 'SITE' | 'APP'
+  ) {
+    const userId = device.userId;
+    const protectedName = device.childName || device.deviceName;
+    const responsableName = device.user?.fullName || 'Responsable';
+    const activityLink = 'baprotege://activity';
+    const sitesAndAppsLink = 'baprotege://sites-and-apps';
+    const limitsLink = 'baprotege://limits';
+
+    const isAdultDevice = device.personType === 'ADULTO';
+    const isSelfProtection = isAdultDevice && (sourceListType === 'CUSTOM' || sourceListType === 'CUSTOM_APP');
+    const isAdultProtected = isAdultDevice && (sourceListType === 'ADULTO_PROTEGIDO' || sourceListType === 'ADULTO_PROTEGIDO_APP');
+
+    // Push notification
+    if (itemType === 'APP') {
+      if (isSelfProtection) {
+        await notificationService.sendSelfProtectionTimeLimitAlert(userId, attemptedDomain);
+      } else if (isAdultProtected) {
+        await notificationService.sendSelfCareTimeLimitAlert(userId, attemptedDomain);
+      } else {
+        await notificationService.sendBlockedAppAttemptAlert(userId, protectedName, attemptedDomain);
+      }
+    } else if (sourceListType === 'LOTBA' || sourceListType === 'OFFICIAL_LOTBA') {
+      await notificationService.sendLotbaBlockedSiteAlert(userId, protectedName);
+    } else if (isSelfProtection) {
+      await notificationService.sendSelfProtectionBlockedSiteAlert(userId);
+    } else if (isAdultProtected) {
+      await notificationService.sendSelfCareBlockedSiteAlert(userId, attemptedDomain);
+    } else {
+      await notificationService.sendCustomBlockedSiteAlert(userId, protectedName);
+    }
+
+    // Email
+    if (device.user?.email) {
+      if (itemType === 'APP') {
+        if (isSelfProtection) {
+          const emailData = getSelfProtectionAppLimitEmail({
+            displayName: responsableName,
+            appName: attemptedDomain,
+            link: limitsLink,
+          });
+          await emailService.sendEmail(device.user.email, emailData.subject, emailData.text, emailData.html);
+        } else if (isAdultProtected) {
+          const emailData = getAdultProtectedAppLimitEmail({
+            displayName: responsableName,
+            appName: attemptedDomain,
+            link: activityLink,
+          });
+          await emailService.sendEmail(device.user.email, emailData.subject, emailData.text, emailData.html);
+        } else {
+          const emailData = getBlockedAppAlertEmail({
+            displayName: responsableName,
+            protectedName,
+            appName: attemptedDomain,
+            link: activityLink,
+          });
+          await emailService.sendEmail(device.user.email, emailData.subject, emailData.text, emailData.html);
+        }
+      } else if (sourceListType === 'LOTBA' || sourceListType === 'OFFICIAL_LOTBA') {
+        const emailData = getBlockedSiteAlertEmail({
+          displayName: responsableName,
+          protectedName,
+          link: activityLink,
+        });
+        await emailService.sendEmail(device.user.email, emailData.subject, emailData.text, emailData.html);
+      } else if (isSelfProtection) {
+        const emailData = getSelfProtectionSiteReminderEmail({
+          displayName: responsableName,
+          siteName: attemptedDomain,
+          link: sitesAndAppsLink,
+        });
+        await emailService.sendEmail(device.user.email, emailData.subject, emailData.text, emailData.html);
+      } else if (isAdultProtected) {
+        const emailData = getAdultProtectedSiteReminderEmail({
+          displayName: responsableName,
+          siteName: attemptedDomain,
+          link: sitesAndAppsLink,
+        });
+        await emailService.sendEmail(device.user.email, emailData.subject, emailData.text, emailData.html);
+      } else {
+        const emailData = getCustomBlockedSiteAlertEmail({
+          displayName: responsableName,
+          protectedName,
+          link: activityLink,
+        });
+        await emailService.sendEmail(device.user.email, emailData.subject, emailData.text, emailData.html);
+      }
+    }
   }
 
   /**
@@ -291,10 +428,17 @@ export class TelemetryService {
       }
 
       if (device?.config?.notifyOnSecurity) {
-        const description = input.description || 'Alerta de seguridad';
-        notificationService
-          .sendSecurityAlert(device.userId, device.deviceName, input.eventType, description)
-          .catch(() => {});
+        const protectedName = device.childName || device.deviceName;
+        const responsable = mockDb.users.find((u) => u.id === device.userId);
+        const displayName = responsable?.fullName || 'Responsable';
+        const activityLink = 'baprotege://activity';
+        if (input.eventType === 'UNINSTALL_ATTEMPT') {
+          notificationService.sendUninstallAttemptAlert(device.userId, protectedName).catch(() => {});
+          if (responsable?.email) {
+            const emailData = getUninstallAttemptAlertEmail({ displayName, protectedName, link: activityLink });
+            await emailService.sendEmail(responsable.email, emailData.subject, emailData.text, emailData.html).catch(() => {});
+          }
+        }
       }
 
       return newEvent;
@@ -345,11 +489,19 @@ export class TelemetryService {
      });
 
      if (deviceWithConfig?.config?.notifyOnSecurity) {
-       const description = input.description || 'Alerta de seguridad';
-       notificationService.sendSecurityAlert(device.userId, device.deviceName, input.eventType, description).catch(() => {});
-     }
+        const protectedName = deviceWithConfig.childName || deviceWithConfig.deviceName;
+        const displayName = deviceWithConfig.user?.fullName || 'Responsable';
+        const activityLink = 'baprotege://activity';
+         if (input.eventType === 'UNINSTALL_ATTEMPT') {
+          notificationService.sendUninstallAttemptAlert(device.userId, protectedName).catch(() => {});
+          if (deviceWithConfig.user?.email) {
+            const emailData = getUninstallAttemptAlertEmail({ displayName, protectedName, link: activityLink });
+            await emailService.sendEmail(deviceWithConfig.user.email, emailData.subject, emailData.text, emailData.html).catch(() => {});
+          }
+        }
+      }
 
-     return event;
+      return event;
   }
 
   /**
@@ -466,6 +618,73 @@ export class TelemetryService {
       dateKey,
       apps: snapshots,
     };
+  }
+
+  /**
+   * Detecta si algún permiso se desactivó comparando con el estado anterior
+   * y envía notificación al responsable.
+   */
+  private async checkAndNotifyPermissionChanges(
+    device: { id: string; userId: string; childName?: string | null; deviceName: string; user?: { email: string; fullName: string } | null; config?: { notifyOnSecurity: boolean } | null },
+    payload: HeartbeatPayload,
+    previousStatus: { permissionsDetail?: unknown } | null
+  ) {
+    if (!payload.permissions || !previousStatus?.permissionsDetail) {
+      return;
+    }
+
+    const prevDetail = previousStatus.permissionsDetail as Record<string, boolean> | null;
+    if (!prevDetail) {
+      return;
+    }
+
+    const newDetail = {
+      vpn: Boolean(payload.permissions.vpn ?? payload.vpnActive),
+      accessibility: Boolean(payload.permissions.accessibility),
+      notifications: Boolean(payload.permissions.notifications),
+      batteryOptimization: Boolean(payload.permissions.batteryOptimization),
+      location: Boolean(payload.permissions.location),
+      usageStats: Boolean(payload.permissions.usageStats),
+    };
+
+    // Encontrar permisos que estaban activos y ahora están desactivados
+    const revokedPermissions: string[] = [];
+    for (const [key, value] of Object.entries(newDetail)) {
+      const prevValue = prevDetail[key];
+      if (prevValue === true && value === false) {
+        const permissionNames: Record<string, string> = {
+          vpn: 'VPN',
+          accessibility: 'Accesibilidad',
+          notifications: 'Notificaciones',
+          batteryOptimization: 'Optimización de batería',
+          location: 'Ubicación',
+          usageStats: 'Estadísticas de uso',
+        };
+        revokedPermissions.push(permissionNames[key] || key);
+      }
+    }
+
+    if (revokedPermissions.length === 0) {
+      return;
+    }
+
+    const protectedName = device.childName || device.deviceName;
+    const responsableName = device.user?.fullName || 'Responsable';
+    const settingsLink = 'https://baprotegemas.netlify.app/settings';
+
+    // Push notification
+    await notificationService.sendPermissionDisabledAlert(device.userId, protectedName);
+
+    // Email
+    if (device.user?.email) {
+      const emailData = getPermissionDisabledAlertEmail({
+        displayName: responsableName,
+        protectedName,
+        permissionName: revokedPermissions.join(', '),
+        link: settingsLink,
+      });
+      await emailService.sendEmail(device.user.email, emailData.subject, emailData.text, emailData.html);
+    }
   }
 }
 

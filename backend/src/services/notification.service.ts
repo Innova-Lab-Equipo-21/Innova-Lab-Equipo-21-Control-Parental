@@ -10,6 +10,7 @@ import { env } from '../config/environment.js';
 import { mockDb } from '../config/mock-database.js';
 import { prisma } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
+import { getResponsableTemplate, getProtegidoMayorTemplate } from '../templates/push/index.js';
 
 export interface SendNotificationInput {
   token: string;
@@ -74,19 +75,6 @@ export class NotificationService {
   }
 
   /**
-   * Envía una alerta de seguridad a un responsable cuando un dispositivo reporta un evento crítico.
-   */
-  public async sendSecurityAlert(userId: string, deviceName: string, eventType: string, description: string) {
-    const title = `⚠️ Alerta de seguridad - ${deviceName}`;
-    const body = description || `Se detectó un evento de seguridad: ${eventType}`;
-    return this.sendToUser(userId, title, body, {
-      type: 'security_alert',
-      eventType,
-      deviceName,
-    });
-  }
-
-  /**
    * Registra o actualiza el token FCM de un usuario responsable.
    */
   public async registerToken(userId: string, fcmToken: string) {
@@ -105,6 +93,109 @@ export class NotificationService {
     });
 
     return { success: true };
+  }
+
+  // ========================================================================
+  // Métodos basados en plantillas de notificaciones push
+  // ========================================================================
+
+  /**
+   * Envía notificación: Sitio no autorizado LOTBA bloqueado
+   */
+  public async sendLotbaBlockedSiteAlert(
+    userId: string,
+    protectedName: string
+  ) {
+    const template = getResponsableTemplate('lotba_blocked_site', { protectedName });
+    return this.sendToUser(userId, template.title, template.body, template.data);
+  }
+
+  /**
+   * Envía notificación: Sitio de lista personalizada bloqueado
+   */
+  public async sendCustomBlockedSiteAlert(
+    userId: string,
+    protectedName: string
+  ) {
+    const template = getResponsableTemplate('custom_blocked_site', { protectedName });
+    return this.sendToUser(userId, template.title, template.body, template.data);
+  }
+
+  /**
+   * Envía notificación: Intento de usar app bloqueada
+   */
+  public async sendBlockedAppAttemptAlert(
+    userId: string,
+    protectedName: string,
+    appName: string
+  ) {
+    const template = getResponsableTemplate('blocked_app_attempt', { protectedName, appName });
+    return this.sendToUser(userId, template.title, template.body, template.data);
+  }
+
+  /**
+   * Envía notificación: Permiso desactivado
+   */
+  public async sendPermissionDisabledAlert(
+    userId: string,
+    protectedName: string
+  ) {
+    const template = getResponsableTemplate('permission_disabled', { protectedName });
+    return this.sendToUser(userId, template.title, template.body, template.data);
+  }
+
+  /**
+   * Envía notificación: Intento de desinstalar la app
+   */
+  public async sendUninstallAttemptAlert(
+    userId: string,
+    protectedName: string
+  ) {
+    const template = getResponsableTemplate('uninstall_attempt', { protectedName });
+    return this.sendToUser(userId, template.title, template.body, template.data);
+  }
+
+  /**
+   * Envía notificación: Autoprotección - sitio bloqueado
+   */
+  public async sendSelfProtectionBlockedSiteAlert(
+    userId: string
+  ) {
+    const template = getResponsableTemplate('self_protection_blocked_site', {});
+    return this.sendToUser(userId, template.title, template.body, template.data);
+  }
+
+  /**
+   * Envía notificación: Autoprotección - límite de tiempo casi superado
+   */
+  public async sendSelfProtectionTimeLimitAlert(
+    userId: string,
+    appName: string
+  ) {
+    const template = getResponsableTemplate('self_protection_time_limit', { appName });
+    return this.sendToUser(userId, template.title, template.body, template.data);
+  }
+
+  /**
+   * Envía notificación: Protegido mayor - sitio bloqueado por autocuidado
+   */
+  public async sendSelfCareBlockedSiteAlert(
+    userId: string,
+    siteName: string
+  ) {
+    const template = getProtegidoMayorTemplate('self_care_blocked_site', { siteName });
+    return this.sendToUser(userId, template.title, template.body, template.data);
+  }
+
+  /**
+   * Envía notificación: Protegido mayor - límite de tiempo casi superado
+   */
+  public async sendSelfCareTimeLimitAlert(
+    userId: string,
+    appName: string
+  ) {
+    const template = getProtegidoMayorTemplate('self_care_time_limit', { appName });
+    return this.sendToUser(userId, template.title, template.body, template.data);
   }
 }
 

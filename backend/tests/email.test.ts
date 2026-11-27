@@ -1,16 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import readline from 'node:readline';
 import { emailService } from '../src/services/email.service.js';
 
 test('EmailService envía un mail de prueba', async () => {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const to = await new Promise<string>((resolve) => {
-    rl.question('Ingrese el correo al que llegará el mail de prueba: ', (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
+  const to = 'tutor@baprotege.gob.ar';
 
   const result = await emailService.sendEmail(
     to,

@@ -11,6 +11,7 @@ import { env } from '../config/environment.js';
 import { mockDb, MockDevice } from '../config/mock-database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { emailService } from './email.service.js';
+import { getDeviceLinkedEmail } from '../templates/emails/index.js';
 import { Gender, PersonType } from '@prisma/client';
 
 export interface GeneratePairingCodeInput {
@@ -555,6 +556,17 @@ export class DeviceService {
       pairing.deviceId = device.id;
 
       const mockUser = mockDb.users.find((u) => u.id === pairing.userId);
+
+      // Enviar email de dispositivo vinculado al responsable
+      if (mockUser?.email) {
+        const tpl = getDeviceLinkedEmail({
+          displayName: mockUser.fullName,
+          protectedName: device.childName || device.deviceName,
+          link: 'baprotege://activity',
+        });
+        await emailService.sendEmail(mockUser.email, tpl.subject, tpl.text, tpl.html).catch(() => {});
+      }
+
       return {
         message: 'Dispositivo vinculado con éxito',
         deviceId: device.id,
@@ -682,16 +694,15 @@ export class DeviceService {
       return { pairing, device };
     });
 
-    // Enviar mail al responsable por la vinculación
+    // Enviar mail al responsable por la vinculación usando el template
     const user = await prisma.user.findUnique({ where: { id: pairing.userId } });
     if (user?.email) {
-      emailService
-        .sendEmail(
-          user.email,
-          'Dispositivo vinculado',
-          `El dispositivo ${device.childName || device.deviceName} ha sido vinculado a tu cuenta.`,
-        )
-        .catch(() => {});
+      const tpl = getDeviceLinkedEmail({
+        displayName: user.fullName,
+        protectedName: device.childName || device.deviceName,
+        link: 'baprotege://activity',
+      });
+      await emailService.sendEmail(user.email, tpl.subject, tpl.text, tpl.html).catch(() => {});
     }
 
     return {

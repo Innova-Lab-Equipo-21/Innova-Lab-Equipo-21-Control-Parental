@@ -13,7 +13,9 @@ import { Gender } from '@prisma/client';
 import { env } from '../config/environment.js';
 import { mockDb, MockUser } from '../config/mock-database.js';
 import { AppError } from '../middlewares/error.middleware.js';
-import { FirebaseAuthLoginResponse, FirebaseAuthOobResponse } from '../types/index.js';
+import { emailService } from './email.service.js';
+import { getWelcomeEmail, getPasswordResetEmail } from '../templates/emails/index.js';
+import { FirebaseAuthLoginResponse } from '../types/index.js';
 
 export interface RegisterUserInput {
   email: string;
@@ -116,7 +118,8 @@ export class AuthService {
       } catch (err: any) {
         if (
           formattedCellPhone &&
-          (err.code === 'auth/invalid-phone-number' || err.code === 'auth/phone-number-already-exists')
+          (err.code === 'auth/invalid-phone-number' ||
+            err.code === 'auth/phone-number-already-exists')
         ) {
           // Si el teléfono no cumple E.164 estricto o ya está asociado en Firebase, creamos el usuario sin phoneNumber y lo persistimos en PostgreSQL
           firebaseUser = await auth.createUser({
@@ -157,6 +160,12 @@ export class AuthService {
         // Obtenemos el token de autenticación para usarlo luego del registro
         const authData = await this.getAuthToken(cleanEmail, input.password);
 
+        // Enviar email de bienvenida
+        try {
+          const tpl = getWelcomeEmail({ displayName: computedFullName, link: 'baprotege://activity' });
+          await emailService.sendEmail(cleanEmail, tpl.subject, tpl.text, tpl.html).catch(() => {});
+        } catch {}
+
         return {
           user: newUser,
           token: authData.idToken,
@@ -191,6 +200,12 @@ export class AuthService {
 
       // Obtenemos el token de autenticación para usarlo luego del registro
       const authData = await this.getAuthToken(cleanEmail, input.password);
+
+      // Enviar email de bienvenida
+      try {
+        const tpl = getWelcomeEmail({ displayName: computedFullName, link: 'baprotege://activity' });
+        await emailService.sendEmail(cleanEmail, tpl.subject, tpl.text, tpl.html).catch(() => {});
+      } catch {}
 
       return {
         user,
@@ -287,7 +302,10 @@ export class AuthService {
             });
           }
         } catch (dbErr: any) {
-          console.warn('[AuthService] Advertencia al sincronizar usuario con base de datos:', dbErr.message);
+          console.warn(
+            '[AuthService] Advertencia al sincronizar usuario con base de datos:',
+            dbErr.message,
+          );
         }
       }
 
@@ -354,60 +372,66 @@ export class AuthService {
   public async recoverPassword(email: string) {
     const cleanEmail = email.trim().toLowerCase();
 
-    // Verificamos existencia si se usa mock o base de datos real
     if (env.USE_MOCK_DATA) {
       const user = mockDb.users.find((u) => u.email === cleanEmail);
-      // Por motivos de seguridad estándar, respondemos con éxito independientemente de la existencia
+      const displayName = user?.fullName || 'Responsable';
+      const link = `https://baprotegemas.netlify.app/reset-password?email=${encodeURIComponent(cleanEmail)}`;
+      try {
+        const tpl = getPasswordResetEmail({ displayName, link });
+        await emailService.sendEmail(cleanEmail, tpl.subject, tpl.text, tpl.html);
+      } catch {
+        // Fallo de envío en mock no se revela
+      }
       return {
         email: cleanEmail,
         message:
           'Si el correo está registrado en BA Protege+, recibirás las instrucciones de recuperación.',
-        sent: !!user,
+        sent: true,
       };
     }
 
     try {
-      const apiKey = env.FIREBASE_API_KEY;
-      const response = await fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            requestType: 'PASSWORD_RESET',
-            email: cleanEmail,
-          }),
-        },
-      );
+      let displayName = 'Responsable';
+      try {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: cleanEmail },
+          select: { fullName: true },
+        });
+        if (dbUser) displayName = dbUser.fullName;
+      } catch {
+        // Error de BD no se revela
+      }
 
-      const data = (await response.json()) as FirebaseAuthOobResponse;
+      let link: string;
+      try {
+        if (typeof auth?.generatePasswordResetLink === 'function') {
+          link = await auth.generatePasswordResetLink(cleanEmail);
+        } else {
+          throw new Error('Firebase Auth no disponible');
+        }
+      } catch {
+        link = `https://baprotegemas.netlify.app/reset-password?email=${encodeURIComponent(cleanEmail)}`;
+      }
 
-      if (!response.ok) {
-        // Por motivos de seguridad, respondemos con éxito independientemente del resultado
-        return {
-          email: cleanEmail,
-          message:
-            'Si el correo está registrado en BA Protege+, recibirás las instrucciones de recuperación.',
-        };
+      try {
+        const tpl = getPasswordResetEmail({ displayName, link });
+        await emailService.sendEmail(cleanEmail, tpl.subject, tpl.text, tpl.html);
+      } catch {
+        // Fallo de envío no se revela
       }
 
       return {
         email: cleanEmail,
         message:
           'Si el correo está registrado en BA Protege+, recibirás las instrucciones de recuperación.',
-        emailSent: true,
-        oobCode: data.oobCode,
-        mode: data.mode,
+        sent: true,
       };
     } catch (error: any) {
-      if (error.code === 'auth/user-not-found') {
-        return {
-          email: cleanEmail,
-          message:
-            'Si el correo está registrado en BA Protege+, recibirás las instrucciones de recuperación.',
-        };
-      }
-      throw error;
+      return {
+        email: cleanEmail,
+        message:
+          'Si el correo está registrado en BA Protege+, recibirás las instrucciones de recuperación.',
+      };
     }
   }
 
@@ -598,7 +622,9 @@ export class AuthService {
     }
 
     if (env.USE_MOCK_DATA) {
-      let user = mockDb.users.find((u) => (firebaseUid && u.id === firebaseUid) || u.email === email);
+      let user = mockDb.users.find(
+        (u) => (firebaseUid && u.id === firebaseUid) || u.email === email,
+      );
       if (!user) {
         user = {
           id: firebaseUid || `usr-google-${Date.now()}`,
@@ -624,9 +650,7 @@ export class AuthService {
       };
     }
 
-    let user = firebaseUid
-      ? await prisma.user.findUnique({ where: { id: firebaseUid } })
-      : null;
+    let user = firebaseUid ? await prisma.user.findUnique({ where: { id: firebaseUid } }) : null;
 
     if (!user) {
       user = await prisma.user.findUnique({
@@ -669,11 +693,7 @@ export class AuthService {
    * Vincula una cuenta ya existente de responsable con una credencial de Google.
    * Asocia el proveedor google.com al usuario actual en Firebase Auth.
    */
-  public async googleLink(
-    userId: string,
-    input: GoogleAuthInput,
-    currentFirebaseToken?: string,
-  ) {
+  public async googleLink(userId: string, input: GoogleAuthInput, currentFirebaseToken?: string) {
     let email = input.email?.trim().toLowerCase();
     let refreshedToken: string | undefined;
 
@@ -702,8 +722,7 @@ export class AuthService {
               const fbUser = await auth.getUser(userId);
               alreadyLinkedToSelf = fbUser.providerData.some(
                 (p: { providerId?: string; email?: string }) =>
-                  p.providerId === 'google.com' &&
-                  (!email || p.email?.toLowerCase() === email),
+                  p.providerId === 'google.com' && (!email || p.email?.toLowerCase() === email),
               );
             } catch {
               // Ignorar
@@ -773,11 +792,10 @@ export class AuthService {
    */
   public async updateProfile(userId: string, input: UpdateProfileInput) {
     const computedFullName =
-      input.fullName ||
-      [input.firstName, input.lastName].filter(Boolean).join(' ') ||
-      undefined;
+      input.fullName || [input.firstName, input.lastName].filter(Boolean).join(' ') || undefined;
     const cleanPhone = input.phone !== undefined ? input.phone.trim() : undefined;
-    const birthDateObj = input.birthDate !== undefined ? parseBirthDate(input.birthDate) : undefined;
+    const birthDateObj =
+      input.birthDate !== undefined ? parseBirthDate(input.birthDate) : undefined;
     const genderEnum = input.gender
       ? (input.gender.toUpperCase().replace(/\s+/g, '_') as Gender)
       : undefined;
@@ -806,14 +824,8 @@ export class AuthService {
       }
 
       let currentPasswordValid = false;
-      if (
-        existingUser.passwordHash &&
-        existingUser.passwordHash !== 'GOOGLE_AUTH_FEDERATED'
-      ) {
-        currentPasswordValid = bcrypt.compareSync(
-          input.currentPassword,
-          existingUser.passwordHash,
-        );
+      if (existingUser.passwordHash && existingUser.passwordHash !== 'GOOGLE_AUTH_FEDERATED') {
+        currentPasswordValid = bcrypt.compareSync(input.currentPassword, existingUser.passwordHash);
       }
 
       if (!currentPasswordValid && existingUser.email) {
