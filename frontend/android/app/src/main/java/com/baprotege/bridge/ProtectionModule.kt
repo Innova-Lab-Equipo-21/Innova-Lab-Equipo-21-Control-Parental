@@ -916,6 +916,33 @@ class ProtectionModule(private val reactContext: ReactApplicationContext) :
     }
 
     /**
+     * Obtiene y drena los eventos recientes de seguridad (ej. intentos de desinstalación)
+     * capturados nativamente por el servicio de accesibilidad.
+     */
+    @ReactMethod
+    fun getRecentSecurityEvents(promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("ba_protege_settings_prefs", Context.MODE_PRIVATE)
+            val jsonStr = prefs.getString("key_recent_security_events", "[]") ?: "[]"
+            val array = org.json.JSONArray(jsonStr)
+            val result = Arguments.createArray()
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                val map = Arguments.createMap().apply {
+                    putString("eventType", obj.optString("eventType"))
+                    putString("description", obj.optString("description"))
+                    putDouble("timestamp", obj.optLong("timestamp").toDouble())
+                }
+                result.pushMap(map)
+            }
+            prefs.edit().putString("key_recent_security_events", "[]").apply()
+            promise.resolve(result)
+        } catch (e: Exception) {
+            promise.resolve(Arguments.createArray())
+        }
+    }
+
+    /**
      * Calcula el tiempo real de uso de hoy (en minutos) para cada aplicación de la lista
      * proporcionada (o las reglas actualmente sincronizadas), utilizando UsageStatsManager
      * y el contador local acumulado del servicio de accesibilidad.

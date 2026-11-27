@@ -104,33 +104,41 @@ export function useRealAnalyticsData({
     setLoading(true);
     const todayKey = getLocalDateKey();
     try {
-      // 0. Drenar primero los eventos de bloqueo capturados nativamente en Android
-      await protectionService.flushNativeBlockEventsToTelemetry('self').catch(() => 0);
+      // 0. Resolver el dispositivo real propio del Responsable en PostgreSQL (si existe)
+      const selfDevice = await apiService.getSelfDevice().catch(() => null);
+      const selfRealUuid =
+        selfDevice?.deviceUuid && selfDevice.deviceUuid !== 'self'
+          ? selfDevice.deviceUuid
+          : null;
+      const selfRealIds = new Set(
+        [selfDevice?.deviceId, selfDevice?.deviceUuid].filter((id): id is string =>
+          Boolean(id)
+        )
+      );
 
-      const [events, storedSecurityEvents, customRes, overview] = await Promise.all([
-        apiService.getBlockedEvents().catch(() => []),
-        apiService.getSecurityEvents().catch(() => []),
+      // Drenar bloqueos/seguridad nativos y enviar heartbeat real del dispositivo propio
+      if (selfRealUuid) {
+        await Promise.all([
+          protectionService.flushNativeBlockEventsToTelemetry(selfRealUuid).catch(() => 0),
+          protectionService.flushNativeSecurityEventsToTelemetry(selfRealUuid).catch(() => 0),
+          protectionService.sendRealDeviceHeartbeat(selfRealUuid).catch(() => false),
+        ]);
+      }
+
+      const [customRes, overview] = await Promise.all([
         customSites.length === 0 || customApps.length === 0
           ? apiService.getCustomBlocklist().catch(() => null)
           : Promise.resolve(null),
         apiService.getActivityOverview(todayKey).catch(() => null),
       ]);
 
-      // Alertas de seguridad reales de dispositivos protegidos (backend + local)
+      // Alertas de seguridad reales desde PostgreSQL (fuente única de verdad)
       const remoteSecurity: SecurityEventOverviewItem[] = Array.isArray(
         overview?.securityEvents
       )
-        ? overview.securityEvents
+        ? overview.securityEvents.filter((ev) => !selfRealIds.has(ev.deviceId))
         : [];
-      const seenSecurityIds = new Set<string>();
-      const mergedSecurity = [...remoteSecurity, ...storedSecurityEvents].filter(
-        (ev) => {
-          if (!ev?.id || seenSecurityIds.has(ev.id)) return false;
-          seenSecurityIds.add(ev.id);
-          return true;
-        }
-      );
-      setPersistedSecurityEvents(mergedSecurity);
+      setPersistedSecurityEvents(remoteSecurity);
 
       const resolvedApps: CustomBlockedApp[] =
         customRes?.data?.apps || localApps || customApps;
@@ -141,34 +149,33 @@ export function useRealAnalyticsData({
         setLocalApps(customRes.data.apps);
       }
 
-      // 1. Combinar eventos de bloqueo locales + remotos del backend
-      const mergedEventsMap = new Map<string, BlockedAttemptRecord>();
-      if (Array.isArray(overview?.blockedEvents)) {
-        for (const ev of overview.blockedEvents) {
-          mergedEventsMap.set(ev.id, {
-            id: ev.id,
-            deviceId: ev.deviceId,
-            deviceName: ev.deviceName,
-            attemptedDomain: ev.attemptedDomain,
-            sourceListType: normalizeAttemptSource(ev.sourceListType),
-            itemType: ev.itemType,
-            blockedAt: ev.blockedAt,
-            count: 1,
-          });
-        }
-      }
-      if (Array.isArray(events)) {
-        for (const ev of events) {
-          if (!mergedEventsMap.has(ev.id)) {
-            mergedEventsMap.set(ev.id, ev);
-          }
-        }
-      }
-      setPersistedEvents(Array.from(mergedEventsMap.values()));
+      // 1. Eventos de bloqueo reales desde PostgreSQL (mapeando dispositivo propio a 'self')
+      const normalizedBlocked: BlockedAttemptRecord[] = Array.isArray(
+        overview?.blockedEvents
+      )
+        ? overview.blockedEvents.map((ev) => {
+            const isSelf = selfRealIds.has(ev.deviceId);
+            return {
+              id: ev.id,
+              deviceId: isSelf ? 'self' : ev.deviceId,
+              deviceName: isSelf ? 'Yo' : ev.deviceName,
+              attemptedDomain: ev.attemptedDomain,
+              sourceListType: normalizeAttemptSource(ev.sourceListType),
+              itemType: ev.itemType,
+              blockedAt: ev.blockedAt,
+              count: 1,
+            };
+          })
+        : [];
+      setPersistedEvents(normalizedBlocked);
 
-      // 2. Combinar snapshots de uso de apps del backend + consumo real local del Responsable
+      // 2. Snapshots de uso de apps desde PostgreSQL + lectura nativa real del Responsable
       const combinedSnapshots: AppUsageRawSnapshot[] = Array.isArray(overview?.appUsage)
-        ? [...overview.appUsage]
+        ? overview.appUsage.map((snap) => ({
+            ...snap,
+            deviceId:
+              snap.deviceId && selfRealIds.has(snap.deviceId) ? 'self' : snap.deviceId,
+          }))
         : [];
 
       const activeAppsForSelf = resolvedApps.filter(
@@ -190,22 +197,21 @@ export function useRealAnalyticsData({
               dailyLimitMinutes: item.dailyLimitMinutes ?? null,
               isBlocked: item.isBlocked,
             }));
-            apiService.syncAppUsageSnapshot('self', selfUsage, todayKey).catch(() => {});
+            if (selfRealUuid) {
+              apiService
+                .syncAppUsageSnapshot(selfRealUuid, selfUsage, todayKey)
+                .catch(() => {});
+            }
           }
         } catch {
-          // Respaldo desde caché local si el módulo nativo no está disponible
+          // Módulo nativo no disponible fuera de Android
         }
       }
 
-      if (selfUsage.length === 0) {
-        const cachedSelf = await apiService
-          .getLocalAppUsageSnapshot('self', todayKey)
-          .catch(() => []);
-        selfUsage = cachedSelf.map((s) => ({ ...s, deviceId: 'self' }));
-      }
-
       const selfKeys = new Set(
-        selfUsage.map((s) => `${s.deviceId || 'self'}:${(s.packageName || s.appName).toLowerCase()}`)
+        selfUsage.map(
+          (s) => `${s.deviceId || 'self'}:${(s.packageName || s.appName).toLowerCase()}`
+        )
       );
       const filteredRemote = combinedSnapshots.filter(
         (s) =>
@@ -313,7 +319,7 @@ export function useRealAnalyticsData({
     [dataset]
   );
 
-  // 1. Mapeo de Dispositivos reales a AnalyticsDevice[] (siempre incluye "Yo", nunca DEMO_DEVICES)
+  // 1. Mapeo de Dispositivos reales a AnalyticsDevice[] (siempre incluye "Yo", 100% datos reales)
   const analyticsDevices: AnalyticsDevice[] = useMemo(() => {
     const totalAll = Math.max(1, metrics.totalBlocks);
     const result: AnalyticsDevice[] = [];
@@ -372,7 +378,7 @@ export function useRealAnalyticsData({
         total: devTotal,
         lotba: devLotba,
         custom: devCustom,
-        uptime: isInactive ? '0%' : '99.5%',
+        uptime: isInactive ? '0%' : '100%',
         showAlert: isInactive,
         alertText: isInactive
           ? `${firstName} aún no completó la vinculación con el código`

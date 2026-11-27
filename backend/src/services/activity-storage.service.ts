@@ -2,8 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: Backend API — Almacenamiento de Pasatiempos y Uso de Apps
 // Archivo: src/services/activity-storage.service.ts
-// Descripción: Gestiona la persistencia segura (PostgreSQL aditivo con fallback
-//              en memoria + MockDB) para:
+// Descripción: Gestiona la persistencia real en PostgreSQL (y MockDB solo para tests) de:
 //              - Sesiones diarias de pasatiempos (Quiz, Sopa de letras [3 sopas], Memoria)
 //              - Snapshots de consumo diario de aplicaciones bloqueadas
 //              - Cálculo de Racha (streak), promedios semanales y agregación por perfil
@@ -68,9 +67,6 @@ export interface StoredAppUsageSnapshot {
   isBlocked: boolean;
   updatedAt: string;
 }
-
-const fallbackPasatiempos = new Map<string, MockPasatiempoSession>();
-const fallbackAppUsage = new Map<string, MockAppUsageSnapshot>();
 
 export function formatDateKey(date: Date = new Date()): string {
   const year = date.getFullYear();
@@ -191,58 +187,31 @@ export class ActivityStorageService {
     const id = crypto.randomUUID();
     const detailsJson = input.details ? JSON.stringify(input.details) : null;
 
-    try {
-      const rows = await prisma.$queryRaw<any[]>`
-        INSERT INTO "public"."pasatiempo_sessions" (
-          "id", "device_id", "date_key", "game_type", "status",
-          "correct_count", "wrong_count", "total_items", "attempts",
-          "details", "completed_at", "created_at", "updated_at"
-        )
-        VALUES (
-          ${id}, ${input.deviceId}, ${input.dateKey}, ${input.gameType}, ${input.status},
-          ${input.correctCount}, ${input.wrongCount}, ${input.totalItems}, ${input.attempts},
-          CAST(${detailsJson} AS jsonb), ${completedAt}, ${now}, ${now}
-        )
-        ON CONFLICT ("device_id", "date_key", "game_type")
-        DO UPDATE SET
-          "status" = EXCLUDED."status",
-          "correct_count" = EXCLUDED."correct_count",
-          "wrong_count" = EXCLUDED."wrong_count",
-          "total_items" = EXCLUDED."total_items",
-          "attempts" = EXCLUDED."attempts",
-          "details" = EXCLUDED."details",
-          "completed_at" = COALESCE(EXCLUDED."completed_at", "public"."pasatiempo_sessions"."completed_at"),
-          "updated_at" = EXCLUDED."updated_at"
-        RETURNING *
-      `;
-      if (rows && rows[0]) {
-        return normalizeStoredSession(rows[0]);
-      }
-    } catch (err: any) {
-      console.warn(
-        '[ActivityStorage] Tabla pasatiempo_sessions no disponible aún; usando respaldo en memoria:',
-        err?.message || err,
-      );
-    }
+    const rows = await prisma.$queryRaw<any[]>`
+      INSERT INTO "public"."pasatiempo_sessions" (
+        "id", "device_id", "date_key", "game_type", "status",
+        "correct_count", "wrong_count", "total_items", "attempts",
+        "details", "completed_at", "created_at", "updated_at"
+      )
+      VALUES (
+        ${id}, ${input.deviceId}, ${input.dateKey}, ${input.gameType}, ${input.status},
+        ${input.correctCount}, ${input.wrongCount}, ${input.totalItems}, ${input.attempts},
+        CAST(${detailsJson} AS jsonb), ${completedAt}, ${now}, ${now}
+      )
+      ON CONFLICT ("device_id", "date_key", "game_type")
+      DO UPDATE SET
+        "status" = EXCLUDED."status",
+        "correct_count" = EXCLUDED."correct_count",
+        "wrong_count" = EXCLUDED."wrong_count",
+        "total_items" = EXCLUDED."total_items",
+        "attempts" = EXCLUDED."attempts",
+        "details" = EXCLUDED."details",
+        "completed_at" = COALESCE(EXCLUDED."completed_at", "public"."pasatiempo_sessions"."completed_at"),
+        "updated_at" = EXCLUDED."updated_at"
+      RETURNING *
+    `;
 
-    const key = `${input.deviceId}::${input.dateKey}::${input.gameType}`;
-    const mem: MockPasatiempoSession = {
-      id,
-      deviceId: input.deviceId,
-      dateKey: input.dateKey,
-      gameType: input.gameType,
-      status: input.status,
-      correctCount: input.correctCount,
-      wrongCount: input.wrongCount,
-      totalItems: input.totalItems,
-      attempts: input.attempts,
-      details: input.details ?? null,
-      completedAt,
-      createdAt: now,
-      updatedAt: now,
-    };
-    fallbackPasatiempos.set(key, mem);
-    return normalizeStoredSession(mem);
+    return normalizeStoredSession(rows[0]);
   }
 
   /**
@@ -263,25 +232,14 @@ export class ActivityStorageService {
         .map(normalizeStoredSession);
     }
 
-    try {
-      const rows = await prisma.$queryRaw<any[]>`
-        SELECT *
-        FROM "public"."pasatiempo_sessions"
-        WHERE "device_id" = ANY(${deviceIds}::text[])
-          AND "date_key" >= ${minDateKey}
-        ORDER BY "date_key" DESC, "updated_at" DESC
-      `;
-      return (rows || []).map(normalizeStoredSession);
-    } catch (err: any) {
-      console.warn(
-        '[ActivityStorage] Leyendo pasatiempos desde respaldo en memoria:',
-        err?.message || err,
-      );
-      const idSet = new Set(deviceIds);
-      return Array.from(fallbackPasatiempos.values())
-        .filter((s) => idSet.has(s.deviceId) && s.dateKey >= minDateKey)
-        .map(normalizeStoredSession);
-    }
+    const rows = await prisma.$queryRaw<any[]>`
+      SELECT *
+      FROM "public"."pasatiempo_sessions"
+      WHERE "device_id" = ANY(${deviceIds}::text[])
+        AND "date_key" >= ${minDateKey}
+      ORDER BY "date_key" DESC, "updated_at" DESC
+    `;
+    return (rows || []).map(normalizeStoredSession);
   }
 
   /**
@@ -339,53 +297,29 @@ export class ActivityStorageService {
       }
 
       const id = crypto.randomUUID();
-      try {
-        const rows = await prisma.$queryRaw<any[]>`
-          INSERT INTO "public"."app_usage_snapshots" (
-            "id", "device_id", "date_key", "package_name", "app_name",
-            "used_minutes", "daily_limit_minutes", "is_blocked",
-            "created_at", "updated_at"
-          )
-          VALUES (
-            ${id}, ${deviceId}, ${dateKey}, ${pkg}, ${app.appName},
-            ${usedMinutes}, ${dailyLimitMinutes}, ${isBlocked},
-            ${now}, ${now}
-          )
-          ON CONFLICT ("device_id", "date_key", "package_name")
-          DO UPDATE SET
-            "app_name" = EXCLUDED."app_name",
-            "used_minutes" = EXCLUDED."used_minutes",
-            "daily_limit_minutes" = EXCLUDED."daily_limit_minutes",
-            "is_blocked" = EXCLUDED."is_blocked",
-            "updated_at" = EXCLUDED."updated_at"
-          RETURNING *
-        `;
-        if (rows && rows[0]) {
-          results.push(normalizeStoredAppUsage(rows[0]));
-          continue;
-        }
-      } catch (err: any) {
-        console.warn(
-          '[ActivityStorage] Tabla app_usage_snapshots no disponible aún; usando respaldo en memoria:',
-          err?.message || err,
-        );
+      const rows = await prisma.$queryRaw<any[]>`
+        INSERT INTO "public"."app_usage_snapshots" (
+          "id", "device_id", "date_key", "package_name", "app_name",
+          "used_minutes", "daily_limit_minutes", "is_blocked",
+          "created_at", "updated_at"
+        )
+        VALUES (
+          ${id}, ${deviceId}, ${dateKey}, ${pkg}, ${app.appName},
+          ${usedMinutes}, ${dailyLimitMinutes}, ${isBlocked},
+          ${now}, ${now}
+        )
+        ON CONFLICT ("device_id", "date_key", "package_name")
+        DO UPDATE SET
+          "app_name" = EXCLUDED."app_name",
+          "used_minutes" = EXCLUDED."used_minutes",
+          "daily_limit_minutes" = EXCLUDED."daily_limit_minutes",
+          "is_blocked" = EXCLUDED."is_blocked",
+          "updated_at" = EXCLUDED."updated_at"
+        RETURNING *
+      `;
+      if (rows && rows[0]) {
+        results.push(normalizeStoredAppUsage(rows[0]));
       }
-
-      const key = `${deviceId}::${dateKey}::${pkg}`;
-      const mem: MockAppUsageSnapshot = {
-        id,
-        deviceId,
-        dateKey,
-        packageName: pkg,
-        appName: app.appName,
-        usedMinutes,
-        dailyLimitMinutes,
-        isBlocked,
-        createdAt: now,
-        updatedAt: now,
-      };
-      fallbackAppUsage.set(key, mem);
-      results.push(normalizeStoredAppUsage(mem));
     }
 
     return results;
@@ -408,26 +342,14 @@ export class ActivityStorageService {
         .map(normalizeStoredAppUsage);
     }
 
-    try {
-      const rows = await prisma.$queryRaw<any[]>`
-        SELECT *
-        FROM "public"."app_usage_snapshots"
-        WHERE "device_id" = ANY(${deviceIds}::text[])
-          AND "date_key" = ${dateKey}
-        ORDER BY "used_minutes" DESC, "app_name" ASC
-      `;
-      return (rows || []).map(normalizeStoredAppUsage);
-    } catch (err: any) {
-      console.warn(
-        '[ActivityStorage] Leyendo app_usage_snapshots desde respaldo en memoria:',
-        err?.message || err,
-      );
-      const idSet = new Set(deviceIds);
-      return Array.from(fallbackAppUsage.values())
-        .filter((s) => idSet.has(s.deviceId) && s.dateKey === dateKey)
-        .sort((a, b) => b.usedMinutes - a.usedMinutes)
-        .map(normalizeStoredAppUsage);
-    }
+    const rows = await prisma.$queryRaw<any[]>`
+      SELECT *
+      FROM "public"."app_usage_snapshots"
+      WHERE "device_id" = ANY(${deviceIds}::text[])
+        AND "date_key" = ${dateKey}
+      ORDER BY "used_minutes" DESC, "app_name" ASC
+    `;
+    return (rows || []).map(normalizeStoredAppUsage);
   }
 
   /**

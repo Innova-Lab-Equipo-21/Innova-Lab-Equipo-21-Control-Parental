@@ -2,7 +2,8 @@
 // Proyecto: BA Protege+
 // Componente: Telemetría, Eventos de Seguridad, Pasatiempos, Uso de Apps y Ubicación
 // Archivo: src/services/api/telemetry.api.ts
-// Descripción: Sincronización de heartbeats, intentos bloqueados, alertas de seguridad, pasatiempos y consumo de apps.
+// Descripción: Sincronización 100% real contra PostgreSQL de heartbeats, intentos
+//              bloqueados, alertas de seguridad, pasatiempos y consumo de apps.
 // ==============================================================================
 
 import {
@@ -11,9 +12,7 @@ import {
   inferBlockedItemType,
   normalizeAttemptSource,
 } from '../../utils/activityMetrics';
-import {
-  AppUsageRawSnapshot,
-} from '../../utils/appUsageMetrics';
+import { AppUsageRawSnapshot } from '../../utils/appUsageMetrics';
 import {
   BackendPasatiempoSessionDTO,
   DailyPasatiemposRecord,
@@ -37,10 +36,12 @@ export interface HeartbeatPayload {
   blocklistVersion: number;
   appVersion?: string;
   permissions?: {
-    vpn: boolean;
-    accessibility: boolean;
-    notifications: boolean;
-    batteryOptimization: boolean;
+    vpn?: boolean;
+    accessibility?: boolean;
+    notifications?: boolean;
+    batteryOptimization?: boolean;
+    location?: boolean;
+    usageStats?: boolean;
   };
 }
 
@@ -48,6 +49,7 @@ export interface SecurityEventPayload {
   deviceUuid: string;
   eventType: string;
   description?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface BlockedEventPayload {
@@ -116,9 +118,31 @@ export interface ActivityOverviewResponse {
   securityEvents?: SecurityEventOverviewItem[];
 }
 
+export interface DeviceActivityMetricsResponse {
+  dateKey: string;
+  deviceId: string;
+  profileType: 'MENOR' | 'ADULTO';
+  pasatiempos: {
+    today: BackendPasatiempoSessionDTO[];
+    streakDays: number;
+    weeklyQuizAccuracyPct: number;
+  };
+  appUsage: AppUsageRawSnapshot[];
+  blockedEvents: Array<{
+    id: string;
+    deviceId: string;
+    deviceName: string;
+    attemptedDomain: string;
+    sourceListType: 'LOTBA' | 'CUSTOM';
+    itemType: BlockedItemType;
+    blockedAt: string;
+  }>;
+  securityEvents?: SecurityEventOverviewItem[];
+}
+
 export const telemetryApi = {
   // --------------------------------------------------------------------------
-  // Telemetría y Heartbeat
+  // Telemetría y Heartbeat (100% PostgreSQL)
   // --------------------------------------------------------------------------
   async sendHeartbeat(data: HeartbeatPayload) {
     const response = await apiClient.post('/telemetry/heartbeat', data);
@@ -132,48 +156,47 @@ export const telemetryApi = {
       data.sourceListType,
       data.itemType
     );
-    const localRecord: BlockedAttemptRecord = {
-      id: `blocked-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      deviceId: data.deviceId || data.deviceUuid || 'self',
+    const apiSource =
+      inferredItemType === 'app'
+        ? normalizedSource === 'LOTBA'
+          ? 'LOTBA_APP'
+          : 'CUSTOM_APP'
+        : normalizedSource;
+
+    const response = await apiClient.post('/telemetry/events/blocked', {
+      deviceUuid: data.deviceUuid,
+      attemptedDomain: data.attemptedDomain,
+      sourceListType: apiSource,
+      itemType: inferredItemType.toUpperCase(),
+    });
+
+    const persisted = response.data?.data;
+    const cachedRecord: BlockedAttemptRecord = {
+      id: persisted?.id || `blocked-${Date.now()}`,
+      deviceId: persisted?.deviceId || data.deviceId || data.deviceUuid,
       deviceName: data.deviceName || 'Mi dispositivo',
-      attemptedDomain: data.attemptedDomain.trim().toLowerCase(),
+      attemptedDomain: (persisted?.attemptedDomain || data.attemptedDomain)
+        .trim()
+        .toLowerCase(),
       sourceListType: normalizedSource,
       itemType: inferredItemType,
-      blockedAt: data.blockedAt || new Date().toISOString(),
+      blockedAt: persisted?.blockedAt || data.blockedAt || new Date().toISOString(),
       count: 1,
     };
 
     try {
       const raw = await safeStorage.getItem(BLOCKED_EVENTS_STORAGE_KEY);
       const existing: BlockedAttemptRecord[] = raw ? JSON.parse(raw) : [];
-      const updated = [localRecord, ...(Array.isArray(existing) ? existing : [])].slice(0, 500);
+      const updated = [
+        cachedRecord,
+        ...(Array.isArray(existing) ? existing.filter((e) => e.id !== cachedRecord.id) : []),
+      ].slice(0, 500);
       await safeStorage.setItem(BLOCKED_EVENTS_STORAGE_KEY, JSON.stringify(updated));
     } catch {
-      // Continuar incluso si falla almacenamiento local
+      // Ignorar fallo de caché local tras persistencia exitosa en PostgreSQL
     }
 
-    try {
-      const apiSource =
-        inferredItemType === 'app'
-          ? normalizedSource === 'LOTBA'
-            ? 'LOTBA_APP'
-            : 'CUSTOM_APP'
-          : normalizedSource;
-
-      const response = await apiClient.post(
-        '/telemetry/events/blocked',
-        {
-          deviceUuid: data.deviceUuid,
-          attemptedDomain: data.attemptedDomain,
-          sourceListType: apiSource,
-          itemType: inferredItemType.toUpperCase(),
-        },
-        { timeout: 10000 }
-      );
-      return response.data;
-    } catch {
-      return { success: true, localOnly: true, data: localRecord };
-    }
+    return response.data;
   },
 
   async getBlockedEvents(): Promise<BlockedAttemptRecord[]> {
@@ -192,30 +215,32 @@ export const telemetryApi = {
   },
 
   async reportSecurityEvent(data: SecurityEventPayload) {
-    const localRecord: SecurityEventOverviewItem = {
-      id: `sec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      deviceId: data.deviceUuid,
+    const response = await apiClient.post('/telemetry/events/security', data);
+    const persisted = response.data?.data;
+
+    const cachedRecord: SecurityEventOverviewItem = {
+      id: persisted?.id || `sec-${Date.now()}`,
+      deviceId: persisted?.deviceId || data.deviceUuid,
       deviceName: 'Dispositivo protegido',
-      eventType: data.eventType,
-      description: data.description || '',
-      occurredAt: new Date().toISOString(),
+      eventType: persisted?.eventType || data.eventType,
+      description: persisted?.description || data.description || '',
+      occurredAt: persisted?.occurredAt || new Date().toISOString(),
+      readAt: persisted?.readAt ?? null,
     };
 
     try {
       const raw = await safeStorage.getItem(SECURITY_EVENTS_STORAGE_KEY);
       const existing: SecurityEventOverviewItem[] = raw ? JSON.parse(raw) : [];
-      const updated = [localRecord, ...(Array.isArray(existing) ? existing : [])].slice(0, 100);
+      const updated = [
+        cachedRecord,
+        ...(Array.isArray(existing) ? existing.filter((e) => e.id !== cachedRecord.id) : []),
+      ].slice(0, 100);
       await safeStorage.setItem(SECURITY_EVENTS_STORAGE_KEY, JSON.stringify(updated));
     } catch {
-      // Continuar incluso si falla almacenamiento local
+      // Ignorar fallo de caché local tras persistencia exitosa en PostgreSQL
     }
 
-    try {
-      const response = await apiClient.post('/telemetry/events/security', data);
-      return response.data;
-    } catch {
-      return { success: true, localOnly: true, data: localRecord };
-    }
+    return response.data;
   },
 
   async getSecurityEvents(): Promise<SecurityEventOverviewItem[]> {
@@ -230,20 +255,15 @@ export const telemetryApi = {
   },
 
   async markSecurityEventAsRead(eventId: string) {
-    try {
-      const response = await apiClient.patch(
-        `/metrics/security-events/${encodeURIComponent(eventId)}/read`,
-        {},
-        { timeout: 10000 }
-      );
-      return response.data;
-    } catch {
-      return { success: true, localOnly: true };
-    }
+    const response = await apiClient.patch(
+      `/metrics/security-events/${encodeURIComponent(eventId)}/read`,
+      {}
+    );
+    return response.data;
   },
 
   // --------------------------------------------------------------------------
-  // Pasatiempos: Persistencia local + sincronización backend
+  // Pasatiempos: Persistencia real en PostgreSQL + caché de lectura local
   // --------------------------------------------------------------------------
   async saveLocalDailyPasatiempos(
     deviceUuid: string,
@@ -281,14 +301,8 @@ export const telemetryApi = {
   },
 
   async reportPasatiempoProgress(payload: PasatiempoProgressPayload) {
-    try {
-      const response = await apiClient.post('/telemetry/pasatiempos', payload, {
-        timeout: 10000,
-      });
-      return response.data;
-    } catch {
-      return { success: true, localOnly: true };
-    }
+    const response = await apiClient.post('/telemetry/pasatiempos', payload);
+    return response.data;
   },
 
   async getDevicePasatiemposHistory(
@@ -302,47 +316,40 @@ export const telemetryApi = {
     const localHistory = await this.getLocalPasatiemposHistory(deviceUuid);
     let mergedHistory = [...localHistory];
 
-    try {
-      const response = await apiClient.get(
-        `/telemetry/pasatiempos/${encodeURIComponent(deviceUuid)}`,
-        {
-          params: { dateKey: todayKey },
-          timeout: 10000,
-        }
-      );
-      const remoteSessions: BackendPasatiempoSessionDTO[] =
-        response.data?.data?.history || response.data?.data?.today || [];
+    const response = await apiClient.get(
+      `/telemetry/pasatiempos/${encodeURIComponent(deviceUuid)}`,
+      { params: { dateKey: todayKey } }
+    );
+    const remoteSessions: BackendPasatiempoSessionDTO[] =
+      response.data?.data?.history || response.data?.data?.today || [];
 
-      if (Array.isArray(remoteSessions) && remoteSessions.length > 0) {
-        const byDate = new Map<string, BackendPasatiempoSessionDTO[]>();
-        for (const s of remoteSessions) {
-          const list = byDate.get(s.dateKey) || [];
-          list.push(s);
-          byDate.set(s.dateKey, list);
-        }
-
-        const mergedByDate = new Map<string, DailyPasatiemposRecord>();
-        for (const loc of localHistory) {
-          mergedByDate.set(loc.dateKey, loc);
-        }
-        for (const [dKey, sessions] of byDate.entries()) {
-          const remoteRec = hydrateDailyRecordFromSessions(
-            deviceUuid,
-            profileType,
-            dKey,
-            sessions
-          );
-          const localRec = mergedByDate.get(dKey);
-          if (!localRec || remoteRec.updatedAt >= localRec.updatedAt) {
-            mergedByDate.set(dKey, remoteRec);
-          }
-        }
-        mergedHistory = Array.from(mergedByDate.values()).sort((a, b) =>
-          b.dateKey.localeCompare(a.dateKey)
-        );
+    if (Array.isArray(remoteSessions) && remoteSessions.length > 0) {
+      const byDate = new Map<string, BackendPasatiempoSessionDTO[]>();
+      for (const s of remoteSessions) {
+        const list = byDate.get(s.dateKey) || [];
+        list.push(s);
+        byDate.set(s.dateKey, list);
       }
-    } catch {
-      // Operar offline con historial local
+
+      const mergedByDate = new Map<string, DailyPasatiemposRecord>();
+      for (const loc of localHistory) {
+        mergedByDate.set(loc.dateKey, loc);
+      }
+      for (const [dKey, sessions] of byDate.entries()) {
+        const remoteRec = hydrateDailyRecordFromSessions(
+          deviceUuid,
+          profileType,
+          dKey,
+          sessions
+        );
+        const localRec = mergedByDate.get(dKey);
+        if (!localRec || remoteRec.updatedAt >= localRec.updatedAt) {
+          mergedByDate.set(dKey, remoteRec);
+        }
+      }
+      mergedHistory = Array.from(mergedByDate.values()).sort((a, b) =>
+        b.dateKey.localeCompare(a.dateKey)
+      );
     }
 
     const todayRecord =
@@ -353,40 +360,33 @@ export const telemetryApi = {
   },
 
   // --------------------------------------------------------------------------
-  // Uso diario de aplicaciones bloqueadas
+  // Uso diario de aplicaciones bloqueadas (100% PostgreSQL)
   // --------------------------------------------------------------------------
   async syncAppUsageSnapshot(
     deviceUuid: string,
     apps: AppUsageRawSnapshot[],
     dateKey: string = getLocalDateKey()
   ) {
+    const response = await apiClient.post('/telemetry/app-usage', {
+      deviceUuid,
+      dateKey,
+      apps: apps.map((a) => ({
+        packageName: a.packageName || a.appName,
+        appName: a.appName,
+        usedMinutes: a.usedMinutes,
+        dailyLimitMinutes: a.dailyLimitMinutes ?? null,
+        isBlocked: Boolean(a.isBlocked),
+      })),
+    });
+
     const key = `${APP_USAGE_KEY_PREFIX}${deviceUuid || 'self'}_${dateKey}`;
     try {
       await safeStorage.setItem(key, JSON.stringify(apps));
     } catch {
-      // Fallback silencioso
+      // Ignorar fallo de caché local tras persistencia exitosa
     }
 
-    try {
-      const response = await apiClient.post(
-        '/telemetry/app-usage',
-        {
-          deviceUuid,
-          dateKey,
-          apps: apps.map((a) => ({
-            packageName: a.packageName || a.appName,
-            appName: a.appName,
-            usedMinutes: a.usedMinutes,
-            dailyLimitMinutes: a.dailyLimitMinutes ?? null,
-            isBlocked: Boolean(a.isBlocked),
-          })),
-        },
-        { timeout: 10000 }
-      );
-      return response.data;
-    } catch {
-      return { success: true, localOnly: true, data: apps };
-    }
+    return response.data;
   },
 
   async getLocalAppUsageSnapshot(
@@ -410,65 +410,30 @@ export const telemetryApi = {
   async getActivityOverview(
     dateKey: string = getLocalDateKey()
   ): Promise<ActivityOverviewResponse | null> {
-    try {
-      const response = await apiClient.get('/metrics/activity', {
-        params: { dateKey },
-        timeout: 12000,
-      });
-      return response.data?.data || null;
-    } catch {
-      return null;
-    }
+    const response = await apiClient.get('/metrics/activity', {
+      params: { dateKey },
+    });
+    return response.data?.data || null;
   },
 
   async getDeviceActivityMetrics(
     deviceUuid: string,
     dateKey: string = getLocalDateKey()
-  ): Promise<{
-    dateKey: string;
-    deviceId: string;
-    profileType: 'MENOR' | 'ADULTO';
-    pasatiempos: {
-      today: BackendPasatiempoSessionDTO[];
-      streakDays: number;
-      weeklyQuizAccuracyPct: number;
-    };
-    appUsage: AppUsageRawSnapshot[];
-    blockedEvents: Array<{
-      id: string;
-      deviceId: string;
-      deviceName: string;
-      attemptedDomain: string;
-      sourceListType: 'LOTBA' | 'CUSTOM';
-      itemType: BlockedItemType;
-      blockedAt: string;
-    }>;
-  } | null> {
-    try {
-      const response = await apiClient.get(
-        `/metrics/device/${encodeURIComponent(deviceUuid)}/activity`,
-        {
-          params: { dateKey },
-          timeout: 12000,
-        }
-      );
-      return response.data?.data || null;
-    } catch {
-      return null;
-    }
+  ): Promise<DeviceActivityMetricsResponse | null> {
+    const response = await apiClient.get(
+      `/metrics/device/${encodeURIComponent(deviceUuid)}/activity`,
+      { params: { dateKey } }
+    );
+    return response.data?.data || null;
   },
 
   // --------------------------------------------------------------------------
   // Geolocalización y Registro de Ubicación (Estrategia Híbrida GPS / IP)
   // --------------------------------------------------------------------------
   async saveUserLocation(locationData: LocationPayload) {
+    const response = await apiClient.post('/auth/location', locationData);
     await safeStorage.setItem('@ba_protege_user_location', JSON.stringify(locationData));
-    try {
-      const response = await apiClient.post('/auth/location', locationData);
-      return response.data;
-    } catch {
-      return { success: true, localOnly: true, data: locationData };
-    }
+    return response.data;
   },
 
   async getUserLocation() {

@@ -1,3 +1,10 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Backend API (Tests Automatizados — Módulo de Métricas)
+// Archivo: tests/metrics.test.ts
+// Descripción: Valida los endpoints GET /api/metrics/summary y GET /api/metrics/timeline.
+// ==============================================================================
+
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../src/app.js';
@@ -35,7 +42,16 @@ describe('Módulo de Métricas (Metrics API)', () => {
 
     const pairGenRes = await fetch(`${baseUrl}/api/devices/pair/generate`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${authToken}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        childName: 'Tomas',
+        gender: 'Masculino',
+        personType: 'Menor',
+        birthDate: '2013-06-15',
+      }),
     });
     const pairGenData = await pairGenRes.json();
 

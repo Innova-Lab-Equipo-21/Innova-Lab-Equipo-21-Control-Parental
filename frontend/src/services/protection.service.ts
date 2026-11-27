@@ -576,6 +576,7 @@ export class ProtectionService {
   }
 
   private flushBlockEventsPromise: Promise<number> | null = null;
+  private flushSecurityEventsPromise: Promise<number> | null = null;
 
   /**
    * Obtiene eventos de bloqueo capturados nativamente por el servicio de accesibilidad.
@@ -590,13 +591,34 @@ export class ProtectionService {
   }
 
   /**
+   * Obtiene eventos recientes de seguridad (ej. intentos de desinstalación)
+   * capturados nativamente por el servicio de accesibilidad.
+   */
+  public async getRecentSecurityEvents(): Promise<
+    Array<{ eventType: string; description: string; timestamp: number }>
+  > {
+    if (
+      Platform.OS !== 'android' ||
+      !ProtectionModule ||
+      typeof ProtectionModule.getRecentSecurityEvents !== 'function'
+    ) {
+      return [];
+    }
+    return ProtectionModule.getRecentSecurityEvents();
+  }
+
+  /**
    * Drena los eventos de bloqueo almacenados nativamente en Android (SharedPreferences)
-   * y los persiste/reporta en telemetría local y remota para reflejarlos en Actividad e Inicio.
+   * y los reporta al backend REST (PostgreSQL) para reflejarlos en Actividad e Inicio.
    */
   public async flushNativeBlockEventsToTelemetry(
     activeDeviceId: string = 'self',
     lotbaDomains: string[] = []
   ): Promise<number> {
+    if (!activeDeviceId || activeDeviceId === 'self' || activeDeviceId === 'local') {
+      return 0;
+    }
+
     if (this.flushBlockEventsPromise) {
       return this.flushBlockEventsPromise;
     }
@@ -628,7 +650,6 @@ export class ProtectionService {
             await apiService.reportBlockedEvent({
               deviceUuid: activeDeviceId,
               deviceId: activeDeviceId,
-              deviceName: activeDeviceId === 'self' ? 'Yo' : undefined,
               attemptedDomain: target,
               sourceListType: isLotba ? 'LOTBA' : 'CUSTOM',
               itemType: isApp ? 'app' : 'site',
@@ -650,6 +671,118 @@ export class ProtectionService {
 
     this.flushBlockEventsPromise = task;
     return task;
+  }
+
+  /**
+   * Drena eventos de seguridad nativos (ej. UNINSTALL_ATTEMPT) y los envía a PostgreSQL.
+   */
+  public async flushNativeSecurityEventsToTelemetry(
+    deviceUuid: string
+  ): Promise<number> {
+    if (!deviceUuid || deviceUuid === 'self' || deviceUuid === 'local') {
+      return 0;
+    }
+
+    if (this.flushSecurityEventsPromise) {
+      return this.flushSecurityEventsPromise;
+    }
+
+    const task = (async () => {
+      try {
+        const recentEvents = await this.getRecentSecurityEvents();
+        if (!Array.isArray(recentEvents) || recentEvents.length === 0) {
+          return 0;
+        }
+
+        let flushed = 0;
+        for (const ev of recentEvents) {
+          const eventType = (ev?.eventType || '').trim().toUpperCase();
+          if (!eventType) continue;
+          try {
+            await apiService.reportSecurityEvent({
+              deviceUuid,
+              eventType,
+              description: ev.description || 'Alerta de seguridad detectada en el dispositivo',
+              metadata: ev.timestamp ? { nativeTimestamp: ev.timestamp } : undefined,
+            });
+            flushed += 1;
+          } catch (_) {
+            // Continuar con los eventos restantes
+          }
+        }
+        return flushed;
+      } catch {
+        return 0;
+      } finally {
+        this.flushSecurityEventsPromise = null;
+      }
+    })();
+
+    this.flushSecurityEventsPromise = task;
+    return task;
+  }
+
+  /**
+   * Recopila el estado real del dispositivo Android (VPN, 6 permisos, batería, versión de
+   * blocklist y versión de app) y envía un heartbeat al backend PostgreSQL.
+   */
+  public async sendRealDeviceHeartbeat(deviceUuid: string): Promise<boolean> {
+    if (!deviceUuid || deviceUuid === 'self' || deviceUuid === 'local') {
+      return false;
+    }
+
+    try {
+      const [
+        vpnActive,
+        accessibility,
+        notifications,
+        batteryOptimization,
+        location,
+        usageStats,
+        deviceInfo,
+        blocklistInfo,
+      ] = await Promise.all([
+        this.isProtectionActive().catch(() => false),
+        this.isAccessibilityEnabled().catch(() => false),
+        this.isNotificationsEnabled().catch(() => false),
+        this.isBatteryOptimizationIgnored().catch(() => false),
+        this.isLocationPermissionGranted().catch(() => false),
+        this.isUsageStatsPermissionGranted().catch(() => false),
+        this.getDeviceInfo().catch(() => null),
+        this.getBlocklistInfo().catch(() => ({ version: 1, totalDomains: 0 })),
+      ]);
+
+      const permissionsOk = Boolean(
+        vpnActive && accessibility && notifications && batteryOptimization && usageStats
+      );
+      const batteryLevel =
+        typeof deviceInfo?.batteryLevel === 'number' &&
+        deviceInfo.batteryLevel >= 0 &&
+        deviceInfo.batteryLevel <= 100
+          ? deviceInfo.batteryLevel
+          : undefined;
+
+      await apiService.sendHeartbeat({
+        deviceUuid,
+        vpnActive: Boolean(vpnActive),
+        permissionsOk,
+        batteryLevel,
+        isCharging: typeof deviceInfo?.isCharging === 'boolean' ? deviceInfo.isCharging : undefined,
+        blocklistVersion: blocklistInfo?.version || 1,
+        appVersion: deviceInfo?.appVersion || undefined,
+        permissions: {
+          vpn: Boolean(vpnActive),
+          accessibility: Boolean(accessibility),
+          notifications: Boolean(notifications),
+          batteryOptimization: Boolean(batteryOptimization),
+          location: Boolean(location),
+          usageStats: Boolean(usageStats),
+        },
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -821,8 +954,11 @@ export class ProtectionService {
       // 3. Enviar a Android Native diferenciando lista personalizada y lista oficial LOTBA
       await this.syncProtectionRules(customDomainsOnly, allBlockedApps, lotbaDomains);
 
-      // 4. Consultar eventos de bloqueos capturados nativamente y reportarlos a telemetría
-      await this.flushNativeBlockEventsToTelemetry(activeDeviceId, lotbaDomains);
+      // 4. Consultar eventos de bloqueos y seguridad capturados nativamente y reportarlos a telemetría
+      if (isProtectedDeviceMode) {
+        await this.flushNativeBlockEventsToTelemetry(activeDeviceId, lotbaDomains);
+        await this.flushNativeSecurityEventsToTelemetry(activeDeviceId);
+      }
 
       return true;
     } catch (err) {

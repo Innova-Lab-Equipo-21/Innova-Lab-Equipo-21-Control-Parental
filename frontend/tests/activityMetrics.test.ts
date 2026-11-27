@@ -20,13 +20,13 @@ import { fileURLToPath } from 'node:url';
 import {
   ACTIVITY_PERIOD_OPTIONS,
   BlockedAttemptRecord,
-  buildActivityDataset,
   buildDeviceFilterOptions,
   computeActivityMetrics,
   formatMetricNumber,
   formatRelativeAttemptTime,
 } from '../src/utils/activityMetrics.js';
 import { apiService } from '../src/services/api.service.js';
+import { apiClient } from '../src/services/api/client.js';
 import { DeviceInfo } from '../src/types/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -237,52 +237,64 @@ describe('Pestaña Actividad — Cálculo de Métricas (Totales, Fuente, Franja 
   });
 });
 
-describe('Pestaña Actividad — Dataset consolidado, Telemetría y Estructura UI', () => {
-  test('Persiste eventos reales vía apiService.reportBlockedEvent y los incorpora a las métricas', async () => {
+describe('Pestaña Actividad — Telemetría Real y Estructura UI', () => {
+  test('Persiste eventos reales vía apiService.reportBlockedEvent (POST /telemetry/events/blocked) y los incorpora a las métricas', async () => {
     await apiService.clearBlockedEvents();
 
-    await apiService.reportBlockedEvent({
-      deviceUuid: 'uuid-test-a',
-      deviceId: 'dev-test-a',
-      deviceName: 'Dispositivo A',
-      attemptedDomain: 'apuesta-reciente-test.bet',
-      sourceListType: 'CUSTOM',
-    });
+    const originalPost = apiClient.post.bind(apiClient);
+    let capturedPayload: any = null;
+    (apiClient as any).post = async (url: string, body?: any) => {
+      if (url === '/telemetry/events/blocked') {
+        capturedPayload = body;
+        return {
+          data: {
+            success: true,
+            data: {
+              id: 'evt-pg-1',
+              deviceId: 'dev-test-a',
+              attemptedDomain: body.attemptedDomain,
+              sourceListType: body.sourceListType,
+              itemType: body.itemType,
+              blockedAt: new Date().toISOString(),
+            },
+          },
+        };
+      }
+      return originalPost(url, body);
+    };
 
-    const stored = await apiService.getBlockedEvents();
-    assert.equal(stored.length, 1);
-    assert.equal(stored[0].attemptedDomain, 'apuesta-reciente-test.bet');
-    assert.equal(stored[0].sourceListType, 'CUSTOM');
+    try {
+      await apiService.reportBlockedEvent({
+        deviceUuid: 'uuid-test-a',
+        deviceId: 'dev-test-a',
+        deviceName: 'Dispositivo A',
+        attemptedDomain: 'apuesta-reciente-test.bet',
+        sourceListType: 'CUSTOM',
+      });
 
-    const dataset = buildActivityDataset({
-      devices: [
-        {
-          deviceId: 'dev-test-a',
-          deviceUuid: 'uuid-test-a',
-          deviceName: 'Dispositivo A',
-          childName: 'Dispositivo A',
-          isProtected: true,
-          status: 'ACTIVE',
-          blockedCount: 1,
-          blocklistVersion: 4,
-        },
-      ],
-      persistedEvents: stored,
-    });
+      assert.equal(capturedPayload?.deviceUuid, 'uuid-test-a');
+      assert.equal(capturedPayload?.attemptedDomain, 'apuesta-reciente-test.bet');
 
-    const metrics = computeActivityMetrics(dataset, {
-      deviceId: 'dev-test-a',
-      period: 'week',
-    });
+      const stored = await apiService.getBlockedEvents();
+      assert.equal(stored.length, 1);
+      assert.equal(stored[0].attemptedDomain, 'apuesta-reciente-test.bet');
+      assert.equal(stored[0].sourceListType, 'CUSTOM');
 
-    assert.ok(metrics.totalBlocks > 0);
-    assert.equal(
-      metrics.recentAttempts[0].attemptedDomain,
-      'apuesta-reciente-test.bet'
-    );
-    assert.equal(metrics.recentAttempts[0].sourceLabel, 'Personalizada');
+      const metrics = computeActivityMetrics(stored, {
+        deviceId: 'dev-test-a',
+        period: 'week',
+      });
 
-    await apiService.clearBlockedEvents();
+      assert.equal(metrics.totalBlocks, 1);
+      assert.equal(
+        metrics.recentAttempts[0].attemptedDomain,
+        'apuesta-reciente-test.bet'
+      );
+      assert.equal(metrics.recentAttempts[0].sourceLabel, 'Personalizada');
+    } finally {
+      (apiClient as any).post = originalPost;
+      await apiService.clearBlockedEvents();
+    }
   });
 
   test('El módulo actividad/ está modularizado y contiene la suite de métricas sin Tiempo de uso', () => {

@@ -1,3 +1,11 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Backend API — Controlador de Métricas y Actividad
+// Archivo: src/controllers/metrics.controller.ts
+// Descripción: Controlador HTTP para métricas de actividad, bloqueos, pasatiempos,
+//              consumo de apps y alertas de seguridad leídas.
+// ==============================================================================
+
 import { Response, NextFunction } from 'express';
 import { metricsService, TimelineDay, TimelineSource } from '../services/metrics.service.js';
 import { AuthenticatedRequest, ApiResponse } from '../types/index.js';

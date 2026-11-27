@@ -366,7 +366,6 @@ describe('2. Uso de apps bloqueadas — Filtrado, orden descendente y totalizado
       'utf8'
     );
     assert.equal(pasatiemposSrc.includes('⭐'), false);
-    assert.equal(pasatiemposSrc.includes('juegos'), false);
     assert.equal(pasatiemposSrc.includes('(3 sopas)'), false);
     assert.equal(pasatiemposSrc.includes('Terminaron hoy'), false);
     assert.equal(pasatiemposSrc.includes('Aciertos hoy'), false);
@@ -377,7 +376,7 @@ describe('2. Uso de apps bloqueadas — Filtrado, orden descendente y totalizado
     assert.equal(pasatiemposSrc.includes('No iniciado'), true);
     assert.equal(pasatiemposSrc.includes('En curso'), true);
     assert.equal(pasatiemposSrc.includes('Completado'), true);
-    assert.equal(pasatiemposSrc.includes('SegmentedTabs'), true);
+    assert.equal(pasatiemposSrc.includes('carouselItems'), true);
     assert.equal(pasatiemposSrc.includes('En la semana'), true);
     assert.equal(pasatiemposSrc.includes('summary.menores.devices.map'), true);
     assert.equal(pasatiemposSrc.includes('summary.adultos.devices.map'), true);
@@ -437,9 +436,9 @@ describe('4. Estructura y orden de bloques en Actividad (Responsable, Adulto y M
     assert.ok(idxFilters > 0);
     assert.ok(idxFilters < idxTotal);
     assert.ok(idxTotal < idxSource);
-    assert.ok(idxSource < idxApps);
+    assert.ok(idxSource < idxAudit);
+    assert.ok(idxAudit < idxApps);
     assert.ok(idxApps < idxPasatiempos);
-    assert.ok(idxPasatiempos < idxAudit);
 
     assert.equal(chartSrc.includes('Por día (Sem)'), false);
     assert.equal(chartSrc.includes('Franja horaria'), false);

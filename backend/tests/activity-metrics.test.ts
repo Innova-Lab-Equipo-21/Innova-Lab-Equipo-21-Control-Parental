@@ -258,5 +258,18 @@ describe('Actividad Backend — Pasatiempos, Uso de Apps y Métricas', () => {
       (e: any) => e.id === eventId
     );
     assert.ok(updatedAlert?.readAt);
+
+    // También debe exponerse en GET /api/metrics/device/:deviceUuid/activity con readAt actualizado
+    const devActAfter = await req(
+      'GET',
+      `/api/metrics/device/${minorDeviceUuid}/activity?dateKey=2026-11-23`
+    );
+    assert.equal(devActAfter.status, 200);
+    assert.ok(Array.isArray(devActAfter.data.data.securityEvents));
+    const devAlert = devActAfter.data.data.securityEvents.find(
+      (e: any) => e.id === eventId
+    );
+    assert.ok(devAlert);
+    assert.ok(devAlert.readAt);
   });
 });

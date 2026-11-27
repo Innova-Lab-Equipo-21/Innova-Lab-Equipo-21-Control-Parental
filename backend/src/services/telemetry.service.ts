@@ -1,3 +1,11 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Backend API — Servicio de Telemetría y Seguridad
+// Archivo: src/services/telemetry.service.ts
+// Descripción: Procesa heartbeats reales, eventos bloqueados, alertas de seguridad,
+//              sesiones de pasatiempos y snapshots de uso de aplicaciones en PostgreSQL.
+// ==============================================================================
+
 import { ProtectionStatus, SecurityEventType } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { env } from '../config/environment.js';
@@ -119,8 +127,10 @@ export class TelemetryService {
       };
     }
 
-    const device = await prisma.device.findUnique({
-      where: { deviceUuid: payload.deviceUuid },
+    const device = await prisma.device.findFirst({
+      where: {
+        OR: [{ deviceUuid: payload.deviceUuid }, { id: payload.deviceUuid }],
+      },
       include: {
         config: true,
         status: true,
@@ -170,10 +180,13 @@ export class TelemetryService {
       },
     });
 
-    // Actualizar fecha de última conexión en el dispositivo
+    // Actualizar fecha de última conexión y versión de app en el dispositivo
     await prisma.device.update({
       where: { id: device.id },
-      data: { lastSeenAt: now },
+      data: {
+        lastSeenAt: now,
+        ...(payload.appVersion ? { appVersion: payload.appVersion } : {}),
+      },
     });
 
     return {
@@ -208,8 +221,10 @@ export class TelemetryService {
       return newEvent;
     }
 
-    const device = await prisma.device.findUnique({
-      where: { deviceUuid: input.deviceUuid },
+    const device = await prisma.device.findFirst({
+      where: {
+        OR: [{ deviceUuid: input.deviceUuid }, { id: input.deviceUuid }],
+      },
     });
 
     if (!device) {
@@ -233,7 +248,9 @@ export class TelemetryService {
    */
   public async recordSecurityEvent(input: RecordSecurityEventInput) {
     if (env.USE_MOCK_DATA) {
-      const device = mockDb.devices.find((d) => d.deviceUuid === input.deviceUuid);
+      const device = mockDb.devices.find(
+        (d) => d.deviceUuid === input.deviceUuid || d.id === input.deviceUuid,
+      );
       const newEvent: MockSecurityEvent = {
         id: `sec-${Date.now()}`,
         deviceId: device ? device.id : input.deviceUuid,
@@ -244,21 +261,30 @@ export class TelemetryService {
       };
       mockDb.securityEvents.push(newEvent);
 
-       if (device?.status && (input.eventType === 'VPN_DISABLED' || input.eventType === 'PERMISSION_REVOKED')) {
-         device.status.effectiveStatus = input.eventType === 'VPN_DISABLED' ? 'INACTIVE' : 'PERMISSION_REQUIRED';
-         device.status.vpnActive = false;
-       }
+      if (device?.status) {
+        if (input.eventType === 'VPN_DISABLED') {
+          device.status.effectiveStatus = 'INACTIVE';
+          device.status.vpnActive = false;
+        } else if (input.eventType === 'PERMISSION_REVOKED') {
+          device.status.effectiveStatus = 'PERMISSION_REQUIRED';
+          device.status.permissionsOk = false;
+        }
+      }
 
-       if (device?.config?.notifyOnSecurity) {
-         const description = input.description || 'Alerta de seguridad';
-         notificationService.sendSecurityAlert(device.userId, device.deviceName, input.eventType, description).catch(() => {});
-       }
+      if (device?.config?.notifyOnSecurity) {
+        const description = input.description || 'Alerta de seguridad';
+        notificationService
+          .sendSecurityAlert(device.userId, device.deviceName, input.eventType, description)
+          .catch(() => {});
+      }
 
-       return newEvent;
+      return newEvent;
     }
 
-    const device = await prisma.device.findUnique({
-      where: { deviceUuid: input.deviceUuid },
+    const device = await prisma.device.findFirst({
+      where: {
+        OR: [{ deviceUuid: input.deviceUuid }, { id: input.deviceUuid }],
+      },
     });
 
     if (!device) {
@@ -274,16 +300,24 @@ export class TelemetryService {
       },
     });
 
-     // Si el evento indica pérdida de protección, actualizar estado a BYPASS_DETECTED o INACTIVE
-     if (input.eventType === 'VPN_DISABLED' || input.eventType === 'PERMISSION_REVOKED') {
-       await prisma.deviceStatus.updateMany({
-         where: { deviceId: device.id },
-         data: {
-           effectiveStatus: input.eventType === 'VPN_DISABLED' ? ProtectionStatus.INACTIVE : ProtectionStatus.PERMISSION_REQUIRED,
-           vpnActive: false,
-         },
-       });
-     }
+    // Si el evento indica pérdida de protección, actualizar el estado efectivo real
+    if (input.eventType === 'VPN_DISABLED') {
+      await prisma.deviceStatus.updateMany({
+        where: { deviceId: device.id },
+        data: {
+          effectiveStatus: ProtectionStatus.INACTIVE,
+          vpnActive: false,
+        },
+      });
+    } else if (input.eventType === 'PERMISSION_REVOKED') {
+      await prisma.deviceStatus.updateMany({
+        where: { deviceId: device.id },
+        data: {
+          effectiveStatus: ProtectionStatus.PERMISSION_REQUIRED,
+          permissionsOk: false,
+        },
+      });
+    }
 
      // Enviar notificación al responsable si notifyOnSecurity está habilitado
      const deviceWithConfig = await prisma.device.findUnique({

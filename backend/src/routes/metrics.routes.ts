@@ -1,3 +1,11 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Backend API — Rutas de Métricas y Actividad
+// Archivo: src/routes/metrics.routes.ts
+// Descripción: Endpoints para resumen de métricas, línea temporal, actividad consolidada
+//              del responsable, actividad por dispositivo protegido y lectura de alertas.
+// ==============================================================================
+
 import { Router } from 'express';
 import { z } from 'zod';
 import { metricsController } from '../controllers/metrics.controller.js';

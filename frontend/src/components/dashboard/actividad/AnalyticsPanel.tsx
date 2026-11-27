@@ -37,13 +37,6 @@ import { PasatiemposSummaryCard } from './blocks/PasatiemposSummaryCard';
 import { AuditEventsCard } from './blocks/AuditEventsCard';
 import { useAnalyticsPanel } from './hooks/useAnalyticsPanel';
 import {
-  DEMO_BLOCKED_ATTEMPTS,
-  DEMO_BYPASS_EVENTS,
-  DEMO_DEVICES,
-  DEMO_HOURLY_DATA,
-  DEMO_WEEK_DATA,
-} from './data';
-import {
   AnalyticsDevice,
   AnalyticsPeriod,
   AttemptEvent,
@@ -78,14 +71,14 @@ export interface AnalyticsPanelProps {
 }
 
 export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
-  devices = DEMO_DEVICES,
+  devices = [],
   rawDevices = [],
   customApps = [],
-  weekData = DEMO_WEEK_DATA,
-  hourlyData = DEMO_HOURLY_DATA,
-  blockedAttempts = DEMO_BLOCKED_ATTEMPTS,
+  weekData = [],
+  hourlyData = [],
+  blockedAttempts = [],
   rawBlockedEvents,
-  bypassEvents = DEMO_BYPASS_EVENTS,
+  bypassEvents = [],
   appUsageSnapshots = [],
   pasatiemposRecordsByDevice = {},
   pasatiemposStreakByDevice = {},

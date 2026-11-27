@@ -1,3 +1,11 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Backend API — Servicio de Métricas y Actividad
+// Archivo: src/services/metrics.service.ts
+// Descripción: Consolida métricas reales desde PostgreSQL para el Responsable y
+//              dispositivos protegidos (bloqueos, uso de apps, pasatiempos y alertas).
+// ==============================================================================
+
 import { ProtectionStatus } from '@prisma/client';
 import { env } from '../config/environment.js';
 import { mockDb } from '../config/mock-database.js';
@@ -578,7 +586,8 @@ export class MetricsService {
   }
 
   /**
-   * Devuelve métricas de Actividad específicas de un dispositivo protegido (Adulto o Menor).
+   * Devuelve métricas de Actividad específicas de un dispositivo protegido (Adulto o Menor),
+   * incluyendo pasatiempos, uso diario de apps, eventos bloqueados y alertas de seguridad reales.
    */
   public async getDeviceActivity(deviceUuid: string, dateKey: string = formatDateKey()) {
     let device: {
@@ -595,6 +604,14 @@ export class MetricsService {
       sourceListType: string;
       itemType?: string | null;
       blockedAt: Date;
+    }> = [];
+    let rawSecurityEvents: Array<{
+      id: string;
+      deviceId: string;
+      eventType: string;
+      description: string | null;
+      occurredAt: Date;
+      readAt: Date | null;
     }> = [];
 
     if (env.USE_MOCK_DATA) {
@@ -613,6 +630,18 @@ export class MetricsService {
           .filter((e) => e.deviceId === found.id)
           .sort((a, b) => b.blockedAt.getTime() - a.blockedAt.getTime())
           .slice(0, 50);
+        rawSecurityEvents = mockDb.securityEvents
+          .filter((e) => e.deviceId === found.id)
+          .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
+          .slice(0, 50)
+          .map((e) => ({
+            id: e.id,
+            deviceId: e.deviceId,
+            eventType: e.eventType,
+            description: e.description || null,
+            occurredAt: e.occurredAt,
+            readAt: e.readAt ?? null,
+          }));
       }
     } else {
       const found = await prisma.device.findFirst({
@@ -625,15 +654,18 @@ export class MetricsService {
           personType: true,
         },
       });
-      if (found) {
-        device = {
-          id: found.id,
-          deviceUuid: found.deviceUuid,
-          deviceName: found.deviceName,
-          childName: found.childName,
-          personType: found.personType === 'ADULTO' ? 'ADULTO' : 'MENOR',
-        };
-        rawBlockedEvents = await prisma.blockedEvent.findMany({
+      if (!found) {
+        throw new AppError('Dispositivo no encontrado', 404);
+      }
+      device = {
+        id: found.id,
+        deviceUuid: found.deviceUuid,
+        deviceName: found.deviceName,
+        childName: found.childName,
+        personType: found.personType === 'ADULTO' ? 'ADULTO' : 'MENOR',
+      };
+      const [dbBlocked, dbSecurity] = await Promise.all([
+        prisma.blockedEvent.findMany({
           where: { deviceId: found.id },
           orderBy: { blockedAt: 'desc' },
           take: 50,
@@ -645,12 +677,35 @@ export class MetricsService {
             itemType: true,
             blockedAt: true,
           },
-        });
-      }
+        }),
+        prisma.securityEvent.findMany({
+          where: { deviceId: found.id },
+          orderBy: { occurredAt: 'desc' },
+          take: 50,
+          select: {
+            id: true,
+            deviceId: true,
+            eventType: true,
+            description: true,
+            occurredAt: true,
+            readAt: true,
+          },
+        }),
+      ]);
+      rawBlockedEvents = dbBlocked;
+      rawSecurityEvents = dbSecurity.map((ev) => ({
+        id: ev.id,
+        deviceId: ev.deviceId,
+        eventType: String(ev.eventType),
+        description: ev.description,
+        occurredAt: ev.occurredAt,
+        readAt: ev.readAt ?? null,
+      }));
     }
 
     const resolvedId = device?.id || deviceUuid;
     const profileType: 'MENOR' | 'ADULTO' = device?.personType || 'MENOR';
+    const resolvedName = device?.childName || device?.deviceName || 'Mi dispositivo';
 
     const [sessions, appUsage] = await Promise.all([
       activityStorageService.listPasatiempoSessions([resolvedId], 30),
@@ -667,9 +722,19 @@ export class MetricsService {
     const blockedEvents = rawBlockedEvents.map((ev) =>
       this.classifyBlockedEvent({
         ...ev,
-        deviceName: device?.childName || device?.deviceName || 'Mi dispositivo',
+        deviceName: resolvedName,
       }),
     );
+
+    const securityEvents = rawSecurityEvents.map((ev) => ({
+      id: ev.id,
+      deviceId: ev.deviceId,
+      deviceName: resolvedName,
+      eventType: ev.eventType,
+      description: ev.description || '',
+      occurredAt: ev.occurredAt.toISOString(),
+      readAt: ev.readAt ? ev.readAt.toISOString() : null,
+    }));
 
     return {
       dateKey,
@@ -682,6 +747,7 @@ export class MetricsService {
       },
       appUsage,
       blockedEvents,
+      securityEvents,
     };
   }
 }

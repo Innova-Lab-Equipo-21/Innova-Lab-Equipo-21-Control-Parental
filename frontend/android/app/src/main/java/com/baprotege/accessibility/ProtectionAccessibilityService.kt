@@ -62,6 +62,7 @@ class ProtectionAccessibilityService : AccessibilityService() {
         private const val KEY_BLOCKED_DOMAINS = "key_blocked_domains_custom"
         private const val KEY_LOTBA_DOMAINS = "key_blocked_domains_lotba"
         private const val KEY_RECENT_BLOCK_EVENTS = "key_recent_block_events"
+        private const val KEY_RECENT_SECURITY_EVENTS = "key_recent_security_events"
         private const val KEY_USER_MODE = "key_user_mode"
 
         private val isRunning = AtomicBoolean(false)
@@ -996,6 +997,26 @@ class ProtectionAccessibilityService : AccessibilityService() {
         return false
     }
 
+    private fun recordSecurityEvent(eventType: String, description: String) {
+        try {
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val existing = prefs.getString(KEY_RECENT_SECURITY_EVENTS, "[]")
+            val array = JSONArray(existing)
+            val eventObj = JSONObject().apply {
+                put("eventType", eventType)
+                put("description", description)
+                put("timestamp", System.currentTimeMillis())
+            }
+            array.put(eventObj)
+            while (array.length() > 50) {
+                array.remove(0)
+            }
+            prefs.edit().putString(KEY_RECENT_SECURITY_EVENTS, array.toString()).apply()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error registrando evento de seguridad: ${e.message}")
+        }
+    }
+
     private fun blockUninstallAttempt() {
         val now = System.currentTimeMillis()
         if (now - lastBlockTimestamp < 1500) {
@@ -1004,6 +1025,10 @@ class ProtectionAccessibilityService : AccessibilityService() {
         lastBlockTimestamp = now
 
         Log.w(TAG, "🛡️ Intento de desinstalación o detención de BA Protege+ bloqueado por antidesinstalación.")
+        recordSecurityEvent(
+            "UNINSTALL_ATTEMPT",
+            "Se detectó un intento de desinstalación o detención de BA Protege+"
+        )
 
         // Enviar al Home del sistema para cancelar el diálogo o salir de ajustes
         performGlobalAction(GLOBAL_ACTION_HOME)

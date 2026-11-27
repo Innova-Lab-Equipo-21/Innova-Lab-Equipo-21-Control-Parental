@@ -4,7 +4,7 @@
 // Archivo: src/components/dashboard/actividad/index.ts
 // Descripción: Punto de entrada público del módulo de analítica. Exporta los
 //              bloques compuestos, los componentes atómicos reutilizables, los
-//              hooks, los tipos y los datos de demostración.
+//              hooks, los tipos y las estructuras vacías base.
 // ==============================================================================
 
 // Orquestador
@@ -51,11 +51,5 @@ export type {
 export * from './types';
 export { analyticsPalette } from './palette';
 
-// Datos de demostración (fallback)
-export {
-  DEMO_DEVICES,
-  DEMO_WEEK_DATA,
-  DEMO_HOURLY_DATA,
-  DEMO_BLOCKED_ATTEMPTS,
-  DEMO_BYPASS_EVENTS,
-} from './data';
+// Estructuras vacías base (sin datos ficticios)
+export { EMPTY_WEEK_DATA, EMPTY_HOURLY_DATA } from './data';

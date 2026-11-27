@@ -22,6 +22,16 @@ const heartbeatSchema = z.object({
     isCharging: z.boolean().optional(),
     blocklistVersion: z.number(),
     appVersion: z.string().optional(),
+    permissions: z
+      .object({
+        vpn: z.boolean().optional(),
+        accessibility: z.boolean().optional(),
+        notifications: z.boolean().optional(),
+        batteryOptimization: z.boolean().optional(),
+        location: z.boolean().optional(),
+        usageStats: z.boolean().optional(),
+      })
+      .optional(),
   }),
 });
 

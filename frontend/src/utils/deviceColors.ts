@@ -2,6 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: Utils (Colores de Destaque y Normalización de Dispositivos)
 // Archivo: src/utils/deviceColors.ts
+// Descripción: Paleta institucional de colores por dispositivo y helpers de dominios.
 // ==============================================================================
 
 export interface DeviceHighlight {
@@ -16,8 +17,8 @@ export interface DeviceHighlight {
  * Retorna los tokens de color de destaque institucional para cada dispositivo,
  * asegurando uniformidad visual según los perfiles definidos en el proyecto:
  * - Responsable: Azul institucional BA (#007AFF)
- * - Mateo: Verde protección / secundario (#28A745)
- * - Sofía: Púrpura / Modo protegido (#7E22CE)
+ * - Protegido 1: Verde protección / secundario (#28A745)
+ * - Protegido 2: Púrpura / Modo protegido (#7E22CE)
  * - Dispositivos adicionales: Paleta accesible predefinida
  */
 export const getDeviceHighlight = (

@@ -7,9 +7,14 @@
 //              eventos bloqueados filtrados para el dispositivo protegido.
 // ==============================================================================
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { CustomBlockedApp, CustomBlockedDomain, DeviceInfo } from '../../../../types';
+import {
+  CustomBlockedApp,
+  CustomBlockedDomain,
+  DeviceInfo,
+  DevicePermissionsStatus,
+} from '../../../../types';
 import { isItemVisibleForAdultoDevice } from '../../../../utils/adultoSitios';
 import { checkRealDevicePermissions } from '../../../../utils/permissionChecker';
 import {
@@ -98,15 +103,62 @@ export function useProtectedDeviceData({
   const [persistedSecurityEvents, setPersistedSecurityEvents] = useState<
     SecurityEventOverviewItem[]
   >([]);
+  const prevPermsRef = useRef<DevicePermissionsStatus | null>(null);
+
+  const hasRealUuid =
+    Boolean(deviceUuid) && deviceUuid !== 'local' && deviceUuid !== 'self';
 
   const refreshPermissions = useCallback(async () => {
     try {
       const real = await checkRealDevicePermissions(deviceUuid);
       setGrantedPermsCount(real.grantedCount);
+
+      // Detectar revocación real de VPN o permisos y reportar alerta de seguridad al backend
+      const prev = prevPermsRef.current;
+      prevPermsRef.current = real;
+
+      if (hasRealUuid && prev) {
+        const securityReports: Array<{ eventType: string; description: string }> = [];
+        if (prev.vpn && !real.vpn) {
+          securityReports.push({
+            eventType: 'VPN_DISABLED',
+            description: 'Se desactivó el filtro VPN de protección en el dispositivo',
+          });
+        }
+        const revokedLabels: string[] = [];
+        if (prev.accessibility && !real.accessibility) revokedLabels.push('Accesibilidad');
+        if (prev.notifications && !real.notifications) revokedLabels.push('Notificaciones');
+        if (prev.batteryOptimization && !real.batteryOptimization)
+          revokedLabels.push('Optimización de batería');
+        if (prev.location && !real.location) revokedLabels.push('Ubicación');
+        if (prev.usageStats && !real.usageStats) revokedLabels.push('Estadísticas de uso');
+
+        if (revokedLabels.length > 0) {
+          securityReports.push({
+            eventType: 'PERMISSION_REVOKED',
+            description: `Permiso deshabilitado: ${revokedLabels.join(', ')}`,
+          });
+        }
+
+        if (securityReports.length > 0) {
+          await Promise.all(
+            securityReports.map((rep) =>
+              apiService
+                .reportSecurityEvent({
+                  deviceUuid,
+                  eventType: rep.eventType,
+                  description: rep.description,
+                })
+                .catch(() => {})
+            )
+          );
+          await protectionService.sendRealDeviceHeartbeat(deviceUuid).catch(() => false);
+        }
+      }
     } catch {
       // Mantener conteo actual si falla la lectura
     }
-  }, [deviceUuid]);
+  }, [deviceUuid, hasRealUuid]);
 
   const loadCustomBlockedList = useCallback(async () => {
     try {
@@ -195,23 +247,30 @@ export function useProtectedDeviceData({
   const loadActivityUsageAndBlocks = useCallback(async () => {
     const todayKey = getLocalDateKey();
     try {
-      // Drenar eventos de bloqueo capturados nativamente antes de leer telemetría
-      await protectionService
-        .flushNativeBlockEventsToTelemetry(storageDeviceKey)
-        .catch(() => 0);
+      // 0. Drenar eventos nativos de bloqueo y seguridad + enviar heartbeat real
+      if (hasRealUuid) {
+        await Promise.all([
+          protectionService.flushNativeBlockEventsToTelemetry(deviceUuid).catch(() => 0),
+          protectionService.flushNativeSecurityEventsToTelemetry(deviceUuid).catch(() => 0),
+        ]);
+      }
 
-      const [remoteMetrics, localBlocked, localSecurity] = await Promise.all([
-        apiService.getDeviceActivityMetrics(storageDeviceKey, todayKey).catch(() => null),
-        apiService.getBlockedEvents().catch(() => []),
-        apiService.getSecurityEvents().catch(() => []),
-      ]);
-      setPersistedSecurityEvents(Array.isArray(localSecurity) ? localSecurity : []);
+      const remoteMetrics = hasRealUuid
+        ? await apiService.getDeviceActivityMetrics(deviceUuid, todayKey).catch(() => null)
+        : null;
 
-      // 1. Combinar eventos bloqueados remotos y locales
-      const mergedEvents = new Map<string, BlockedAttemptRecord>();
-      if (Array.isArray(remoteMetrics?.blockedEvents)) {
-        for (const ev of remoteMetrics.blockedEvents) {
-          mergedEvents.set(ev.id, {
+      // 1. Alertas de seguridad reales desde PostgreSQL (fuente de verdad)
+      if (remoteMetrics && Array.isArray(remoteMetrics.securityEvents)) {
+        setPersistedSecurityEvents(remoteMetrics.securityEvents);
+      } else if (!hasRealUuid) {
+        const localSecurity = await apiService.getSecurityEvents().catch(() => []);
+        setPersistedSecurityEvents(Array.isArray(localSecurity) ? localSecurity : []);
+      }
+
+      // 2. Eventos bloqueados reales desde PostgreSQL (fuente de verdad)
+      if (remoteMetrics && Array.isArray(remoteMetrics.blockedEvents)) {
+        setPersistedBlockedEvents(
+          remoteMetrics.blockedEvents.map((ev) => ({
             id: ev.id,
             deviceId: ev.deviceId,
             deviceName: ev.deviceName,
@@ -220,19 +279,14 @@ export function useProtectedDeviceData({
             itemType: ev.itemType,
             blockedAt: ev.blockedAt,
             count: 1,
-          });
-        }
+          }))
+        );
+      } else if (!hasRealUuid) {
+        const localBlocked = await apiService.getBlockedEvents().catch(() => []);
+        setPersistedBlockedEvents(Array.isArray(localBlocked) ? localBlocked : []);
       }
-      if (Array.isArray(localBlocked)) {
-        for (const ev of localBlocked) {
-          if (!mergedEvents.has(ev.id)) {
-            mergedEvents.set(ev.id, ev);
-          }
-        }
-      }
-      setPersistedBlockedEvents(Array.from(mergedEvents.values()));
 
-      // 2. Leer consumo real nativo de las apps bloqueadas y sincronizar con backend
+      // 3. Leer consumo real nativo de las apps bloqueadas y sincronizar con PostgreSQL
       const activeApps = customApps.filter((a) => a.isActive !== false);
       let snapshots: AppUsageRawSnapshot[] = [];
       if (activeApps.length > 0) {
@@ -240,16 +294,18 @@ export function useProtectedDeviceData({
           const nativeUsage = await protectionService.getBlockedAppsUsageToday(activeApps);
           if (nativeUsage.length > 0) {
             snapshots = nativeUsage.map((item) => ({
-              deviceId: storageDeviceKey,
+              deviceId: publicProfile?.deviceId || storageDeviceKey,
               packageName: item.packageName,
               appName: item.appName,
               usedMinutes: item.usedMinutes,
               dailyLimitMinutes: item.dailyLimitMinutes ?? null,
               isBlocked: item.isBlocked,
             }));
-            apiService
-              .syncAppUsageSnapshot(storageDeviceKey, snapshots, todayKey)
-              .catch(() => {});
+            if (hasRealUuid) {
+              apiService
+                .syncAppUsageSnapshot(deviceUuid, snapshots, todayKey)
+                .catch(() => {});
+            }
           }
         } catch {
           // Respaldo si el módulo nativo no está disponible
@@ -257,16 +313,16 @@ export function useProtectedDeviceData({
       }
 
       if (snapshots.length === 0) {
-        const cached = await apiService
-          .getLocalAppUsageSnapshot(storageDeviceKey, todayKey)
-          .catch(() => []);
-        if (cached.length > 0) {
-          snapshots = cached;
-        } else if (
+        if (
           Array.isArray(remoteMetrics?.appUsage) &&
           remoteMetrics.appUsage.length > 0
         ) {
           snapshots = remoteMetrics.appUsage;
+        } else {
+          const cached = await apiService
+            .getLocalAppUsageSnapshot(storageDeviceKey, todayKey)
+            .catch(() => []);
+          snapshots = cached;
         }
       }
 
@@ -274,16 +330,28 @@ export function useProtectedDeviceData({
     } catch {
       // Mantener datos en memoria
     }
-  }, [storageDeviceKey, customApps]);
+  }, [deviceUuid, hasRealUuid, publicProfile?.deviceId, storageDeviceKey, customApps]);
 
-  // Carga inicial de VPN, blocklist y permisos
+  // Carga inicial de VPN, blocklist, permisos y heartbeat real
   useEffect(() => {
     protectionService.isProtectionActive().catch(() => {
       console.warn('Servicio VPN en modo emulador');
     });
     loadCustomBlockedList();
     refreshPermissions();
-  }, [loadCustomBlockedList, refreshPermissions]);
+    if (hasRealUuid) {
+      protectionService.sendRealDeviceHeartbeat(deviceUuid).catch(() => false);
+    }
+  }, [loadCustomBlockedList, refreshPermissions, hasRealUuid, deviceUuid]);
+
+  // Heartbeat periódico real cada 60 segundos mientras la pantalla protegida está activa
+  useEffect(() => {
+    if (!hasRealUuid) return;
+    const intervalId = setInterval(() => {
+      protectionService.sendRealDeviceHeartbeat(deviceUuid).catch(() => false);
+    }, 60_000);
+    return () => clearInterval(intervalId);
+  }, [hasRealUuid, deviceUuid]);
 
   // Actualizar métricas de uso de apps y bloqueos cuando cambian las apps bloqueadas
   useEffect(() => {
@@ -296,13 +364,16 @@ export function useProtectedDeviceData({
       if (nextState === 'active') {
         refreshPermissions();
         loadActivityUsageAndBlocks();
+        if (hasRealUuid) {
+          protectionService.sendRealDeviceHeartbeat(deviceUuid).catch(() => false);
+        }
         onForegroundResume?.();
       }
     });
     return () => {
       subscription.remove();
     };
-  }, [refreshPermissions, loadActivityUsageAndBlocks, onForegroundResume]);
+  }, [refreshPermissions, loadActivityUsageAndBlocks, hasRealUuid, deviceUuid, onForegroundResume]);
 
   // Identificación del dispositivo protegido vinculado (Menor o Adulto)
   const matchedChildDevice = useMemo(
@@ -383,6 +454,7 @@ export function useProtectedDeviceData({
     const targetDevice = mode === 'ADULT' ? matchedAdultDevice : matchedChildDevice;
     const personalIds = new Set(
       [
+        publicProfile?.deviceId,
         targetDevice?.deviceId,
         targetDevice?.deviceUuid,
         deviceUuid,
@@ -410,6 +482,7 @@ export function useProtectedDeviceData({
     return snapshot.allFilteredAttempts;
   }, [
     mode,
+    publicProfile?.deviceId,
     matchedAdultDevice,
     matchedChildDevice,
     deviceUuid,
@@ -421,6 +494,7 @@ export function useProtectedDeviceData({
     const targetDevice = mode === 'ADULT' ? matchedAdultDevice : matchedChildDevice;
     const personalIds = new Set(
       [
+        publicProfile?.deviceId,
         targetDevice?.deviceId,
         targetDevice?.deviceUuid,
         deviceUuid,

@@ -19,18 +19,23 @@ import {
   getDeviceFirstName,
   validateDeviceName,
 } from '../src/utils/authValidation';
-import { buildDeviceFilterOptions } from '../src/utils/activityMetrics';
+import {
+  buildDeviceFilterOptions,
+  getDisplayTitleForBlockedAttempt,
+} from '../src/utils/activityMetrics';
 import { DeviceInfo } from '../src/types';
-import { DEMO_BLOCKED_ATTEMPTS } from '../src/components/dashboard/actividad/data';
 
 describe('1. Bloque "Listado de bloqueos" — LOTBA anónimo y Filtros', () => {
   test('Los eventos de la lista LOTBA muestran "Sitio no autorizado" en lugar del dominio', () => {
-    // 1. Verificar datos de demostración
-    const lotbaDemo = DEMO_BLOCKED_ATTEMPTS.filter((a) => a.source === 'lotba');
-    assert.ok(lotbaDemo.length > 0);
-    lotbaDemo.forEach((item) => {
-      assert.equal(item.title, 'Sitio no autorizado');
-    });
+    // 1. Verificar función de anonimización LOTBA
+    assert.equal(
+      getDisplayTitleForBlockedAttempt('casino-ilegal.bet', 'LOTBA', 'site'),
+      'Sitio no autorizado'
+    );
+    assert.equal(
+      getDisplayTitleForBlockedAttempt('com.casino.app', 'LOTBA', 'app'),
+      'App no autorizada'
+    );
 
     // 2. Verificar código fuente de AuditEventsCard
     const cardPath = path.resolve(

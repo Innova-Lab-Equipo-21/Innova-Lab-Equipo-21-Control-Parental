@@ -5,7 +5,7 @@
 // Descripción: Valida la suite de componentes de analítica del módulo actividad/:
 //              1) Integridad de los archivos activos del módulo actividad/
 //              2) Tokens de color (Alto Contraste Cognitivo)
-//              3) Datos de demostración (fallback) y estructura de tipos
+//              3) Estructuras vacías base (cero datos DEMO_) y estructura de tipos
 //              4) Orquestación en ParentDashboardScreen con useRealAnalyticsData
 // ==============================================================================
 
@@ -17,11 +17,8 @@ import { fileURLToPath } from 'node:url';
 
 import { analyticsPalette } from '../src/components/dashboard/actividad/palette.js';
 import {
-  DEMO_DEVICES,
-  DEMO_WEEK_DATA,
-  DEMO_HOURLY_DATA,
-  DEMO_BLOCKED_ATTEMPTS,
-  DEMO_BYPASS_EVENTS,
+  EMPTY_WEEK_DATA,
+  EMPTY_HOURLY_DATA,
 } from '../src/components/dashboard/actividad/data.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -80,12 +77,18 @@ describe('Panel de Analítica — Estructura e Integridad de Archivos', () => {
     assert.equal(analyticsPalette.white, '#ffffff');
   });
 
-  test('Los datos de muestra coinciden con la estructura esperada', () => {
-    assert.equal(DEMO_DEVICES.length, 3);
-    assert.equal(DEMO_WEEK_DATA.length, 7);
-    assert.equal(DEMO_HOURLY_DATA.length, 24);
-    assert.equal(DEMO_BLOCKED_ATTEMPTS.length, 3);
-    assert.equal(DEMO_BYPASS_EVENTS.length, 3);
+  test('Las estructuras vacías base están en cero y AnalyticsPanel no usa datos DEMO_', () => {
+    assert.equal(EMPTY_WEEK_DATA.length, 7);
+    assert.equal(EMPTY_HOURLY_DATA.length, 24);
+    assert.ok(EMPTY_WEEK_DATA.every((d) => d.lotba === 0 && d.custom === 0));
+    assert.ok(EMPTY_HOURLY_DATA.every((h) => h.lotba === 0 && h.custom === 0));
+
+    const panelSrc = fs.readFileSync(
+      path.join(analyticsDir, 'AnalyticsPanel.tsx'),
+      'utf8'
+    );
+    assert.ok(!panelSrc.includes('DEMO_'));
+    assert.ok(!panelSrc.includes('Mateo'));
   });
 
   test('ParentDashboardScreen orquesta AnalyticsPanel con los datos reales de useRealAnalyticsData', () => {

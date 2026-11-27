@@ -63,6 +63,58 @@ async function ensureBlocklistSchema(): Promise<void> {
 }
 
 /**
+ * Garantiza de forma idempotente las tablas y columnas aditivas de Actividad y Telemetría
+ * (`pasatiempo_sessions`, `app_usage_snapshots`, `security_events.read_at`, `blocked_events.item_type`)
+ * en entornos gestionados donde el despliegue no ejecuta `prisma migrate deploy`.
+ */
+async function ensureActivitySchema(): Promise<void> {
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS "public"."pasatiempo_sessions" (
+      "id" TEXT NOT NULL,
+      "device_id" TEXT NOT NULL,
+      "date_key" TEXT NOT NULL,
+      "game_type" TEXT NOT NULL,
+      "status" TEXT NOT NULL DEFAULT 'PENDING',
+      "correct_count" INTEGER NOT NULL DEFAULT 0,
+      "wrong_count" INTEGER NOT NULL DEFAULT 0,
+      "total_items" INTEGER NOT NULL DEFAULT 0,
+      "attempts" INTEGER NOT NULL DEFAULT 0,
+      "details" JSONB,
+      "completed_at" TIMESTAMP(3),
+      "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "pasatiempo_sessions_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "pasatiempo_sessions_device_id_date_key_game_type_key" ON "public"."pasatiempo_sessions"("device_id", "date_key", "game_type")`,
+    `CREATE INDEX IF NOT EXISTS "pasatiempo_sessions_device_id_date_key_idx" ON "public"."pasatiempo_sessions"("device_id", "date_key")`,
+    `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pasatiempo_sessions_device_id_fkey') THEN ALTER TABLE "public"."pasatiempo_sessions" ADD CONSTRAINT "pasatiempo_sessions_device_id_fkey" FOREIGN KEY ("device_id") REFERENCES "public"."devices"("id") ON DELETE CASCADE ON UPDATE CASCADE; END IF; END $$`,
+    `CREATE TABLE IF NOT EXISTS "public"."app_usage_snapshots" (
+      "id" TEXT NOT NULL,
+      "device_id" TEXT NOT NULL,
+      "date_key" TEXT NOT NULL,
+      "package_name" TEXT NOT NULL,
+      "app_name" TEXT NOT NULL,
+      "used_minutes" INTEGER NOT NULL DEFAULT 0,
+      "daily_limit_minutes" INTEGER,
+      "is_blocked" BOOLEAN NOT NULL DEFAULT false,
+      "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "app_usage_snapshots_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "app_usage_snapshots_device_id_date_key_package_name_key" ON "public"."app_usage_snapshots"("device_id", "date_key", "package_name")`,
+    `CREATE INDEX IF NOT EXISTS "app_usage_snapshots_device_id_date_key_idx" ON "public"."app_usage_snapshots"("device_id", "date_key")`,
+    `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'app_usage_snapshots_device_id_fkey') THEN ALTER TABLE "public"."app_usage_snapshots" ADD CONSTRAINT "app_usage_snapshots_device_id_fkey" FOREIGN KEY ("device_id") REFERENCES "public"."devices"("id") ON DELETE CASCADE ON UPDATE CASCADE; END IF; END $$`,
+    `ALTER TABLE "public"."security_events" ADD COLUMN IF NOT EXISTS "read_at" TIMESTAMP(3)`,
+    `CREATE INDEX IF NOT EXISTS "security_events_device_id_read_at_idx" ON "public"."security_events"("device_id", "read_at")`,
+    `ALTER TABLE "public"."blocked_events" ADD COLUMN IF NOT EXISTS "item_type" TEXT NOT NULL DEFAULT 'SITE'`,
+  ];
+
+  for (const sql of statements) {
+    await prisma.$executeRawUnsafe(sql);
+  }
+}
+
+/**
  * Función para verificar la conectividad con la base de datos PostgreSQL o activar modo mock.
  */
 export async function connectDatabase(): Promise<void> {
@@ -74,6 +126,7 @@ export async function connectDatabase(): Promise<void> {
   try {
     await prisma.$connect();
     await ensureBlocklistSchema();
+    await ensureActivitySchema();
     console.log('✅ Conexión establecida con éxito con PostgreSQL.');
   } catch (error) {
     console.warn('⚠️ Error al inicializar conexión o esquema PostgreSQL:', error);
