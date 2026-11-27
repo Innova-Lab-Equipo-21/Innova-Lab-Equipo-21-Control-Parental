@@ -21,17 +21,23 @@ const generatePairingSchema = z.object({
     .object({
       deviceId: z.string().min(1).optional(),
       childName: z.string().trim().min(1, 'El nombre del protegido es requerido').optional(),
+      protectedName: z.string().trim().min(1).optional(),
       gender: z
         .enum(['MASCULINO', 'FEMENINO', 'OTRO', 'NO_INFORMADO', 'Masculino', 'Femenino', 'Otro', 'No informado'])
         .optional(),
+      genero: z
+        .enum(['MASCULINO', 'FEMENINO', 'OTRO', 'NO_INFORMADO', 'Masculino', 'Femenino', 'Otro', 'No informado'])
+        .optional(),
       personType: z.enum(['MENOR', 'ADULTO', 'Menor', 'Adulto']).optional(),
+      protectedType: z.enum(['MENOR', 'ADULTO', 'Menor', 'Adulto']).optional(),
       birthDate: z
         .string()
         .refine((v) => !Number.isNaN(Date.parse(v)) || /^\d{2}[/.-]\d{2}[/.-]\d{4}$/.test(v), 'Fecha de nacimiento inválida')
         .optional(),
       phone: z.string().trim().optional(),
+      protectedPhone: z.string().trim().optional(),
     })
-    .refine((body) => Boolean(body.deviceId || body.childName), {
+    .refine((body) => Boolean(body.deviceId || body.childName || body.protectedName), {
       message: 'Debe especificar un deviceId existente o el nombre del protegido',
     }),
 });

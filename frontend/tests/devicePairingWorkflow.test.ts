@@ -1,16 +1,81 @@
 // ==============================================================================
 // Proyecto: BA Protege+
-// Pruebas: Flujo de Vinculación de Dispositivos y Recuperación de Código/QR
+// Componente: Pruebas Automatizadas — Flujo de Vinculación de Dispositivos
 // Archivo: tests/devicePairingWorkflow.test.ts
+// Descripción: Valida creación de dispositivos, persistencia de código/QR real,
+//              regeneración contra backend y rechazo sin códigos fallback locales.
 // ==============================================================================
 
-import { test, describe } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { apiService } from '../src/services/api.service';
-import { safeStorage } from '../src/services/api/client';
+import { apiClient, safeStorage } from '../src/services/api/client';
 
 describe('Flujo de Vinculación de Dispositivos (Pairing & Edit Workflow)', () => {
-  test('1. Al guardar en Vincular nuevo dispositivo, se persiste el dispositivo y se genera el código de vinculación', async () => {
+  const originalGet = apiClient.get.bind(apiClient);
+  const originalPost = apiClient.post.bind(apiClient);
+  const originalPut = apiClient.put.bind(apiClient);
+  const originalDelete = apiClient.delete.bind(apiClient);
+
+  const mockBackendDevices: any[] = [];
+  let nextCodeCounter = 700537;
+
+  beforeEach(async () => {
+    mockBackendDevices.length = 0;
+    await safeStorage.removeItem('@ba_protege_devices_list');
+
+    (apiClient as any).post = async (url: string, body: any) => {
+      if (url === '/devices') {
+        const pairingCode = String(nextCodeCounter++);
+        const created = {
+          id: `uuid-dev-${mockBackendDevices.length + 1}`,
+          deviceUuid: `hw-uuid-${mockBackendDevices.length + 1}`,
+          deviceName: body.childName,
+          childName: body.childName,
+          birthDate: '2014-05-15T00:00:00.000Z',
+          gender: String(body.gender || 'NO_INFORMADO').toUpperCase(),
+          personType: body.profileType === 'Adulto' ? 'ADULTO' : 'MENOR',
+          phone: body.phone || null,
+          model: body.deviceModel || 'Android',
+          pairingCode,
+          status: {
+            effectiveStatus: 'INACTIVE',
+            vpnActive: false,
+            permissionsOk: false,
+            blocklistVersion: 1,
+          },
+          _count: { blockedEvents: 0 },
+        };
+        mockBackendDevices.unshift(created);
+        return { data: { success: true, data: { device: created, pairingCode } } };
+      }
+      if (url === '/devices/pair/generate') {
+        const newCode = String(nextCodeCounter++);
+        const target = mockBackendDevices.find((d) => d.id === body?.deviceId);
+        if (target) {
+          target.pairingCode = newCode;
+        }
+        return { data: { success: true, data: { pairingCode: newCode } } };
+      }
+      throw new Error(`Unexpected POST ${url}`);
+    };
+
+    (apiClient as any).get = async (url: string) => {
+      if (url === '/devices') {
+        return { data: { success: true, data: mockBackendDevices } };
+      }
+      throw new Error(`Unexpected GET ${url}`);
+    };
+  });
+
+  afterEach(() => {
+    (apiClient as any).get = originalGet;
+    (apiClient as any).post = originalPost;
+    (apiClient as any).put = originalPut;
+    (apiClient as any).delete = originalDelete;
+  });
+
+  test('1. Al guardar en Vincular nuevo dispositivo, se persiste en backend y devuelve el código real de 6 dígitos', async () => {
     const testName = `ProtegidoTest_${Date.now()}`;
     const res = await apiService.addDevice({
       childName: testName,
@@ -23,61 +88,80 @@ describe('Flujo de Vinculación de Dispositivos (Pairing & Edit Workflow)', () =
       isProtected: false,
     });
 
-    assert.ok(res.success, 'La creación debe ser exitosa');
+    assert.equal(res.success, true);
     assert.equal(res.data.childName, testName);
     assert.equal(res.data.status, 'INACTIVE');
-    assert.ok(res.data.pairingCode, 'Debe incluir un código de pareamiento generado');
-    assert.match(res.data.pairingCode, /^\d{6}$/, 'El código debe tener exactamente 6 dígitos numéricos');
+    assert.equal(res.data.permissions?.grantedCount, 0, 'Un dispositivo inactivo no debe mostrar permisos ficticios');
+    assert.ok(res.data.pairingCode);
+    assert.match(res.data.pairingCode, /^\d{6}$/);
   });
 
-  test('2. En la lista de dispositivos, el dispositivo inactivo conserva su pairingCode recuperado', async () => {
-    const listRes = await apiService.listDevices();
-    assert.ok(listRes.success);
-    const testDev = listRes.data.find((d) => d.childName?.startsWith('ProtegidoTest_'));
-    assert.ok(testDev, 'El dispositivo creado debe estar en la lista');
-    assert.ok(testDev.pairingCode, 'El dispositivo en la lista debe tener su pairingCode disponible');
-  });
-
-  test('3. Regenerar código para un dispositivo específico actualiza el pairingCode en la persistencia', async () => {
-    const listRes = await apiService.listDevices();
-    const testDev = listRes.data.find((d) => d.childName?.startsWith('ProtegidoTest_'))!;
-    const originalCode = testDev.pairingCode;
-
-    const regenRes = await apiService.generatePairingCode({
-      deviceId: testDev.deviceId,
-      protectedName: testDev.childName,
-      genero: testDev.gender,
-      protectedType: testDev.profileType,
-      birthDate: testDev.birthDate,
-      protectedPhone: testDev.phone,
-      deviceModel: testDev.deviceModel,
+  test('2. En la lista de dispositivos, el dispositivo inactivo conserva su pairingCode recuperado de PostgreSQL', async () => {
+    await apiService.addDevice({
+      childName: 'Sofía',
+      birthDate: '15/05/2014',
+      profileType: 'Menor',
+      gender: 'Femenino',
+      phone: '11 2345-6789',
+      deviceModel: 'Samsung Galaxy A54',
     });
 
-    assert.ok(regenRes.success);
+    const listRes = await apiService.listDevices();
+    assert.equal(listRes.success, true);
+    const testDev = listRes.data.find((d) => d.childName === 'Sofía');
+    assert.ok(testDev);
+    assert.match(testDev.pairingCode || '', /^\d{6}$/);
+  });
+
+  test('3. Regenerar código para un dispositivo específico actualiza el pairingCode desde el backend', async () => {
+    const added = await apiService.addDevice({
+      childName: 'Lucas',
+      birthDate: '10/10/2012',
+      profileType: 'Menor',
+      gender: 'Masculino',
+      phone: '11 9999-8888',
+    });
+    const originalCode = added.data.pairingCode;
+
+    const regenRes = await apiService.generatePairingCode({
+      deviceId: added.data.deviceId,
+      protectedName: added.data.childName,
+      genero: added.data.gender,
+      protectedType: added.data.profileType,
+      birthDate: added.data.birthDate,
+      protectedPhone: added.data.phone,
+    });
+
+    assert.equal(regenRes.success, true);
     const newCode = regenRes.data.code;
-    assert.ok(newCode);
     assert.match(newCode, /^\d{6}$/);
+    assert.notEqual(newCode, originalCode);
 
     const updatedList = await apiService.listDevices();
-    const refreshedDev = updatedList.data.find((d) => d.deviceId === testDev.deviceId);
-    assert.equal(refreshedDev?.pairingCode, newCode, 'El nuevo código debe quedar guardado en el dispositivo');
+    const refreshedDev = updatedList.data.find((d) => d.deviceId === added.data.deviceId);
+    assert.equal(refreshedDev?.pairingCode, newCode);
   });
 
-  test('4. Formateo de código espaciado para presentación visual idéntica al diseño oficial (Image 2)', () => {
+  test('4. Si el backend falla al generar código, NO fabrica un código fallback local y propaga el error', async () => {
+    (apiClient as any).post = async () => {
+      const err: any = new Error('Server error');
+      err.response = { status: 500, data: { message: 'Error de base de datos al generar código' } };
+      throw err;
+    };
+
+    await assert.rejects(
+      () => apiService.generatePairingCode({ deviceId: 'uuid-dev-1' }),
+      /Error de base de datos al generar código/
+    );
+  });
+
+  test('5. Formateo de código espaciado para presentación visual', () => {
     const rawCode = '700537';
     const spaced = rawCode.split('').join(' ');
-    assert.equal(spaced, '7 0 0 5 3 7', 'El código debe presentarse con separación de caracteres');
+    assert.equal(spaced, '7 0 0 5 3 7');
   });
 
-  test('5. Limpieza de datos temporales de prueba', async () => {
-    const listRes = await apiService.listDevices();
-    const filtered = listRes.data.filter((d) => !d.childName?.startsWith('ProtegidoTest_'));
-    await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(filtered));
-    const finalList = await apiService.listDevices();
-    assert.ok(!finalList.data.some((d) => d.childName?.startsWith('ProtegidoTest_')));
-  });
-
-  test('6. Actualización instantánea: addDevice persiste inmediatamente en @ba_protege_devices_list para actualización rápida de Inicio y Dispositivos', async () => {
+  test('6. Actualización instantánea en caché local tras respuesta real de addDevice', async () => {
     const instantName = `InstantDevice_${Date.now()}`;
     const res = await apiService.addDevice({
       childName: instantName,
@@ -86,20 +170,13 @@ describe('Flujo de Vinculación de Dispositivos (Pairing & Edit Workflow)', () =
       gender: 'Femenino',
       phone: '11 9999-8888',
       deviceModel: 'Motorola Moto G',
-      status: 'INACTIVE',
-      isProtected: false,
     });
 
-    assert.ok(res.success);
-    // Verificar que safeStorage contiene el nuevo dispositivo sin esperar ninguna llamada externa
+    assert.equal(res.success, true);
     const raw = await safeStorage.getItem('@ba_protege_devices_list');
-    assert.ok(raw, 'El almacenamiento local debe contener la lista');
+    assert.ok(raw);
     const parsed = JSON.parse(raw);
     const found = parsed.find((d: any) => d.childName === instantName);
-    assert.ok(found, 'El nuevo dispositivo debe estar inmediatamente disponible en la caché local');
-
-    // Limpieza
-    const filtered = parsed.filter((d: any) => d.childName !== instantName);
-    await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(filtered));
+    assert.ok(found);
   });
 });

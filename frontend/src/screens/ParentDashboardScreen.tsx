@@ -414,17 +414,19 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     setLoading(true);
     try {
       const res = await apiService.generatePairingCode(formData);
-      setPairingCode(res.data?.code || res.data?.pairingCode || '483921');
+      const generatedCode = res.data?.code || res.data?.pairingCode || null;
+      if (!generatedCode) {
+        throw new Error('No se recibió un código de vinculación válido del servidor.');
+      }
+      setPairingCode(generatedCode);
       await loadDevices();
     } catch (e: any) {
-      // Fallback robusto en modo standalone / sin base de datos conectada
-      const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
-      setPairingCode(fallbackCode);
-      await loadDevices();
       showFeedback({
-        imageSource: BOTITO_ASSETS.feliz,
-        title: 'Código generado',
-        message: `Se generó el código de vinculación: ${fallbackCode}. Los datos del protegido se mantendrán guardados hasta el emparejamiento.`,
+        imageSource: BOTITO_ASSETS.nervioso,
+        title: 'No pudimos generar el código',
+        message:
+          e?.message ||
+          'No se pudo generar el código de vinculación en este momento. Verificá tu conexión e intentá nuevamente.',
       });
     } finally {
       setLoading(false);

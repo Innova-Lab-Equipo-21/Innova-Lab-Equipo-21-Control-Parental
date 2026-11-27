@@ -2,9 +2,9 @@
 // Proyecto: BA Protege+
 // Componente: Frontend Mobile (Pantalla de Pareamiento / Vinculación de Dispositivo)
 // Archivo: src/screens/PairingScreen.tsx
-// Descripción: Flujo guiado de vinculación mediante Código de 6 Dígitos o Escaneo de QR,
-//              con soporte temporal offline para vinculación rápida por códigos
-//              (123456 para Menor y 654321 para Adulto).
+// Descripción: Flujo real de vinculación de dispositivo protegido mediante código
+//              de 6 dígitos o escaneo QR nativo (CameraX + ML Kit), validado contra
+//              PostgreSQL y utilizando la información real del hardware Android.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -30,6 +30,8 @@ import {
   ensureMinimumWelcomeVideoTime,
 } from '../components/BotitoWelcomeVideoModal';
 import { apiService } from '../services/api.service';
+import { safeStorage } from '../services/api/client';
+import { protectionService } from '../services/protection.service';
 import { styles } from './PairingScreen.styles';
 
 type PairingMethod = 'CODE' | 'QR';
@@ -37,6 +39,30 @@ type PairingMethod = 'CODE' | 'QR';
 interface PairingScreenProps {
   onPairingComplete: (deviceId: string, deviceUuid: string, pairedMode?: 'CHILD' | 'ADULT') => void;
   onBack: () => void;
+}
+
+async function resolveRealDevicePayload() {
+  const nativeInfo = await protectionService.getDeviceInfo();
+  let deviceUuid = nativeInfo?.deviceUuid?.trim() || '';
+
+  if (!deviceUuid) {
+    const storedUuid = await safeStorage.getItem('@ba_protege_device_uuid');
+    if (storedUuid && storedUuid.trim().length > 0) {
+      deviceUuid = storedUuid.trim();
+    } else {
+      deviceUuid = `ba-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      await safeStorage.setItem('@ba_protege_device_uuid', deviceUuid);
+    }
+  } else {
+    await safeStorage.setItem('@ba_protege_device_uuid', deviceUuid);
+  }
+
+  return {
+    deviceUuid,
+    deviceModel: nativeInfo?.deviceModel || 'Android',
+    osVersion: nativeInfo?.osVersion || `Android ${Platform.Version}`,
+    appVersion: nativeInfo?.appVersion || '1.0.0',
+  };
 }
 
 export const PairingScreen: React.FC<PairingScreenProps> = ({
@@ -88,13 +114,6 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       return;
     }
 
-    // Determinar perfil según el código ingresado (123456 -> MENOR, 654321 -> ADULTO)
-    const pairedMode: 'CHILD' | 'ADULT' = activeCode === '654321' ? 'ADULT' : 'CHILD';
-    const successMessage =
-      pairedMode === 'ADULT'
-        ? '¡De diez, che! Botito ya activó la protección en modo Adulto para acompañarte.'
-        : '¡Genial, che! Botito ya activó el escudo y está cuidando este dispositivo en modo Menor.';
-
     setLoading(true);
     const startedAt = Date.now();
     setWelcomeVideoModal({
@@ -105,16 +124,40 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
     });
 
     try {
-      const deviceUuid = 'dev-uuid-' + Math.random().toString(36).substring(2, 9);
+      const hardware = await resolveRealDevicePayload();
 
       const result = await apiService.confirmPairing({
         pairingCode: activeCode,
-        deviceUuid,
-        deviceName: pairedMode === 'ADULT' ? 'Dispositivo Adulto Protegido' : 'Dispositivo Menor Protegido',
-        childName: pairedMode === 'ADULT' ? 'Adulto Protegido' : 'Mateo',
-        osVersion: 'Android 14 / SDK 35',
-        appVersion: '1.0.0',
+        deviceUuid: hardware.deviceUuid,
+        deviceName: hardware.deviceModel,
+        model: hardware.deviceModel,
+        osVersion: hardware.osVersion,
+        appVersion: hardware.appVersion,
       });
+
+      const pairedData = result?.data;
+      if (!pairedData?.deviceId || !pairedData?.deviceUuid) {
+        throw new Error('No se recibió una respuesta válida de vinculación del servidor.');
+      }
+
+      const rawPersonType = String(pairedData.personType || 'MENOR').toUpperCase();
+      const pairedMode: 'CHILD' | 'ADULT' = rawPersonType === 'ADULTO' ? 'ADULT' : 'CHILD';
+
+      // Guardar perfil real recibido del backend (nombre del protegido, tipo y responsable)
+      await safeStorage
+        .setItem(
+          '@ba_protege_paired_profile',
+          JSON.stringify({
+            deviceId: pairedData.deviceId,
+            deviceUuid: pairedData.deviceUuid,
+            childName: pairedData.childName || pairedData.deviceName || '',
+            tutorName: pairedData.tutorName || '',
+            personType: rawPersonType,
+          })
+        )
+        .catch(() => {});
+
+      await protectionService.setUserMode(pairedMode).catch(() => {});
 
       // Registrar token FCM del dispositivo para notificaciones push
       try {
@@ -125,9 +168,14 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         if (fcmToken) {
           await apiService.registerFcmToken(fcmToken);
         }
-      } catch (fcmError) {
-        // FCM no disponible en este entorno; se omite silenciosamente
+      } catch {
+        // FCM no disponible en este entorno; continuar normalmente
       }
+
+      const successMessage =
+        pairedMode === 'ADULT'
+          ? '¡De diez, che! Botito ya activó la protección en modo Adulto para acompañarte.'
+          : '¡Genial, che! Botito ya activó el escudo y está cuidando este dispositivo en modo Menor.';
 
       await ensureMinimumWelcomeVideoTime(startedAt);
 
@@ -138,106 +186,56 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         successMessage,
         onContinue: () => {
           setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
-          onPairingComplete(result.data.deviceId, result.data.deviceUuid, pairedMode);
+          onPairingComplete(pairedData.deviceId, pairedData.deviceUuid, pairedMode);
         },
       });
     } catch (error: any) {
-      // Códigos de prueba predefinidos permitidos en caso de error o sin backend
-      const isKnownOfflineCode = activeCode === '123456' || activeCode === '654321';
+      const apiMessage = error?.response?.data?.message;
+      const friendlyMessage =
+        typeof apiMessage === 'string' && apiMessage.trim().length > 0
+          ? apiMessage.trim()
+          : 'No se pudo completar la vinculación en este momento. Verificá que el código sea correcto, no haya sido usado y que tengas conexión a internet.';
 
-      if (isKnownOfflineCode) {
-        try {
-          // @ts-ignore
-          const messagingModule: any = await import('@react-native-firebase/messaging');
-          const messaging = messagingModule.default || messagingModule;
-          const fcmToken = await messaging().getToken();
-          if (fcmToken) {
-            await apiService.registerFcmToken(fcmToken);
-          }
-        } catch (fcmError) {
-          // FCM no disponible en este entorno; se omite silenciosamente
-        }
-
-        const deviceUuid = 'dev-uuid-' + Math.random().toString(36).substring(2, 9);
-        await ensureMinimumWelcomeVideoTime(startedAt);
-
-        setWelcomeVideoModal({
-          visible: true,
-          status: 'success',
-          successTitle: '¡Chocá esos cinco! Ya estás vinculado',
-          successMessage,
-          onContinue: () => {
-            setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
-            onPairingComplete('dev-demo-id', deviceUuid, pairedMode);
-          },
-        });
-      } else {
-        // Cierra el video de carga y presenta el modal de falla de vinculación
-        setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
-        setFeedbackModal({
-          visible: true,
-          imageSource: BOTITO_ASSETS.nervioso,
-          title: 'No pudimos vincular el dispositivo',
-          message:
-            'No se pudo completar la vinculación en este momento. Podés ingresar el código o escanear el QR de nuevo y volver a intentarlo en unos minutos.',
-          buttonText: 'Entendido',
-        });
-      }
+      setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
+      setFeedbackModal({
+        visible: true,
+        imageSource: BOTITO_ASSETS.nervioso,
+        title: 'No pudimos vincular el dispositivo',
+        message: friendlyMessage,
+        buttonText: 'Entendido',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSimulateQRScan = (forcedCode: string = '123456') => {
-    setIsScanningQR(true);
-    setTimeout(() => {
-      setCode(forcedCode);
-      setIsScanningQR(false);
+  const handleOpenCameraScanner = async () => {
+    if (Platform.OS !== 'android') {
       setFeedbackModal({
         visible: true,
-        imageSource: BOTITO_ASSETS.pensando,
-        title: 'Código QR detectado',
-        message: `Detectamos el código ${forcedCode}. Al avanzar, vas a vincular este dispositivo a la cuenta de la persona responsable y activar la protección contra sitios y aplicaciones de apuestas ilegales.\n\n¿Confirmás que querés continuar?`,
-        buttonText: 'Confirmar',
-        secondaryButtonText: 'Cancelar',
-        onConfirm: () => {
-          setFeedbackModal((prev) => ({ ...prev, visible: false }));
-          handlePairing(forcedCode);
-        },
-        onSecondaryPress: () => {
-          setFeedbackModal((prev) => ({ ...prev, visible: false }));
-        },
+        imageSource: BOTITO_ASSETS.nervioso,
+        title: 'Cámara no disponible',
+        message:
+          'El escáner QR nativo solo está disponible en dispositivos Android. Podés ingresar el código de 6 dígitos manualmente.',
+        buttonText: 'Entendido',
       });
-    }, 1000);
-  };
+      return;
+    }
 
-  const handleOpenCameraScanner = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.CAMERA,
-          {
-            title: 'Permiso de cámara requerido',
-            message: 'BA Protege+ necesita acceso a la cámara para escanear el código QR que generó la persona responsable.',
-            buttonNeutral: 'Luego',
-            buttonNegative: 'Cancelar',
-            buttonPositive: 'Permitir',
-          }
-        );
-
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          handleSimulateQRScan('123456');
-        } else {
-          setFeedbackModal({
-            visible: true,
-            imageSource: BOTITO_ASSETS.nervioso,
-            title: 'Acceso a cámara desactivado',
-            message:
-              'No pudimos abrir la cámara. Podés vincular el dispositivo ingresando el código de 6 dígitos que generó la persona responsable.',
-            buttonText: 'Entendido',
-          });
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.CAMERA,
+        {
+          title: 'Permiso de cámara requerido',
+          message:
+            'BA Protege+ necesita acceso a la cámara para escanear el código QR que generó la persona responsable.',
+          buttonNeutral: 'Luego',
+          buttonNegative: 'Cancelar',
+          buttonPositive: 'Permitir',
         }
-      } catch (err) {
+      );
+
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
         setFeedbackModal({
           visible: true,
           imageSource: BOTITO_ASSETS.nervioso,
@@ -246,9 +244,57 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
             'No pudimos abrir la cámara. Podés vincular el dispositivo ingresando el código de 6 dígitos que generó la persona responsable.',
           buttonText: 'Entendido',
         });
+        return;
       }
-    } else {
-      handleSimulateQRScan('123456');
+
+      setIsScanningQR(true);
+      const scanResult = await protectionService.openQrScanner();
+
+      if (scanResult?.cancelled) {
+        return;
+      }
+
+      const scannedCode = (scanResult?.code || '').replace(/\D/g, '').slice(0, 6);
+      if (scannedCode.length !== 6) {
+        setFeedbackModal({
+          visible: true,
+          imageSource: BOTITO_ASSETS.pensando,
+          title: 'Código QR no válido',
+          message:
+            'El código QR escaneado no contiene un código de vinculación de 6 dígitos de BA Protege+. Intentá de nuevo o ingresá el código manualmente.',
+          buttonText: 'Entendido',
+        });
+        return;
+      }
+
+      setCode(scannedCode);
+      setFeedbackModal({
+        visible: true,
+        imageSource: BOTITO_ASSETS.pensando,
+        title: 'Código QR detectado',
+        message: `Detectamos el código ${scannedCode}. Al avanzar, vas a vincular este dispositivo a la cuenta de la persona responsable y activar la protección contra sitios y aplicaciones de apuestas ilegales.\n\n¿Confirmás que querés continuar?`,
+        buttonText: 'Confirmar',
+        secondaryButtonText: 'Cancelar',
+        onConfirm: () => {
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+          handlePairing(scannedCode);
+        },
+        onSecondaryPress: () => {
+          setFeedbackModal((prev) => ({ ...prev, visible: false }));
+        },
+      });
+    } catch (err: any) {
+      setFeedbackModal({
+        visible: true,
+        imageSource: BOTITO_ASSETS.nervioso,
+        title: 'Acceso a cámara desactivado',
+        message:
+          err?.message ||
+          'No pudimos abrir la cámara. Podés vincular el dispositivo ingresando el código de 6 dígitos que generó la persona responsable.',
+        buttonText: 'Entendido',
+      });
+    } finally {
+      setIsScanningQR(false);
     }
   };
 
@@ -366,10 +412,11 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
                     isScanningQR && styles.qrInputButtonActive,
                   ]}
                   onPress={handleOpenCameraScanner}
+                  disabled={isScanningQR || loading}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.qrInputButtonText}>
-                    {isScanningQR ? 'Analizando código QR...' : 'Abrir cámara'}
+                    {isScanningQR ? 'Abriendo cámara...' : 'Abrir cámara'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -380,7 +427,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
               <View style={styles.verifiedCard}>
                 <Text style={styles.verifiedTitle}>Código de vinculación listo</Text>
                 <Text style={styles.verifiedSubtitle}>
-                  Código: <Text style={styles.boldText}>{code}</Text> • Modo: <Text style={styles.boldText}>{code === '654321' ? 'ADULTO' : 'MENOR'}</Text>
+                  Código ingresado: <Text style={styles.boldText}>{code}</Text>
                 </Text>
               </View>
             )}

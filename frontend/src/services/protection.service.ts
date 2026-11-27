@@ -5,7 +5,7 @@
 // Descripción: Servicio TypeScript que interactúa con el módulo nativo Android
 //              (ProtectionModule) para orquestar la protección completa del dispositivo:
 //              VPN, Accesibilidad, Notificaciones, Batería, Ubicación GPS,
-//              Estadísticas de uso e información real del hardware.
+//              Estadísticas de uso, escáner QR nativo e información real del hardware.
 // ==============================================================================
 
 import { NativeModules, Platform } from 'react-native';
@@ -26,6 +26,12 @@ export interface NativeDeviceInfo {
   isCharging: boolean;
 }
 
+export interface NativeQrScanResult {
+  code?: string;
+  rawValue?: string;
+  cancelled?: boolean;
+}
+
 export class ProtectionService {
   /**
    * Obtiene información real del hardware, sistema operativo, versión de app y batería.
@@ -40,6 +46,18 @@ export class ProtectionService {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Abre el lector nativo de código QR (CameraX + ML Kit) en Android
+   * y retorna el código de vinculación de 6 dígitos detectado o estado de cancelación.
+   */
+  public async openQrScanner(): Promise<NativeQrScanResult> {
+    if (Platform.OS !== 'android' || !ProtectionModule || typeof ProtectionModule.openQrScanner !== 'function') {
+      throw new Error('El lector de código QR nativo solo está disponible en dispositivos Android.');
+    }
+    const result = await ProtectionModule.openQrScanner();
+    return result || { cancelled: true };
   }
 
   /**

@@ -76,23 +76,27 @@ export const DevicePairingCodeModal: React.FC<DevicePairingCodeModalProps> = ({
     try {
       const res = await apiService.generatePairingCode({
         deviceId: device.deviceId,
-        protectedName,
-        genero: device.gender,
-        protectedType: profileType,
+        childName: protectedName,
+        gender: device.gender,
+        personType: profileType,
         birthDate: device.birthDate,
-        protectedPhone: device.phone,
-        deviceModel: device.deviceModel,
+        phone: device.phone,
       });
-      const newCode =
-        res.data?.code ||
-        res.data?.pairingCode ||
-        Math.floor(100000 + Math.random() * 900000).toString();
+      const newCode = res.data?.code || res.data?.pairingCode;
+      if (!newCode) {
+        throw new Error('No se recibió un nuevo código del servidor.');
+      }
       setCurrentCode(newCode);
       onCodeRegenerated?.(newCode);
     } catch (e: any) {
-      const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
-      setCurrentCode(fallbackCode);
-      onCodeRegenerated?.(fallbackCode);
+      setFeedbackModal({
+        visible: true,
+        imageSource: BOTITO_ASSETS.nervioso,
+        title: 'No pudimos generar un nuevo código',
+        message:
+          e?.message ||
+          'Verificá tu conexión a internet e intentá generar el código nuevamente.',
+      });
     } finally {
       setLoading(false);
     }

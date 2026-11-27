@@ -18,6 +18,7 @@ import {
 import { Badge } from '../../Badge';
 import { ActionButton } from '../../ActionButton';
 import { DeviceInfo, DevicePermissionsStatus } from '../../../types';
+import { apiService } from '../../../services/api.service';
 import { checkRealDevicePermissions } from '../../../utils/permissionChecker';
 import { styles } from './DevicePermissionsModal.styles';
 
@@ -44,14 +45,24 @@ export const DevicePermissionsModal: React.FC<DevicePermissionsModalProps> = ({
 }) => {
   const [livePerms, setLivePerms] = useState<DevicePermissionsStatus | null>(null);
 
-  // Consulta el estado real de permisos del hardware/sistema operativo al abrir el modal
+  // Consulta el estado real de permisos (hardware local para Responsable o PostgreSQL para Protegido)
   useEffect(() => {
-    if (visible && isSelf) {
+    if (!visible) return;
+    if (isSelf) {
       checkRealDevicePermissions()
         .then((real) => setLivePerms(real))
         .catch(() => {});
+    } else if (device?.deviceId) {
+      apiService
+        .auditDevicePermissions(device.deviceId)
+        .then((audited) => {
+          if (audited?.permissions) {
+            setLivePerms(audited.permissions);
+          }
+        })
+        .catch(() => {});
     }
-  }, [visible, isSelf]);
+  }, [visible, isSelf, device?.deviceId]);
 
   const defaultPerms: DevicePermissionsStatus = {
     vpn: false,
@@ -63,9 +74,7 @@ export const DevicePermissionsModal: React.FC<DevicePermissionsModalProps> = ({
     grantedCount: 0,
   };
 
-  const perms = isSelf
-    ? (livePerms || device.permissions || defaultPerms)
-    : (device.permissions || defaultPerms);
+  const perms = livePerms || device.permissions || defaultPerms;
 
   const permissionList: PermissionDefinition[] = [
     {

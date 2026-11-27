@@ -72,38 +72,126 @@ function formatUserGenderDisplay(raw?: string | null): string {
   return raw.trim();
 }
 
+function normalizeBackendDevice(
+  bd: any,
+  preservedColorIndex?: number,
+  fallbackPairingCode?: string
+): DeviceInfo {
+  const bDateFormatted = formatUserDateDisplay(bd?.birthDate);
+  const rawPersonType = String(bd?.personType || bd?.profileType || '').toUpperCase();
+  const profType: 'Menor' | 'Adulto' = rawPersonType === 'ADULTO' ? 'Adulto' : 'Menor';
+  const genderFormatted = formatUserGenderDisplay(bd?.gender) || 'No informado';
+
+  const effectiveStatus = bd?.status?.effectiveStatus || (typeof bd?.status === 'string' ? bd.status : 'INACTIVE');
+  const isLinked = effectiveStatus !== 'INACTIVE';
+  const vpn = Boolean(bd?.status?.vpnActive);
+  const permissionsOk = isLinked && Boolean(bd?.status?.permissionsOk);
+
+  const perms: DevicePermissionsStatus = bd?.permissions
+    ? {
+        vpn: Boolean(bd.permissions.vpn),
+        accessibility: Boolean(bd.permissions.accessibility),
+        notifications: Boolean(bd.permissions.notifications),
+        batteryOptimization: Boolean(bd.permissions.batteryOptimization),
+        location: Boolean(bd.permissions.location),
+        usageStats: Boolean(bd.permissions.usageStats),
+        grantedCount:
+          typeof bd.permissions.grantedCount === 'number'
+            ? bd.permissions.grantedCount
+            : [
+                bd.permissions.vpn,
+                bd.permissions.accessibility,
+                bd.permissions.notifications,
+                bd.permissions.batteryOptimization,
+                bd.permissions.location,
+                bd.permissions.usageStats,
+              ].filter(Boolean).length,
+      }
+    : {
+        vpn,
+        accessibility: permissionsOk,
+        notifications: permissionsOk,
+        batteryOptimization: permissionsOk,
+        location: permissionsOk,
+        usageStats: permissionsOk,
+        grantedCount: [
+          vpn,
+          permissionsOk,
+          permissionsOk,
+          permissionsOk,
+          permissionsOk,
+          permissionsOk,
+        ].filter(Boolean).length,
+      };
+
+  return {
+    deviceId: bd.id || bd.deviceId,
+    deviceUuid: bd.deviceUuid,
+    deviceName: bd.childName || bd.deviceName || 'Protegido',
+    childName: bd.childName || bd.deviceName || 'Protegido',
+    isProtected: vpn,
+    status: effectiveStatus,
+    lastHeartbeat:
+      effectiveStatus === 'INACTIVE'
+        ? 'Pendiente de vinculación'
+        : 'En línea',
+    blockedCount: bd._count?.blockedEvents ?? bd.blockedCount ?? 0,
+    blocklistVersion: bd.status?.blocklistVersion ?? bd.blocklistVersion ?? 1,
+    phone: bd.phone || '',
+    birthDate: bDateFormatted,
+    gender: genderFormatted,
+    profileType: profType,
+    deviceModel: bd.model || bd.deviceModel || 'Android',
+    createdAt: formatUserDateDisplay(bd.createdAt) || undefined,
+    colorIndex: preservedColorIndex,
+    pairingCode: bd.pairingCode || fallbackPairingCode || undefined,
+    permissions: perms,
+  };
+}
+
+function extractApiErrorMessage(err: any, fallback: string): string {
+  const apiMessage = err?.response?.data?.message;
+  if (typeof apiMessage === 'string' && apiMessage.trim().length > 0) {
+    return apiMessage.trim();
+  }
+  if (typeof err?.message === 'string' && err.message.trim().length > 0 && !err.message.includes('status code')) {
+    return err.message.trim();
+  }
+  return fallback;
+}
+
 export const devicesApi = {
   // --------------------------------------------------------------------------
-  // Pareamiento y Generación de Códigos
+  // Pareamiento y Generación de Códigos (100% respaldado por PostgreSQL)
   // --------------------------------------------------------------------------
   async generatePairingCode(data?: any) {
-    try {
-      const devicesRes = await this.listDevices();
-      const currentCount = devicesRes.data?.length || 0;
-      if (currentCount >= MAX_PROTECTED_DEVICES && !data?.deviceId) {
-        throw new Error(
-          `Límite alcanzado: Un responsable solo puede vincular un máximo de ${MAX_PROTECTED_DEVICES} dispositivos.`
-        );
-      }
-    } catch (e: any) {
-      if (e.message?.includes('Límite alcanzado')) {
-        throw e;
-      }
-    }
-
-    // No insertar dispositivo prematuramente aquí; el registro se persiste formalmente al presionar "Guardar"
+    const payload: Record<string, any> = {};
+    if (data?.deviceId) payload.deviceId = data.deviceId;
+    const childName = data?.childName || data?.protectedName;
+    if (childName) payload.childName = childName;
+    const gender = data?.gender || data?.genero;
+    if (gender) payload.gender = gender;
+    const personType = data?.personType || data?.protectedType;
+    if (personType) payload.personType = personType;
+    if (data?.birthDate) payload.birthDate = data.birthDate;
+    const phone = data?.phone || data?.protectedPhone;
+    if (phone) payload.phone = phone;
 
     try {
-      const response = await apiClient.post('/devices/pair/generate', data || {});
+      const response = await apiClient.post('/devices/pair/generate', payload);
       const pairData = response.data?.data;
       const code = pairData?.pairingCode || pairData?.code;
-      if (code && data?.deviceId) {
+      if (!code) {
+        throw new Error('El servidor no devolvió un código de vinculación válido.');
+      }
+
+      if (payload.deviceId) {
         try {
           const raw = await safeStorage.getItem('@ba_protege_devices_list');
           if (raw) {
             const list: DeviceInfo[] = JSON.parse(raw);
             const updated = list.map((d) =>
-              d.deviceId === data.deviceId || d.deviceUuid === data.deviceId
+              d.deviceId === payload.deviceId || d.deviceUuid === payload.deviceId
                 ? { ...d, pairingCode: code }
                 : d
             );
@@ -111,24 +199,15 @@ export const devicesApi = {
           }
         } catch (_) {}
       }
-      return { success: true, data: { code, ...pairData } };
-    } catch (err) {
-      const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
-      if (data?.deviceId) {
-        try {
-          const raw = await safeStorage.getItem('@ba_protege_devices_list');
-          if (raw) {
-            const list: DeviceInfo[] = JSON.parse(raw);
-            const updated = list.map((d) =>
-              d.deviceId === data.deviceId || d.deviceUuid === data.deviceId
-                ? { ...d, pairingCode: fallbackCode }
-                : d
-            );
-            await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updated));
-          }
-        } catch (_) {}
-      }
-      return { success: true, data: { code: fallbackCode } };
+
+      return { success: true, data: { code, pairingCode: code, ...pairData } };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo generar el código de vinculación. Verificá tu conexión e intentá nuevamente.'
+        )
+      );
     }
   },
 
@@ -386,160 +465,71 @@ export const devicesApi = {
   },
 
   // --------------------------------------------------------------------------
-  // Lista de Dispositivos Protegidos y Persistencia
+  // Lista de Dispositivos Protegidos y Persistencia (Fuente única: PostgreSQL)
   // --------------------------------------------------------------------------
   async listDevices(): Promise<{ success: boolean; data: DeviceInfo[] }> {
-    let backendDevices: DeviceInfo[] = [];
-    try {
-      const response = await apiClient.get('/devices');
-      if (response.data?.data && Array.isArray(response.data.data)) {
-        backendDevices = response.data.data.map((bd: any) => {
-          let bDateFormatted = '';
-          if (bd.birthDate) {
-            try {
-              const dt = new Date(bd.birthDate);
-              const day = dt.getUTCDate().toString().padStart(2, '0');
-              const month = (dt.getUTCMonth() + 1).toString().padStart(2, '0');
-              const year = dt.getUTCFullYear();
-              bDateFormatted = `${day}/${month}/${year}`;
-            } catch (_) {}
-          }
-          const profType: 'Menor' | 'Adulto' = bd.personType === 'ADULTO' ? 'Adulto' : 'Menor';
-          let genderFormatted = 'No informado';
-          if (bd.gender) {
-            const rawG = bd.gender.toUpperCase();
-            if (rawG === 'MASCULINO') genderFormatted = 'Masculino';
-            else if (rawG === 'FEMENINO') genderFormatted = 'Femenino';
-            else if (rawG === 'OTRO') genderFormatted = 'Otro';
-          }
-          return {
-            deviceId: bd.id,
-            deviceUuid: bd.deviceUuid,
-            deviceName: bd.deviceName || bd.childName || 'Protegido',
-            childName: bd.childName || bd.deviceName || 'Protegido',
-            isProtected: bd.status?.vpnActive ?? false,
-            status: bd.status?.effectiveStatus || 'INACTIVE',
-            lastHeartbeat:
-              bd.status?.effectiveStatus === 'INACTIVE'
-                ? 'Pendiente de vinculación'
-                : 'En línea',
-            blockedCount: bd._count?.blockedEvents || 0,
-            blocklistVersion: bd.status?.blocklistVersion || 4,
-            phone: bd.phone || '',
-            birthDate: bDateFormatted,
-            gender: genderFormatted,
-            profileType: profType,
-            deviceModel: bd.model || 'Android',
-            pairingCode: bd.pairingCode || undefined,
-            permissions: {
-              vpn: bd.status?.vpnActive ?? false,
-              accessibility: bd.status?.permissionsOk ?? false,
-              notifications: true,
-              batteryOptimization: true,
-              location: true,
-              usageStats: true,
-              grantedCount: bd.status?.permissionsOk ? 6 : 1,
-            },
-          } as DeviceInfo;
-        });
-      }
-    } catch (e) {
-      // Usar almacenamiento local / demo
-    }
-
-    let localDevices: DeviceInfo[] = [];
+    let cachedDevices: DeviceInfo[] = [];
+    const colorMap = new Map<string, number>();
     try {
       const raw = await safeStorage.getItem('@ba_protege_devices_list');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          localDevices = parsed;
+          cachedDevices = parsed.filter((d: any) => d?.deviceId !== 'dev-mock-1');
+          cachedDevices.forEach((d) => {
+            if (typeof d.colorIndex === 'number') {
+              if (d.deviceId) colorMap.set(d.deviceId, d.colorIndex);
+              if (d.deviceUuid) colorMap.set(d.deviceUuid, d.colorIndex);
+            }
+          });
         }
       }
-    } catch (e) {}
-
-    // Combinar dispositivos del backend con dispositivos creados en el emulador (sin duplicados por ID)
-    const combinedMap = new Map<string, DeviceInfo>();
-    backendDevices.forEach((d) => combinedMap.set(d.deviceId || d.deviceUuid, d));
-    localDevices.forEach((d) => {
-      const key = d.deviceId || d.deviceUuid;
-      if (combinedMap.has(key)) {
-        // Mantener pairingCode y propiedades locales si el backend no las tiene
-        const existing = combinedMap.get(key)!;
-        combinedMap.set(key, {
-          ...existing,
-          ...d,
-          pairingCode: existing.pairingCode || d.pairingCode,
-        });
-      } else {
-        combinedMap.set(key, d);
-      }
-    });
-
-    let finalDevices = Array.from(combinedMap.values());
-
-    // Deduplicar por nombre del protegido: conservar un único registro por protegido.
-    // Si existen duplicados y alguno está INACTIVE (no vinculado en el teléfono del protegido),
-    // reflejar fielmente el estado INACTIVE.
-    const nameMap = new Map<string, DeviceInfo>();
-    finalDevices.forEach((d) => {
-      const rawName = (d.childName || d.deviceName || '').trim().toLowerCase();
-      if (!rawName || d.deviceId === 'self') {
-        nameMap.set(d.deviceId || d.deviceUuid, d);
-        return;
-      }
-      if (!nameMap.has(rawName)) {
-        nameMap.set(rawName, d);
-      } else {
-        const existing = nameMap.get(rawName)!;
-        const keepInactive = existing.status === 'INACTIVE' || d.status === 'INACTIVE';
-        nameMap.set(rawName, {
-          ...existing,
-          ...d,
-          status: keepInactive ? 'INACTIVE' : (d.status || existing.status),
-          isProtected: keepInactive ? false : (d.isProtected ?? existing.isProtected),
-          lastHeartbeat: keepInactive ? 'Pendiente de vinculación' : (d.lastHeartbeat || existing.lastHeartbeat),
-          pairingCode: existing.pairingCode || d.pairingCode,
-        });
-      }
-    });
-    // Filtrar y eliminar definitivamente el dispositivo mock "Mateo" solicitado por el usuario
-    finalDevices = Array.from(nameMap.values()).filter(
-      (d) =>
-        d.deviceId !== 'dev-mock-1' &&
-        d.childName?.trim().toLowerCase() !== 'mateo' &&
-        d.deviceName?.trim().toLowerCase() !== 'mateo'
-    );
-
-    // Garantizar que cada dispositivo conserve su colorIndex permanente
-    let modified = false;
-    const usedIndices = new Set<number>();
-    finalDevices.forEach((d) => {
-      if (typeof d.colorIndex === 'number') {
-        usedIndices.add(d.colorIndex);
-      }
-    });
-    finalDevices.forEach((d, i) => {
-      if (typeof d.colorIndex !== 'number') {
-        let nextIdx = 0;
-        while (usedIndices.has(nextIdx) && nextIdx < 5) {
-          nextIdx++;
-        }
-        d.colorIndex = nextIdx < 5 ? nextIdx : i % 5;
-        usedIndices.add(d.colorIndex);
-        modified = true;
-      }
-      if (d.childName && (!d.deviceName || d.deviceName.includes('('))) {
-        d.deviceName = d.childName;
-        modified = true;
-      }
-    });
-
-    if (modified || localDevices.length !== finalDevices.length) {
-      await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(finalDevices));
+    } catch {
+      // Caché local no disponible
     }
 
-    return { success: true, data: finalDevices };
+    try {
+      const response = await apiClient.get('/devices');
+      const rawList = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      const finalDevices: DeviceInfo[] = rawList.map((bd: any) => {
+        const preservedColor =
+          colorMap.get(bd.id) ?? colorMap.get(bd.deviceUuid);
+        return normalizeBackendDevice(bd, preservedColor);
+      });
+
+      // Asignar colorIndex institucional (0..4) consistente a dispositivos sin color asignado
+      const usedIndices = new Set<number>();
+      finalDevices.forEach((d) => {
+        if (typeof d.colorIndex === 'number') {
+          usedIndices.add(d.colorIndex);
+        }
+      });
+      finalDevices.forEach((d, i) => {
+        if (typeof d.colorIndex !== 'number') {
+          let nextIdx = 0;
+          while (usedIndices.has(nextIdx) && nextIdx < 5) {
+            nextIdx++;
+          }
+          d.colorIndex = nextIdx < 5 ? nextIdx : i % 5;
+          usedIndices.add(d.colorIndex);
+        }
+      });
+
+      await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(finalDevices));
+      return { success: true, data: finalDevices };
+    } catch (err: any) {
+      // Si no hay conexión de red, devolver la última lectura cacheada en modo solo lectura
+      if (!err?.response) {
+        return { success: true, data: cachedDevices };
+      }
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo obtener la lista de dispositivos. Verificá tu conexión e intentá nuevamente.'
+        )
+      );
+    }
   },
 
   async updateDevice(
@@ -551,9 +541,8 @@ export const devicesApi = {
       return { success: true, data: updatedSelf };
     }
 
-    // Intentar sincronizar con el backend
     try {
-      await apiClient.put(`/devices/${deviceId}`, {
+      const response = await apiClient.put(`/devices/${deviceId}`, {
         childName: data.childName || data.deviceName,
         birthDate: data.birthDate,
         gender: data.gender,
@@ -561,71 +550,69 @@ export const devicesApi = {
         phone: data.phone,
         deviceModel: data.deviceModel,
       });
-    } catch (_) {}
 
-    const res = await this.listDevices();
-    let updatedDevice: DeviceInfo | null = null;
-    const updatedList = res.data.map((d) => {
-      if (d.deviceId === deviceId || d.deviceUuid === deviceId) {
-        updatedDevice = {
-          ...d,
-          ...data,
-          deviceName:
-            data.childName ||
-            data.deviceName ||
-            d.childName ||
-            d.deviceName,
-        };
-        return updatedDevice;
+      const backendDev = response.data?.data;
+      if (!backendDev) {
+        throw new Error('El servidor no devolvió los datos actualizados del dispositivo.');
       }
-      return d;
-    });
 
-    if (updatedDevice) {
+      let cachedList: DeviceInfo[] = [];
+      let preservedColor: number | undefined;
+      try {
+        const raw = await safeStorage.getItem('@ba_protege_devices_list');
+        if (raw) {
+          cachedList = JSON.parse(raw);
+          const prev = cachedList.find(
+            (d) => d.deviceId === deviceId || d.deviceUuid === deviceId
+          );
+          preservedColor = prev?.colorIndex;
+        }
+      } catch (_) {}
+
+      const normalized = normalizeBackendDevice(backendDev, preservedColor);
+      const updatedList = cachedList.some(
+        (d) => d.deviceId === normalized.deviceId || d.deviceId === deviceId
+      )
+        ? cachedList.map((d) =>
+            d.deviceId === normalized.deviceId || d.deviceId === deviceId
+              ? normalized
+              : d
+          )
+        : [normalized, ...cachedList];
+
       await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updatedList));
-      return { success: true, data: updatedDevice };
+      return { success: true, data: normalized };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudieron guardar los cambios del dispositivo. Verificá tu conexión e intentá nuevamente.'
+        )
+      );
     }
-    throw new Error('Dispositivo no encontrado');
   },
 
   async addDevice(data: Partial<DeviceInfo>): Promise<{ success: boolean; data: DeviceInfo }> {
-    const res = await this.listDevices();
-    if (res.data.length >= MAX_PROTECTED_DEVICES) {
+    let existingList: DeviceInfo[] = [];
+    try {
+      const raw = await safeStorage.getItem('@ba_protege_devices_list');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          existingList = parsed.filter((d: any) => d?.deviceId !== 'dev-mock-1');
+        }
+      }
+    } catch (_) {}
+
+    if (existingList.length >= MAX_PROTECTED_DEVICES) {
       throw new Error(
         `Límite alcanzado: Un responsable solo puede vincular un máximo de ${MAX_PROTECTED_DEVICES} dispositivos.`
       );
     }
 
-    // Si ya existe un dispositivo con el mismo nombre o ID, actualizarlo en lugar de crear un duplicado
-    const targetName = (data.childName || data.deviceName || '').trim().toLowerCase();
-    const existingIndex = res.data.findIndex(
-      (d) =>
-        d.deviceId !== 'self' &&
-        targetName &&
-        (d.childName || d.deviceName || '').trim().toLowerCase() === targetName
-    );
-
-    if (existingIndex >= 0) {
-      const existing = res.data[existingIndex];
-      const updatedDevice: DeviceInfo = {
-        ...existing,
-        ...data,
-        deviceName: data.childName || data.deviceName || existing.deviceName,
-        childName: data.childName || existing.childName,
-        status: data.status || existing.status || 'INACTIVE',
-        isProtected: data.isProtected ?? existing.isProtected ?? false,
-        lastHeartbeat: data.lastHeartbeat || existing.lastHeartbeat || 'Pendiente de vinculación',
-        pairingCode: data.pairingCode || existing.pairingCode,
-      };
-      const updatedList = [...res.data];
-      updatedList[existingIndex] = updatedDevice;
-      await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updatedList));
-      return { success: true, data: updatedDevice };
-    }
-
     // Calcular el siguiente color de la paleta institucional (0..4) que no esté en uso
     const usedIndices = new Set(
-      res.data
+      existingList
         .map((d) => d.colorIndex)
         .filter((c): c is number => typeof c === 'number')
     );
@@ -634,12 +621,9 @@ export const devicesApi = {
       assignedColorIndex++;
     }
     if (assignedColorIndex >= 5) {
-      assignedColorIndex = res.data.length % 5;
+      assignedColorIndex = existingList.length % 5;
     }
 
-    // Intentar persistir formalmente en PostgreSQL y generar código
-    let backendCreated: any = null;
-    let backendPairingCode: string | null = null;
     try {
       const response = await apiClient.post('/devices', {
         childName: data.childName || data.deviceName,
@@ -649,56 +633,35 @@ export const devicesApi = {
         phone: data.phone,
         deviceModel: data.deviceModel || 'Android',
       });
-      if (response.data?.data) {
-        backendCreated = response.data.data.device;
-        backendPairingCode = response.data.data.pairingCode;
+
+      const responseData = response.data?.data;
+      const backendCreated = responseData?.device;
+      const backendPairingCode = responseData?.pairingCode || backendCreated?.pairingCode;
+
+      if (!backendCreated?.id || !backendPairingCode) {
+        throw new Error('No se recibió el registro ni el código de vinculación desde el servidor.');
       }
-    } catch (_) {}
 
-    const assignedCode =
-      backendPairingCode ||
-      data.pairingCode ||
-      Math.floor(100000 + Math.random() * 900000).toString();
+      const newDevice = normalizeBackendDevice(
+        backendCreated,
+        typeof data.colorIndex === 'number' ? data.colorIndex : assignedColorIndex,
+        backendPairingCode
+      );
 
-    const nextIndex = res.data.length;
-    const newId = backendCreated?.id || `dev-${Date.now()}`;
-    const newUuid = backendCreated?.deviceUuid || `uuid-${newId}`;
-
-    const newDevice: DeviceInfo = {
-      deviceId: newId,
-      deviceUuid: newUuid,
-      deviceName:
-        data.childName ||
-        data.deviceName ||
-        `Protegido ${nextIndex + 1}`,
-      childName: data.childName || `Protegido ${nextIndex + 1}`,
-      isProtected: false,
-      status: 'INACTIVE',
-      lastHeartbeat: 'Pendiente de vinculación',
-      blockedCount: 0,
-      blocklistVersion: 4,
-      phone: data.phone || '',
-      birthDate: data.birthDate || '',
-      gender: data.gender || 'No informado',
-      profileType: data.profileType || 'Menor',
-      deviceModel: data.deviceModel || 'Android',
-      createdAt: new Date().toLocaleDateString('es-AR'),
-      colorIndex: typeof data.colorIndex === 'number' ? data.colorIndex : assignedColorIndex,
-      pairingCode: assignedCode,
-      permissions: data.permissions || {
-        vpn: false,
-        accessibility: false,
-        notifications: false,
-        batteryOptimization: false,
-        location: false,
-        usageStats: false,
-        grantedCount: 0,
-      },
-    };
-
-    const updatedList = [...res.data, newDevice];
-    await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updatedList));
-    return { success: true, data: newDevice };
+      const updatedList = [
+        newDevice,
+        ...existingList.filter((d) => d.deviceId !== newDevice.deviceId),
+      ];
+      await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updatedList));
+      return { success: true, data: newDevice };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo registrar el dispositivo. Verificá tu conexión e intentá nuevamente.'
+        )
+      );
+    }
   },
 
   async getDeviceDetail(deviceId: string) {
@@ -720,32 +683,84 @@ export const devicesApi = {
     }
 
     try {
-      const res = await apiClient.get(`/devices/${deviceId}/permissions`, { timeout: 10000 });
-      if (res.data?.data) {
-        return res.data.data;
+      const res = await apiClient.get(`/devices/${deviceId}/permissions`);
+      const payload = res.data?.data;
+      if (!payload || !payload.permissions) {
+        throw new Error('No se recibió el estado de permisos desde el servidor.');
       }
-    } catch (e) {
-      // Modo offline / simulación local
-    }
 
-    const res = await this.listDevices();
-    let auditedDev: DeviceInfo | null = null;
-    const updatedList = res.data.map((d) => {
-      if (d.deviceId === deviceId || d.deviceUuid === deviceId) {
-        auditedDev = {
-          ...d,
-          lastHeartbeat: 'Recién verificado',
-        };
-        return auditedDev;
+      let cachedList: DeviceInfo[] = [];
+      try {
+        const raw = await safeStorage.getItem('@ba_protege_devices_list');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) cachedList = parsed;
+        }
+      } catch (_) {}
+
+      const existing = cachedList.find(
+        (d) => d.deviceId === deviceId || d.deviceUuid === deviceId || d.deviceId === payload.deviceId
+      );
+
+      const perms: DevicePermissionsStatus = {
+        vpn: Boolean(payload.permissions.vpn),
+        accessibility: Boolean(payload.permissions.accessibility),
+        notifications: Boolean(payload.permissions.notifications),
+        batteryOptimization: Boolean(payload.permissions.batteryOptimization),
+        location: Boolean(payload.permissions.location),
+        usageStats: Boolean(payload.permissions.usageStats),
+        grantedCount:
+          typeof payload.permissions.grantedCount === 'number'
+            ? payload.permissions.grantedCount
+            : [
+                payload.permissions.vpn,
+                payload.permissions.accessibility,
+                payload.permissions.notifications,
+                payload.permissions.batteryOptimization,
+                payload.permissions.location,
+                payload.permissions.usageStats,
+              ].filter(Boolean).length,
+      };
+
+      const effectiveStatus = payload.status || existing?.status || 'INACTIVE';
+      const auditedDevice: DeviceInfo = {
+        ...(existing || {
+          deviceId: payload.deviceId || deviceId,
+          deviceUuid: payload.deviceUuid || '',
+          deviceName: 'Dispositivo Protegido',
+          childName: 'Dispositivo Protegido',
+          blockedCount: 0,
+          blocklistVersion: 1,
+        }),
+        deviceId: payload.deviceId || existing?.deviceId || deviceId,
+        deviceUuid: payload.deviceUuid || existing?.deviceUuid || '',
+        status: effectiveStatus,
+        isProtected: perms.vpn,
+        lastHeartbeat:
+          effectiveStatus === 'INACTIVE'
+            ? 'Pendiente de vinculación'
+            : 'Recién verificado',
+        permissions: perms,
+      };
+
+      if (cachedList.length > 0) {
+        const updatedList = cachedList.map((d) =>
+          d.deviceId === auditedDevice.deviceId || d.deviceUuid === auditedDevice.deviceUuid
+            ? auditedDevice
+            : d
+        );
+        await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updatedList));
       }
-      return d;
-    });
 
-    if (auditedDev) {
-      await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updatedList));
-      return auditedDev;
+      return auditedDevice;
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo auditar el estado de permisos del dispositivo. Verificá tu conexión.'
+        )
+      );
     }
-    throw new Error('Dispositivo no encontrado');
   },
 
   async updateDevicePermissions(
@@ -798,22 +813,32 @@ export const devicesApi = {
 
   async unbindDevice(deviceId: string): Promise<{ success: boolean; message: string }> {
     try {
-      await apiClient.delete(`/devices/${deviceId}`, { timeout: 10000 });
-    } catch (e) {
-      // offline / mock
-    }
+      const response = await apiClient.delete(`/devices/${deviceId}`);
+      try {
+        const raw = await safeStorage.getItem('@ba_protege_devices_list');
+        if (raw) {
+          const parsed: DeviceInfo[] = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const updatedList = parsed.filter(
+              (d) => d.deviceId !== deviceId && d.deviceUuid !== deviceId
+            );
+            await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updatedList));
+          }
+        }
+      } catch (_) {}
 
-    try {
-      const res = await this.listDevices();
-      const updatedList = res.data.filter(
-        (d) => d.deviceId !== deviceId && d.deviceUuid !== deviceId
+      return {
+        success: true,
+        message:
+          response.data?.message || 'El dispositivo fue desvinculado exitosamente.',
+      };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo desvincular el dispositivo. Verificá tu conexión e intentá nuevamente.'
+        )
       );
-      await safeStorage.setItem('@ba_protege_devices_list', JSON.stringify(updatedList));
-    } catch (e) {}
-
-    return {
-      success: true,
-      message: 'El dispositivo fue desvinculado exitosamente.',
-    };
+    }
   },
 };

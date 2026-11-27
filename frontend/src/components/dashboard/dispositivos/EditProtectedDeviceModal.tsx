@@ -105,27 +105,23 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
       if (device.pairingCode) {
         setPairingCode(device.pairingCode);
         setGeneratingCode(false);
-      } else if (device.status === 'INACTIVE' || !device.isProtected) {
+      } else if (device.status === 'INACTIVE') {
         setGeneratingCode(true);
         apiService
           .generatePairingCode({
             deviceId: device.deviceId,
-            protectedName: name,
-            genero: gen,
-            protectedType: device.profileType || 'Menor',
+            childName: name,
+            gender: gen,
+            personType: device.profileType || 'Menor',
             birthDate: bDate,
-            protectedPhone: phone,
-            deviceModel: model,
+            phone,
           })
           .then((res) => {
-            const code =
-              res.data?.code ||
-              res.data?.pairingCode ||
-              Math.floor(100000 + Math.random() * 900000).toString();
+            const code = res.data?.code || res.data?.pairingCode || null;
             setPairingCode(code);
           })
           .catch(() => {
-            setPairingCode(Math.floor(100000 + Math.random() * 900000).toString());
+            setPairingCode(null);
           })
           .finally(() => {
             setGeneratingCode(false);
@@ -201,21 +197,26 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
     try {
       const res = await apiService.generatePairingCode({
         deviceId: device.deviceId,
-        protectedName: protectedName.trim() || device?.childName || 'Protegido',
-        genero,
-        protectedType: protectedType || 'Menor',
+        childName: protectedName.trim() || device?.childName || 'Protegido',
+        gender: genero,
+        personType: protectedType || 'Menor',
         birthDate: birthDate.trim() || device?.birthDate,
-        protectedPhone: protectedPhone.trim() || device?.phone,
-        deviceModel: deviceModel.trim() || device?.deviceModel,
+        phone: protectedPhone.trim() || device?.phone,
       });
-      const code =
-        res.data?.code ||
-        res.data?.pairingCode ||
-        Math.floor(100000 + Math.random() * 900000).toString();
+      const code = res.data?.code || res.data?.pairingCode;
+      if (!code) {
+        throw new Error('No se recibió un nuevo código del servidor.');
+      }
       setPairingCode(code);
     } catch (e: any) {
-      const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
-      setPairingCode(fallbackCode);
+      setFeedbackModal({
+        visible: true,
+        imageSource: BOTITO_ASSETS.nervioso,
+        title: 'No pudimos generar un nuevo código',
+        message:
+          e?.message ||
+          'Verificá tu conexión a internet e intentá generar el código nuevamente.',
+      });
     } finally {
       setGeneratingCode(false);
     }
@@ -591,7 +592,7 @@ export const EditProtectedDeviceModal: React.FC<EditProtectedDeviceModalProps> =
             </View>
 
             {/* Sección: Vinculación de dispositivo recuperada de la base de datos */}
-            {(device?.status === 'INACTIVE' || !device?.isProtected) ? (
+            {device?.status === 'INACTIVE' ? (
               <View style={styles.pairingSectionContainer}>
                 <View style={styles.pairingDivider} />
                 <Text style={styles.pairingSectionTitle}>Vinculación de dispositivo</Text>

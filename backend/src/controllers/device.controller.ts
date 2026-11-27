@@ -74,16 +74,26 @@ export class DeviceController {
       const userId = req.user?.userId;
       if (!userId) throw new AppError('Usuario no autenticado', 401);
 
-      const { childName, gender, personType, birthDate, phone } = req.body;
+      const {
+        childName,
+        protectedName,
+        gender,
+        genero,
+        personType,
+        protectedType,
+        birthDate,
+        phone,
+        protectedPhone,
+      } = req.body;
       const deviceId = req.params?.id || req.body?.deviceId;
       const result = await deviceService.generatePairingCode({
         userId,
         deviceId,
-        childName,
-        gender,
-        personType,
+        childName: childName || protectedName,
+        gender: gender || genero,
+        personType: personType || protectedType,
         birthDate,
-        phone,
+        phone: phone || protectedPhone,
       } as any);
 
       res.status(200).json({

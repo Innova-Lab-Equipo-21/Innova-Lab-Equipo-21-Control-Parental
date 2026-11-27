@@ -106,7 +106,12 @@ export class DeviceService {
     }
 
     const deviceUuid = `uuid-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const pairingCode = Math.floor(100000 + Math.random() * 900000).toString();
+    let pairingCode = this.randomCode();
+    if (!env.USE_MOCK_DATA) {
+      while (await prisma.devicePairing.findUnique({ where: { pairingCode } })) {
+        pairingCode = this.randomCode();
+      }
+    }
     const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
     const birthDateObj = parseBirthDate(input.birthDate);
     const genderEnum = mapGender(input.gender);
@@ -567,19 +572,31 @@ export class DeviceService {
         where: { pairingCode: input.pairingCode },
       });
 
-      // Buscar si el dispositivo ya existía previamente registrado con ese UUID o ID precreado
-      let device = await tx.device.findUnique({
+      // Buscar si el código pertenece a un dispositivo precreado y/o si el UUID físico ya existía
+      const precreatedDevice = pairing.deviceId
+        ? await tx.device.findUnique({ where: { id: pairing.deviceId } })
+        : null;
+
+      const existingByUuid = await tx.device.findUnique({
         where: { deviceUuid: input.deviceUuid },
       });
 
-      if (!device && pairing.deviceId) {
-        device = await tx.device.findUnique({
-          where: { id: pairing.deviceId },
+      // Si el teléfono físico ya estaba registrado bajo otro registro anterior (ej. desvinculado)
+      // y ahora se vincula a un dispositivo precreado nuevo, liberar el UUID anterior sin perder historial.
+      if (precreatedDevice && existingByUuid && existingByUuid.id !== precreatedDevice.id) {
+        await tx.device.update({
+          where: { id: existingByUuid.id },
+          data: {
+            isActive: false,
+            deviceUuid: `retired-${existingByUuid.id}-${Date.now()}`,
+          },
         });
       }
 
+      let device = precreatedDevice || existingByUuid;
+
       if (device) {
-        // Reasignar dispositivo al usuario del código , con los datos del protegido cargados por el tutor y UUID real
+        // Reasignar dispositivo al usuario del código, con los datos del protegido cargados por el tutor y UUID real
         device = await tx.device.update({
           where: { id: device.id },
           data: {
@@ -599,20 +616,18 @@ export class DeviceService {
           },
         });
 
-        // Actualizar estado del dispositivo a STARTING / ACTIVE dentro de la transacción
+        // Marcar dispositivo como vinculado (ACTIVE); vpnActive y permissionsOk reflejan estado real hasta heartbeat
         await tx.deviceStatus.upsert({
           where: { deviceId: device.id },
           update: {
             effectiveStatus: 'ACTIVE',
-            vpnActive: true,
-            permissionsOk: true,
             lastHeartbeatAt: new Date(),
           },
           create: {
             deviceId: device.id,
             effectiveStatus: 'ACTIVE',
-            vpnActive: true,
-            permissionsOk: true,
+            vpnActive: false,
+            permissionsOk: false,
           },
         });
       } else {
@@ -641,7 +656,7 @@ export class DeviceService {
               create: {
                 effectiveStatus: 'ACTIVE',
                 vpnActive: false,
-                permissionsOk: true,
+                permissionsOk: false,
               },
             },
           },

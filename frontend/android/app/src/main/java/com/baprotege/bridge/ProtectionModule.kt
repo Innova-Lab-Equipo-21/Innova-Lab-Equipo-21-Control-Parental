@@ -4,7 +4,8 @@
  * Componente: Bridge React Native <-> Android Native
  * Archivo: ProtectionModule.kt
  * Descripción: Módulo nativo que expone VPN, accesibilidad, permisos del sistema,
- *              información real del dispositivo y persistencia a React Native.
+ *              escáner QR nativo (CameraX + ML Kit), información real del dispositivo
+ *              y persistencia a React Native.
  * ==============================================================================
  */
 
@@ -29,6 +30,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.baprotege.QrScannerActivity
 import com.baprotege.accessibility.BlockedAppRule
 import com.baprotege.accessibility.ProtectionAccessibilityService
 import com.baprotege.vpn.LotbaFilterEngine
@@ -48,6 +50,7 @@ class ProtectionModule(private val reactContext: ReactApplicationContext) :
         private const val REQUEST_BATTERY_OPTIMIZATION = 104
         private const val REQUEST_LOCATION_SETTINGS = 105
         private const val REQUEST_USAGE_STATS_SETTINGS = 106
+        private const val REQUEST_QR_SCANNER = 107
     }
 
     private var pendingVpnPromise: Promise? = null
@@ -56,6 +59,7 @@ class ProtectionModule(private val reactContext: ReactApplicationContext) :
     private var pendingBatteryPromise: Promise? = null
     private var pendingLocationPromise: Promise? = null
     private var pendingUsageStatsPromise: Promise? = null
+    private var pendingQrScannerPromise: Promise? = null
     private val filterEngine = LotbaFilterEngine.getInstance(reactContext)
 
     init {
@@ -1078,6 +1082,40 @@ class ProtectionModule(private val reactContext: ReactApplicationContext) :
         }
     }
 
+    /**
+     * Abre la actividad nativa de escaneo de código QR (CameraX + ML Kit)
+     * para leer el código de vinculación de 6 dígitos generado por el responsable.
+     */
+    @ReactMethod
+    fun openQrScanner(promise: Promise) {
+        val currentActivity = currentActivity
+        if (currentActivity == null) {
+            promise.reject("E_NO_ACTIVITY", "No hay una actividad activa para abrir el lector QR")
+            return
+        }
+
+        val cameraGranted = ContextCompat.checkSelfPermission(
+            reactContext,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!cameraGranted) {
+            promise.reject("E_CAMERA_PERMISSION_DENIED", "Permiso de cámara no concedido")
+            return
+        }
+
+        try {
+            pendingQrScannerPromise?.resolve(Arguments.createMap().apply {
+                putBoolean("cancelled", true)
+            })
+            pendingQrScannerPromise = promise
+            val intent = Intent(currentActivity, QrScannerActivity::class.java)
+            currentActivity.startActivityForResult(intent, REQUEST_QR_SCANNER)
+        } catch (e: Exception) {
+            pendingQrScannerPromise = null
+            promise.reject("E_QR_SCANNER", "No se pudo abrir el lector QR: ${e.message}", e)
+        }
+    }
+
     override fun onActivityResult(activity: Activity?, requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_VPN_PERMISSION) {
             val promise = pendingVpnPromise
@@ -1133,6 +1171,34 @@ class ProtectionModule(private val reactContext: ReactApplicationContext) :
             if (promise == null) return
 
             promise.resolve(hasUsageStatsPermission())
+        } else if (requestCode == REQUEST_QR_SCANNER) {
+            val promise = pendingQrScannerPromise
+            pendingQrScannerPromise = null
+            if (promise == null) return
+
+            when (resultCode) {
+                Activity.RESULT_OK -> {
+                    val code = data?.getStringExtra(QrScannerActivity.EXTRA_QR_CODE) ?: ""
+                    val rawValue = data?.getStringExtra(QrScannerActivity.EXTRA_RAW_VALUE) ?: code
+                    val result = Arguments.createMap().apply {
+                        putString("code", code)
+                        putString("rawValue", rawValue)
+                        putBoolean("cancelled", false)
+                    }
+                    promise.resolve(result)
+                }
+                Activity.RESULT_CANCELED -> {
+                    val result = Arguments.createMap().apply {
+                        putBoolean("cancelled", true)
+                    }
+                    promise.resolve(result)
+                }
+                else -> {
+                    val errorMsg = data?.getStringExtra(QrScannerActivity.EXTRA_ERROR_MESSAGE)
+                        ?: "No pudimos iniciar la cámara para escanear el código QR."
+                    promise.reject("E_QR_SCANNER_ERROR", errorMsg)
+                }
+            }
         }
     }
 

@@ -3,8 +3,8 @@
 Proyecto: BA Protege+
 Componente: Android Native Core
 Archivo: AndroidManifest.xml
-Descripción: Manifiesto de Android con permisos de VpnService, arranque automático
-             (BootReceiver), red y servicios en primer plano.
+Descripción: Manifiesto de Android con permisos de VpnService, cámara (lector QR
+             CameraX + ML Kit), arranque automático (BootReceiver), red y servicios.
 ==============================================================================
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -65,6 +65,11 @@ Descripción: Manifiesto de Android con permisos de VpnService, arranque automá
             android:name="com.baprotege.BlockedScreenActivity"
             android:exported="false"
             android:launchMode="singleInstance" />
+
+        <!-- Lector Nativo de Código QR (CameraX + ML Kit) para Vinculación -->
+        <activity
+            android:name="com.baprotege.QrScannerActivity"
+            android:exported="false" />
 
         <!-- Servicio Nativo VPN para filtrado local y bloqueo de dominios LOTBA -->
         <service
