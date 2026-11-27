@@ -65,7 +65,7 @@ export const selfControlApi = {
     await safeStorage.removeItem('@ba_protege_self_control_expires_at');
 
     try {
-      await apiClient.post('/self-control/enable', { enabledAt: now }, { timeout: 1000 });
+      await apiClient.post('/self-control/enable', { enabledAt: now }, { timeout: 10000 });
     } catch (e) {
       // Modo offline / demo
     }

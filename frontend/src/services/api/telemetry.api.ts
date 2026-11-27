@@ -2,6 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: Telemetría, Eventos de Seguridad, Pasatiempos, Uso de Apps y Ubicación
 // Archivo: src/services/api/telemetry.api.ts
+// Descripción: Sincronización de heartbeats, intentos bloqueados, alertas de seguridad, pasatiempos y consumo de apps.
 // ==============================================================================
 
 import {
@@ -167,7 +168,7 @@ export const telemetryApi = {
           sourceListType: apiSource,
           itemType: inferredItemType.toUpperCase(),
         },
-        { timeout: 600 }
+        { timeout: 10000 }
       );
       return response.data;
     } catch {
@@ -233,7 +234,7 @@ export const telemetryApi = {
       const response = await apiClient.patch(
         `/metrics/security-events/${encodeURIComponent(eventId)}/read`,
         {},
-        { timeout: 1500 }
+        { timeout: 10000 }
       );
       return response.data;
     } catch {
@@ -282,7 +283,7 @@ export const telemetryApi = {
   async reportPasatiempoProgress(payload: PasatiempoProgressPayload) {
     try {
       const response = await apiClient.post('/telemetry/pasatiempos', payload, {
-        timeout: 1200,
+        timeout: 10000,
       });
       return response.data;
     } catch {
@@ -306,7 +307,7 @@ export const telemetryApi = {
         `/telemetry/pasatiempos/${encodeURIComponent(deviceUuid)}`,
         {
           params: { dateKey: todayKey },
-          timeout: 1200,
+          timeout: 10000,
         }
       );
       const remoteSessions: BackendPasatiempoSessionDTO[] =
@@ -380,7 +381,7 @@ export const telemetryApi = {
             isBlocked: Boolean(a.isBlocked),
           })),
         },
-        { timeout: 1200 }
+        { timeout: 10000 }
       );
       return response.data;
     } catch {
@@ -412,7 +413,7 @@ export const telemetryApi = {
     try {
       const response = await apiClient.get('/metrics/activity', {
         params: { dateKey },
-        timeout: 1500,
+        timeout: 12000,
       });
       return response.data?.data || null;
     } catch {
@@ -448,7 +449,7 @@ export const telemetryApi = {
         `/metrics/device/${encodeURIComponent(deviceUuid)}/activity`,
         {
           params: { dateKey },
-          timeout: 1500,
+          timeout: 12000,
         }
       );
       return response.data?.data || null;

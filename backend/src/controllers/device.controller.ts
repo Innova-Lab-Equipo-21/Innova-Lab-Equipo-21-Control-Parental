@@ -2,7 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: Backend API
 // Archivo: src/controllers/device.controller.ts
-// Descripción: Controlador HTTP para pareamiento, listado y configuración de dispositivos protegidos.
+// Descripción: Controlador HTTP para pareamiento, listado, permisos, perfil por UUID, desvinculación y configuración de dispositivos.
 // ==============================================================================
 
 import { Response, NextFunction } from 'express';
@@ -171,6 +171,76 @@ export class DeviceController {
       res.status(200).json({
         success: true,
         data: device,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Desvincula (desactiva) un dispositivo protegido de la cuenta del responsable.
+   * DELETE /api/devices/:id
+   */
+  public async deleteDevice(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) throw new AppError('Usuario no autenticado', 401);
+
+      const result = await deviceService.deleteDevice(userId, req.params.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Obtiene el estado real de permisos y último heartbeat de un dispositivo.
+   * GET /api/devices/:id/permissions
+   */
+  public async getDevicePermissions(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) throw new AppError('Usuario no autenticado', 401);
+
+      const result = await deviceService.getDevicePermissions(userId, req.params.id);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      } satisfies ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Obtiene el perfil público básico (nombre del protegido, tipo y responsable) por UUID.
+   * GET /api/devices/by-uuid/:deviceUuid/profile
+   */
+  public async getDeviceProfileByUuid(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result = await deviceService.getDevicePublicProfileByUuid(req.params.deviceUuid);
+
+      res.status(200).json({
+        success: true,
+        data: result,
       } satisfies ApiResponse);
     } catch (error) {
       next(error);

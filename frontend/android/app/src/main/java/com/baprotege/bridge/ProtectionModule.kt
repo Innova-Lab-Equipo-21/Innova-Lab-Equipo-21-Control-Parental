@@ -3,8 +3,8 @@
  * Proyecto: BA Protege+
  * Componente: Bridge React Native <-> Android Native
  * Archivo: ProtectionModule.kt
- * Descripción: Módulo nativo que expone las capacidades del motor de protección VPN
- *              y persistencia a la capa JavaScript/TypeScript de React Native.
+ * Descripción: Módulo nativo que expone VPN, accesibilidad, permisos del sistema,
+ *              información real del dispositivo y persistencia a React Native.
  * ==============================================================================
  */
 
@@ -15,11 +15,13 @@ import android.app.Activity
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
 import android.net.VpnService
+import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
 import android.os.Process
@@ -990,6 +992,90 @@ class ProtectionModule(private val reactContext: ReactApplicationContext) :
             putInt("totalDomains", filterEngine.getBlockedDomainsCount())
         }
         promise.resolve(result)
+    }
+
+    /**
+     * Obtiene información real del hardware, sistema operativo, versión de la app
+     * y estado de batería del dispositivo Android actual.
+     */
+    @ReactMethod
+    fun getDeviceInfo(promise: Promise) {
+        try {
+            val androidId = try {
+                Settings.Secure.getString(reactContext.contentResolver, Settings.Secure.ANDROID_ID)
+            } catch (_: Exception) {
+                null
+            }?.takeIf { it.isNotBlank() } ?: "android-${Build.FINGERPRINT.hashCode()}"
+
+            val manufacturer = (Build.MANUFACTURER ?: "").trim()
+            val model = (Build.MODEL ?: "Android").trim()
+            val formattedManufacturer = if (manufacturer.isNotEmpty()) {
+                manufacturer.replaceFirstChar { it.uppercase() }
+            } else {
+                ""
+            }
+            val deviceModel = when {
+                formattedManufacturer.isEmpty() -> model
+                model.startsWith(formattedManufacturer, ignoreCase = true) -> model
+                else -> "$formattedManufacturer $model"
+            }
+
+            val osRelease = Build.VERSION.RELEASE ?: "Android"
+            val sdkInt = Build.VERSION.SDK_INT
+            val osVersion = "Android $osRelease (SDK $sdkInt)"
+
+            val appVersion = try {
+                val pkgInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    reactContext.packageManager.getPackageInfo(
+                        reactContext.packageName,
+                        PackageManager.PackageInfoFlags.of(0)
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    reactContext.packageManager.getPackageInfo(reactContext.packageName, 0)
+                }
+                pkgInfo.versionName ?: "1.0.0"
+            } catch (_: Exception) {
+                "1.0.0"
+            }
+
+            var batteryLevel = -1
+            var isCharging = false
+            try {
+                val batteryIntent = reactContext.registerReceiver(
+                    null,
+                    IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+                )
+                if (batteryIntent != null) {
+                    val level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                    val scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                    if (level >= 0 && scale > 0) {
+                        batteryLevel = ((level * 100f) / scale).toInt().coerceIn(0, 100)
+                    }
+                    val status = batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+                    isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                        status == BatteryManager.BATTERY_STATUS_FULL
+                }
+            } catch (_: Exception) {
+                // Continuar con valores por defecto
+            }
+
+            val result = Arguments.createMap().apply {
+                putString("deviceUuid", androidId)
+                putString("manufacturer", formattedManufacturer)
+                putString("model", model)
+                putString("deviceModel", deviceModel)
+                putString("osVersion", osVersion)
+                putInt("sdkInt", sdkInt)
+                putString("appVersion", appVersion)
+                putInt("batteryLevel", batteryLevel)
+                putBoolean("isCharging", isCharging)
+            }
+            promise.resolve(result)
+        } catch (e: Exception) {
+            Log.w(MODULE_NAME, "Error al leer información real del dispositivo: ${e.message}")
+            promise.reject("E_DEVICE_INFO", "No se pudo obtener información del dispositivo", e)
+        }
     }
 
     override fun onActivityResult(activity: Activity?, requestCode: Int, resultCode: Int, data: Intent?) {

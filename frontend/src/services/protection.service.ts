@@ -4,8 +4,8 @@
 // Archivo: src/services/protection.service.ts
 // Descripción: Servicio TypeScript que interactúa con el módulo nativo Android
 //              (ProtectionModule) para orquestar la protección completa del dispositivo:
-//              Filtrado VPN, Accesibilidad, Notificaciones, Batería, Ubicación GPS
-//              y Estadísticas de uso de aplicaciones.
+//              VPN, Accesibilidad, Notificaciones, Batería, Ubicación GPS,
+//              Estadísticas de uso e información real del hardware.
 // ==============================================================================
 
 import { NativeModules, Platform } from 'react-native';
@@ -14,7 +14,34 @@ import { apiService } from './api.service';
 
 const { ProtectionModule } = NativeModules;
 
+export interface NativeDeviceInfo {
+  deviceUuid: string;
+  manufacturer: string;
+  model: string;
+  deviceModel: string;
+  osVersion: string;
+  sdkInt: number;
+  appVersion: string;
+  batteryLevel: number;
+  isCharging: boolean;
+}
+
 export class ProtectionService {
+  /**
+   * Obtiene información real del hardware, sistema operativo, versión de app y batería.
+   */
+  public async getDeviceInfo(): Promise<NativeDeviceInfo | null> {
+    if (Platform.OS !== 'android' || !ProtectionModule || typeof ProtectionModule.getDeviceInfo !== 'function') {
+      return null;
+    }
+    try {
+      const info = await ProtectionModule.getDeviceInfo();
+      return info || null;
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Solicita al sistema Android autorización para crear la conexión VPN local
    * y verifica que el permiso haya quedado activo en la configuración del dispositivo.

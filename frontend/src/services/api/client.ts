@@ -2,6 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: API Client Core & Storage
 // Archivo: src/services/api/client.ts
+// Descripción: Cliente HTTP Axios autenticado con JWT, almacenamiento seguro y proveedor de tiempo del servidor.
 // ==============================================================================
 
 import axios from 'axios';
@@ -77,12 +78,12 @@ apiClient.interceptors.request.use(async (config) => {
 export const timestampProvider = {
   now: async (): Promise<number> => {
     try {
-      const response = await apiClient.get('/health', { timeout: 400 });
+      const response = await apiClient.get('/health', { timeout: 4000 });
       if (response.data?.timestamp) {
         return new Date(response.data.timestamp).getTime();
       }
     } catch (e) {
-      // Fallback local instantáneo
+      // Fallback local si no hay conectividad
     }
     return Date.now();
   },

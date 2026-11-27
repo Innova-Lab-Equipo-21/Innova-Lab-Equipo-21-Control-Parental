@@ -13,30 +13,28 @@ import { validateRequest } from '../middlewares/validation.middleware.js';
 
 const router = Router();
 
-// Esquema para generar el código: datos del menor que completa el tutor.
-// Los valores de gender y personType deben coincidir con los enums Gender y PersonType de Prisma.
+// Esquema flexible para generar o regenerar código de pareamiento:
+// - Si viene `deviceId`, regenera para un dispositivo ya creado.
+// - Si no viene `deviceId`, exige los datos del protegido.
 const generatePairingSchema = z.object({
-  body: z.object({
-    childName: z.string().trim().min(1, 'El nombre del protegido es requerido'),
-    gender: z.enum(['MASCULINO', 'FEMENINO', 'OTRO', 'NO_INFORMADO'], {
-      message: 'Género inválido',
+  body: z
+    .object({
+      deviceId: z.string().min(1).optional(),
+      childName: z.string().trim().min(1, 'El nombre del protegido es requerido').optional(),
+      gender: z
+        .enum(['MASCULINO', 'FEMENINO', 'OTRO', 'NO_INFORMADO', 'Masculino', 'Femenino', 'Otro', 'No informado'])
+        .optional(),
+      personType: z.enum(['MENOR', 'ADULTO', 'Menor', 'Adulto']).optional(),
+      birthDate: z
+        .string()
+        .refine((v) => !Number.isNaN(Date.parse(v)) || /^\d{2}[/.-]\d{2}[/.-]\d{4}$/.test(v), 'Fecha de nacimiento inválida')
+        .optional(),
+      phone: z.string().trim().optional(),
+    })
+    .refine((body) => Boolean(body.deviceId || body.childName), {
+      message: 'Debe especificar un deviceId existente o el nombre del protegido',
     }),
-    personType: z.enum(['MENOR', 'ADULTO'], { message: 'Tipo de persona inválido' }),
-    birthDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato AAAA-MM-DD')
-      .refine((v) => !Number.isNaN(Date.parse(v)), 'Fecha de nacimiento inválida')
-      .refine((v) => new Date(v) <= new Date(), 'La fecha de nacimiento no puede ser futura'),
-    phone: z.string().trim().min(1, 'El teléfono es requerido'),
-  }),
 });
-
-router.post(
-  '/pair/generate',
-  requireAuth,
-  validateRequest(generatePairingSchema),
-  (req, res, next) => deviceController.generatePairingCode(req, res, next),
-);
 
 // Esquema de confirmación de pareamiento desde el dispositivo del menor
 const confirmPairingSchema = z.object({
@@ -82,12 +80,20 @@ const antiUninstallVerifySchema = z.object({
 });
 
 // Rutas de pareamiento
-router.post('/pair/generate', requireAuth, (req, res, next) =>
-  deviceController.generatePairingCode(req, res, next),
+router.post(
+  '/pair/generate',
+  requireAuth,
+  validateRequest(generatePairingSchema),
+  (req, res, next) => deviceController.generatePairingCode(req, res, next),
 );
 
 router.post('/pair/confirm', validateRequest(confirmPairingSchema), (req, res, next) =>
   deviceController.confirmPairing(req, res, next),
+);
+
+// Perfil público por UUID para sincronización del dispositivo protegido
+router.get('/by-uuid/:deviceUuid/profile', (req, res, next) =>
+  deviceController.getDeviceProfileByUuid(req, res, next),
 );
 
 // Rutas de desactivación protegida de antidesinstalación (código de 6 dígitos enviado por email al tutor)
@@ -114,11 +120,19 @@ router.get('/', requireAuth, (req, res, next) => deviceController.listDevices(re
 
 router.post('/', requireAuth, (req, res, next) => deviceController.createDevice(req, res, next));
 
+router.get('/:id/permissions', requireAuth, (req, res, next) =>
+  deviceController.getDevicePermissions(req, res, next),
+);
+
 router.get('/:id', requireAuth, (req, res, next) =>
   deviceController.getDeviceDetail(req, res, next),
 );
 
 router.put('/:id', requireAuth, (req, res, next) => deviceController.updateDevice(req, res, next));
+
+router.delete('/:id', requireAuth, (req, res, next) =>
+  deviceController.deleteDevice(req, res, next),
+);
 
 router.post('/:id/pair/generate', requireAuth, (req, res, next) =>
   deviceController.generatePairingCode(req, res, next),

@@ -1,3 +1,10 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Backend API — Servicio de Correo Electrónico (SMTP)
+// Archivo: src/services/email.service.ts
+// Descripción: Envío de correos transaccionales vía Nodemailer/SMTP (vinculación, recuperación y códigos OTP).
+// ==============================================================================
+
 import nodemailer from 'nodemailer';
 import { env } from '../config/environment.js';
 
@@ -13,9 +20,13 @@ export class EmailService {
   });
 
   public async sendEmail(to: string, subject: string, text: string) {
+    const fromAddress =
+      env.SMTP_FROM?.trim() ||
+      (env.SMTP_USER ? `"BA Protege+" <${env.SMTP_USER}>` : 'no-reply@baprotege.com');
+
     try {
       await this.transporter.sendMail({
-        from: env.SMTP_FROM,
+        from: fromAddress,
         to,
         subject,
         text,

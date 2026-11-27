@@ -11,6 +11,7 @@ import { deviceRoutes } from './device.routes.js';
 import { blocklistRoutes } from './blocklist.routes.js';
 import { telemetryRoutes } from './telemetry.routes.js';
 import { metricsRoutes } from './metrics.routes.js';
+import { selfControlRoutes } from './selfControl.routes.js';
 
 const router = Router();
 
@@ -29,5 +30,6 @@ router.use('/devices', deviceRoutes);
 router.use('/blocklist', blocklistRoutes);
 router.use('/telemetry', telemetryRoutes);
 router.use('/metrics', metricsRoutes);
+router.use('/self-control', selfControlRoutes);
 
 export const apiRouter = router;

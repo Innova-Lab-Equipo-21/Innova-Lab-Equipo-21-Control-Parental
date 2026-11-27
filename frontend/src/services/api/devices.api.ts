@@ -2,6 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: Gestión de Dispositivos y Pareamiento (Devices API)
 // Archivo: src/services/api/devices.api.ts
+// Descripción: Operaciones de vinculación, listado, edición, auditoría de permisos, desvinculación y códigos OTP.
 // ==============================================================================
 
 import { MAX_PROTECTED_DEVICES, DeviceInfo, DevicePermissionsStatus } from '../../types';
@@ -569,7 +570,7 @@ export const devicesApi = {
     }
 
     try {
-      const res = await apiClient.get(`/devices/${deviceId}/permissions`, { timeout: 1500 });
+      const res = await apiClient.get(`/devices/${deviceId}/permissions`, { timeout: 10000 });
       if (res.data?.data) {
         return res.data.data;
       }
@@ -647,7 +648,7 @@ export const devicesApi = {
 
   async unbindDevice(deviceId: string): Promise<{ success: boolean; message: string }> {
     try {
-      await apiClient.delete(`/devices/${deviceId}`, { timeout: 1000 });
+      await apiClient.delete(`/devices/${deviceId}`, { timeout: 10000 });
     } catch (e) {
       // offline / mock
     }

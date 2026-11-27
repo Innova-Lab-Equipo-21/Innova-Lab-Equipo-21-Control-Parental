@@ -2,6 +2,7 @@
 // Proyecto: BA Protege+
 // Componente: Listas de Bloqueo, Sitios y Aplicaciones (Blocklist API)
 // Archivo: src/services/api/blocklist.api.ts
+// Descripción: Consumo de la lista oficial LOTBA y CRUD sincronizado de sitios web y aplicaciones bloqueadas.
 // ==============================================================================
 
 import {
@@ -32,7 +33,7 @@ export const blocklistApi = {
   // --------------------------------------------------------------------------
   async getCustomBlocklist(): Promise<{ success: boolean; data: CustomBlocklist }> {
     try {
-      const response = await apiClient.get('/blocklist/custom', { timeout: 300 });
+      const response = await apiClient.get('/blocklist/custom', { timeout: 12000 });
       if (response.data?.data) {
         // Preservar aplicaciones bloqueadas locales para evitar que la respuesta del backend las sobreescriba
         const cached = await safeStorage.getItem('@ba_protege_custom_blocklist');

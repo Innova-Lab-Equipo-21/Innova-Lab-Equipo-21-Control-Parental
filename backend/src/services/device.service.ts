@@ -1,3 +1,10 @@
+// ==============================================================================
+// Proyecto: BA Protege+
+// Componente: Backend API — Servicio de Dispositivos y Vinculación
+// Archivo: src/services/device.service.ts
+// Descripción: Lógica de negocio para creación, pareamiento, permisos, desvinculación y códigos OTP antidesinstalación.
+// ==============================================================================
+
 import crypto from 'crypto';
 import { prisma } from '../config/database.js';
 import { env } from '../config/environment.js';
@@ -8,11 +15,11 @@ import { Gender, PersonType } from '@prisma/client';
 
 export interface GeneratePairingCodeInput {
   userId: string;
-  childName: string;
-  gender: Gender;
-  personType: PersonType;
-  birthDate: string;
-  phone: string;
+  childName?: string;
+  gender?: Gender | string;
+  personType?: PersonType | string;
+  birthDate?: string;
+  phone?: string;
   deviceId?: string;
 }
 
@@ -305,33 +312,46 @@ export class DeviceService {
     // Código nunca expira (100 años en el futuro)
     const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
     const MAX_DEVICES = 5;
+    const normalizedGender = mapGender(input.gender as string | undefined) || undefined;
+    const normalizedPersonType =
+      input.personType && String(input.personType).toUpperCase() === 'ADULTO'
+        ? PersonType.ADULTO
+        : input.personType && String(input.personType).toUpperCase() === 'MENOR'
+          ? PersonType.MENOR
+          : undefined;
     const minor = {
       childName: input.childName,
-      gender: input.gender,
-      personType: input.personType,
+      gender: normalizedGender,
+      personType: normalizedPersonType,
       birthDate: input.birthDate,
       phone: input.phone,
     };
 
     if (env.USE_MOCK_DATA) {
       const linked = mockDb.devices.filter((d) => d.userId === input.userId && d.isActive).length;
-      if (linked >= MAX_DEVICES) {
+      if (!input.deviceId && linked >= MAX_DEVICES) {
         throw new AppError(`Alcanzaste el máximo de ${MAX_DEVICES} dispositivos vinculados`, 409);
       }
       let code = this.randomCode();
       while (mockDb.pairings.some((p) => p.pairingCode === code)) {
         code = this.randomCode();
       }
-      let existingPending = mockDb.pairings.find(
+      const existingPending = mockDb.pairings.find(
         (p) =>
           p.userId === input.userId &&
-          (!input.deviceId || p.deviceId === input.deviceId) &&
+          (input.deviceId ? p.deviceId === input.deviceId : true) &&
           !p.isUsed,
       );
 
       if (existingPending) {
         existingPending.pairingCode = code;
-        existingPending.minor = minor;
+        existingPending.minor = {
+          childName: minor.childName ?? existingPending.minor?.childName ?? '',
+          gender: String(minor.gender ?? existingPending.minor?.gender ?? 'NO_INFORMADO'),
+          personType: String(minor.personType ?? existingPending.minor?.personType ?? 'MENOR'),
+          birthDate: minor.birthDate ?? existingPending.minor?.birthDate ?? '',
+          phone: minor.phone ?? existingPending.minor?.phone ?? '',
+        };
         existingPending.expiresAt = expiresAt;
         return {
           pairingCode: code,
@@ -345,7 +365,13 @@ export class DeviceService {
         deviceId: input.deviceId || null,
         pairingCode: code,
         isUsed: false,
-        minor,
+        minor: {
+          childName: minor.childName ?? '',
+          gender: String(minor.gender ?? 'NO_INFORMADO'),
+          personType: String(minor.personType ?? 'MENOR'),
+          birthDate: minor.birthDate ?? '',
+          phone: minor.phone ?? '',
+        },
         expiresAt,
         createdAt: new Date(),
       });
@@ -355,11 +381,42 @@ export class DeviceService {
         expiresAt,
       };
     }
-    const linked = await prisma.device.count({
-      where: { userId: input.userId, isActive: true },
-    });
-    if (linked >= MAX_DEVICES) {
-      throw new AppError(`Alcanzaste el máximo de ${MAX_DEVICES} dispositivos vinculados`, 409);
+
+    let targetDevice: {
+      id: string;
+      childName: string | null;
+      gender: Gender | null;
+      personType: PersonType | null;
+      birthDate: Date | null;
+      phone: string | null;
+    } | null = null;
+
+    if (input.deviceId) {
+      targetDevice = await prisma.device.findFirst({
+        where: {
+          userId: input.userId,
+          isActive: true,
+          OR: [{ id: input.deviceId }, { deviceUuid: input.deviceId }],
+        },
+        select: {
+          id: true,
+          childName: true,
+          gender: true,
+          personType: true,
+          birthDate: true,
+          phone: true,
+        },
+      });
+      if (!targetDevice) {
+        throw new AppError('Dispositivo no encontrado para regenerar código', 404);
+      }
+    } else {
+      const linked = await prisma.device.count({
+        where: { userId: input.userId, isActive: true },
+      });
+      if (linked >= MAX_DEVICES) {
+        throw new AppError(`Alcanzaste el máximo de ${MAX_DEVICES} dispositivos vinculados`, 409);
+      }
     }
 
     let code = this.randomCode();
@@ -367,13 +424,23 @@ export class DeviceService {
       code = this.randomCode();
     }
 
-    // birthDate llega como 'AAAA-MM-DD'; la columna es DATE, así que se convierte a Date.
-    const minorData = { ...minor, birthDate: new Date(input.birthDate) };
+    const parsedBirthDate = input.birthDate
+      ? parseBirthDate(input.birthDate)
+      : targetDevice?.birthDate ?? null;
+
+    const minorData = {
+      childName: input.childName ?? targetDevice?.childName ?? null,
+      gender: normalizedGender ?? targetDevice?.gender ?? null,
+      personType: normalizedPersonType ?? targetDevice?.personType ?? null,
+      birthDate: parsedBirthDate,
+      phone: input.phone ?? targetDevice?.phone ?? null,
+    };
 
     const existingPending = await prisma.devicePairing.findFirst({
       where: {
         userId: input.userId,
         isUsed: false,
+        ...(targetDevice ? { deviceId: targetDevice.id } : { deviceId: null }),
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -384,7 +451,7 @@ export class DeviceService {
         data: {
           pairingCode: code,
           expiresAt,
-          ...(input.deviceId && { deviceId: input.deviceId }),
+          ...(targetDevice && { deviceId: targetDevice.id }),
           ...minorData,
         },
       });
@@ -394,14 +461,14 @@ export class DeviceService {
     const pairing = await prisma.devicePairing.create({
       data: {
         userId: input.userId,
-        deviceId: input.deviceId || null,
+        deviceId: targetDevice?.id || null,
         pairingCode: code,
         expiresAt,
         ...minorData,
       },
     });
 
-    return { pairingCode: code };
+    return { pairingCode: pairing.pairingCode, expiresAt: pairing.expiresAt };
   }
 
   private randomCode(): string {
@@ -532,18 +599,18 @@ export class DeviceService {
           },
         });
 
-        // Actualizar estado del dispositivo a STARTING / ACTIVE
-        await prisma.deviceStatus.upsert({
+        // Actualizar estado del dispositivo a STARTING / ACTIVE dentro de la transacción
+        await tx.deviceStatus.upsert({
           where: { deviceId: device.id },
           update: {
-            effectiveStatus: 'STARTING',
+            effectiveStatus: 'ACTIVE',
             vpnActive: true,
             permissionsOk: true,
             lastHeartbeatAt: new Date(),
           },
           create: {
             deviceId: device.id,
-            effectiveStatus: 'STARTING',
+            effectiveStatus: 'ACTIVE',
             vpnActive: true,
             permissionsOk: true,
           },
@@ -555,7 +622,7 @@ export class DeviceService {
             userId: pairing.userId,
             deviceUuid: input.deviceUuid,
             deviceName: input.deviceName,
-            childName: input.childName || pairing.childName,
+            childName: pairing.childName || input.childName,
             gender: pairing.gender,
             personType: pairing.personType,
             birthDate: pairing.birthDate,
@@ -572,7 +639,7 @@ export class DeviceService {
             },
             status: {
               create: {
-                effectiveStatus: 'STARTING',
+                effectiveStatus: 'ACTIVE',
                 vpnActive: false,
                 permissionsOk: true,
               },
@@ -596,7 +663,7 @@ export class DeviceService {
         .sendEmail(
           user.email,
           'Dispositivo vinculado',
-          `El dispositivo ${device.deviceName} ha sido vinculado a tu cuenta.`,
+          `El dispositivo ${device.childName || device.deviceName} ha sido vinculado a tu cuenta.`,
         )
         .catch(() => {});
     }
@@ -605,6 +672,10 @@ export class DeviceService {
       message: 'Dispositivo vinculado con éxito',
       deviceId: device.id,
       deviceUuid: device.deviceUuid,
+      deviceName: device.deviceName,
+      childName: device.childName || device.deviceName,
+      personType: device.personType || pairing.personType || 'MENOR',
+      tutorName: user?.fullName || null,
     };
   }
 
@@ -775,6 +846,186 @@ export class DeviceService {
     return updatedConfig;
   }
 
+  /**
+   * Desvincula (desactiva) un dispositivo protegido de la cuenta del responsable.
+   * DELETE /api/devices/:id
+   */
+  public async deleteDevice(userId: string, deviceId: string) {
+    if (env.USE_MOCK_DATA) {
+      const idx = mockDb.devices.findIndex(
+        (d) => d.userId === userId && (d.id === deviceId || d.deviceUuid === deviceId),
+      );
+      if (idx === -1) {
+        throw new AppError('Dispositivo no encontrado', 404);
+      }
+      mockDb.devices[idx].isActive = false;
+      return { success: true, message: 'El dispositivo fue desvinculado exitosamente.' };
+    }
+
+    const existing = await prisma.device.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        OR: [{ id: deviceId }, { deviceUuid: deviceId }],
+      },
+    });
+
+    if (!existing) {
+      throw new AppError('Dispositivo no encontrado o ya fue desvinculado', 404);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.device.update({
+        where: { id: existing.id },
+        data: { isActive: false },
+      });
+
+      await tx.devicePairing.updateMany({
+        where: { deviceId: existing.id, isUsed: false },
+        data: { isUsed: true },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'UNBIND_DEVICE',
+          details: {
+            deviceId: existing.id,
+            deviceUuid: existing.deviceUuid,
+            childName: existing.childName,
+          },
+        },
+      });
+    });
+
+    return {
+      success: true,
+      message: 'El dispositivo fue desvinculado exitosamente.',
+    };
+  }
+
+  /**
+   * Obtiene el estado real de permisos y último heartbeat de un dispositivo protegido.
+   * GET /api/devices/:id/permissions
+   */
+  public async getDevicePermissions(userId: string, deviceId: string) {
+    if (env.USE_MOCK_DATA) {
+      const dev = mockDb.devices.find(
+        (d) => d.userId === userId && (d.id === deviceId || d.deviceUuid === deviceId),
+      );
+      if (!dev) throw new AppError('Dispositivo no encontrado', 404);
+      const vpn = Boolean(dev.status?.vpnActive);
+      const ok = Boolean(dev.status?.permissionsOk);
+      return {
+        deviceId: dev.id,
+        deviceUuid: dev.deviceUuid,
+        status: dev.status?.effectiveStatus || 'UNKNOWN',
+        lastHeartbeatAt: dev.status?.lastHeartbeatAt || dev.lastSeenAt,
+        permissions: {
+          vpn,
+          accessibility: ok,
+          notifications: ok,
+          batteryOptimization: ok,
+          location: ok,
+          usageStats: ok,
+          grantedCount: [vpn, ok, ok, ok, ok, ok].filter(Boolean).length,
+        },
+      };
+    }
+
+    const device = await prisma.device.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        OR: [{ id: deviceId }, { deviceUuid: deviceId }],
+      },
+      include: { status: true },
+    });
+
+    if (!device) {
+      throw new AppError('Dispositivo no encontrado', 404);
+    }
+
+    const vpn = Boolean(device.status?.vpnActive);
+    const permissionsOk = Boolean(device.status?.permissionsOk);
+    const isLinked = device.status?.effectiveStatus !== 'INACTIVE';
+
+    const perms = {
+      vpn,
+      accessibility: isLinked && permissionsOk,
+      notifications: isLinked && permissionsOk,
+      batteryOptimization: isLinked && permissionsOk,
+      location: isLinked && permissionsOk,
+      usageStats: isLinked && permissionsOk,
+    };
+
+    const grantedCount = Object.values(perms).filter(Boolean).length;
+
+    return {
+      deviceId: device.id,
+      deviceUuid: device.deviceUuid,
+      status: device.status?.effectiveStatus || 'INACTIVE',
+      lastHeartbeatAt: device.status?.lastHeartbeatAt || device.lastSeenAt,
+      batteryLevel: device.status?.batteryLevel ?? null,
+      isCharging: device.status?.isCharging ?? null,
+      permissions: {
+        ...perms,
+        grantedCount,
+      },
+    };
+  }
+
+  /**
+   * Obtiene información pública de perfil para que un dispositivo protegido refresque
+   * el nombre real de su responsable y tipo de perfil desde la base de datos.
+   * GET /api/devices/by-uuid/:deviceUuid/profile
+   */
+  public async getDevicePublicProfileByUuid(deviceUuid: string) {
+    if (env.USE_MOCK_DATA) {
+      const device = mockDb.devices.find(
+        (d) => d.deviceUuid === deviceUuid || d.id === deviceUuid,
+      );
+      if (!device) throw new AppError('Dispositivo no encontrado', 404);
+      const user = mockDb.users.find((u) => u.id === device.userId);
+      return {
+        deviceId: device.id,
+        deviceUuid: device.deviceUuid,
+        deviceName: device.deviceName,
+        childName: device.childName || device.deviceName,
+        personType: device.personType || 'MENOR',
+        tutorName: user?.fullName || null,
+        isActive: device.isActive,
+      };
+    }
+
+    const device = await prisma.device.findFirst({
+      where: {
+        OR: [{ deviceUuid }, { id: deviceUuid }],
+      },
+      include: {
+        user: {
+          select: {
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    if (!device) {
+      throw new AppError('Dispositivo no encontrado', 404);
+    }
+
+    return {
+      deviceId: device.id,
+      deviceUuid: device.deviceUuid,
+      deviceName: device.deviceName,
+      childName: device.childName || device.deviceName,
+      personType: device.personType || 'MENOR',
+      tutorName: device.user?.fullName || null,
+      isActive: device.isActive,
+    };
+  }
+
   private activeAntiUninstallCodes = new Map<
     string,
     { code: string; expiresAt: Date; createdAt: Date; email: string }
@@ -786,7 +1037,7 @@ export class DeviceService {
    * Si ya existía un código anterior para este dispositivo, queda automáticamente invalidado.
    */
   public async requestAntiUninstallCode(input: { deviceUuid: string }) {
-    let responsableEmail = 'tutor@baprotege.gob.ar';
+    let responsableEmail: string | null = null;
     let deviceName = 'Dispositivo Protegido';
 
     if (env.USE_MOCK_DATA) {
@@ -801,22 +1052,28 @@ export class DeviceService {
         }
       }
     } else {
-      try {
-        const device = await prisma.device.findFirst({
-          where: {
-            OR: [{ deviceUuid: input.deviceUuid }, { id: input.deviceUuid }],
-          },
-          include: { user: true },
-        });
-        if (device) {
-          deviceName = device.deviceName || device.childName || deviceName;
-          if (device.user?.email) {
-            responsableEmail = device.user.email;
-          }
-        }
-      } catch (err) {
-        // Fallback a tutor por defecto
+      const device = await prisma.device.findFirst({
+        where: {
+          isActive: true,
+          OR: [{ deviceUuid: input.deviceUuid }, { id: input.deviceUuid }],
+        },
+        include: { user: true },
+      });
+      if (!device || !device.user?.email) {
+        throw new AppError(
+          'No se encontró un responsable vinculado con correo válido para este dispositivo.',
+          404,
+        );
       }
+      deviceName = device.childName || device.deviceName || deviceName;
+      responsableEmail = device.user.email;
+    }
+
+    if (!responsableEmail) {
+      throw new AppError(
+        'No se encontró un correo electrónico del responsable para enviar el código.',
+        404,
+      );
     }
 
     // Generar código de 6 dígitos
@@ -833,17 +1090,24 @@ export class DeviceService {
 
     // Disparar correo al responsable que vinculó el dispositivo
     const emailSubject = 'Código de seguridad para desactivar antidesinstalación - BA Protege+';
-    const emailBody = `Hola,\n\nSe ha solicitado desactivar la protección antidesinstalación en el dispositivo protegido "${deviceName}".\n\nTu código de verificación de 6 dígitos es:\n\n${code}\n\nSi no realizaste esta solicitud, no compartas este código con nadie.\n\nEquipo de BA Protege+\nLotería de la Ciudad de Buenos Aires (LOTBA S.E.)`;
+    const emailBody = `Hola,\n\nSe ha solicitado desactivar la protección antidesinstalación en el dispositivo protegido "${deviceName}".\n\nTu código de verificación de 6 dígitos es:\n\n${code}\n\nEste código vence en 15 minutos. Si no realizaste esta solicitud, no compartas este código con nadie.\n\nEquipo de BA Protege+\nLotería de la Ciudad de Buenos Aires (LOTBA S.E.)`;
 
-    await emailService.sendEmail(responsableEmail, emailSubject, emailBody);
+    const mailResult = await emailService.sendEmail(responsableEmail, emailSubject, emailBody);
+    if (!mailResult.success && !env.USE_MOCK_DATA) {
+      this.activeAntiUninstallCodes.delete(input.deviceUuid);
+      throw new AppError(
+        'No se pudo enviar el código al correo del responsable. Intentá nuevamente en unos minutos.',
+        502,
+      );
+    }
 
-    // Ocultar email para privacidad (ej. t***r@baprotege.gob.ar)
+    // Ocultar email para privacidad (ej. t***r@dominio.com)
     const [localPart, domain] = responsableEmail.split('@');
     const maskedLocal =
       localPart && localPart.length > 2
         ? `${localPart[0]}***${localPart[localPart.length - 1]}`
         : `${localPart ? localPart[0] : 't'}***`;
-    const maskedEmail = `${maskedLocal}@${domain || 'baprotege.gob.ar'}`;
+    const maskedEmail = `${maskedLocal}@${domain || ''}`;
 
     return {
       message: 'Código de verificación enviado al correo del responsable',
