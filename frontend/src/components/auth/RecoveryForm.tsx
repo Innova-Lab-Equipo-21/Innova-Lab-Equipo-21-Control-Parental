@@ -40,11 +40,11 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
     setSuccessMessage(null);
 
     if (!email.trim()) {
-      setErrorMessage('Por favor, ingresa tu correo electrónico registrado.');
+      setErrorMessage('Por favor, ingresá tu correo electrónico registrado.');
       return;
     }
     if (!validateEmailFormat(email)) {
-      setErrorMessage('Ingresa un correo electrónico con formato válido.');
+      setErrorMessage('Ingresá un correo electrónico con formato válido.');
       return;
     }
 
@@ -53,13 +53,14 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
       await apiService.recoverPassword(email.trim());
       setRecoverySent(true);
       setSuccessMessage(
-        `Hemos enviado las instrucciones para restablecer tu contraseña a ${email.trim()}. Revisa tu bandeja de entrada o spam.`,
+        `Enviamos las instrucciones para restablecer tu contraseña a ${email.trim()}. Revisá tu bandeja de entrada o spam.`,
       );
     } catch (error: any) {
-      setRecoverySent(true);
-      setSuccessMessage(
-        `Hemos enviado las instrucciones de recuperación a ${email.trim()}.`,
-      );
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        'No pudimos conectar con el servidor. Verificá tu conexión a internet e intentá de nuevo.';
+      setErrorMessage(msg);
     } finally {
       setLoading(false);
     }
@@ -70,7 +71,7 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
       <View style={styles.headerSection}>
         <Text style={styles.title}>Recuperar contraseña</Text>
         <Text style={styles.subtitle}>
-          Ingresa tu correo electrónico registrado y te enviaremos las instrucciones para restablecer tu acceso.
+          Ingresá tu correo electrónico registrado y te enviaremos las instrucciones para restablecer tu acceso.
         </Text>
       </View>
 

@@ -106,15 +106,41 @@ describe('Flujo de Selección de Modo, Modal de Advertencia e Iniciar Sesión', 
       'No debe existir condición bypass para usuario mock en el formulario de login'
     );
 
-    // 3. authApi.login no debe crear usuarios mock en fallos de red
+    // 3. authApi.login y authApi.register no deben crear usuarios/tokens mock en fallos de red
     const loginMethod = authSrc.split('async login')[1]?.split('async googleAuth')[0] || '';
+    const registerMethod = authSrc.split('async register')[1]?.split('async login')[0] || '';
     assert.ok(
-      !loginMethod.includes("mockUser"),
-      'authApi.login no debe generar usuarios mock'
+      !loginMethod.includes('mockUser') && !loginMethod.includes('mockToken'),
+      'authApi.login no debe generar usuarios ni tokens mock'
     );
     assert.ok(
-      !loginMethod.includes("mockToken"),
-      'authApi.login no debe generar tokens mock'
+      !registerMethod.includes('mockUser') && !registerMethod.includes('mock-jwt-token'),
+      'authApi.register no debe activar modo local de respaldo con usuarios mock'
     );
+
+    // 4. Sin datos ficticios hardcodeados en dispositivos propios, acción responsable ni estilos de login
+    const devicesApiSrc = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/services/api/devices.api.ts'),
+      'utf8'
+    );
+    const protectedDevicesSrc = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/dashboard/dispositivos/ProtectedDevicesSection.tsx'),
+      'utf8'
+    );
+    const responsibleActionSrc = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/screens/ResponsibleActionScreen.tsx'),
+      'utf8'
+    );
+    const loginStylesSrc = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/auth/LoginForm.styles.ts'),
+      'utf8'
+    );
+
+    assert.ok(!devicesApiSrc.includes('10/03/1985'), 'devices.api.ts no debe hardcodear fecha de nacimiento');
+    assert.ok(!devicesApiSrc.includes('+54 9 11 5544-3322'), 'devices.api.ts no debe hardcodear teléfono');
+    assert.ok(!protectedDevicesSrc.includes('tutor@baprotege.gob.ar'), 'ProtectedDevicesSection no debe hardcodear email');
+    assert.ok(!protectedDevicesSrc.includes('10/03/1985'), 'ProtectedDevicesSection no debe hardcodear fecha');
+    assert.ok(!responsibleActionSrc.includes('(Demo)'), 'ResponsibleActionScreen no debe tener prop Demo');
+    assert.ok(!loginStylesSrc.includes('demoFillButton'), 'LoginForm.styles.ts no debe mantener estilos demo muertos');
   });
 });

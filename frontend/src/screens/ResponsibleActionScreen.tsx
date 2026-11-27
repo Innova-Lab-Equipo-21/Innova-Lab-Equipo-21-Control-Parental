@@ -36,7 +36,7 @@ interface ResponsibleActionScreenProps {
 }
 
 export const ResponsibleActionScreen: React.FC<ResponsibleActionScreenProps> = ({
-  userName = 'Tutor Responsable (Demo)',
+  userName = '',
   onSelectAction,
   onBack,
 }) => {

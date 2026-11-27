@@ -74,6 +74,85 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Renovación automática de ID Token expirado usando Refresh Token de Firebase (single-flight)
+let pendingRefreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (pendingRefreshPromise) {
+    return pendingRefreshPromise;
+  }
+
+  pendingRefreshPromise = (async () => {
+    try {
+      const storedRefreshToken = await safeStorage.getItem('@ba_protege_refresh_token');
+      if (!storedRefreshToken) {
+        return null;
+      }
+
+      const response = await axios.post(
+        `${BASE_API_URL}/auth/refresh-token`,
+        { refreshToken: storedRefreshToken },
+        {
+          timeout: 10000,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
+      const newToken = response.data?.data?.token as string | undefined;
+      const newRefreshToken = response.data?.data?.refreshToken as string | undefined;
+      if (newToken) {
+        await safeStorage.setItem('@ba_protege_jwt_token', newToken);
+        if (newRefreshToken) {
+          await safeStorage.setItem('@ba_protege_refresh_token', newRefreshToken);
+        }
+        return newToken;
+      }
+      return null;
+    } catch {
+      await safeStorage.removeItem('@ba_protege_refresh_token');
+      return null;
+    } finally {
+      pendingRefreshPromise = null;
+    }
+  })();
+
+  return pendingRefreshPromise;
+}
+
+const AUTH_NO_REFRESH_PATHS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/google',
+  '/auth/refresh-token',
+  '/auth/recover-password',
+];
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error?.config;
+    const requestUrl = String(originalRequest?.url || '');
+    const isNoRefreshPath = AUTH_NO_REFRESH_PATHS.some((p) => requestUrl.includes(p));
+
+    if (
+      error?.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isNoRefreshPath
+    ) {
+      originalRequest._retry = true;
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return apiClient(originalRequest);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 // Proveedor de tiempo confiable para protección anti-manipulación
 export const timestampProvider = {
   now: async (): Promise<number> => {

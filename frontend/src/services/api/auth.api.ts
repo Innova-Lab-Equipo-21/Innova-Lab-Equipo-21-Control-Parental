@@ -2,6 +2,9 @@
 // Proyecto: BA Protege+
 // Componente: Autenticación de Responsable (Auth API)
 // Archivo: src/services/api/auth.api.ts
+// Descripción: Servicio HTTP para registro, inicio de sesión, Google Sign-In,
+//              renovación de token, recuperación de contraseña, edición de perfil
+//              y eliminación de cuenta contra el backend real.
 // ==============================================================================
 
 import { apiClient, safeStorage } from './client';
@@ -40,116 +43,123 @@ export interface UpdateProfilePayload {
   password?: string;
 }
 
+async function persistAuthTokens(data?: { token?: string; refreshToken?: string }): Promise<void> {
+  if (data?.token) {
+    await safeStorage.setItem('@ba_protege_jwt_token', data.token);
+  }
+  if (data?.refreshToken) {
+    await safeStorage.setItem('@ba_protege_refresh_token', data.refreshToken);
+  }
+}
+
+function normalizeAuthError(error: any, fallbackMessage: string): Error {
+  if (error?.response?.data?.message) {
+    const err = new Error(error.response.data.message);
+    (err as any).response = error.response;
+    return err;
+  }
+  if (
+    !error?.response ||
+    error?.code === 'ERR_NETWORK' ||
+    error?.code === 'ECONNABORTED' ||
+    error?.message?.includes('Network Error')
+  ) {
+    return new Error('No pudimos conectar con el servidor. Verificá tu conexión a internet.');
+  }
+  return error instanceof Error ? error : new Error(fallbackMessage);
+}
+
 export const authApi = {
   async register(data: RegisterPayload) {
     try {
       const response = await apiClient.post('/auth/register', data);
-      if (response.data.data?.token) {
-        await safeStorage.setItem('@ba_protege_jwt_token', response.data.data.token);
-      }
+      await persistAuthTokens(response.data?.data);
       return response.data;
     } catch (error: any) {
-      // Fallback a registro local de respaldo si hay Network Error o el backend no está disponible
-      if (!error.response || error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
-        console.warn('⚠️ Network Error detectado al registrar. Activando modo local de respaldo.');
-        const fullName = data.fullName || `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Tutor Responsable';
-        const mockUser = {
-          id: `usr-local-${Date.now()}`,
-          email: data.email,
-          fullName,
-          firstName: data.firstName || 'Tutor',
-          lastName: data.lastName || 'Responsable',
-          gender: data.gender || 'No informado',
-          birthDate: data.birthDate || '10/05/1988',
-          phone: data.phone || '',
-          isActive: true,
-        };
-        const mockToken = `mock-jwt-token-${Date.now()}`;
-        await safeStorage.setItem('@ba_protege_jwt_token', mockToken);
-        await safeStorage.setItem(
-          '@ba_protege_self_device',
-          JSON.stringify({
-            deviceId: 'self',
-            deviceUuid: 'uuid-self-responsable',
-            deviceName: fullName,
-            childName: fullName,
-            isProtected: true,
-            status: 'ACTIVE',
-            lastHeartbeat: 'En línea',
-            blockedCount: 0,
-            blocklistVersion: 4,
-            phone: mockUser.phone,
-            birthDate: mockUser.birthDate,
-            gender: mockUser.gender,
-            profileType: 'Responsable',
-          })
-        );
-
-        return {
-          success: true,
-          message: 'Cuenta registrada exitosamente.',
-          data: {
-            user: mockUser,
-            token: mockToken,
-          },
-        };
-      }
-      throw error;
+      throw normalizeAuthError(error, 'Error al registrar la cuenta.');
     }
   },
 
   async login(data: LoginPayload) {
     try {
       const response = await apiClient.post('/auth/login', data);
-      if (response.data.data?.token) {
-        await safeStorage.setItem('@ba_protege_jwt_token', response.data.data.token);
-      }
+      await persistAuthTokens(response.data?.data);
       return response.data;
     } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      }
-      if (!error.response || error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
-        throw new Error('No se pudo conectar con el servidor. Por favor verifica tu conexión a Internet.');
-      }
-      throw error;
+      throw normalizeAuthError(error, 'Error al iniciar sesión.');
     }
   },
 
   async googleAuth(data: GoogleAuthPayload) {
-    const response = await apiClient.post('/auth/google', data);
-    if (response.data.data?.token) {
-      await safeStorage.setItem('@ba_protege_jwt_token', response.data.data.token);
+    try {
+      const response = await apiClient.post('/auth/google', data);
+      await persistAuthTokens(response.data?.data);
+      return response.data;
+    } catch (error: any) {
+      throw normalizeAuthError(error, 'Error al autenticar con Google.');
     }
-    return response.data;
   },
 
   async googleLink(data: GoogleAuthPayload) {
-    const response = await apiClient.post('/auth/google/link', data);
-    if (response.data.data?.token) {
-      await safeStorage.setItem('@ba_protege_jwt_token', response.data.data.token);
+    try {
+      const response = await apiClient.post('/auth/google/link', data);
+      await persistAuthTokens(response.data?.data);
+      return response.data;
+    } catch (error: any) {
+      throw normalizeAuthError(error, 'Error al vincular la cuenta de Google.');
     }
-    return response.data;
+  },
+
+  async refreshToken(refreshToken?: string) {
+    try {
+      const tokenToUse = refreshToken || (await safeStorage.getItem('@ba_protege_refresh_token'));
+      if (!tokenToUse) {
+        throw new Error('No hay un token de actualización disponible.');
+      }
+      const response = await apiClient.post('/auth/refresh-token', {
+        refreshToken: tokenToUse,
+      });
+      await persistAuthTokens(response.data?.data);
+      return response.data;
+    } catch (error: any) {
+      throw normalizeAuthError(error, 'No se pudo renovar la sesión.');
+    }
   },
 
   async recoverPassword(email: string) {
-    const response = await apiClient.post('/auth/recover-password', { email });
-    return response.data;
+    try {
+      const response = await apiClient.post('/auth/recover-password', { email });
+      return response.data;
+    } catch (error: any) {
+      throw normalizeAuthError(error, 'No se pudo procesar la recuperación de contraseña.');
+    }
   },
 
   async logout() {
     await safeStorage.removeItem('@ba_protege_jwt_token');
+    await safeStorage.removeItem('@ba_protege_refresh_token');
+    await safeStorage.removeItem('@ba_protege_self_device');
   },
 
   async updateProfile(data: UpdateProfilePayload) {
-    const response = await apiClient.put('/auth/profile', data);
-    return response.data;
+    try {
+      const response = await apiClient.put('/auth/profile', data);
+      return response.data;
+    } catch (error: any) {
+      throw normalizeAuthError(error, 'No se pudo actualizar el perfil.');
+    }
   },
 
   async deleteAccount() {
-    const response = await apiClient.delete('/auth/account');
-    await safeStorage.removeItem('@ba_protege_jwt_token');
-    return response.data;
+    try {
+      const response = await apiClient.delete('/auth/account');
+      await safeStorage.removeItem('@ba_protege_jwt_token');
+      await safeStorage.removeItem('@ba_protege_refresh_token');
+      await safeStorage.removeItem('@ba_protege_self_device');
+      return response.data;
+    } catch (error: any) {
+      throw normalizeAuthError(error, 'No se pudo eliminar la cuenta.');
+    }
   },
 
   async registerFcmToken(fcmToken: string) {

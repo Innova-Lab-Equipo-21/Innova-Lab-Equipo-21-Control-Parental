@@ -61,6 +61,7 @@ export interface DeviceInfo {
   blocklistVersion: number;
   permissions?: DevicePermissionsStatus;
   phone?: string;
+  email?: string;
   birthDate?: string;
   gender?: string;
   profileType?: 'Menor' | 'Adulto' | 'Responsable';

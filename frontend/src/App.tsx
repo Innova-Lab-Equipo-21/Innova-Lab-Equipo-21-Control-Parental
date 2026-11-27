@@ -113,6 +113,7 @@ export function App(): React.JSX.Element {
         if (session.parentToken) {
           safeStorage.setItem('@ba_protege_jwt_token', session.parentToken).catch(() => {});
         }
+        apiService.syncSelfDeviceFromUser(session.parentUser).catch(() => {});
       }
 
       // Auditar permisos reales en el hardware
@@ -210,6 +211,7 @@ export function App(): React.JSX.Element {
     setHasCreatedResponsibleAccount(true);
     await safeStorage.setItem('@ba_protege_responsible_account_created', 'true');
     await safeStorage.setItem('@ba_protege_mode_locked', 'PARENT');
+    await apiService.syncSelfDeviceFromUser(user).catch(() => {});
 
     let alreadyCompleted = await hasCompletedResponsibleFirstAccess(user);
     if (!alreadyCompleted) {
@@ -261,7 +263,7 @@ export function App(): React.JSX.Element {
     setHasCreatedResponsibleAccount(true);
     await safeStorage.setItem('@ba_protege_responsible_account_created', 'true');
     await safeStorage.setItem('@ba_protege_mode_locked', 'PARENT');
-    await safeStorage.removeItem('@ba_protege_jwt_token');
+    await apiService.logout();
     await saveNavigationState({
       currentMode: 'PARENT',
       isParentLoggedIn: false,
@@ -339,6 +341,7 @@ export function App(): React.JSX.Element {
     setHasSelectedResponsibleAction(false);
     setResponsibleActionType('NONE');
     setActiveScreen('WELCOME');
+    await apiService.logout();
     await clearNavigationSession();
   };
 

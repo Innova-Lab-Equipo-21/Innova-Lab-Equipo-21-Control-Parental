@@ -8,6 +8,69 @@
 import { MAX_PROTECTED_DEVICES, DeviceInfo, DevicePermissionsStatus } from '../../types';
 import { checkRealDevicePermissions } from '../../utils/permissionChecker';
 import { apiClient, safeStorage } from './client';
+import type { NativeDeviceInfo } from '../protection.service';
+
+async function getNativeDeviceHardwareInfo(): Promise<NativeDeviceInfo | null> {
+  try {
+    // Carga perezosa compatible con Metro (Android) y pruebas unitarias en Node
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require('../protection.service');
+    const svc = mod?.protectionService || mod?.vpnServiceBridge;
+    if (svc && typeof svc.getDeviceInfo === 'function') {
+      return await svc.getDeviceInfo();
+    }
+  } catch {
+    // Entorno sin bridge nativo (ej. Node tests)
+  }
+  return null;
+}
+
+function isLegacyPlaceholderName(name?: string | null): boolean {
+  const normalized = (name || '').trim().toLowerCase();
+  return !normalized || normalized === 'yo' || normalized === 'tutor responsable';
+}
+
+function resolveUserDisplayName(user: any): string {
+  if (!user) return '';
+  const first = (user.firstName || '').trim();
+  const last = (user.lastName || '').trim();
+  const combined = `${first} ${last}`.trim();
+  const full = (user.fullName || user.name || '').trim();
+  if (first && last && !isLegacyPlaceholderName(combined)) {
+    return combined;
+  }
+  if (!isLegacyPlaceholderName(full)) {
+    return full;
+  }
+  if (!isLegacyPlaceholderName(combined)) {
+    return combined;
+  }
+  return '';
+}
+
+function formatUserDateDisplay(raw?: string | Date | null): string {
+  if (!raw) return '';
+  const str = typeof raw === 'string' ? raw.trim() : raw.toISOString();
+  if (!str) return '';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    return str;
+  }
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+  }
+  return str;
+}
+
+function formatUserGenderDisplay(raw?: string | null): string {
+  if (!raw) return '';
+  const normalized = raw.trim().toUpperCase().replace(/\s+/g, '_');
+  if (normalized === 'MASCULINO') return 'Masculino';
+  if (normalized === 'FEMENINO') return 'Femenino';
+  if (normalized === 'OTRO') return 'Otro';
+  if (normalized === 'NO_INFORMADO') return 'No informado';
+  return raw.trim();
+}
 
 export const devicesApi = {
   // --------------------------------------------------------------------------
@@ -185,26 +248,88 @@ export const devicesApi = {
   },
 
   // --------------------------------------------------------------------------
-  // Dispositivo del Responsable
+  // Dispositivo del Responsable (Datos reales del usuario + hardware Android)
   // --------------------------------------------------------------------------
+  async syncSelfDeviceFromUser(user: any): Promise<DeviceInfo> {
+    const nativeInfo = await getNativeDeviceHardwareInfo();
+    const realPermissions = await checkRealDevicePermissions(user?.id);
+    const fullName = resolveUserDisplayName(user);
+    const birthDate = formatUserDateDisplay(user?.birthDate);
+    const gender = formatUserGenderDisplay(user?.gender);
+    const createdAt = formatUserDateDisplay(user?.createdAt);
+
+    let existing: Partial<DeviceInfo> = {};
+    try {
+      const raw = await safeStorage.getItem('@ba_protege_self_device');
+      if (raw) {
+        existing = JSON.parse(raw);
+      }
+    } catch {
+      // Ignorar si no existe
+    }
+
+    const synced: DeviceInfo = {
+      ...existing,
+      deviceId: 'self',
+      deviceUuid: nativeInfo?.deviceUuid || existing.deviceUuid || '',
+      deviceName: fullName || existing.deviceName || '',
+      childName: fullName || existing.childName || '',
+      email: user?.email || existing.email || '',
+      phone: user?.phone !== undefined ? (user.phone || '') : (existing.phone || ''),
+      birthDate: birthDate || existing.birthDate || '',
+      gender: gender || existing.gender || 'No informado',
+      profileType: 'Responsable',
+      deviceModel: nativeInfo?.deviceModel || existing.deviceModel || 'Android',
+      createdAt: createdAt || existing.createdAt || '',
+      isProtected: realPermissions.vpn || existing.isProtected || false,
+      status: realPermissions.vpn ? 'ACTIVE' : (existing.status || 'INACTIVE'),
+      lastHeartbeat: existing.lastHeartbeat || 'En línea',
+      blockedCount: existing.blockedCount ?? 0,
+      blocklistVersion: existing.blocklistVersion ?? 1,
+      permissions: realPermissions,
+    };
+
+    await safeStorage.setItem('@ba_protege_self_device', JSON.stringify(synced));
+    return synced;
+  },
+
   async getSelfDevice(): Promise<DeviceInfo> {
-    const realPermissions = await checkRealDevicePermissions();
+    let sessionUser: any = null;
+    try {
+      const navRaw = await safeStorage.getItem('@ba_protege_nav_session');
+      if (navRaw) {
+        const navParsed = JSON.parse(navRaw);
+        if (navParsed?.parentUser) {
+          sessionUser = navParsed.parentUser;
+        }
+      }
+    } catch {
+      // Sin sesión de navegación previa
+    }
+
+    const [realPermissions, nativeInfo] = await Promise.all([
+      checkRealDevicePermissions(sessionUser?.id),
+      getNativeDeviceHardwareInfo(),
+    ]);
+
+    const sessionName = resolveUserDisplayName(sessionUser);
     let baseDevice: DeviceInfo = {
       deviceId: 'self',
-      deviceUuid: 'uuid-self-responsable',
-      deviceName: 'Tutor Responsable',
-      childName: 'Tutor Responsable',
-      isProtected: true,
-      status: 'ACTIVE',
+      deviceUuid: nativeInfo?.deviceUuid || '',
+      deviceName: sessionName,
+      childName: sessionName,
+      email: sessionUser?.email || '',
+      isProtected: realPermissions.vpn,
+      status: realPermissions.vpn ? 'ACTIVE' : 'INACTIVE',
       lastHeartbeat: 'En línea',
       blockedCount: 0,
-      blocklistVersion: 4,
-      phone: '+54 9 11 5544-3322',
-      birthDate: '10/03/1985',
-      gender: 'Masculino',
+      blocklistVersion: 1,
+      phone: sessionUser?.phone || '',
+      birthDate: formatUserDateDisplay(sessionUser?.birthDate),
+      gender: formatUserGenderDisplay(sessionUser?.gender) || 'No informado',
       profileType: 'Responsable',
-      deviceModel: 'Samsung Galaxy S23 (Tutor)',
-      createdAt: '01/01/2024',
+      deviceModel: nativeInfo?.deviceModel || 'Android',
+      createdAt: formatUserDateDisplay(sessionUser?.createdAt),
       permissions: realPermissions,
     };
 
@@ -212,10 +337,35 @@ export const devicesApi = {
       const raw = await safeStorage.getItem('@ba_protege_self_device');
       if (raw) {
         const parsed = JSON.parse(raw);
+        const parsedName =
+          parsed.childName ||
+          parsed.deviceName?.replace(/^.*?\((.*?)\)$/, '$1') ||
+          '';
+        const cleanName = isLegacyPlaceholderName(parsedName)
+          ? baseDevice.deviceName
+          : parsedName;
+
         baseDevice = {
           ...baseDevice,
           ...parsed,
-          deviceName: parsed.childName || parsed.deviceName?.replace(/^.*?\((.*?)\)$/, '$1') || baseDevice.deviceName,
+          deviceId: 'self',
+          deviceUuid:
+            nativeInfo?.deviceUuid ||
+            (parsed.deviceUuid && parsed.deviceUuid !== 'uuid-self-responsable'
+              ? parsed.deviceUuid
+              : ''),
+          deviceName: cleanName || baseDevice.deviceName,
+          childName: cleanName || baseDevice.childName,
+          email: parsed.email || baseDevice.email,
+          phone: parsed.phone !== undefined ? parsed.phone : baseDevice.phone,
+          birthDate: parsed.birthDate || baseDevice.birthDate,
+          gender: parsed.gender || baseDevice.gender,
+          deviceModel:
+            nativeInfo?.deviceModel ||
+            (parsed.deviceModel && parsed.deviceModel !== 'Samsung Galaxy S23 (Tutor)'
+              ? parsed.deviceModel
+              : 'Android'),
+          createdAt: parsed.createdAt || baseDevice.createdAt,
           permissions: realPermissions,
         };
       }

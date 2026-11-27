@@ -67,6 +67,28 @@ function parseBirthDate(dateStr?: string): Date | null {
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function formatArgentineE164Phone(phone?: string): string | undefined {
+  if (!phone) return undefined;
+  let digits = phone.replace(/\D/g, '');
+  if (!digits) return undefined;
+  if (digits.startsWith('549') && digits.length >= 13) {
+    return `+${digits}`;
+  }
+  if (digits.startsWith('54') && digits.length >= 12) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+  if (digits.length === 10) {
+    return `+549${digits}`;
+  }
+  if (digits.length >= 11 && digits.length <= 15) {
+    return `+${digits}`;
+  }
+  return undefined;
+}
+
 export class AuthService {
   /**
    * Registra un nuevo usuario responsable (padre/tutor) en el sistema.
@@ -77,7 +99,7 @@ export class AuthService {
       [input.firstName, input.lastName].filter(Boolean).join(' ') ||
       'Responsable';
     const cleanEmail = input.email.toLowerCase().trim();
-    const formatedCellPhone = input.phone ? '+549' + input.phone : undefined; // Agregamos el prefijo de Argentina para el número de teléfono
+    const formattedCellPhone = formatArgentineE164Phone(input.phone);
 
     let firebaseUser: any = null;
 
@@ -88,11 +110,22 @@ export class AuthService {
           email: cleanEmail,
           password: input.password,
           displayName: computedFullName,
-          phoneNumber: formatedCellPhone || undefined,
+          phoneNumber: formattedCellPhone,
           emailVerified: false,
         });
       } catch (err: any) {
-        if (err.code === 'auth/email-already-exists') {
+        if (
+          formattedCellPhone &&
+          (err.code === 'auth/invalid-phone-number' || err.code === 'auth/phone-number-already-exists')
+        ) {
+          // Si el teléfono no cumple E.164 estricto o ya está asociado en Firebase, creamos el usuario sin phoneNumber y lo persistimos en PostgreSQL
+          firebaseUser = await auth.createUser({
+            email: cleanEmail,
+            password: input.password,
+            displayName: computedFullName,
+            emailVerified: false,
+          });
+        } else if (err.code === 'auth/email-already-exists') {
           // Si quedó huérfano en Firebase tras un fallo previo de DB, recuperamos el UID para completar el registro
           if (!env.USE_MOCK_DATA) {
             const existingDbUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
@@ -799,7 +832,12 @@ export class AuthService {
       const fbUpdate: any = {};
       if (computedFullName) fbUpdate.displayName = computedFullName;
       if (input.password && input.password.length >= 6) fbUpdate.password = input.password;
-      if (cleanPhone) fbUpdate.phoneNumber = '+549' + cleanPhone.replace(/\D/g, '');
+      if (cleanPhone) {
+        const formattedE164 = formatArgentineE164Phone(cleanPhone);
+        if (formattedE164) {
+          fbUpdate.phoneNumber = formattedE164;
+        }
+      }
 
       if (Object.keys(fbUpdate).length > 0) {
         try {
@@ -874,6 +912,8 @@ export class AuthService {
         await tx.protectionConfig.deleteMany({ where: { deviceId: { in: deviceIds } } });
         await tx.blockedEvent.deleteMany({ where: { deviceId: { in: deviceIds } } });
         await tx.securityEvent.deleteMany({ where: { deviceId: { in: deviceIds } } });
+        await tx.pasatiempoSession.deleteMany({ where: { deviceId: { in: deviceIds } } });
+        await tx.appUsageSnapshot.deleteMany({ where: { deviceId: { in: deviceIds } } });
         await tx.devicePairing.deleteMany({ where: { deviceId: { in: deviceIds } } });
         await tx.device.deleteMany({ where: { id: { in: deviceIds } } });
       }

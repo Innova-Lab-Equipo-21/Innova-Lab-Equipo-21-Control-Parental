@@ -109,16 +109,6 @@ export const styles = StyleSheet.create({
   actionsSection: {
     marginTop: 10,
   },
-  demoFillButton: {
-    alignItems: 'center',
-    paddingVertical: 8,
-    marginVertical: 4,
-  },
-  demoFillText: {
-    fontSize: 12,
-    color: colors.primaryDark,
-    fontWeight: '600',
-  },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',

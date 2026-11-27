@@ -631,6 +631,7 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
               onUpdateUser={(updated) => {
                 setCurrentUser(updated);
                 saveNavigationState({ parentUser: updated }).catch(() => {});
+                apiService.syncSelfDeviceFromUser(updated).catch(() => {});
               }}
               onUpdateSelfControl={(sc) => setSelfControl(sc)}
               onStartSelfControlFlow={handleStartSelfControlFlow}
@@ -728,21 +729,28 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
             onBack={() => setActiveTab('inicio')}
           />
           <ScrollView contentContainerStyle={styles.container}>
-            {/* 1. Perfil (Datos editables solo por RESPONSABLE y CTA Eliminar cuenta solo RESPONSABLE; Mock Beti y color azul) */}
+            {/* 1. Perfil (Datos editables solo por RESPONSABLE y vinculación Google) */}
             <ProfileSection
               currentUser={currentUser}
               onUpdateUser={(updated) => {
                 setCurrentUser(updated);
                 saveNavigationState({ parentUser: updated }).catch(() => {});
+                apiService.syncSelfDeviceFromUser(updated).catch(() => {});
               }}
               onDeleteAccount={async () => {
                 try {
                   await apiService.deleteAccount();
+                  setIsLoggedIn(false);
+                  onExitMode();
                 } catch (err: any) {
-                  console.warn('⚠️ Error al eliminar cuenta en backend:', err?.message);
+                  showFeedback({
+                    imageSource: BOTITO_ASSETS.pensando,
+                    title: 'No pudimos eliminar tu cuenta',
+                    message:
+                      err?.message ||
+                      'Ocurrió un error al eliminar tu cuenta en el servidor. Verificá tu conexión e intentá de nuevo.',
+                  });
                 }
-                setIsLoggedIn(false);
-                onExitMode();
               }}
             />
 
@@ -803,11 +811,17 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
                       setFeedbackModal((prev) => ({ ...prev, visible: false }));
                       try {
                         await apiService.deleteAccount();
+                        setIsLoggedIn(false);
+                        onExitMode();
                       } catch (err: any) {
-                        console.warn('⚠️ Error al eliminar cuenta en backend:', err?.message);
+                        showFeedback({
+                          imageSource: BOTITO_ASSETS.pensando,
+                          title: 'No pudimos eliminar tu cuenta',
+                          message:
+                            err?.message ||
+                            'Ocurrió un error al eliminar tu cuenta en el servidor. Verificá tu conexión e intentá de nuevo.',
+                        });
                       }
-                      setIsLoggedIn(false);
-                      onExitMode();
                     },
                     onSecondaryPress: () => {
                       setFeedbackModal((prev) => ({ ...prev, visible: false }));

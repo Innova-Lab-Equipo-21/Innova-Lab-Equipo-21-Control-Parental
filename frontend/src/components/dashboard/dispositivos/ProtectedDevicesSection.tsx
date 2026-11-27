@@ -116,7 +116,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
     } else {
       apiService.getSelfDevice().then((dev) => setSelfDev(dev));
     }
-  }, [externalSelfDevice, devices]);
+  }, [externalSelfDevice, devices, currentUser]);
 
   // Estado local de Autocontrol (sincronizado con props si existen)
   const [localSelfControl, setLocalSelfControl] = useState<SelfControlState | null>(null);
@@ -316,29 +316,28 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
       payload.password = updatedUser.password;
     }
 
-    try {
-      await apiService.updateProfile(payload);
-    } catch (apiErr: any) {
-      if (apiErr?.response) {
-        throw apiErr;
-      }
-    }
+    const res = await apiService.updateProfile(payload);
+    const mergedUser: any = res?.data
+      ? {
+          ...updatedUser,
+          ...res.data,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          fullName: updatedFullName || res.data.fullName,
+          birthDate: updatedUser.birthDate,
+          gender: updatedUser.gender,
+          phone: updatedUser.phone,
+        }
+      : { ...updatedUser, fullName: updatedFullName };
 
-    const updatedDevice = await apiService.updateSelfDevice({
-      childName: updatedFullName,
-      deviceName: updatedFullName,
-      birthDate: updatedUser.birthDate,
-      gender: updatedUser.gender,
-      phone: updatedUser.phone,
-    });
+    delete mergedUser.currentPassword;
+    delete mergedUser.password;
+
+    const updatedDevice = await apiService.syncSelfDeviceFromUser(mergedUser);
     setSelfDev(updatedDevice);
 
-    const sanitizedUser = { ...updatedUser };
-    delete sanitizedUser.currentPassword;
-    delete sanitizedUser.password;
-
     if (onUpdateUser) {
-      onUpdateUser(sanitizedUser);
+      onUpdateUser(mergedUser);
     }
     setIsEditingSelf(false);
     showFeedback({
@@ -387,16 +386,15 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
       }
     : null;
 
-  // Construcción del objeto de usuario para el modal del responsable
+  // Construcción del objeto de usuario para el modal del responsable (sin datos ficticios)
   const responsibleUserData = currentUser || {
     firstName: responsibleDisplayName.split(' ')[0] || '',
     lastName: responsibleDisplayName.split(' ').slice(1).join(' ') || '',
     fullName: responsibleDisplayName,
-    birthDate: selfDev?.birthDate || '10/03/1985',
-    gender: selfDev?.gender || 'Masculino',
-    phone: selfDev?.phone || '11 5544-3322',
-    email: 'tutor@baprotege.gob.ar',
-    password: '••••••••',
+    birthDate: selfDev?.birthDate || '',
+    gender: selfDev?.gender || 'No informado',
+    phone: selfDev?.phone || '',
+    email: selfDev?.email || '',
   };
 
   // Cálculo preciso de totalizadores: Vinculados e Inactivos respetando singular y plural

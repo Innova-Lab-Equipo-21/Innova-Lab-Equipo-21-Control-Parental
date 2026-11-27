@@ -49,6 +49,7 @@ export const apiService = {
   login: authApi.login.bind(authApi),
   googleAuth: authApi.googleAuth.bind(authApi),
   googleLink: authApi.googleLink.bind(authApi),
+  refreshToken: authApi.refreshToken.bind(authApi),
   updateProfile: authApi.updateProfile.bind(authApi),
   deleteAccount: authApi.deleteAccount.bind(authApi),
   recoverPassword: authApi.recoverPassword.bind(authApi),
@@ -60,6 +61,7 @@ export const apiService = {
   // --------------------------------------------------------------------------
   generatePairingCode: devicesApi.generatePairingCode.bind(devicesApi),
   confirmPairing: devicesApi.confirmPairing.bind(devicesApi),
+  syncSelfDeviceFromUser: devicesApi.syncSelfDeviceFromUser.bind(devicesApi),
   getSelfDevice: devicesApi.getSelfDevice.bind(devicesApi),
   updateSelfDevice: devicesApi.updateSelfDevice.bind(devicesApi),
   listDevices: devicesApi.listDevices.bind(devicesApi),
