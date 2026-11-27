@@ -12,6 +12,9 @@ export interface EmailTemplateData {
 
 function htmlToText(html: string): string {
   return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<p[^>]*>/gi, '\n\n')
     .replace(/<\/p>/gi, '')
@@ -30,9 +33,16 @@ export function loadEmailTemplate(
   templateName: string,
   variables: Record<string, string> = {}
 ): EmailTemplateData {
-  const templatePath = path.join(EMAIL_TEMPLATES_DIR, `${templateName}.html`);
+  const candidatePaths = [
+    path.join(EMAIL_TEMPLATES_DIR, `${templateName}.html`),
+    path.resolve(EMAIL_TEMPLATES_DIR, '../../src/templates/emails', `${templateName}.html`),
+    path.resolve(process.cwd(), 'src/templates/emails', `${templateName}.html`),
+    path.resolve(process.cwd(), 'backend/src/templates/emails', `${templateName}.html`),
+  ];
+
+  const templatePath = candidatePaths.find((p) => fs.existsSync(p));
   
-  if (!fs.existsSync(templatePath)) {
+  if (!templatePath) {
     throw new Error(`Email template not found: ${templateName}`);
   }
 
@@ -205,5 +215,17 @@ export function getPasswordResetEmail(variables: {
   return loadEmailTemplate('email-password-reset', {
     DISPLAY_NAME: variables.displayName,
     LINK: variables.link,
+  });
+}
+
+export function getAntiUninstallOtpEmail(variables: {
+  displayName: string;
+  protectedName: string;
+  code: string;
+}) {
+  return loadEmailTemplate('email-anti-uninstall-otp', {
+    DISPLAY_NAME: variables.displayName,
+    PROTECTED_NAME: variables.protectedName,
+    CODE: variables.code,
   });
 }

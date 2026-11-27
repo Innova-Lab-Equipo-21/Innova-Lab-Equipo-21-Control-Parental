@@ -6,14 +6,12 @@
 // ==============================================================================
 
 import crypto from 'crypto';
-import fs from 'node:fs';
-import path from 'node:path';
 import { prisma } from '../config/database.js';
 import { env } from '../config/environment.js';
 import { mockDb, MockDevice } from '../config/mock-database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { emailService } from './email.service.js';
-import { getDeviceLinkedEmail } from '../templates/emails/index.js';
+import { getDeviceLinkedEmail, getAntiUninstallOtpEmail } from '../templates/emails/index.js';
 import { Gender, PersonType } from '@prisma/client';
 
 export interface GeneratePairingCodeInput {
@@ -1201,15 +1199,16 @@ export class DeviceService {
     }
 
     // Disparar correo al responsable que vinculó el dispositivo
-    const emailSubject = 'Código de seguridad para desactivar antidesinstalación - BA Protege+';
-    const emailBody = `Hola,\n\nSe ha solicitado desactivar la protección antidesinstalación en el dispositivo protegido "${deviceName}".\n\nTu código de verificación de 6 dígitos es:\n\n${code}\n\nEste código vence en 15 minutos. Si no realizaste esta solicitud, no compartas este código con nadie.\n\nEquipo de BA Protege+\nLotería de la Ciudad de Buenos Aires (LOTBA S.E.)`;
-
-    const emailHtml = renderAntiUninstallOtpHtml(tutorName, deviceName, code);
+    const tpl = getAntiUninstallOtpEmail({
+      displayName: tutorName,
+      protectedName: deviceName,
+      code,
+    });
     const mailResult = await emailService.sendEmail(
       responsableEmail,
-      emailSubject,
-      emailBody,
-      emailHtml,
+      tpl.subject,
+      tpl.text,
+      tpl.html,
     );
     if (!mailResult.success && !env.USE_MOCK_DATA) {
       await prisma.antiUninstallCode
@@ -1316,135 +1315,5 @@ export class DeviceService {
   }
 }
 
-/**
- * Renderiza la plantilla HTML oficial para el correo con código OTP de antidesinstalación.
- */
-function renderAntiUninstallOtpHtml(
-  displayName: string,
-  protectedName: string,
-  code: string,
-): string {
-  try {
-    const possiblePaths = [
-      path.resolve(process.cwd(), '../frontend/landing/templates/email-anti-uninstall-otp.html'),
-      path.resolve(process.cwd(), 'frontend/landing/templates/email-anti-uninstall-otp.html'),
-    ];
-    for (const p of possiblePaths) {
-      if (fs.existsSync(p)) {
-        let content = fs.readFileSync(p, 'utf8');
-        return content
-          .replaceAll('%DISPLAY_NAME%', displayName)
-          .replaceAll('%PROTECTED_NAME%', protectedName)
-          .replaceAll('%CODE%', code);
-      }
-    }
-  } catch (_) {}
-
-  return `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Código de seguridad para desactivar antidesinstalación - BA Protege+</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #F8F9FA; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1C1C1E;">
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#F8F9FA" style="background-color: #F8F9FA; width: 100%; border-collapse: collapse;">
-    <tr>
-      <td align="center" style="padding: 40px 16px;">
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#FFFFFF" style="max-width: 560px; width: 100%; background-color: #FFFFFF; border-collapse: separate; border-spacing: 0; border-radius: 20px; overflow: hidden; border: 1px solid #DEE2E6; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
-          <tr>
-            <td bgcolor="#007AFF" style="background-color: #007AFF; height: 4px; line-height: 4px; font-size: 4px; border-radius: 19px 19px 0 0;">&nbsp;</td>
-          </tr>
-          <tr>
-            <td align="left" bgcolor="#FFFFFF" style="background-color: #FFFFFF; padding: 28px 40px 24px; border-bottom: 1px solid #E9ECEF;">
-              <a href="https://baprotegemas.netlify.app/" target="_blank" style="text-decoration: none; display: inline-block;">
-                <img src="https://baprotegemas.netlify.app/assets/img/logo_baprotege.png" alt="BA Protege +" width="124" height="54" style="display: block; width: 124px; height: 54px; max-width: 100%; border: 0;" />
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td bgcolor="#FFFFFF" style="padding: 36px 40px 36px; background-color: #FFFFFF;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: separate; border-spacing: 0;">
-                <tr>
-                  <td style="padding-bottom: 20px;">
-                    <p style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.35; color: #1C1C1E;">
-                      Hola, ${displayName}:
-                    </p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding-bottom: 16px;">
-                    <p style="margin: 0; font-size: 15px; font-weight: 400; line-height: 1.65; color: #495057;">
-                      Se ha solicitado desactivar la protección antidesinstalación en el dispositivo protegido <strong style="color: #1C1C1E; font-weight: 700;">&ldquo;${protectedName}&rdquo;</strong>.
-                    </p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding-bottom: 16px;">
-                    <p style="margin: 0; font-size: 15px; font-weight: 400; line-height: 1.65; color: #495057;">
-                      Tu código de verificación de 6 dígitos es:
-                    </p>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center" style="padding-bottom: 24px; text-align: center;">
-                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: separate; border-spacing: 0;">
-                      <tr>
-                        <td align="center" bgcolor="#F0F7FF" style="padding: 22px 24px; background-color: #F0F7FF; border: 2px dashed #007AFF; border-radius: 14px; text-align: center;">
-                          <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 700; letter-spacing: 10px; color: #007AFF; display: inline-block;">
-                            ${code}
-                          </span>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding-bottom: 24px;">
-                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: separate; border-spacing: 0;">
-                      <tr>
-                        <td bgcolor="#FFFBF0" style="padding: 16px 20px; background-color: #FFFBF0; border: 1px solid #F3E2A9; border-radius: 14px;">
-                          <p style="margin: 0; font-size: 14px; font-weight: 400; line-height: 1.6; color: #856404;">
-                            <strong style="color: #856404; font-weight: 700;">Importante:</strong> Este código vence en 15 minutos. Si no realizaste esta solicitud, no compartas este código con nadie para mantener protegido el dispositivo.
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding-top: 8px;">
-                    <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 500; line-height: 1.4; color: #1C1C1E;">
-                      Equipo de BA Protege+
-                    </p>
-                    <p style="margin: 0; font-size: 13px; font-weight: 400; line-height: 1.4; color: #6C757D;">
-                      Lotería de la Ciudad de Buenos Aires (LOTBA S.E.)
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td bgcolor="#1B2936" style="background-color: #1B2936; padding: 20px 40px; border-radius: 0 0 19px 19px;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
-                <tr>
-                  <td align="left" valign="middle" style="font-size: 13px; font-weight: 700; line-height: 1.4; color: #FFFFFF;">
-                    <a href="https://baprotegemas.netlify.app/" target="_blank" style="color: #FFFFFF; text-decoration: none;">BA Protege +</a>
-                  </td>
-                  <td align="right" valign="middle" style="font-size: 12px; font-weight: 400; line-height: 1.4; color: #9CA3AF;">
-                    Gobierno de la Ciudad de Buenos Aires &middot; LOTBA
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-}
-
 export const deviceService = new DeviceService();
+
