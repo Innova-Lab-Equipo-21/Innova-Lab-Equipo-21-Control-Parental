@@ -7,7 +7,7 @@
 //              PostgreSQL y utilizando la información real del hardware Android.
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -101,8 +101,49 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
   });
 
   const isCodeComplete = code.trim().length === 6;
+  const isSubmittingRef = useRef(false);
+
+  // Comprobación inicial: si el dispositivo físico ya figura vinculado y activo en la nube, auto-avanzar
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const hardware = await resolveRealDevicePayload();
+        const profile = await apiService.getDevicePublicProfile(hardware.deviceUuid);
+        if (isMounted && profile?.isActive && profile?.deviceId) {
+          const rawPersonType = String(profile.personType || 'MENOR').toUpperCase();
+          const pairedMode: 'CHILD' | 'ADULT' = rawPersonType === 'ADULTO' ? 'ADULT' : 'CHILD';
+
+          await safeStorage
+            .setItem(
+              '@ba_protege_paired_profile',
+              JSON.stringify({
+                deviceId: profile.deviceId,
+                deviceUuid: profile.deviceUuid,
+                childName: profile.childName || profile.deviceName || '',
+                phone: profile.phone || '',
+                tutorName: profile.tutorName || '',
+                personType: rawPersonType,
+              })
+            )
+            .catch(() => {});
+
+          await protectionService.setUserMode(pairedMode).catch(() => {});
+          onPairingComplete(profile.deviceId, profile.deviceUuid, pairedMode);
+        }
+      } catch (_) {}
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [onPairingComplete]);
 
   const handlePairing = async (pairingCodeOverride?: string) => {
+    if (isSubmittingRef.current || loading) {
+      return;
+    }
+
     const activeCode = (pairingCodeOverride || code).trim();
     if (activeCode.length !== 6) {
       setFeedbackModal({
@@ -114,6 +155,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       return;
     }
 
+    isSubmittingRef.current = true;
     setLoading(true);
     const startedAt = Date.now();
     setWelcomeVideoModal({
@@ -189,6 +231,47 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         },
       });
     } catch (error: any) {
+      // Auto-recuperación: verificar si a pesar del error de red/código el dispositivo ya figura vinculado en el servidor
+      try {
+        const hardware = await resolveRealDevicePayload();
+        const profile = await apiService.getDevicePublicProfile(hardware.deviceUuid);
+        if (profile?.isActive && profile?.deviceId) {
+          const rawPersonType = String(profile.personType || 'MENOR').toUpperCase();
+          const pairedMode: 'CHILD' | 'ADULT' = rawPersonType === 'ADULTO' ? 'ADULT' : 'CHILD';
+
+          await safeStorage
+            .setItem(
+              '@ba_protege_paired_profile',
+              JSON.stringify({
+                deviceId: profile.deviceId,
+                deviceUuid: profile.deviceUuid,
+                childName: profile.childName || profile.deviceName || '',
+                phone: profile.phone || '',
+                tutorName: profile.tutorName || '',
+                personType: rawPersonType,
+              })
+            )
+            .catch(() => {});
+
+          await protectionService.setUserMode(pairedMode).catch(() => {});
+          await ensureMinimumWelcomeVideoTime(startedAt);
+
+          setWelcomeVideoModal({
+            visible: true,
+            status: 'success',
+            successTitle: '¡Chocá esos cinco!',
+            successMessage: 'Ya sos parte de mi aplicación y te voy a estar acompañando.',
+            onContinue: () => {
+              setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
+              onPairingComplete(profile.deviceId, profile.deviceUuid, pairedMode);
+            },
+          });
+          return;
+        }
+      } catch (_) {
+        // Fallback al modal de error estándar
+      }
+
       const apiMessage = error?.response?.data?.message;
       const friendlyMessage =
         typeof apiMessage === 'string' && apiMessage.trim().length > 0
@@ -205,6 +288,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
       });
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -437,7 +521,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
                 title="Confirmar"
                 onPress={() => handlePairing()}
                 loading={loading}
-                disabled={!isCodeComplete}
+                disabled={!isCodeComplete || loading}
               />
             </View>
           </View>

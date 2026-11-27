@@ -489,6 +489,25 @@ export class DeviceService {
       const pairing = mockDb.pairings.find((p) => p.pairingCode === input.pairingCode);
 
       if (!pairing || pairing.isUsed) {
+        if (pairing && pairing.isUsed && pairing.deviceId) {
+          const linkedDev = mockDb.devices.find((d) => d.id === pairing.deviceId);
+          if (
+            linkedDev &&
+            (linkedDev.deviceUuid === input.deviceUuid || linkedDev.id === pairing.deviceId)
+          ) {
+            const mockUser = mockDb.users.find((u) => u.id === pairing.userId);
+            return {
+              message: 'Dispositivo vinculado con éxito',
+              deviceId: linkedDev.id,
+              deviceUuid: linkedDev.deviceUuid,
+              deviceName: linkedDev.deviceName,
+              childName: linkedDev.childName || linkedDev.deviceName,
+              phone: linkedDev.phone || null,
+              personType: linkedDev.personType || 'MENOR',
+              tutorName: mockUser?.fullName || null,
+            };
+          }
+        }
         throw new AppError('Código de pareamiento inválido o ya utilizado', 400);
       }
 
@@ -582,12 +601,36 @@ export class DeviceService {
     // Todo en una transacción: el código se marca como usado de forma atómica,
     // así dos celulares que confirman a la vez no pueden usar el mismo código.
     // Si algo falla después, se revierte y el código vuelve a quedar disponible.
-    const { pairing, device } = await prisma.$transaction(async (tx) => {
+    const { pairing, device, alreadyPaired } = await prisma.$transaction(async (tx) => {
       const claimed = await tx.devicePairing.updateMany({
         where: { pairingCode: input.pairingCode, isUsed: false },
         data: { isUsed: true },
       });
       if (claimed.count === 0) {
+        // IDEMPOTENCIA: Verificar si este código ya fue utilizado con éxito
+        // para vincular este mismo dispositivo físico (por reintento de red, doble-clic o timeout)
+        const existingPairing = await tx.devicePairing.findUnique({
+          where: { pairingCode: input.pairingCode },
+        });
+
+        if (existingPairing && existingPairing.isUsed && existingPairing.deviceId) {
+          const linkedDevice = await tx.device.findUnique({
+            where: { id: existingPairing.deviceId },
+          });
+
+          if (
+            linkedDevice &&
+            (linkedDevice.deviceUuid === input.deviceUuid ||
+              existingPairing.deviceId === linkedDevice.id)
+          ) {
+            return {
+              pairing: existingPairing,
+              device: linkedDevice,
+              alreadyPaired: true,
+            };
+          }
+        }
+
         throw new AppError('Código de pareamiento inválido o ya utilizado', 400);
       }
 
@@ -691,19 +734,30 @@ export class DeviceService {
         data: { deviceId: device.id },
       });
 
-      return { pairing, device };
+      return { pairing, device, alreadyPaired: false };
     });
 
-    // Enviar mail al responsable por la vinculación usando el template
-    const user = await prisma.user.findUnique({ where: { id: pairing.userId } });
-    if (user?.email) {
-      const tpl = getDeviceLinkedEmail({
-        displayName: user.fullName,
-        protectedName: device.childName || device.deviceName,
-        link: 'baprotege://activity',
-      });
-      await emailService.sendEmail(user.email, tpl.subject, tpl.text, tpl.html).catch(() => {});
+    // Enviar mail al responsable por la vinculación usando el template en segundo plano (sin bloquear la respuesta HTTP)
+    if (!alreadyPaired) {
+      prisma.user
+        .findUnique({ where: { id: pairing.userId } })
+        .then((user) => {
+          if (user?.email) {
+            const tpl = getDeviceLinkedEmail({
+              displayName: user.fullName,
+              protectedName: device.childName || device.deviceName,
+              link: 'baprotege://activity',
+            });
+            emailService.sendEmail(user.email, tpl.subject, tpl.text, tpl.html).catch(() => {});
+          }
+        })
+        .catch(() => {});
     }
+
+    const tutor = await prisma.user.findUnique({
+      where: { id: pairing.userId },
+      select: { fullName: true },
+    });
 
     return {
       message: 'Dispositivo vinculado con éxito',
@@ -713,7 +767,7 @@ export class DeviceService {
       childName: device.childName || device.deviceName,
       phone: device.phone || null,
       personType: device.personType || pairing.personType || 'MENOR',
-      tutorName: user?.fullName || null,
+      tutorName: tutor?.fullName || null,
     };
   }
 

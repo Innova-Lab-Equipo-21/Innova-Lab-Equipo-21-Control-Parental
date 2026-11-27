@@ -364,9 +364,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       setWelcomeVideoModal({
         visible: true,
         status: 'success',
-        successTitle: '¡Listo el pollo, ya sos parte!',
+        successTitle: '¡Chocá esos cinco!',
         successMessage:
-          '¡Qué alegría tenerte acá, che! Botito ya puso la pava y activó el escudo para cuidar tu entorno en BA Protege+.',
+          'Ya sos parte de mi aplicación y te voy a estar acompañando.',
         onContinue: () => {
           setWelcomeVideoModal((prev) => ({ ...prev, visible: false }));
           if (finalToken) {
