@@ -66,6 +66,15 @@ Descripción: Manifiesto de Android con permisos de VpnService, cámara (lector 
             </intent-filter>
         </activity>
 
+        <!-- Servicio de Firebase Cloud Messaging -->
+        <service
+            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <!-- Pantalla Completa de Bloqueo Empático (Boti / Botito) -->
         <activity
             android:name="com.baprotege.BlockedScreenActivity"
