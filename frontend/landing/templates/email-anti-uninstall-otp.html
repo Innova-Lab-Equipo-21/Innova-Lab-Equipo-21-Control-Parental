@@ -3,7 +3,7 @@
   Proyecto: BA Protege +
   Plantilla: Correo para la persona responsable con código OTP para desactivar antidesinstalación
   Remitente: BA Protege +
-  Asunto: Código de seguridad para desactivar antidesinstalación - BA Protege+
+  Asunto: Código para desactivar la protección en BA Protege +
   Variables dinámicas:
     - %DISPLAY_NAME%: Nombre del responsable
     - %PROTECTED_NAME%: Nombre del protegido o dispositivo
@@ -19,7 +19,7 @@
   <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no" />
   <meta name="color-scheme" content="light" />
   <meta name="supported-color-schemes" content="light" />
-  <title>Código de seguridad para desactivar antidesinstalación - BA Protege+</title>
+  <title>Código para desactivar la protección en BA Protege +</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -94,6 +94,16 @@
         font-size: 28px !important;
         letter-spacing: 6px !important;
       }
+      .cta-table {
+        width: 100% !important;
+      }
+      .cta-btn {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        text-align: center !important;
+        padding: 14px 20px !important;
+      }
       .footer-col {
         display: block !important;
         width: 100% !important;
@@ -109,7 +119,7 @@
 
   <!-- Preheader oculto para vista previa en bandejas de entrada -->
   <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; color: #F8F9FA; opacity: 0;">
-    Tu código de seguridad de 6 dígitos para desactivar la antidesinstalación en %PROTECTED_NAME% es %CODE%. Vence en 15 minutos.&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
+    Código para desactivar la protección en BA Protege + en el dispositivo de %PROTECTED_NAME%: %CODE%. Vence en 15 minutos.&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
   </div>
 
   <!-- Contenedor exterior -->
@@ -164,7 +174,7 @@
                 <tr>
                   <td style="padding-bottom: 16px;">
                     <p style="margin: 0; font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 400; line-height: 1.65; color: #495057;">
-                      Se ha solicitado desactivar la protección antidesinstalación en el dispositivo protegido <strong style="color: #1C1C1E; font-weight: 700;">&ldquo;%PROTECTED_NAME%&rdquo;</strong>.
+                      Queríamos avisarte que se registró un pedido para desactivar la protección antidesinstalación de BA Protege + en el dispositivo de <strong style="color: #1C1C1E; font-weight: 700;">%PROTECTED_NAME%</strong>.
                     </p>
                   </td>
                 </tr>
@@ -173,14 +183,14 @@
                 <tr>
                   <td style="padding-bottom: 16px;">
                     <p style="margin: 0; font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 400; line-height: 1.65; color: #495057;">
-                      Tu código de verificación de 6 dígitos es:
+                      Si autorizás este cambio, ingresá en su dispositivo el siguiente código de 6 dígitos:
                     </p>
                   </td>
                 </tr>
 
                 <!-- Bloque destacado del código de 6 dígitos -->
                 <tr>
-                  <td align="center" style="padding-bottom: 24px; text-align: center;">
+                  <td align="center" style="padding-bottom: 20px; text-align: center;">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: separate; border-spacing: 0;">
                       <tr>
                         <td align="center" bgcolor="#F0F7FF" style="padding: 22px 24px; background-color: #F0F7FF; border: 2px dashed #007AFF; border-radius: 14px; text-align: center;">
@@ -193,18 +203,51 @@
                   </td>
                 </tr>
 
-                <!-- Aviso de seguridad y vigencia -->
+                <!-- Vencimiento del código -->
                 <tr>
-                  <td style="padding-bottom: 24px;">
-                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: separate; border-spacing: 0;">
+                  <td style="padding-bottom: 16px;">
+                    <p style="margin: 0; font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 400; line-height: 1.65; color: #495057;">
+                      Tené en cuenta que vence en 15 minutos.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Aviso de no autorización -->
+                <tr>
+                  <td style="padding-bottom: 16px;">
+                    <p style="margin: 0; font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 400; line-height: 1.65; color: #495057;">
+                      Si no querés autorizar la desinstalación de la aplicación, no compartas el código con nadie para que pueda seguir funcionando con normalidad.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Párrafo para consultar detalles en Actividad -->
+                <tr>
+                  <td style="padding-bottom: 28px;">
+                    <p style="margin: 0; font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 400; line-height: 1.65; color: #495057;">
+                      Para consultar el detalle del intento de desinstalación, podés ingresar a la sección “Actividad” de BA Protege +.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Botón CTA centrado -->
+                <tr>
+                  <td align="center" style="padding-bottom: 24px; text-align: center;">
+                    <!--[if mso]>
+                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="%LINK%" style="height:48px;v-text-anchor:middle;width:170px;" arcsize="25%" stroke="f" fillcolor="#007AFF">
+                      <w:anchorlock/>
+                      <center style="color:#FFFFFF;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;">Ver detalles</center>
+                    </v:roundrect>
+                    <![endif]-->
+                    <!--[if !mso]><!-->
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" class="cta-table" style="margin: 0 auto; border-collapse: separate; border-spacing: 0;">
                       <tr>
-                        <td bgcolor="#FFFBF0" style="padding: 16px 20px; background-color: #FFFBF0; border: 1px solid #F3E2A9; border-radius: 14px;">
-                          <p style="margin: 0; font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 400; line-height: 1.6; color: #856404;">
-                            <strong style="color: #856404; font-weight: 700;">Importante:</strong> Este código vence en 15 minutos. Si no realizaste esta solicitud, no compartas este código con nadie para mantener protegido el dispositivo.
-                          </p>
+                        <td align="center" bgcolor="#007AFF" style="background-color: #007AFF; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);">
+                          <a href="%LINK%" target="_blank" class="cta-btn" style="display: inline-block; padding: 14px 28px; font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 700; line-height: 1.2; color: #FFFFFF; text-decoration: none; background-color: #007AFF; border: 1px solid #007AFF; border-radius: 12px;">Ver detalles</a>
                         </td>
                       </tr>
                     </table>
+                    <!--<![endif]-->
                   </td>
                 </tr>
 

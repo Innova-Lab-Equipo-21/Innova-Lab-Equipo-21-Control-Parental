@@ -222,10 +222,12 @@ export function getAntiUninstallOtpEmail(variables: {
   displayName: string;
   protectedName: string;
   code: string;
+  link?: string;
 }) {
   return loadEmailTemplate('email-anti-uninstall-otp', {
     DISPLAY_NAME: variables.displayName,
     PROTECTED_NAME: variables.protectedName,
     CODE: variables.code,
+    LINK: variables.link || 'baprotege://actividad',
   });
 }

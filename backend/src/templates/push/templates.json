@@ -38,7 +38,7 @@
     },
     "uninstall_attempt": {
       "title": "Se intentó desinstalar la app",
-      "body": "Hubo un intento de eliminar BA Protege + en el celular de {{protectedName}}, pero la protección sigue activa.",
+      "body": "Hubo un intento de eliminar BA Protege + en el celular de {{protectedName}}.",
       "cta": "Ver actividad",
       "data": {
         "type": "uninstall_attempt",

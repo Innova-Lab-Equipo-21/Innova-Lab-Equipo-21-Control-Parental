@@ -1257,6 +1257,7 @@ export class DeviceService {
       displayName: tutorName,
       protectedName: deviceName,
       code,
+      link: 'baprotege://actividad',
     });
     const mailResult = await emailService.sendEmail(
       responsableEmail,
