@@ -83,10 +83,13 @@ export const styles = StyleSheet.create({
   },
   sectionTabBtn: {
     flex: 1,
-    paddingVertical: 8,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     borderRadius: 8,
+    gap: 4,
   },
   sectionTabBtnActive: {
     backgroundColor: '#FFFFFF',
@@ -96,10 +99,14 @@ export const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  sectionTabText: {
+  tabIcon: {
     fontSize: 13,
+  },
+  sectionTabText: {
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
+    flexShrink: 1,
   },
   sectionTabTextActive: {
     color: colors.primary,

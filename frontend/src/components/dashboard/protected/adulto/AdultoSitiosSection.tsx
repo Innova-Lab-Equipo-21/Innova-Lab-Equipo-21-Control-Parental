@@ -314,8 +314,13 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
             style={[styles.sectionTabBtn, activeSubTab === 'sites' && styles.sectionTabBtnActive]}
             onPress={() => setActiveSubTab('sites')}
           >
-            <Text style={[styles.sectionTabText, activeSubTab === 'sites' && styles.sectionTabTextActive]}>
-              🌐 Sitios web
+            <Text style={styles.tabIcon}>🌐</Text>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[styles.sectionTabText, activeSubTab === 'sites' && styles.sectionTabTextActive]}
+            >
+              Sitios web
             </Text>
           </TouchableOpacity>
 
@@ -323,8 +328,13 @@ export const AdultoSitiosSection: React.FC<AdultoSitiosSectionProps> = ({
             style={[styles.sectionTabBtn, activeSubTab === 'apps' && styles.sectionTabBtnActive]}
             onPress={() => setActiveSubTab('apps')}
           >
-            <Text style={[styles.sectionTabText, activeSubTab === 'apps' && styles.sectionTabTextActive]}>
-              📱 Aplicaciones
+            <Text style={styles.tabIcon}>📱</Text>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[styles.sectionTabText, activeSubTab === 'apps' && styles.sectionTabTextActive]}
+            >
+              Aplicaciones
             </Text>
           </TouchableOpacity>
         </View>

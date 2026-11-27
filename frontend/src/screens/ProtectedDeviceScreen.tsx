@@ -258,6 +258,7 @@ export const ProtectedDeviceScreen: React.FC<ProtectedDeviceScreenProps> = ({
       <View style={{ flex: 1, position: 'relative' }}>
         <ScrollView
           style={styles.scrollBody}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >

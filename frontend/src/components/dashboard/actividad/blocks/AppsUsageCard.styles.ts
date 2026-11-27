@@ -324,17 +324,18 @@ export const styles = StyleSheet.create({
   },
 
   actionBtn: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 12,
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
 
   actionBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#374151',
   },
 });

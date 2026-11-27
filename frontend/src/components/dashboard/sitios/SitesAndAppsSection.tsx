@@ -311,8 +311,13 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
               onSubTabChange?.('sites');
             }}
           >
-            <Text style={[styles.sectionTabText, activeSubTab === 'sites' && styles.sectionTabTextActive]}>
-              🌐 Sitios web
+            <Text style={styles.tabIcon}>🌐</Text>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[styles.sectionTabText, activeSubTab === 'sites' && styles.sectionTabTextActive]}
+            >
+              Sitios web
             </Text>
           </TouchableOpacity>
 
@@ -323,8 +328,13 @@ export const SitesAndAppsSection: React.FC<SitesAndAppsSectionProps> = ({
               onSubTabChange?.('apps');
             }}
           >
-            <Text style={[styles.sectionTabText, activeSubTab === 'apps' && styles.sectionTabTextActive]}>
-              📱 Aplicaciones
+            <Text style={styles.tabIcon}>📱</Text>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[styles.sectionTabText, activeSubTab === 'apps' && styles.sectionTabTextActive]}
+            >
+              Aplicaciones
             </Text>
           </TouchableOpacity>
         </View>

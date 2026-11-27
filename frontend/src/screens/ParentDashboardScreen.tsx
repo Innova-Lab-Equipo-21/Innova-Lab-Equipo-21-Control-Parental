@@ -671,39 +671,46 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* VISTA 1: INICIO (HOME SIN SCROLL) */}
+      {/* VISTA 1: INICIO (HOME CON SCROLL) */}
       {activeTab === 'inicio' && (
-        <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingBottom: 65 }}>
+        <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
           <Header showSubHeader={false} />
-          <ParentInicioSection
-            currentUser={currentUser}
-            devices={devices}
-            selfControl={selfControl}
-            customSitesCount={customSites.filter((s) => s.isActive !== false).length}
-            blockedAppsCount={customApps.filter((a) => a.isActive !== false).length}
-            grantedCount={grantedPermsCount}
-            analyticsDevices={realAnalytics.devices}
-            rawBlockedEvents={realAnalytics.rawBlockedEvents}
-            onNavigateToPermissions={handleOpenPermissions}
-            onNavigateToDevices={() => setActiveTab('dispositivos')}
-            onAddDevice={() => {
-              setActiveTab('dispositivos');
-              setShowPairingModal(true);
-            }}
-            onToggleSelfControl={handleStartSelfControlFlow}
-            onNavigateToSites={() => {
-              setSitesInitialSubTab('sites');
-              setCurrentSitiosSubTab('sites');
-              setActiveTab('sitios');
-            }}
-            onNavigateToApps={() => {
-              setSitesInitialSubTab('apps');
-              setCurrentSitiosSubTab('apps');
-              setActiveTab('sitios');
-            }}
-            onNavigateToActivity={() => setActiveTab('actividad')}
-            onOpenFaq={() => setShowHomeFaqModal(true)}
-          />
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingBottom: 85, flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <ParentInicioSection
+              currentUser={currentUser}
+              devices={devices}
+              selfControl={selfControl}
+              customSitesCount={customSites.filter((s) => s.isActive !== false).length}
+              blockedAppsCount={customApps.filter((a) => a.isActive !== false).length}
+              grantedCount={grantedPermsCount}
+              analyticsDevices={realAnalytics.devices}
+              rawBlockedEvents={realAnalytics.rawBlockedEvents}
+              onNavigateToPermissions={handleOpenPermissions}
+              onNavigateToDevices={() => setActiveTab('dispositivos')}
+              onAddDevice={() => {
+                setActiveTab('dispositivos');
+                setShowPairingModal(true);
+              }}
+              onToggleSelfControl={handleStartSelfControlFlow}
+              onNavigateToSites={() => {
+                setSitesInitialSubTab('sites');
+                setCurrentSitiosSubTab('sites');
+                setActiveTab('sitios');
+              }}
+              onNavigateToApps={() => {
+                setSitesInitialSubTab('apps');
+                setCurrentSitiosSubTab('apps');
+                setActiveTab('sitios');
+              }}
+              onNavigateToActivity={() => setActiveTab('actividad')}
+              onOpenFaq={() => setShowHomeFaqModal(true)}
+            />
+          </ScrollView>
         </View>
       )}
 

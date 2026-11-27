@@ -51,6 +51,10 @@ export const styles = StyleSheet.create({
   scrollBody: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 85,
+    flexGrow: 1,
+  },
   pasatiemposProgressPill: {
     backgroundColor: '#E5F1FF',
     paddingHorizontal: 10,
