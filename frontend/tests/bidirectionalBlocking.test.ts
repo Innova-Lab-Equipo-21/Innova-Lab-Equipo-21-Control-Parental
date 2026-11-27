@@ -57,7 +57,13 @@ describe('Bloqueo Recíproco de Sitios Web y Aplicaciones Móviles', () => {
     );
   });
 
-  test('3. BlockedScreenActivity recibe EXTRA_FROM_SITE y muestra mensajes explicativos adaptados por perfil', () => {
+  test('3. BlockedScreenActivity recibe EXTRA_FROM_SITE y muestra los mensajes exactos sin badge ni emojis', () => {
+    const blockedLayoutPath = path.resolve(
+      __dirname,
+      '../android/app/src/main/res/layout/activity_blocked_screen.xml'
+    );
+    const blockedLayoutContent = fs.readFileSync(blockedLayoutPath, 'utf8');
+
     assert.ok(
       blockedScreenContent.includes('const val EXTRA_FROM_SITE = "extra_from_site"'),
       'Debe definir la constante EXTRA_FROM_SITE'
@@ -67,8 +73,47 @@ describe('Bloqueo Recíproco de Sitios Web y Aplicaciones Móviles', () => {
       'createIntent debe aceptar fromSite'
     );
     assert.ok(
-      blockedScreenContent.includes('!fromSite.isNullOrBlank()'),
-      'renderUI debe contemplar bloqueos originados por sitios web'
+      blockedScreenContent.includes('R.drawable.src_assets_icons_bot_menor_botito_nervioso'),
+      'Debe mostrar botito_nervioso en la pantalla de bloqueo'
+    );
+    assert.ok(
+      !blockedScreenContent.includes('tvBadge') &&
+        !blockedScreenContent.includes('Botito te cuida') &&
+        !blockedLayoutContent.includes('tvBadge'),
+      'No debe mostrar el badge de Botito te cuida'
+    );
+    assert.ok(
+      !/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(blockedScreenContent) &&
+        !/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(blockedLayoutContent),
+      'No debe contener emojis en BlockedScreenActivity ni en su layout'
+    );
+    assert.ok(
+      blockedScreenContent.includes(
+        'Esta aplicación está bloqueada para tu protección. Si querés saber más, podés conversar con la persona responsable de tu cuenta.'
+      ) &&
+        blockedScreenContent.includes(
+          'Este sitio está bloqueado para tu protección. Si querés saber más, podés conversar con la persona responsable de tu cuenta.'
+        ) &&
+        blockedScreenContent.includes(
+          'Recordá que bloqueaste esta aplicación para tu bienestar digital. Podés modificar tu lista de bloqueos desde “Sitios y apps”.'
+        ) &&
+        blockedScreenContent.includes(
+          'Recordá que bloqueaste este sitio para tu bienestar digital. Podés modificar tu lista de bloqueos desde “Sitios y apps”.'
+        ) &&
+        blockedScreenContent.includes('Esta aplicación está bloqueada para tu protección.') &&
+        blockedScreenContent.includes('Este sitio está bloqueado para tu protección.') &&
+        blockedScreenContent.includes(
+          'Recordá que bloqueaste esta aplicación para tu bienestar digital. Para modificar tu lista de bloqueos, podés hablar con la persona responsable de tu cuenta.'
+        ) &&
+        blockedScreenContent.includes(
+          'Recordá que bloqueaste este sitio para tu bienestar digital. Para modificar tu lista de bloqueos, podés hablar con la persona responsable de tu cuenta.'
+        ) &&
+        blockedScreenContent.includes(
+          '¿Querés seguir navegando o descansar de las pantallas un rato?'
+        ) &&
+        blockedScreenContent.includes('btnContinueBrowsing.text = "Seguir"') &&
+        blockedScreenContent.includes('btnUnderstood.text = "Descansar"'),
+      'Debe contener exactamente los nuevos mensajes, pregunta y botones Seguir y Descansar'
     );
   });
 

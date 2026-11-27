@@ -792,7 +792,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       {/* Campo 8: Confirmar Contraseña */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>
-          Repetí tu contraseña<Text style={styles.requiredAsterisk}>*</Text>
+          Repetir contraseña<Text style={styles.requiredAsterisk}>*</Text>
         </Text>
         <View
           style={[
@@ -828,7 +828,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             }}
             returnKeyType="done"
             onSubmitEditing={handleSubmit}
-            placeholder="Repite tu contraseña"
+            placeholder="Repetí tu contraseña"
             placeholderTextColor={colors.textMuted}
             secureTextEntry={!showConfirmPassword}
             autoCapitalize="none"
@@ -980,9 +980,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       <BotitoWelcomeVideoModal
         visible={welcomeVideoModal.visible}
         status={welcomeVideoModal.status}
-        loadingTitle="Creando tu cuenta..."
-        loadingSubtitle="Bancá un cachito, Botito está preparando todo para vos."
-        successBadge="✨ ¡Cuenta creada!"
+        loadingTitle="¡Hola! Soy Botito."
+        loadingSubtitle={'Estoy creando tu cuenta...\n\n¿Me bancás un cachito?'}
+        successBadge="¡Cuenta creada!"
         successTitle={welcomeVideoModal.successTitle}
         successMessage={welcomeVideoModal.successMessage}
         ctaText="¡Empecemos!"

@@ -22,7 +22,7 @@ const __dirname = path.dirname(__filename);
 const mockCatalog = [
   { name: 'Instagram', domain: 'instagram.com', category: 'Redes sociales', icon: '📷' },
   { name: 'TikTok', domain: 'tiktok.com', category: 'Redes sociales', icon: '📱' },
-  { name: 'Bet365', domain: 'bet365.com', category: 'Apuestas', icon: '🎲' },
+  { name: 'Bet365', domain: 'bet365.bet.ar', category: 'Apuestas', icon: '🎲' },
   { name: 'bplay', domain: 'bplay.bet.ar', category: 'Apuestas', icon: '🎰' },
   { name: 'Infobae', domain: 'infobae.com', category: 'Noticias', icon: '📰' },
 ];
@@ -70,7 +70,7 @@ describe('Sugerencias Rápidas — Top 15 Sitios Web de Argentina', () => {
       'bplay',
       'Mercado Libre',
       'Infobae',
-      'Olē',
+      'Olé',
       'Promiedos',
     ];
 
@@ -80,6 +80,32 @@ describe('Sugerencias Rápidas — Top 15 Sitios Web de Argentina', () => {
         `El catálogo debe incluir el sitio ${siteName}`
       );
     }
+
+    // Verifica que Bet365 usa el dominio oficial argentino autorizado (.bet.ar)
+    assert.ok(
+      addSiteModalContent.includes("domain: 'bet365.bet.ar'"),
+      'Bet365 debe usar el dominio oficial argentino bet365.bet.ar'
+    );
+    assert.equal(
+      addSiteModalContent.includes("domain: 'bet365.com'"),
+      false,
+      'Bet365 no debe usar bet365.com en las sugerencias de Argentina'
+    );
+
+    // Verifica que AddAppModal usa el paquete Android oficial de Bet365
+    const addAppModalContent = fs.readFileSync(
+      path.resolve(__dirname, '../src/components/dashboard/sitios/AddAppModal.tsx'),
+      'utf8'
+    );
+    assert.ok(
+      addAppModalContent.includes("pkg: 'com.bet365Wrapper.Bet365_Application'"),
+      'AddAppModal debe usar el paquete oficial com.bet365Wrapper.Bet365_Application para Bet365'
+    );
+    assert.equal(
+      addAppModalContent.includes("pkg: 'com.bet365.mobile'"),
+      false,
+      'AddAppModal no debe usar el paquete inexistente com.bet365.mobile'
+    );
   });
 
   test('Integra el selector de Sugerencias rápidas en AddSiteModal y AdultoAddSiteModal', () => {
@@ -140,7 +166,7 @@ describe('Autocompletado de Dominio en Tiempo Real (getDomainAutocompleteSuggest
   test('Encuentra coincidencias en el catálogo al escribir fragmentos (ej: "bet")', () => {
     const suggestions = getDomainAutocompleteSuggestions('bet', mockCatalog);
     assert.ok(suggestions.length > 0);
-    assert.ok(suggestions.some((s) => s.domain === 'bet365.com'));
+    assert.ok(suggestions.some((s) => s.domain === 'bet365.bet.ar'));
     assert.ok(suggestions.some((s) => s.domain === 'bplay.bet.ar'));
   });
 

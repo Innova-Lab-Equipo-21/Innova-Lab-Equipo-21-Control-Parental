@@ -12,15 +12,27 @@
 //              6. Eliminar cuenta definitivamente
 // ==============================================================================
 
-import { test, describe } from 'node:test';
+import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
 import path from 'path';
 import { apiService } from '../src/services/api.service';
 import { selfControlApi } from '../src/services/api/selfControl.api';
 import { safeStorage } from '../src/services/api/client';
+import { installBlocklistApiStub } from './helpers/blocklistApiStub.js';
 
 describe('Pruebas de Persistencia — Pestaña Cuenta', () => {
+  let stub: ReturnType<typeof installBlocklistApiStub>;
+
+  before(async () => {
+    stub = installBlocklistApiStub();
+    await stub.reset();
+  });
+
+  after(() => {
+    stub.restore();
+  });
+
   const timestamp = Date.now();
   const testEmail = `tutor-cuenta-${timestamp}@baprotege.gob.ar`;
 
@@ -173,8 +185,8 @@ describe('Pruebas de Persistencia — Pestaña Cuenta', () => {
       'Antidesinstalación debe quedar deshabilitada cuando Autoprotección está activa'
     );
 
-    // Reiniciar Autoprotección
-    await selfControlApi.resetSelfControl();
+    // Reiniciar Autoprotección (estado servidor + caché local)
+    await selfControlApi.disableSelfControl();
     const resetSc = await selfControlApi.getSelfControlStatus();
     assert.equal(resetSc.active, false);
   });

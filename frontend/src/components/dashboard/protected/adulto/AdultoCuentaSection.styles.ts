@@ -60,24 +60,6 @@ export const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 1,
   },
-  roleBadgeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 6,
-    alignItems: 'center',
-  },
-  roleBadge: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  roleBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
   footer: {
     marginTop: 12,
     marginBottom: 12,

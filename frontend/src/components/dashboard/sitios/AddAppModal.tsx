@@ -31,7 +31,7 @@ export const top15PlayStoreApps = [
   { name: 'Free Fire', pkg: 'com.dts.freefireth', category: 'Juegos', icon: '🔥' },
   { name: 'Subway Surfers', pkg: 'com.kiloo.subwaysurf', category: 'Juegos', icon: '🏃' },
   { name: 'Candy Crush Saga', pkg: 'com.king.candycrushsaga', category: 'Juegos', icon: '🍬' },
-  { name: 'Bet365', pkg: 'com.bet365.mobile', category: 'Apuestas', icon: '🎲' },
+  { name: 'Bet365', pkg: 'com.bet365Wrapper.Bet365_Application', category: 'Apuestas', icon: '🎲' },
 ];
 
 export const popularAppCatalog = top15PlayStoreApps;

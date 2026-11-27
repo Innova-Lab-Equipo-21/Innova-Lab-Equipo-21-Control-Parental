@@ -83,7 +83,7 @@ const sampleApps: CustomBlockedApp[] = [
   {
     id: 'app-2',
     appName: 'Bet365',
-    packageName: 'com.bet365.mobile',
+    packageName: 'com.bet365Wrapper.Bet365_Application',
     category: 'Apuestas',
     isActive: true,
     applyToAll: true,

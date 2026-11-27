@@ -618,7 +618,7 @@ export class AuthService {
           createdAt: user.createdAt,
           isGoogleLinked: true,
         },
-        token: firebaseToken || input.idToken || '',
+        token: firebaseToken || input.idToken || `mock-google-token-${user.id}`,
         ...(refreshToken ? { refreshToken } : {}),
         ...(expiresIn ? { expiresIn } : {}),
       };
@@ -783,11 +783,14 @@ export class AuthService {
       : undefined;
 
     if (env.USE_MOCK_DATA) {
-      const user = mockDb.users.find((u) => u.id === userId);
+      const user = mockDb.users.find((u) => u.id === userId) as any;
       if (!user) {
         throw new AppError('Usuario no encontrado', 404);
       }
       if (computedFullName) user.fullName = computedFullName;
+      if (cleanPhone !== undefined) user.phone = cleanPhone || null;
+      if (genderEnum !== undefined) user.gender = genderEnum;
+      if (birthDateObj !== undefined) user.birthDate = birthDateObj;
       return user;
     }
 

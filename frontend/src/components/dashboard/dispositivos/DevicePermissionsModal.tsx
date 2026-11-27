@@ -79,7 +79,7 @@ export const DevicePermissionsModal: React.FC<DevicePermissionsModalProps> = ({
   const permissionList: PermissionDefinition[] = [
     {
       id: 'vpn',
-      name: 'Filtro para bloquear sitios no seguros',
+      name: 'Filtro para bloquear sitios y apps',
       isGranted: !!perms.vpn,
     },
     {
@@ -163,10 +163,6 @@ export const DevicePermissionsModal: React.FC<DevicePermissionsModalProps> = ({
                   ? 'Todos los permisos activos'
                   : `${grantedCount} de 6 permisos activos`}
               </Text>
-              <Badge
-                status={grantedCount === 6 ? 'activo' : (grantedCount === 0 ? 'inactivo' : 'alerta')}
-                label={`${grantedCount}/6 activos`}
-              />
             </View>
             {!isSelf && (
               <Text style={styles.summaryDesc} numberOfLines={1}>

@@ -22,6 +22,9 @@ export function installBlocklistApiStub() {
     domains: [] as any[],
     apps: [] as any[],
     usageByDevice: new Map<string, any[]>(),
+    selfControlActive: false,
+    selfControlEnabledAt: null as string | null,
+    otpByUuid: new Map<string, { code: string; expiresAt: number }>(),
   };
 
   let seq = 1;
@@ -33,6 +36,34 @@ export function installBlocklistApiStub() {
   }
 
   (apiClient as any).get = async (url: string) => {
+    if (url === '/self-control/status') {
+      const enabledAt = state.selfControlEnabledAt;
+      const canDisableAt = enabledAt
+        ? new Date(new Date(enabledAt).getTime() + 24 * 60 * 60 * 1000).toISOString()
+        : null;
+      const remainingMs = canDisableAt ? Math.max(0, new Date(canDisableAt).getTime() - Date.now()) : 0;
+      const canDisable = !state.selfControlActive || remainingMs === 0;
+      return {
+        data: {
+          success: true,
+          data: {
+            active: state.selfControlActive,
+            status: !state.selfControlActive
+              ? 'INACTIVE'
+              : canDisable
+                ? 'DEACTIVATION_READY'
+                : 'ACTIVE_LOCKED',
+            enabledAt,
+            canDisableAt,
+            canDisable,
+            remainingMs,
+            remainingHours: Math.floor(remainingMs / 3_600_000),
+            remainingMinutes: Math.floor((remainingMs % 3_600_000) / 60_000),
+          },
+        },
+      };
+    }
+
     if (url === '/blocklist/custom') {
       return {
         data: {
@@ -100,6 +131,82 @@ export function installBlocklistApiStub() {
   };
 
   (apiClient as any).post = async (url: string, body: any) => {
+    if (url === '/self-control/enable') {
+      state.selfControlActive = true;
+      state.selfControlEnabledAt = new Date().toISOString();
+      const canDisableAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const remainingMs = 24 * 60 * 60 * 1000;
+      return {
+        data: {
+          success: true,
+          data: {
+            active: true,
+            status: 'ACTIVE_LOCKED',
+            enabledAt: state.selfControlEnabledAt,
+            canDisableAt,
+            canDisable: false,
+            remainingMs,
+            remainingHours: 24,
+            remainingMinutes: 0,
+          },
+        },
+      };
+    }
+
+    if (url === '/self-control/disable') {
+      state.selfControlActive = false;
+      state.selfControlEnabledAt = null;
+      return {
+        data: {
+          success: true,
+          data: {
+            active: false,
+            status: 'INACTIVE',
+            enabledAt: null,
+            canDisableAt: null,
+            canDisable: true,
+            remainingMs: 0,
+            remainingHours: 0,
+            remainingMinutes: 0,
+          },
+        },
+      };
+    }
+
+    if (url === '/devices/anti-uninstall/request-code') {
+      const uuid = String(body?.deviceUuid || '');
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      state.otpByUuid.set(uuid, { code, expiresAt: Date.now() + 15 * 60 * 1000 });
+      return {
+        data: {
+          success: true,
+          data: {
+            maskedEmail: 'm***a@test.com',
+            expiresInMinutes: 15,
+            code,
+          },
+        },
+      };
+    }
+
+    if (url === '/devices/anti-uninstall/invalidate-code') {
+      state.otpByUuid.delete(String(body?.deviceUuid || ''));
+      return { data: { success: true } };
+    }
+
+    if (url === '/devices/anti-uninstall/verify-code') {
+      const uuid = String(body?.deviceUuid || '');
+      const entry = state.otpByUuid.get(uuid);
+      if (!entry || Date.now() > entry.expiresAt) {
+        throw makeAxiosError(400, 'No hay un código activo o fue invalidado.');
+      }
+      if (String(body?.code || '').trim() !== entry.code) {
+        throw makeAxiosError(400, 'El código ingresado es incorrecto.');
+      }
+      state.otpByUuid.delete(uuid);
+      return { data: { success: true, message: 'Código verificado correctamente.' } };
+    }
+
     if (url === '/blocklist/custom/domains') {
       const domain = String(body.domain || '').toLowerCase().trim();
       if (state.domains.some((d) => d.domain === domain)) {
@@ -288,6 +395,9 @@ export function installBlocklistApiStub() {
       state.apps.length = 0;
       state.version = 1;
       state.usageByDevice.clear();
+      state.selfControlActive = false;
+      state.selfControlEnabledAt = null;
+      state.otpByUuid.clear();
       await safeStorage.removeItem('@ba_protege_custom_blocklist');
     },
     restore: () => {

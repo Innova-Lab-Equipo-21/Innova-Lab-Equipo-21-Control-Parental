@@ -27,7 +27,6 @@ export interface RawQuizOption {
 export interface RawQuizQuestion {
   id: number;
   question: string;
-  description: string;
   options: RawQuizOption[];
   stepBgColor: string;
 }
@@ -39,7 +38,6 @@ export interface PreparedOption extends RawQuizOption {
 export interface PreparedQuestion {
   id: number;
   question: string;
-  description: string;
   options: PreparedOption[];
   stepBgColor: string;
 }
@@ -64,12 +62,10 @@ const childQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 1,
     question: '¿Qué hacés si un desconocido te escribe pidiendo datos o fotos?',
-    description:
-      'Recordá que navegar en internet de forma segura implica proteger tu información personal.',
     stepBgColor: '#E05297',
     options: [
       {
-        text: 'No respondo y le aviso a una persona adulta de confianza.',
+        text: 'Le aviso a una persona adulta',
         isCorrect: true,
       },
       { text: 'Se los envío rápido', isCorrect: false },
@@ -80,7 +76,6 @@ const childQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 2,
     question: '¿Por qué es importante tener un límite de tiempo en el celular?',
-    description: 'Recordá qué ganás cuando te alejás un momento del celular.',
     stepBgColor: '#38BDF8',
     options: [
       { text: 'Para salir a jugar al aire libre', isCorrect: true },
@@ -93,7 +88,6 @@ const childQuestionsRaw: RawQuizQuestion[] = [
     id: 3,
     question:
       '¿Se puede jugar a apostar plata en páginas de internet y aplicaciones cuando uno es menor de 18 años?',
-    description: 'Recordá que hay espacios pensados según la edad de cada persona.',
     stepBgColor: '#2DD4BF',
     options: [
       { text: 'No, está prohibido', isCorrect: true },
@@ -104,9 +98,7 @@ const childQuestionsRaw: RawQuizQuestion[] = [
   },
   {
     id: 4,
-    question: '¿Qué podés hacer si te sentís cansado o con ganas de dejar el celular?',
-    description:
-      'Pensá qué actividades te ayudan a sentirte mejor después de estar un rato largo mirando la pantalla.',
+    question: '¿Qué podés hacer si estás con ganas de dejar el celular?',
     stepBgColor: '#84CC16',
     options: [
       { text: 'Apagar la pantalla y salir a caminar', isCorrect: true },
@@ -118,12 +110,11 @@ const childQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 5,
     question:
-      'Si alguien te manda un mensaje con una oferta que promete plata o premios rápidos, ¿qué es mejor hacer?',
-    description: 'Pensá en cómo cuidarte antes de hacer clic.',
+      'Si alguien te manda un mensaje que promete plata, ¿qué es mejor hacer?',
     stepBgColor: '#EAB308',
     options: [
       { text: 'Pasar mis datos', isCorrect: false },
-      { text: 'No entrar ni compartir datos y avisar en casa', isCorrect: true },
+      { text: 'No entrar y avisar en casa', isCorrect: true },
       { text: 'Reenviarlo a todos mis contactos', isCorrect: false },
       { text: 'Aceptar todo sin leer', isCorrect: false },
     ],
@@ -135,7 +126,6 @@ const adultQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 1,
     question: '¿Qué ganás alejándote de las pantallas?',
-    description: 'Elegí la opción que te parezca más acertada.',
     stepBgColor: '#E05297',
     options: [
       { text: 'Bajar el cansancio', isCorrect: true },
@@ -147,7 +137,6 @@ const adultQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 2,
     question: '¿Qué acciones ayudan a frenar las ganas de jugar online?',
-    description: 'Marcá la opción que consideres más acertada.',
     stepBgColor: '#38BDF8',
     options: [
       { text: 'Respirar y hacer otra cosa', isCorrect: true },
@@ -159,8 +148,7 @@ const adultQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 3,
     question:
-      'Si conocieras a alguien con un consumo problemático del juego, ¿sabés a dónde llamar?',
-    description: 'Marcá la opción que consideres más acertada.',
+      'Si alguien tiene un consumo problemático del juego, ¿sabés a dónde llamar?',
     stepBgColor: '#2DD4BF',
     options: [
       { text: '0800-666-6006 (LOTBA)', isCorrect: false },
@@ -172,7 +160,6 @@ const adultQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 4,
     question: '¿Cómo podrías fomentar momentos sin pantallas en familia?',
-    description: 'Elegí la alternativa que consideres más acertada.',
     stepBgColor: '#84CC16',
     options: [
       { text: 'Prohibir la tecnología', isCorrect: false },
@@ -184,7 +171,6 @@ const adultQuestionsRaw: RawQuizQuestion[] = [
   {
     id: 5,
     question: '¿Qué señal te indica que conviene desconectarse de las pantallas?',
-    description: 'Elegí la respuesta que te parezca correcta.',
     stepBgColor: '#EAB308',
     options: [
       { text: 'Buena señal de Wi-Fi', isCorrect: false },
@@ -363,7 +349,6 @@ export const QuizModal: React.FC<QuizModalProps> = ({
                 resizeMode="contain"
               />
               <Text style={styles.questionTitle}>{currentQuestion.question}</Text>
-              <Text style={styles.questionSubtitle}>{currentQuestion.description}</Text>
             </View>
 
             <View style={styles.optionsGrid}>

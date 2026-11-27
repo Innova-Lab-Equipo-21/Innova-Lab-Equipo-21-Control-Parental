@@ -90,8 +90,8 @@ class ProtectionAccessibilityService : AccessibilityService() {
             "roblox" to listOf("roblox.com"),
             "pinterest" to listOf("pinterest.com"),
             "snapchat" to listOf("snapchat.com"),
-            "bet365" to listOf("bet365.com", "bet365.bet.ar"),
-            "betsson" to listOf("betsson.com", "betsson.bet.ar"),
+            "bet365" to listOf("bet365.bet.ar", "bet365.com"),
+            "betsson" to listOf("betsson.bet.ar", "betsson.com"),
             "1xbet" to listOf("1xbet.com"),
             "codere" to listOf("codere.bet.ar", "codere.com"),
             "jugadon" to listOf("jugadon.bet.ar"),
@@ -116,12 +116,12 @@ class ProtectionAccessibilityService : AccessibilityService() {
             "roblox" to listOf("com.roblox.client"),
             "pinterest" to listOf("com.pinterest"),
             "snapchat" to listOf("com.snapchat.android"),
-            "bet365" to listOf("com.bet365"),
-            "betsson" to listOf("com.betsson"),
+            "bet365" to listOf("com.bet365wrapper.bet365_application", "com.bet365.bet365gamesapp.play", "com.bet365.authenticator", "com.bet365"),
+            "betsson" to listOf("com.betsson.android", "net.pronosticosbetsson.twa", "com.betsson"),
             "1xbet" to listOf("org.xbet", "com.xbet"),
-            "codere" to listOf("com.codere"),
+            "codere" to listOf("ar.codere.club", "spain.codere.apuestas", "com.codere"),
             "jugadon" to listOf("ar.bet.jugadon"),
-            "bplay" to listOf("ar.bet.bplay"),
+            "bplay" to listOf("com.bplayliga.app", "ar.bet.bplay"),
             "casinobuenosaires" to listOf("ar.bet.casinobuenosaires")
         )
 
@@ -374,7 +374,10 @@ class ProtectionAccessibilityService : AccessibilityService() {
         fun findBlockedDomainForApp(cleanPkg: String): BlockedDomainMatch? {
             // 1. Coincidencia de la app contra aplicaciones conocidas con dominios web
             for ((key, pkgs) in APP_KNOWN_PACKAGES) {
-                val matchesPackage = pkgs.any { cleanPkg == it || cleanPkg.startsWith("$it.") }
+                val matchesPackage = pkgs.any {
+                    val pkgLower = it.lowercase()
+                    cleanPkg == pkgLower || cleanPkg.startsWith("$pkgLower.")
+                }
                 val matchesKey = (key.length >= 4 && cleanPkg.contains(key))
                 if (matchesPackage || matchesKey) {
                     val defaultDomains = APP_DEFAULT_DOMAINS[key] ?: emptyList()

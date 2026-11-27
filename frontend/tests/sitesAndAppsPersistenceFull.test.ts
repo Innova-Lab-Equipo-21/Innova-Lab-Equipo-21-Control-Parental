@@ -60,8 +60,8 @@ describe('Pruebas de Persistencia — Sitios y Apps', () => {
     assert.equal(rechecked.active, true);
     assert.equal(rechecked.canDisable, false);
 
-    // Reiniciar Autoprotección
-    const resetStatus = await selfControlApi.resetSelfControl();
+    // Reiniciar Autoprotección (estado servidor + caché local)
+    const resetStatus = await selfControlApi.disableSelfControl();
     assert.equal(resetStatus.active, false);
     assert.equal(resetStatus.status, 'INACTIVE');
   });

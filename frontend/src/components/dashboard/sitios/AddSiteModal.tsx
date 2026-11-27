@@ -28,11 +28,11 @@ export const top15ArgentinaSites = [
   { name: 'Twitch', domain: 'twitch.tv', category: 'Entretenimiento', icon: '🎮' },
   { name: 'Spotify', domain: 'spotify.com', category: 'Música', icon: '🎵' },
   { name: 'Roblox', domain: 'roblox.com', category: 'Juegos', icon: '🕹️' },
-  { name: 'Bet365', domain: 'bet365.com', category: 'Apuestas', icon: '🎲' },
+  { name: 'Bet365', domain: 'bet365.bet.ar', category: 'Apuestas', icon: '🎲' },
   { name: 'bplay', domain: 'bplay.bet.ar', category: 'Apuestas', icon: '🎰' },
   { name: 'Mercado Libre', domain: 'mercadolibre.com.ar', category: 'Compras', icon: '🛍️' },
   { name: 'Infobae', domain: 'infobae.com', category: 'Noticias', icon: '📰' },
-  { name: 'Olē', domain: 'ole.com.ar', category: 'Deportes', icon: '⚽' },
+  { name: 'Olé', domain: 'ole.com.ar', category: 'Deportes', icon: '⚽' },
   { name: 'Promiedos', domain: 'promiedos.com.ar', category: 'Deportes', icon: '🏆' },
 ];
 

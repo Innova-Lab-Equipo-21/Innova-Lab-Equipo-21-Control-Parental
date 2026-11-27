@@ -28,6 +28,7 @@ describe('API Health Check Endpoint', () => {
   });
 
   after((_, done) => {
+    server.closeAllConnections?.();
     server.close(done);
   });
 

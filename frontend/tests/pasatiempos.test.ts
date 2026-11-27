@@ -383,19 +383,17 @@ describe('Modo Protegido Menor — Pantalla de Inicio replicada', () => {
       true
     );
 
-    // Preguntas y opciones actualizadas de Menor
+    // Preguntas y opciones actualizadas de Menor (sin descripción debajo de la pregunta)
+    assert.equal(quizModalSource.includes('description:'), false);
+    assert.equal(quizModalSource.includes('questionSubtitle'), false);
     assert.equal(
       quizModalSource.includes(
         'Recordá que navegar en internet de forma segura implica proteger tu información personal.'
       ),
-      true
+      false
     );
     assert.equal(
-      quizModalSource.includes('No respondo y le aviso a una persona adulta de confianza.'),
-      true
-    );
-    assert.equal(
-      quizModalSource.includes('Recordá qué ganás cuando te alejás un momento del celular.'),
+      quizModalSource.includes('Le aviso a una persona adulta'),
       true
     );
     assert.equal(
@@ -404,36 +402,22 @@ describe('Modo Protegido Menor — Pantalla de Inicio replicada', () => {
       ),
       true
     );
-    assert.equal(
-      quizModalSource.includes('Recordá que hay espacios pensados según la edad de cada persona.'),
-      true
-    );
     assert.equal(quizModalSource.includes('No, está prohibido'), true);
     assert.equal(
       quizModalSource.includes(
-        '¿Qué podés hacer si te sentís cansado o con ganas de dejar el celular?'
+        '¿Qué podés hacer si estás con ganas de dejar el celular?'
       ),
       true
     );
     assert.equal(
       quizModalSource.includes(
-        'Pensá qué actividades te ayudan a sentirte mejor después de estar un rato largo mirando la pantalla.'
+        'Si alguien te manda un mensaje que promete plata, ¿qué es mejor hacer?'
       ),
-      true
-    );
-    assert.equal(
-      quizModalSource.includes(
-        'Si alguien te manda un mensaje con una oferta que promete plata o premios rápidos, ¿qué es mejor hacer?'
-      ),
-      true
-    );
-    assert.equal(
-      quizModalSource.includes('Pensá en cómo cuidarte antes de hacer clic.'),
       true
     );
     assert.equal(quizModalSource.includes('Pasar mis datos'), true);
     assert.equal(
-      quizModalSource.includes('No entrar ni compartir datos y avisar en casa'),
+      quizModalSource.includes('No entrar y avisar en casa'),
       true
     );
     assert.equal(quizModalSource.includes('Reenviarlo a todos mis contactos'), true);
@@ -582,13 +566,13 @@ describe('Modos Protegidos (Adulto y Menor) — Pestaña Cuenta replicada de Res
       'utf8'
     );
 
-    // Header "Mi cuenta" para ambos modos protegidos con botón volver a Inicio
+    // Header "Mi cuenta" para ambos modos protegidos con botón volver a Inicio (sin badges de rol)
     assert.equal(screenSource.includes('title="Mi cuenta"'), true);
     assert.equal(menorCuentaSource.includes('Cuenta vinculada con {tutorName}'), true);
-    assert.equal(menorCuentaSource.includes('Menor protegido'), true);
+    assert.equal(menorCuentaSource.includes('roleBadge'), false);
     assert.equal(menorCuentaSource.includes('✓ Vinculado'), false);
     assert.equal(adultoCuentaSource.includes('Cuenta vinculada con {tutorName}'), true);
-    assert.equal(adultoCuentaSource.includes('Adulto protegido'), true);
+    assert.equal(adultoCuentaSource.includes('roleBadge'), false);
     assert.equal(adultoCuentaSource.includes('✓ Vinculado'), false);
 
     for (const source of [adultoCuentaSource, menorCuentaSource]) {

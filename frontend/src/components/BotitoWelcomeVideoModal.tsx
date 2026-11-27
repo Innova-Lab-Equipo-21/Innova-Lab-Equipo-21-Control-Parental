@@ -196,9 +196,11 @@ export const BotitoWelcomeVideoModal: React.FC<BotitoWelcomeVideoModalProps> = (
                   },
                 ]}
               >
-                <View style={styles.successBadge}>
-                  <Text style={styles.successBadgeText}>{successBadge}</Text>
-                </View>
+                {successBadge && successBadge.trim().length > 0 ? (
+                  <View style={styles.successBadge}>
+                    <Text style={styles.successBadgeText}>{successBadge}</Text>
+                  </View>
+                ) : null}
                 <Text style={styles.successTitle}>{successTitle}</Text>
                 <Text style={styles.successMessage}>{successMessage}</Text>
                 <View style={styles.ctaWrapper}>

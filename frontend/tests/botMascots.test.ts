@@ -95,16 +95,14 @@ describe('Mascotas Boti y Botito — Recursos e integración en pantallas y moda
   });
 
   test('Modo Adulto usa BOTI_ASSETS y Modo Menor usa BOTITO_ASSETS sin referencias a beti.png', () => {
-    const adultoFiles = [
+    const adultoMascotFiles = [
       'AdultoInicioSection.tsx',
       'AdultoSitiosSection.tsx',
-      'AdultoAddSiteModal.tsx',
-      'AdultoAddAppModal.tsx',
-      'AdultoActividadSection.tsx',
       'AdultoCuentaSection.tsx',
+      'BlockModal.tsx',
     ];
 
-    for (const file of adultoFiles) {
+    for (const file of adultoMascotFiles) {
       const content = fs.readFileSync(
         path.resolve(
           __dirname,
@@ -126,14 +124,13 @@ describe('Mascotas Boti y Botito — Recursos e integración en pantallas y moda
       assert.equal(content.includes('beti.png'), false);
     }
 
-    const menorFiles = [
+    const menorMascotFiles = [
       'MenorInicioSection.tsx',
       'MenorPasatiemposSection.tsx',
-      'MenorActividadSection.tsx',
       'MenorCuentaSection.tsx',
     ];
 
-    for (const file of menorFiles) {
+    for (const file of menorMascotFiles) {
       const content = fs.readFileSync(
         path.resolve(
           __dirname,

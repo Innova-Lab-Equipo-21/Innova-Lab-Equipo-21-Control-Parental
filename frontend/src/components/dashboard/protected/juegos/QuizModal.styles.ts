@@ -86,13 +86,6 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1E293B',
     textAlign: 'center',
-    marginBottom: 6,
-  },
-  questionSubtitle: {
-    fontSize: 12.5,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 17,
   },
   optionsGrid: {
     flexDirection: 'row',

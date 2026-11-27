@@ -199,7 +199,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                     <View style={styles.checkItem}>
                       <Icon name="check" size={24} color="#007AFF" style={styles.checkIconWrapper} />
                       <Text style={styles.checkText}>
-                        Acompañás el bienestar digital y definís los límites de uso del celular tanto para vos como para quienes te importan.
+                        Acompañás el bienestar digital y definís los límites de uso de las aplicaciones tanto para vos como para quienes te importan.
                       </Text>
                     </View>
                   </View>
