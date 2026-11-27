@@ -139,6 +139,9 @@ export const authApi = {
     await safeStorage.removeItem('@ba_protege_jwt_token');
     await safeStorage.removeItem('@ba_protege_refresh_token');
     await safeStorage.removeItem('@ba_protege_self_device');
+    await safeStorage.removeItem('@ba_protege_self_control_active');
+    await safeStorage.removeItem('@ba_protege_self_control_enabled_at');
+    await safeStorage.removeItem('@ba_protege_self_control_can_disable_at');
   },
 
   async updateProfile(data: UpdateProfilePayload) {
@@ -156,6 +159,9 @@ export const authApi = {
       await safeStorage.removeItem('@ba_protege_jwt_token');
       await safeStorage.removeItem('@ba_protege_refresh_token');
       await safeStorage.removeItem('@ba_protege_self_device');
+      await safeStorage.removeItem('@ba_protege_self_control_active');
+      await safeStorage.removeItem('@ba_protege_self_control_enabled_at');
+      await safeStorage.removeItem('@ba_protege_self_control_can_disable_at');
       return response.data;
     } catch (error: any) {
       throw normalizeAuthError(error, 'No se pudo eliminar la cuenta.');

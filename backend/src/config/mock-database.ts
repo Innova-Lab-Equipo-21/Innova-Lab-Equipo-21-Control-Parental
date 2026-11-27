@@ -39,6 +39,14 @@ export interface MockDevice {
     effectiveStatus: 'ACTIVE' | 'INACTIVE' | 'PERMISSION_REQUIRED' | 'BYPASS_DETECTED' | 'UNKNOWN';
     vpnActive: boolean;
     permissionsOk: boolean;
+    permissionsDetail?: {
+      vpn: boolean;
+      accessibility: boolean;
+      notifications: boolean;
+      batteryOptimization: boolean;
+      location: boolean;
+      usageStats: boolean;
+    } | null;
     batteryLevel: number;
     isCharging: boolean;
     blocklistVersion: number;

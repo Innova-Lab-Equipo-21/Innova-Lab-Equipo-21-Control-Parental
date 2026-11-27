@@ -52,9 +52,7 @@ export function useAntiUninstallProtection({
 }: UseAntiUninstallProtectionParams): UseAntiUninstallProtectionResult {
   const [ruleUninstallProtection, setRuleUninstallProtection] = useState<boolean>(true);
   const [showAntiUninstallModal, setShowAntiUninstallModal] = useState<boolean>(false);
-  const [maskedTutorEmail, setMaskedTutorEmail] = useState<string>(
-    't***r@baprotege.gob.ar'
-  );
+  const [maskedTutorEmail, setMaskedTutorEmail] = useState<string>('');
   const [antiUninstallError, setAntiUninstallError] = useState<string | null>(null);
   const [loadingAntiUninstall, setLoadingAntiUninstall] = useState<boolean>(false);
   const [feedbackModal, setFeedbackModal] = useState<ProtectedFeedbackState>({
@@ -83,6 +81,7 @@ export function useAntiUninstallProtection({
 
   const handleOpenAntiUninstallModal = useCallback(async () => {
     setAntiUninstallError(null);
+    setMaskedTutorEmail('');
     setLoadingAntiUninstall(true);
     setShowAntiUninstallModal(true);
     try {
@@ -91,7 +90,10 @@ export function useAntiUninstallProtection({
         setMaskedTutorEmail(res.maskedEmail);
       }
     } catch (err: any) {
-      console.warn('Error al solicitar código:', err);
+      setAntiUninstallError(
+        err?.message ||
+          'No se pudo enviar el código de verificación al correo del responsable. Verificá tu conexión e intentá nuevamente.'
+      );
     } finally {
       setLoadingAntiUninstall(false);
     }

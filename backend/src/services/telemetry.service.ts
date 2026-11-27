@@ -60,6 +60,17 @@ export class TelemetryService {
    * Calcula y actualiza el estado efectivo real de la protección.
    */
   public async processHeartbeat(payload: HeartbeatPayload) {
+    const normalizedPermissionsDetail = payload.permissions
+      ? {
+          vpn: Boolean(payload.permissions.vpn ?? payload.vpnActive),
+          accessibility: Boolean(payload.permissions.accessibility),
+          notifications: Boolean(payload.permissions.notifications),
+          batteryOptimization: Boolean(payload.permissions.batteryOptimization),
+          location: Boolean(payload.permissions.location),
+          usageStats: Boolean(payload.permissions.usageStats),
+        }
+      : undefined;
+
     if (env.USE_MOCK_DATA) {
       let device = mockDb.devices.find((d) => d.deviceUuid === payload.deviceUuid);
 
@@ -81,6 +92,7 @@ export class TelemetryService {
             effectiveStatus: payload.vpnActive ? 'ACTIVE' : 'INACTIVE',
             vpnActive: payload.vpnActive,
             permissionsOk: payload.permissionsOk,
+            permissionsDetail: normalizedPermissionsDetail ?? null,
             batteryLevel: payload.batteryLevel || 100,
             isCharging: payload.isCharging || false,
             blocklistVersion: payload.blocklistVersion,
@@ -111,6 +123,7 @@ export class TelemetryService {
         effectiveStatus,
         vpnActive: payload.vpnActive,
         permissionsOk: payload.permissionsOk,
+        permissionsDetail: normalizedPermissionsDetail ?? device.status.permissionsDetail ?? null,
         batteryLevel: payload.batteryLevel ?? device.status.batteryLevel,
         isCharging: payload.isCharging ?? device.status.isCharging,
         blocklistVersion: payload.blocklistVersion,
@@ -154,13 +167,16 @@ export class TelemetryService {
 
     const now = new Date();
 
-    // Actualizar o crear registro de estado
+    // Actualizar o crear registro de estado (incluyendo detalle granular de los 6 permisos)
     const status = await prisma.deviceStatus.upsert({
       where: { deviceId: device.id },
       update: {
         effectiveStatus,
         vpnActive: payload.vpnActive,
         permissionsOk: payload.permissionsOk,
+        ...(normalizedPermissionsDetail !== undefined
+          ? { permissionsDetail: normalizedPermissionsDetail }
+          : {}),
         batteryLevel: payload.batteryLevel,
         isCharging: payload.isCharging,
         blocklistVersion: payload.blocklistVersion,
@@ -172,6 +188,9 @@ export class TelemetryService {
         effectiveStatus,
         vpnActive: payload.vpnActive,
         permissionsOk: payload.permissionsOk,
+        ...(normalizedPermissionsDetail !== undefined
+          ? { permissionsDetail: normalizedPermissionsDetail }
+          : {}),
         batteryLevel: payload.batteryLevel,
         isCharging: payload.isCharging,
         blocklistVersion: payload.blocklistVersion,

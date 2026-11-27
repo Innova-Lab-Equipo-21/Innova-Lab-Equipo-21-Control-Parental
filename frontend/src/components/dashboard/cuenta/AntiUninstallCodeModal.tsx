@@ -98,8 +98,16 @@ export const AntiUninstallCodeModal: React.FC<AntiUninstallCodeModalProps> = ({
 
           {/* Mensaje descriptivo con correo del responsable enmascarado */}
           <Text style={styles.modalBody}>
-            Ingresá el código de 6 dígitos enviado al correo del responsable:{' '}
-            <Text style={styles.emailHighlight}>{maskedEmail}</Text>
+            {maskedEmail ? (
+              <>
+                Ingresá el código de 6 dígitos enviado al correo del responsable:{' '}
+                <Text style={styles.emailHighlight}>{maskedEmail}</Text>
+              </>
+            ) : loading ? (
+              'Enviando código de 6 dígitos al correo del responsable...'
+            ) : (
+              'Solicitá el código de 6 dígitos al correo del responsable para continuar.'
+            )}
           </Text>
 
           {/* Cuadro informativo de advertencia */}

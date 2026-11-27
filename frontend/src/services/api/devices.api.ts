@@ -86,25 +86,26 @@ function normalizeBackendDevice(
   const isLinked = effectiveStatus !== 'INACTIVE';
   const vpn = Boolean(bd?.status?.vpnActive);
   const permissionsOk = isLinked && Boolean(bd?.status?.permissionsOk);
+  const rawPerms = bd?.permissions || bd?.status?.permissionsDetail;
 
-  const perms: DevicePermissionsStatus = bd?.permissions
+  const perms: DevicePermissionsStatus = rawPerms
     ? {
-        vpn: Boolean(bd.permissions.vpn),
-        accessibility: Boolean(bd.permissions.accessibility),
-        notifications: Boolean(bd.permissions.notifications),
-        batteryOptimization: Boolean(bd.permissions.batteryOptimization),
-        location: Boolean(bd.permissions.location),
-        usageStats: Boolean(bd.permissions.usageStats),
+        vpn: typeof rawPerms.vpn === 'boolean' ? rawPerms.vpn : vpn,
+        accessibility: Boolean(rawPerms.accessibility),
+        notifications: Boolean(rawPerms.notifications),
+        batteryOptimization: Boolean(rawPerms.batteryOptimization),
+        location: Boolean(rawPerms.location),
+        usageStats: Boolean(rawPerms.usageStats),
         grantedCount:
-          typeof bd.permissions.grantedCount === 'number'
-            ? bd.permissions.grantedCount
+          typeof rawPerms.grantedCount === 'number'
+            ? rawPerms.grantedCount
             : [
-                bd.permissions.vpn,
-                bd.permissions.accessibility,
-                bd.permissions.notifications,
-                bd.permissions.batteryOptimization,
-                bd.permissions.location,
-                bd.permissions.usageStats,
+                typeof rawPerms.vpn === 'boolean' ? rawPerms.vpn : vpn,
+                Boolean(rawPerms.accessibility),
+                Boolean(rawPerms.notifications),
+                Boolean(rawPerms.batteryOptimization),
+                Boolean(rawPerms.location),
+                Boolean(rawPerms.usageStats),
               ].filter(Boolean).length,
       }
     : {
@@ -226,104 +227,85 @@ export const devicesApi = {
 
   // --------------------------------------------------------------------------
   // Desactivación de Antidesinstalación en Dispositivos Protegidos (Código OTP 6 dígitos)
+  // 100% respaldado por PostgreSQL + correo SMTP real (sin fallback offline/mock)
   // --------------------------------------------------------------------------
   async requestAntiUninstallCode(deviceUuid: string): Promise<{
     success: boolean;
     message: string;
     maskedEmail: string;
+    expiresAt?: string;
     code?: string;
   }> {
     try {
       const response = await apiClient.post('/devices/anti-uninstall/request-code', {
         deviceUuid,
       });
-      if (response.data?.data) {
-        return {
-          success: true,
-          message: response.data.message || 'Código enviado',
-          maskedEmail: response.data.data.maskedEmail,
-          code: response.data.data.code,
-        };
+      const payload = response.data?.data;
+      if (!payload?.maskedEmail) {
+        throw new Error(
+          'El servidor no pudo enviar el código de verificación al correo del responsable.'
+        );
       }
-    } catch (e) {
-      // Fallback local / demo offline
+
+      return {
+        success: true,
+        message:
+          response.data?.message || 'Código de verificación enviado al correo del responsable.',
+        maskedEmail: payload.maskedEmail,
+        expiresAt: payload.expiresAt,
+        code: payload.code,
+      };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo enviar el código de verificación al correo del responsable. Verificá tu conexión e intentá nuevamente.'
+        )
+      );
     }
-
-    // Generar código localmente de 6 dígitos e invalidar cualquier anterior
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    let tutorEmail = 'tutor@baprotege.gob.ar';
-    try {
-      const selfDev = await safeStorage.getItem('@ba_protege_self_device');
-      if (selfDev) {
-        const parsed = JSON.parse(selfDev);
-        if (parsed.email) tutorEmail = parsed.email;
-      }
-    } catch (err) {}
-
-    const [localPart, domain] = tutorEmail.split('@');
-    const maskedLocal =
-      localPart && localPart.length > 2
-        ? `${localPart[0]}***${localPart[localPart.length - 1]}`
-        : `${localPart ? localPart[0] : 't'}***`;
-    const maskedEmail = `${maskedLocal}@${domain || 'baprotege.gob.ar'}`;
-
-    await safeStorage.setItem(
-      `@ba_protege_anti_uninstall_code_${deviceUuid}`,
-      JSON.stringify({ code, expiresAt: Date.now() + 15 * 60 * 1000, tutorEmail })
-    );
-
-    return {
-      success: true,
-      message: 'Código de verificación enviado al correo del responsable.',
-      maskedEmail,
-      code,
-    };
   },
 
   async invalidateAntiUninstallCode(deviceUuid: string): Promise<{ success: boolean }> {
     try {
       await apiClient.post('/devices/anti-uninstall/invalidate-code', { deviceUuid });
-    } catch (e) {}
-
-    await safeStorage.removeItem(`@ba_protege_anti_uninstall_code_${deviceUuid}`);
-    return { success: true };
+      return { success: true };
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo invalidar el código de verificación en el servidor.'
+        )
+      );
+    }
   },
 
-  async verifyAntiUninstallCode(deviceUuid: string, code: string): Promise<{ success: boolean; message: string }> {
+  async verifyAntiUninstallCode(
+    deviceUuid: string,
+    code: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const response = await apiClient.post('/devices/anti-uninstall/verify-code', {
         deviceUuid,
         code: code.trim(),
       });
       if (response.data?.success) {
-        await safeStorage.removeItem(`@ba_protege_anti_uninstall_code_${deviceUuid}`);
-        return { success: true, message: 'Código verificado con éxito' };
+        return {
+          success: true,
+          message: response.data?.message || 'Código verificado con éxito',
+        };
       }
-    } catch (e: any) {
-      if (e.response?.data?.message) {
-        throw new Error(e.response.data.message);
-      }
+      throw new Error(
+        response.data?.message ||
+          'El código ingresado es incorrecto. Verificá el correo del responsable.'
+      );
+    } catch (err: any) {
+      throw new Error(
+        extractApiErrorMessage(
+          err,
+          'No se pudo verificar el código de seguridad. Verificá tu conexión e intentá nuevamente.'
+        )
+      );
     }
-
-    // Fallback verificación local
-    const raw = await safeStorage.getItem(`@ba_protege_anti_uninstall_code_${deviceUuid}`);
-    if (!raw) {
-      throw new Error('No hay un código activo o ya fue invalidado. Solicitá uno nuevo.');
-    }
-
-    const record = JSON.parse(raw);
-    if (Date.now() > record.expiresAt) {
-      await safeStorage.removeItem(`@ba_protege_anti_uninstall_code_${deviceUuid}`);
-      throw new Error('El código ha expirado. Solicitá uno nuevo.');
-    }
-
-    if (record.code !== code.trim()) {
-      throw new Error('El código ingresado es incorrecto. Verificá tu correo electrónico.');
-    }
-
-    // Invalida el código tras usarlo
-    await safeStorage.removeItem(`@ba_protege_anti_uninstall_code_${deviceUuid}`);
-    return { success: true, message: 'Código verificado exitosamente' };
   },
 
   // --------------------------------------------------------------------------

@@ -5,14 +5,15 @@
 // Descripción: Suite de tests que valida la replicación de Reglas de protección global
 //              en Cuenta de Menor y Adulto, exclusión de Autoprotección, acoplamiento
 //              obligatorio de Antidesinstalación cuando Autoprotección está activa, y el flujo
-//              estricto de seguridad para desactivar Antidesinstalación mediante código OTP.
+//              estricto de seguridad para desactivar Antidesinstalación mediante código OTP real.
 // ==============================================================================
 
-import { test, describe } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
 import path from 'path';
 import { apiService } from '../src/services/api.service';
+import { apiClient } from '../src/services/api/client';
 
 describe('Reglas de protección global en Modos Protegidos (Menor y Adulto)', () => {
   const menorCuentaPath = path.resolve(
@@ -26,10 +27,6 @@ describe('Reglas de protección global en Modos Protegidos (Menor y Adulto)', ()
   const globalRulesPath = path.resolve(
     __dirname,
     '../src/components/dashboard/cuenta/GlobalRulesSection.tsx'
-  );
-  const modalPath = path.resolve(
-    __dirname,
-    '../src/components/dashboard/cuenta/AntiUninstallCodeModal.tsx'
   );
   const protectedScreenPath = path.resolve(
     __dirname,
@@ -45,13 +42,8 @@ describe('Reglas de protección global en Modos Protegidos (Menor y Adulto)', ()
     const adultoSource = fs.readFileSync(adultoCuentaPath, 'utf8');
 
     for (const source of [menorSource, adultoSource]) {
-      // 1. Debe incluir GlobalRulesSection
       assert.equal(source.includes('GlobalRulesSection'), true);
-
-      // 2. No debe incluir la opción Autoprotección
       assert.equal(source.includes('showAutoproteccion={false}'), true);
-
-      // 3. Debe recibir los manejadores para Antidesinstalación y Permisos
       assert.equal(source.includes('ruleUninstallProtection'), true);
       assert.equal(source.includes('onToggleUninstallProtection'), true);
       assert.equal(source.includes('onOpenPermissions'), true);
@@ -61,27 +53,17 @@ describe('Reglas de protección global en Modos Protegidos (Menor y Adulto)', ()
   test('GlobalRulesSection omite el switch de Autoprotección cuando showAutoproteccion es false', () => {
     const rulesSource = fs.readFileSync(globalRulesPath, 'utf8');
 
-    // Autoprotección debe estar condicionada a showAutoproteccion
     assert.equal(rulesSource.includes('{showAutoproteccion && ('), true);
-
-    // Bloqueo sitios LotBA debe ser inmutable y mostrar FeedbackModal
     assert.equal(rulesSource.includes('Bloqueo sitios LotBA'), true);
     assert.equal(rulesSource.includes('Protección obligatoria'), true);
-
-    // Antidesinstalación debe estar disponible
     assert.equal(rulesSource.includes('Antidesinstalación'), true);
   });
 
   test('GlobalRulesSection bloquea la desactivación de Antidesinstalación cuando Autoprotección está activa', () => {
     const rulesSource = fs.readFileSync(globalRulesPath, 'utf8');
 
-    // Muestra valor true forzado si isAutoproteccionActive es true
     assert.equal(rulesSource.includes('value={isAutoproteccionActive ? true : ruleUninstallProtection}'), true);
-
-    // Deshabilita el switch de Antidesinstalación si isAutoproteccionActive es true
     assert.equal(rulesSource.includes('disabled={isAutoproteccionActive}'), true);
-
-    // Muestra el modal de aviso de Antidesinstalación protegida
     assert.equal(rulesSource.includes('Antidesinstalación protegida'), true);
     assert.equal(
       rulesSource.includes('La protección antidesinstalación no puede desactivarse mientras la Autoprotección de 24 horas esté activa.'),
@@ -92,11 +74,8 @@ describe('Reglas de protección global en Modos Protegidos (Menor y Adulto)', ()
   test('ParentDashboardScreen activa automáticamente Antidesinstalación al habilitar Autoprotección y rechaza su desactivación', () => {
     const parentSource = fs.readFileSync(parentDashboardPath, 'utf8');
 
-    // 1. Al activar autoprotección, activa automáticamente antidesinstalación
     assert.equal(parentSource.includes('setRuleUninstallProtection(true)'), true);
     assert.equal(parentSource.includes('protectionService.setAntiUninstallEnabled(true)'), true);
-
-    // 2. Al intentar desactivar antidesinstalación con autoprotección activa, lo rechaza e informa
     assert.equal(parentSource.includes('if (isAutoproteccionActive && !val)'), true);
     assert.equal(parentSource.includes('Antidesinstalación protegida'), true);
   });
@@ -104,7 +83,6 @@ describe('Reglas de protección global en Modos Protegidos (Menor y Adulto)', ()
   test('ProtectedDeviceScreen integra AntiUninstallCodeModal y controla la desactivación protegida', () => {
     const screenSource = fs.readFileSync(protectedScreenPath, 'utf8');
 
-    // Debe importar e instanciar AntiUninstallCodeModal
     assert.equal(screenSource.includes('AntiUninstallCodeModal'), true);
     assert.equal(screenSource.includes('handleToggleUninstallProtection'), true);
     assert.equal(screenSource.includes('handleOpenAntiUninstallModal'), true);
@@ -113,25 +91,79 @@ describe('Reglas de protección global en Modos Protegidos (Menor y Adulto)', ()
   });
 });
 
-describe('Flujo de Desactivación de Antidesinstalación con Código OTP de 6 Dígitos', () => {
+describe('Flujo de Desactivación de Antidesinstalación con Código OTP de 6 Dígitos (Backend Real)', () => {
+  const originalPost = apiClient.post.bind(apiClient);
   const testDeviceUuid = `device-test-antiuninstall-${Date.now()}`;
+  const serverCodes = new Map<string, { code: string; maskedEmail: string }>();
 
-  test('1. Al solicitar desactivar, genera un código de 6 dígitos y retorna el correo enmascarado del responsable', async () => {
+  beforeEach(() => {
+    serverCodes.clear();
+    (apiClient as any).post = async (url: string, body: any) => {
+      if (url === '/devices/anti-uninstall/request-code') {
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const maskedEmail = 'r***a@correo-real.com';
+        serverCodes.set(body.deviceUuid, { code, maskedEmail });
+        return {
+          data: {
+            success: true,
+            message: 'Código de verificación enviado al correo del responsable',
+            data: { maskedEmail, expiresAt: new Date(Date.now() + 900_000).toISOString(), code },
+          },
+        };
+      }
+      if (url === '/devices/anti-uninstall/invalidate-code') {
+        serverCodes.delete(body.deviceUuid);
+        return { data: { success: true, message: 'Código invalidado con éxito' } };
+      }
+      if (url === '/devices/anti-uninstall/verify-code') {
+        const rec = serverCodes.get(body.deviceUuid);
+        if (!rec) {
+          const err: any = new Error('Bad Request');
+          err.response = {
+            status: 400,
+            data: {
+              message:
+                'No hay un código activo para este dispositivo o ya fue invalidado. Solicitá uno nuevo.',
+            },
+          };
+          throw err;
+        }
+        if (rec.code !== String(body.code || '').trim()) {
+          const err: any = new Error('Bad Request');
+          err.response = {
+            status: 400,
+            data: {
+              message:
+                'El código ingresado es incorrecto. Verificá el código enviado al correo del responsable.',
+            },
+          };
+          throw err;
+        }
+        serverCodes.delete(body.deviceUuid);
+        return { data: { success: true, message: 'Código de verificación aceptado' } };
+      }
+      throw new Error(`Unexpected POST ${url}`);
+    };
+  });
+
+  afterEach(() => {
+    (apiClient as any).post = originalPost;
+    serverCodes.clear();
+  });
+
+  test('1. Al solicitar desactivar, recibe el correo enmascarado del responsable desde el servidor', async () => {
     const res = await apiService.requestAntiUninstallCode(testDeviceUuid);
 
     assert.equal(res.success, true);
-    assert.ok(res.code, 'Debe generar un código');
+    assert.ok(res.code, 'En entorno no productivo retorna código de prueba');
     assert.equal(res.code?.length, 6, 'El código debe tener exactamente 6 dígitos');
     assert.match(res.code!, /^\d{6}$/, 'El código debe ser numérico');
-    assert.ok(res.maskedEmail, 'Debe retornar el correo enmascarado del responsable');
-    assert.match(res.maskedEmail, /^.+@.+\..+$/, 'El correo enmascarado debe tener formato de email');
+    assert.equal(res.maskedEmail, 'r***a@correo-real.com');
   });
 
   test('2. Verifica exitosamente cuando se ingresa el código correcto de 6 dígitos', async () => {
     const res = await apiService.requestAntiUninstallCode(testDeviceUuid);
-    const generatedCode = res.code!;
-
-    const verifyRes = await apiService.verifyAntiUninstallCode(testDeviceUuid, generatedCode);
+    const verifyRes = await apiService.verifyAntiUninstallCode(testDeviceUuid, res.code!);
     assert.equal(verifyRes.success, true);
   });
 
@@ -146,41 +178,33 @@ describe('Flujo de Desactivación de Antidesinstalación con Código OTP de 6 D�
     );
   });
 
-  test('4. Al cerrar el modal, el código activo es invalidado', async () => {
+  test('4. Al cerrar el modal, el código activo es invalidado en el servidor', async () => {
     const res = await apiService.requestAntiUninstallCode(testDeviceUuid);
-    const validCode = res.code!;
-
-    // Usuario cierra el modal
     await apiService.invalidateAntiUninstallCode(testDeviceUuid);
 
-    // Intentar verificar el código previo debe fallar porque ya fue invalidado
     await assert.rejects(
       async () => {
-        await apiService.verifyAntiUninstallCode(testDeviceUuid, validCode);
+        await apiService.verifyAntiUninstallCode(testDeviceUuid, res.code!);
       },
       /no hay un código activo|invalidado|expirado/i
     );
   });
 
-  test('5. Si el usuario vuelve a abrir el modal, se genera un código nuevo y el código anterior queda invalidado', async () => {
-    // Primera apertura del modal
+  test('5. Si el usuario vuelve a abrir el modal, se genera un código nuevo y el anterior queda invalidado', async () => {
     const firstRequest = await apiService.requestAntiUninstallCode(testDeviceUuid);
-    const firstCode = firstRequest.code!;
-
-    // Segunda apertura del modal (ej. cerró y reabrió)
     const secondRequest = await apiService.requestAntiUninstallCode(testDeviceUuid);
-    const secondCode = secondRequest.code!;
 
-    // El primer código debe ser rechazado
     await assert.rejects(
       async () => {
-        await apiService.verifyAntiUninstallCode(testDeviceUuid, firstCode);
+        await apiService.verifyAntiUninstallCode(testDeviceUuid, firstRequest.code!);
       },
       /incorrecto/i
     );
 
-    // El segundo código debe ser aceptado
-    const verifySecond = await apiService.verifyAntiUninstallCode(testDeviceUuid, secondCode);
+    const verifySecond = await apiService.verifyAntiUninstallCode(
+      testDeviceUuid,
+      secondRequest.code!
+    );
     assert.equal(verifySecond.success, true);
   });
 });

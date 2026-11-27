@@ -106,12 +106,16 @@ export async function checkRealDevicePermissions(userId?: string): Promise<Devic
         notifications = Boolean(notifGranted);
       }
 
-      // Ubicación GPS / Geolocalización
-      // Ubicación GPS / Geolocalización: si el sistema revocó el permiso, se desactiva
+      // Ubicación GPS / Geolocalización: refleja el estado real en Android (permiso + hardware activo)
       if (vpnServiceBridge && typeof vpnServiceBridge.isLocationPermissionGranted === 'function') {
         const isLocGranted = await vpnServiceBridge.isLocationPermissionGranted();
         if (!isLocGranted) {
           location = false;
+        } else if (typeof vpnServiceBridge.isLocationEnabled === 'function') {
+          const isLocEnabled = await vpnServiceBridge.isLocationEnabled().catch(() => true);
+          location = Boolean(isLocEnabled);
+        } else {
+          location = true;
         }
       } else if (PermissionsAndroid && PermissionsAndroid.PERMISSIONS?.ACCESS_FINE_LOCATION) {
         const fineLocationGranted = await PermissionsAndroid.check(
@@ -120,9 +124,7 @@ export async function checkRealDevicePermissions(userId?: string): Promise<Devic
         const coarseLocationGranted = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION
         );
-        if (!fineLocationGranted && !coarseLocationGranted) {
-          location = false;
-        }
+        location = Boolean(fineLocationGranted || coarseLocationGranted);
       }
 
       // Servicio VPN: verificar en el sistema Android si el permiso VPN está realmente autorizado

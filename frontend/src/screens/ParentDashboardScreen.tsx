@@ -324,17 +324,18 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
     }
   }, [isLoggedIn, activeTab]);
 
-  // Actualización periódica de temporizadores de Autocontrol (espera 24hs o pase temporal)
+  // Actualización periódica de temporizadores de Autocontrol (bloqueo obligatorio de 24hs)
   useEffect(() => {
     if (!isLoggedIn) return;
     let timer: NodeJS.Timeout | null = null;
     if (
+      selfControl.status === 'ACTIVE_LOCKED' ||
       selfControl.status === 'DEACTIVATION_PENDING' ||
       selfControl.status === 'TEMPORARILY_UNLOCKED'
     ) {
       timer = setInterval(() => {
         checkSelfControlStatus();
-      }, 10000);
+      }, 30000);
     }
     return () => {
       if (timer) clearInterval(timer);
@@ -507,24 +508,48 @@ export const ParentDashboardScreen: React.FC<ParentDashboardScreenProps> = ({
   };
 
   const handleFinalSelfControlActivation = async () => {
-    const res = await apiService.enableSelfControl();
-    setSelfControl(res);
-    // Al activar la Autoprotección, la antidesinstalación también es activada automáticamente
-    setRuleUninstallProtection(true);
     try {
-      await protectionService.setAntiUninstallEnabled(true);
-    } catch (_) {}
-    setShowSelfControlModal(false);
-    if (shouldRedirectToHomeAfterSelfControlActivation(activeTab, redirectHomeOnSelfControl)) {
-      setRedirectHomeOnSelfControl(false);
-      setActiveTab('inicio');
+      const res = await apiService.enableSelfControl();
+      setSelfControl(res);
+      // Al activar la Autoprotección, la antidesinstalación también es activada automáticamente
+      setRuleUninstallProtection(true);
+      try {
+        await protectionService.setAntiUninstallEnabled(true);
+      } catch (_) {}
+      setShowSelfControlModal(false);
+      if (shouldRedirectToHomeAfterSelfControlActivation(activeTab, redirectHomeOnSelfControl)) {
+        setRedirectHomeOnSelfControl(false);
+        setActiveTab('inicio');
+      }
+    } catch (err: any) {
+      setShowSelfControlModal(false);
+      showFeedback({
+        imageSource: getBotMascotImage('ADULT', 'nervioso'),
+        title: 'No se pudo activar la autoprotección',
+        message:
+          err?.message ||
+          'Verificá tu conexión a internet e intentá nuevamente en unos minutos.',
+        buttonText: 'Entendido',
+      });
     }
   };
 
   const handleConfirmDeactivation = async () => {
-    const res = await apiService.disableSelfControl();
-    setSelfControl(res);
-    setShowSelfControlModal(false);
+    try {
+      const res = await apiService.disableSelfControl();
+      setSelfControl(res);
+      setShowSelfControlModal(false);
+    } catch (err: any) {
+      setShowSelfControlModal(false);
+      showFeedback({
+        imageSource: getBotMascotImage('ADULT', 'nervioso'),
+        title: 'No se pudo desactivar la autoprotección',
+        message:
+          err?.message ||
+          'La desactivación solo está disponible una vez cumplidas las 24 horas.',
+        buttonText: 'Entendido',
+      });
+    }
   };
 
   const handleDisableSelfControl = handleConfirmDeactivation;

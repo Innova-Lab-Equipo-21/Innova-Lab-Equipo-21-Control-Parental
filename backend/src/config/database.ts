@@ -115,6 +115,28 @@ async function ensureActivitySchema(): Promise<void> {
 }
 
 /**
+ * Garantiza de forma idempotente las columnas y tablas aditivas de Seguridad y Permisos
+ * (`device_status.permissions_detail`, `anti_uninstall_codes`) en entornos gestionados.
+ */
+async function ensureSecuritySchema(): Promise<void> {
+  const statements = [
+    `ALTER TABLE "public"."device_status" ADD COLUMN IF NOT EXISTS "permissions_detail" JSONB`,
+    `CREATE TABLE IF NOT EXISTS "public"."anti_uninstall_codes" (
+      "device_uuid" TEXT NOT NULL,
+      "code" TEXT NOT NULL,
+      "email" TEXT NOT NULL,
+      "expires_at" TIMESTAMP(3) NOT NULL,
+      "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "anti_uninstall_codes_pkey" PRIMARY KEY ("device_uuid")
+    )`,
+  ];
+
+  for (const sql of statements) {
+    await prisma.$executeRawUnsafe(sql);
+  }
+}
+
+/**
  * Función para verificar la conectividad con la base de datos PostgreSQL o activar modo mock.
  */
 export async function connectDatabase(): Promise<void> {
@@ -127,6 +149,7 @@ export async function connectDatabase(): Promise<void> {
     await prisma.$connect();
     await ensureBlocklistSchema();
     await ensureActivitySchema();
+    await ensureSecuritySchema();
     console.log('✅ Conexión establecida con éxito con PostgreSQL.');
   } catch (error) {
     console.warn('⚠️ Error al inicializar conexión o esquema PostgreSQL:', error);

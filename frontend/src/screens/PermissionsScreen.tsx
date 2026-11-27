@@ -174,6 +174,20 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     permissionsRef.current = permissions;
   }, [permissions]);
 
+  // Sincroniza el estado real de los 6 permisos con PostgreSQL cuando corresponde a un dispositivo protegido
+  const syncProtectedHeartbeatIfNeeded = () => {
+    if (
+      flowSource === 'DEVICE_PAIRING' &&
+      userId &&
+      userId !== 'self' &&
+      userId !== 'local' &&
+      userId !== 'dev-local-default' &&
+      userId !== 'dev-adult-default'
+    ) {
+      protectionService.sendRealDeviceHeartbeat(userId).catch(() => {});
+    }
+  };
+
   // Consultar permisos reales nativos al montar
   useEffect(() => {
     checkRealDevicePermissions(userId).then((real) => {
@@ -187,6 +201,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       };
       permissionsRef.current = initial;
       setPermissions(initial);
+      syncProtectedHeartbeatIfNeeded();
     });
     saveNavigationState({ activeScreen: 'PERMISSIONS' }).catch(() => {});
   }, [userId]);
@@ -209,6 +224,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
             isNotifEnabled,
             isBatteryIgnored,
             isLocGranted,
+            isLocEnabled,
             isUsageStatsGranted,
             isVpnActive,
           ] = await Promise.all([
@@ -226,6 +242,9 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
               : Promise.resolve(null),
             !isRequestingLocationRef.current
               ? protectionService.isLocationPermissionGranted()
+              : Promise.resolve(null),
+            !isRequestingLocationRef.current
+              ? protectionService.isLocationEnabled().catch(() => true)
               : Promise.resolve(null),
             !isRequestingUsageStatsRef.current
               ? protectionService.isUsageStatsPermissionGranted()
@@ -246,8 +265,8 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
           const nextBattery = isBatteryIgnored !== null ? isBatteryIgnored : prev.batteryOptimization;
           const nextUsage = isUsageStatsGranted !== null ? isUsageStatsGranted : prev.usageStats;
           let nextLoc = prev.location;
-          if (isLocGranted === false) {
-            nextLoc = false;
+          if (isLocGranted !== null) {
+            nextLoc = Boolean(isLocGranted && (isLocEnabled ?? true));
           }
 
           const pendingDisableKey = pendingDisableConfirmationRef.current;
@@ -288,6 +307,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
             permissionsRef.current = next;
             setPermissions(next);
             saveDevicePermissions(next, userId);
+            syncProtectedHeartbeatIfNeeded();
           }
 
           if (deactivatedKey) {
@@ -304,12 +324,13 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
     };
   }, [userId, protectedProfile]);
 
-  // Helper para actualizar y persistir el estado real de permisos
+  // Helper para actualizar y persistir el estado real de permisos (y reportar heartbeat al servidor)
   const updatePermission = (key: keyof PermissionItemState, value: boolean) => {
     const next: PermissionItemState = { ...permissionsRef.current, [key]: value };
     permissionsRef.current = next;
     setPermissions(next);
     saveDevicePermissions(next, userId);
+    syncProtectedHeartbeatIfNeeded();
   };
 
   // Solo un card puede estar abierto a la vez (los demás se cierran automáticamente)

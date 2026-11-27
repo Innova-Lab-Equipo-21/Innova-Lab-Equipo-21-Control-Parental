@@ -33,6 +33,18 @@ export interface ApiResponse<T = unknown> {
 }
 
 /**
+ * Detalle granular de los 6 permisos reales reportados por Android.
+ */
+export interface DevicePermissionsDetail {
+  vpn?: boolean;
+  accessibility?: boolean;
+  notifications?: boolean;
+  batteryOptimization?: boolean;
+  location?: boolean;
+  usageStats?: boolean;
+}
+
+/**
  * Datos enviados por el dispositivo en el reporte periódico de telemetría (Heartbeat).
  */
 export interface HeartbeatPayload {
@@ -43,6 +55,7 @@ export interface HeartbeatPayload {
   isCharging?: boolean;
   blocklistVersion: number;
   appVersion?: string;
+  permissions?: DevicePermissionsDetail;
 }
 
 export interface FirebaseAuthLoginResponse {

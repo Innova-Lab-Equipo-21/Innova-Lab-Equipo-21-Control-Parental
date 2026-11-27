@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { apiService } from '../src/services/api.service.js';
+import { apiClient, safeStorage } from '../src/services/api/client.js';
 import {
   canToggleDevicePermission,
   requestAndVerifyAccessibilityPermission,
@@ -33,6 +34,65 @@ describe('Permisos del Dispositivo y Auditoría del Responsable', () => {
     { key: 'usageStats', label: 'Acceso al Uso de Aplicaciones', requiredFor: 'Límites de tiempo de pantalla' },
   ];
 
+  const stubDevicesApi = () => {
+    const originalGet = apiClient.get.bind(apiClient);
+    safeStorage.clearMemory();
+    const deviceRecord = {
+      id: 'dev-perm-test-1',
+      deviceUuid: 'uuid-perm-test-1',
+      childName: 'Dispositivo Protegido',
+      model: 'Samsung Galaxy A54',
+      personType: 'MENOR',
+      status: {
+        effectiveStatus: 'ACTIVE',
+        vpnActive: true,
+        permissionsOk: true,
+        permissionsDetail: {
+          vpn: true,
+          accessibility: true,
+          notifications: true,
+          batteryOptimization: true,
+          location: true,
+          usageStats: true,
+        },
+      },
+      permissions: {
+        vpn: true,
+        accessibility: true,
+        notifications: true,
+        batteryOptimization: true,
+        location: true,
+        usageStats: true,
+        grantedCount: 6,
+      },
+    };
+
+    (apiClient as any).get = async (url: string) => {
+      if (url === '/devices') {
+        return { data: { success: true, data: [deviceRecord] } };
+      }
+      if (url === `/devices/${deviceRecord.id}/permissions`) {
+        return {
+          data: {
+            success: true,
+            data: {
+              deviceId: deviceRecord.id,
+              deviceUuid: deviceRecord.deviceUuid,
+              status: 'ACTIVE',
+              permissions: deviceRecord.permissions,
+            },
+          },
+        };
+      }
+      throw new Error(`Unexpected GET ${url}`);
+    };
+
+    return () => {
+      (apiClient as any).get = originalGet;
+      safeStorage.clearMemory();
+    };
+  };
+
   test('Debe requerir exactamente los 6 permisos clave del sistema Android', () => {
     assert.equal(requiredPermissions.length, 6, 'Deben existir 6 permisos esenciales');
   });
@@ -46,65 +106,63 @@ describe('Permisos del Dispositivo y Auditoría del Responsable', () => {
   });
 
   test('El responsable debe poder consultar el estado de permisos de cada dispositivo vinculado', async () => {
-    let res = await apiService.listDevices();
-    if (!res.data || res.data.length === 0) {
-      await apiService.addDevice({
-        childName: 'Dispositivo Protegido',
-        deviceModel: 'Samsung Galaxy A54',
-        permissions: {
-          vpn: true,
-          accessibility: true,
-          notifications: true,
-          batteryOptimization: true,
-          location: true,
-          usageStats: true,
-          grantedCount: 6,
-        },
-      });
-      res = await apiService.listDevices();
-    }
-    assert.equal(res.success, true);
-    assert.ok(res.data.length > 0, 'Debe retornar dispositivos vinculados');
+    const restore = stubDevicesApi();
+    try {
+      const res = await apiService.listDevices();
+      assert.equal(res.success, true);
+      assert.ok(res.data.length > 0, 'Debe retornar dispositivos vinculados');
 
-    const firstDevice = res.data[0];
-    assert.ok(firstDevice.permissions, 'Cada dispositivo debe contar con auditoría de permisos');
-    assert.equal(typeof firstDevice.permissions.vpn, 'boolean');
-    assert.equal(typeof firstDevice.permissions.accessibility, 'boolean');
-    assert.equal(typeof firstDevice.permissions.notifications, 'boolean');
-    assert.equal(typeof firstDevice.permissions.batteryOptimization, 'boolean');
-    assert.equal(typeof firstDevice.permissions.location, 'boolean');
-    assert.equal(typeof firstDevice.permissions.usageStats, 'boolean');
-    assert.equal(typeof firstDevice.permissions.grantedCount, 'number');
+      const firstDevice = res.data[0];
+      assert.ok(firstDevice.permissions, 'Cada dispositivo debe contar con auditoría de permisos');
+      assert.equal(typeof firstDevice.permissions.vpn, 'boolean');
+      assert.equal(typeof firstDevice.permissions.accessibility, 'boolean');
+      assert.equal(typeof firstDevice.permissions.notifications, 'boolean');
+      assert.equal(typeof firstDevice.permissions.batteryOptimization, 'boolean');
+      assert.equal(typeof firstDevice.permissions.location, 'boolean');
+      assert.equal(typeof firstDevice.permissions.usageStats, 'boolean');
+      assert.equal(typeof firstDevice.permissions.grantedCount, 'number');
+    } finally {
+      restore();
+    }
   });
 
   test('El responsable debe poder auditar el estado de permisos de un dispositivo protegido', async () => {
-    const res = await apiService.listDevices();
-    const target = res.data[0];
-    const audited = await apiService.auditDevicePermissions(target.deviceId);
+    const restore = stubDevicesApi();
+    try {
+      const res = await apiService.listDevices();
+      const target = res.data[0];
+      const audited = await apiService.auditDevicePermissions(target.deviceId);
 
-    assert.equal(audited.deviceId, target.deviceId);
-    assert.equal(audited.lastHeartbeat, 'Recién verificado');
-    assert.ok(audited.permissions);
-    assert.equal(typeof audited.permissions.grantedCount, 'number');
+      assert.equal(audited.deviceId, target.deviceId);
+      assert.equal(audited.lastHeartbeat, 'Recién verificado');
+      assert.ok(audited.permissions);
+      assert.equal(audited.permissions.grantedCount, 6);
+    } finally {
+      restore();
+    }
   });
 
   test('El responsable debe poder actualizar y auditar permisos específicos de un protegido', async () => {
-    const res = await apiService.listDevices();
-    const target = res.data[0];
+    const restore = stubDevicesApi();
+    try {
+      const res = await apiService.listDevices();
+      const target = res.data[0];
 
-    const updated = await apiService.updateDevicePermissions(target.deviceId, {
-      accessibility: false,
-    });
+      const updated = await apiService.updateDevicePermissions(target.deviceId, {
+        accessibility: false,
+      });
 
-    assert.equal(updated.permissions?.accessibility, false);
-    assert.equal(updated.permissions?.grantedCount, 5);
+      assert.equal(updated.permissions?.accessibility, false);
+      assert.equal(updated.permissions?.grantedCount, 5);
 
-    // Restaurar a concedido
-    const restored = await apiService.updateDevicePermissions(target.deviceId, {
-      accessibility: true,
-    });
-    assert.equal(restored.permissions?.accessibility, true);
-    assert.equal(restored.permissions?.grantedCount, 6);
+      const restored = await apiService.updateDevicePermissions(target.deviceId, {
+        accessibility: true,
+      });
+      assert.equal(restored.permissions?.accessibility, true);
+      assert.equal(restored.permissions?.grantedCount, 6);
+    } finally {
+      restore();
+    }
   });
 
   test('Los badges de permisos deben mostrar únicamente "Activo" o "Inactivo" sin emojis', () => {

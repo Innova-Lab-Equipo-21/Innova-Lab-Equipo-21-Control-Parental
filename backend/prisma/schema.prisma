@@ -191,16 +191,17 @@ model ProtectionConfig {
 // Modelo: Estado Efectivo del Dispositivo
 // ------------------------------------------------------------------------------
 model DeviceStatus {
-  id               String           @id @default(uuid())
-  deviceId         String           @unique @map("device_id")
-  effectiveStatus  ProtectionStatus @default(UNKNOWN) @map("effective_status")
-  vpnActive        Boolean          @default(false) @map("vpn_active")
-  permissionsOk    Boolean          @default(true) @map("permissions_ok")
-  batteryLevel     Int?             @map("battery_level")
-  isCharging       Boolean?         @map("is_charging")
-  blocklistVersion Int              @default(1) @map("blocklist_version")
-  appVersion       String?          @map("app_version")
-  lastHeartbeatAt  DateTime         @default(now()) @map("last_heartbeat_at")
+  id                String           @id @default(uuid())
+  deviceId          String           @unique @map("device_id")
+  effectiveStatus   ProtectionStatus @default(UNKNOWN) @map("effective_status")
+  vpnActive         Boolean          @default(false) @map("vpn_active")
+  permissionsOk     Boolean          @default(true) @map("permissions_ok")
+  permissionsDetail Json?            @map("permissions_detail")
+  batteryLevel      Int?             @map("battery_level")
+  isCharging        Boolean?         @map("is_charging")
+  blocklistVersion  Int              @default(1) @map("blocklist_version")
+  appVersion        String?          @map("app_version")
+  lastHeartbeatAt   DateTime         @default(now()) @map("last_heartbeat_at")
 
   device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
@@ -397,6 +398,20 @@ model AppUsageSnapshot {
   @@unique([deviceId, dateKey, packageName])
   @@index([deviceId, dateKey])
   @@map("app_usage_snapshots")
+  @@schema("public")
+}
+
+// ------------------------------------------------------------------------------
+// Modelo: Códigos OTP de Desactivación de Antidesinstalación
+// ------------------------------------------------------------------------------
+model AntiUninstallCode {
+  deviceUuid String   @id @map("device_uuid")
+  code       String
+  email      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("anti_uninstall_codes")
   @@schema("public")
 }
 

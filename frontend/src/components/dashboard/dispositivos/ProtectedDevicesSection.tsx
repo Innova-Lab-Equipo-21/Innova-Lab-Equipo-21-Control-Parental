@@ -193,19 +193,41 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
   };
 
   const handleActivateSelfControl = async () => {
-    const res = await apiService.enableSelfControl();
-    setLocalSelfControl(res);
-    if (onUpdateSelfControl) onUpdateSelfControl(res);
-    setAutocontrolModalVisible(false);
-    if (onRefreshList) onRefreshList();
+    try {
+      const res = await apiService.enableSelfControl();
+      setLocalSelfControl(res);
+      if (onUpdateSelfControl) onUpdateSelfControl(res);
+      setAutocontrolModalVisible(false);
+      if (onRefreshList) onRefreshList();
+    } catch (err: any) {
+      setAutocontrolModalVisible(false);
+      showFeedback({
+        imageSource: BOTITO_ASSETS.nervioso,
+        title: 'No se pudo activar la autoprotección',
+        message:
+          err?.message ||
+          'Verificá tu conexión a internet e intentá nuevamente en unos minutos.',
+      });
+    }
   };
 
   const handleConfirmDeactivation = async () => {
-    const res = await apiService.disableSelfControl();
-    setLocalSelfControl(res);
-    if (onUpdateSelfControl) onUpdateSelfControl(res);
-    setAutocontrolModalVisible(false);
-    if (onRefreshList) onRefreshList();
+    try {
+      const res = await apiService.disableSelfControl();
+      setLocalSelfControl(res);
+      if (onUpdateSelfControl) onUpdateSelfControl(res);
+      setAutocontrolModalVisible(false);
+      if (onRefreshList) onRefreshList();
+    } catch (err: any) {
+      setAutocontrolModalVisible(false);
+      showFeedback({
+        imageSource: BOTITO_ASSETS.nervioso,
+        title: 'No se pudo desactivar la autoprotección',
+        message:
+          err?.message ||
+          'La desactivación solo está disponible una vez cumplidas las 24 horas.',
+      });
+    }
   };
 
   // Filtrado de dispositivos protegidos por buscador
@@ -560,7 +582,7 @@ export const ProtectedDevicesSection: React.FC<ProtectedDevicesSectionProps> = (
             showFeedback({
               imageSource: BOTITO_ASSETS.feliz,
               title: 'Datos actualizados',
-              message: `Los datos del protegido "${devName}" fueron actualizados correctamente.`,
+              message: `Los datos de ${devName} fueron actualizados correctamente.`,
             });
           }}
         />

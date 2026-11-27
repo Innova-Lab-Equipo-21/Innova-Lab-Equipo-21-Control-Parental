@@ -491,10 +491,15 @@ export class DeviceService {
         throw new AppError('Código de pareamiento inválido o ya utilizado', 400);
       }
 
-      let device = mockDb.devices.find((d) => d.deviceUuid === input.deviceUuid);
+      let device =
+        (pairing.deviceId
+          ? mockDb.devices.find((d) => d.id === pairing.deviceId)
+          : undefined) ||
+        mockDb.devices.find((d) => d.deviceUuid === input.deviceUuid);
 
       if (device) {
         device.userId = pairing.userId;
+        device.deviceUuid = input.deviceUuid;
         device.deviceName = input.deviceName;
         device.childName = pairing.minor?.childName || input.childName || device.childName;
         device.gender = pairing.minor?.gender ?? device.gender;
@@ -714,6 +719,7 @@ export class DeviceService {
           return {
             ...d,
             pairingCode: p?.pairingCode || null,
+            permissions: this.resolveDevicePermissions(d.status),
           };
         });
     }
@@ -741,6 +747,7 @@ export class DeviceService {
     return devices.map((d) => ({
       ...d,
       pairingCode: d.pairings[0]?.pairingCode || null,
+      permissions: this.resolveDevicePermissions(d.status),
     }));
   }
 
@@ -758,6 +765,7 @@ export class DeviceService {
       return {
         ...device,
         pairingCode: p?.pairingCode || null,
+        permissions: this.resolveDevicePermissions(device.status),
         blockedEvents: mockDb.blockedEvents.filter((e) => e.deviceId === device.id),
         securityEvents: mockDb.securityEvents.filter((e) => e.deviceId === device.id),
       };
@@ -791,6 +799,7 @@ export class DeviceService {
     return {
       ...device,
       pairingCode: device.pairings[0]?.pairingCode || null,
+      permissions: this.resolveDevicePermissions(device.status),
     };
   }
 
@@ -927,6 +936,52 @@ export class DeviceService {
   }
 
   /**
+   * Resuelve el estado granular real de los 6 permisos de un dispositivo a partir
+   * de `device_status.permissions_detail` (o fallback heredado si aún no envió detalle).
+   */
+  private resolveDevicePermissions(status?: {
+    effectiveStatus?: string | null;
+    vpnActive?: boolean | null;
+    permissionsOk?: boolean | null;
+    permissionsDetail?: unknown;
+  } | null) {
+    const vpn = Boolean(status?.vpnActive);
+    const detail =
+      status?.permissionsDetail &&
+      typeof status.permissionsDetail === 'object' &&
+      !Array.isArray(status.permissionsDetail)
+        ? (status.permissionsDetail as Record<string, unknown>)
+        : null;
+
+    const isLinked = status?.effectiveStatus !== 'INACTIVE';
+    const permissionsOk = Boolean(status?.permissionsOk);
+
+    const perms = detail
+      ? {
+          vpn: typeof detail.vpn === 'boolean' ? detail.vpn : vpn,
+          accessibility: Boolean(detail.accessibility),
+          notifications: Boolean(detail.notifications),
+          batteryOptimization: Boolean(detail.batteryOptimization),
+          location: Boolean(detail.location),
+          usageStats: Boolean(detail.usageStats),
+        }
+      : {
+          vpn,
+          accessibility: isLinked && permissionsOk,
+          notifications: isLinked && permissionsOk,
+          batteryOptimization: isLinked && permissionsOk,
+          location: isLinked && permissionsOk,
+          usageStats: isLinked && permissionsOk,
+        };
+
+    const grantedCount = Object.values(perms).filter(Boolean).length;
+    return {
+      ...perms,
+      grantedCount,
+    };
+  }
+
+  /**
    * Obtiene el estado real de permisos y último heartbeat de un dispositivo protegido.
    * GET /api/devices/:id/permissions
    */
@@ -936,22 +991,12 @@ export class DeviceService {
         (d) => d.userId === userId && (d.id === deviceId || d.deviceUuid === deviceId),
       );
       if (!dev) throw new AppError('Dispositivo no encontrado', 404);
-      const vpn = Boolean(dev.status?.vpnActive);
-      const ok = Boolean(dev.status?.permissionsOk);
       return {
         deviceId: dev.id,
         deviceUuid: dev.deviceUuid,
         status: dev.status?.effectiveStatus || 'UNKNOWN',
         lastHeartbeatAt: dev.status?.lastHeartbeatAt || dev.lastSeenAt,
-        permissions: {
-          vpn,
-          accessibility: ok,
-          notifications: ok,
-          batteryOptimization: ok,
-          location: ok,
-          usageStats: ok,
-          grantedCount: [vpn, ok, ok, ok, ok, ok].filter(Boolean).length,
-        },
+        permissions: this.resolveDevicePermissions(dev.status),
       };
     }
 
@@ -968,21 +1013,6 @@ export class DeviceService {
       throw new AppError('Dispositivo no encontrado', 404);
     }
 
-    const vpn = Boolean(device.status?.vpnActive);
-    const permissionsOk = Boolean(device.status?.permissionsOk);
-    const isLinked = device.status?.effectiveStatus !== 'INACTIVE';
-
-    const perms = {
-      vpn,
-      accessibility: isLinked && permissionsOk,
-      notifications: isLinked && permissionsOk,
-      batteryOptimization: isLinked && permissionsOk,
-      location: isLinked && permissionsOk,
-      usageStats: isLinked && permissionsOk,
-    };
-
-    const grantedCount = Object.values(perms).filter(Boolean).length;
-
     return {
       deviceId: device.id,
       deviceUuid: device.deviceUuid,
@@ -990,10 +1020,7 @@ export class DeviceService {
       lastHeartbeatAt: device.status?.lastHeartbeatAt || device.lastSeenAt,
       batteryLevel: device.status?.batteryLevel ?? null,
       isCharging: device.status?.isCharging ?? null,
-      permissions: {
-        ...perms,
-        grantedCount,
-      },
+      permissions: this.resolveDevicePermissions(device.status),
     };
   }
 
@@ -1055,20 +1082,40 @@ export class DeviceService {
     { code: string; expiresAt: Date; createdAt: Date; email: string }
   >();
 
+  private async resolveAntiUninstallKey(deviceUuidOrId: string): Promise<string> {
+    if (env.USE_MOCK_DATA) {
+      const dev = mockDb.devices.find(
+        (d) => d.deviceUuid === deviceUuidOrId || d.id === deviceUuidOrId,
+      );
+      return dev?.deviceUuid || deviceUuidOrId;
+    }
+
+    const dev = await prisma.device.findFirst({
+      where: {
+        OR: [{ deviceUuid: deviceUuidOrId }, { id: deviceUuidOrId }],
+      },
+      select: { deviceUuid: true },
+    });
+    return dev?.deviceUuid || deviceUuidOrId;
+  }
+
   /**
    * Genera y envía por correo electrónico un código de 6 dígitos al responsable
    * para autorizar la desactivación de la protección antidesinstalación en un dispositivo protegido.
    * Si ya existía un código anterior para este dispositivo, queda automáticamente invalidado.
+   * Los códigos se persisten en PostgreSQL (`anti_uninstall_codes`).
    */
   public async requestAntiUninstallCode(input: { deviceUuid: string }) {
     let responsableEmail: string | null = null;
     let deviceName = 'Dispositivo Protegido';
+    let canonicalKey = input.deviceUuid;
 
     if (env.USE_MOCK_DATA) {
       const device = mockDb.devices.find(
         (d) => d.deviceUuid === input.deviceUuid || d.id === input.deviceUuid,
       );
       if (device) {
+        canonicalKey = device.deviceUuid;
         deviceName = device.deviceName || device.childName || deviceName;
         const user = mockDb.users.find((u) => u.id === device.userId);
         if (user?.email) {
@@ -1089,6 +1136,7 @@ export class DeviceService {
           404,
         );
       }
+      canonicalKey = device.deviceUuid;
       deviceName = device.childName || device.deviceName || deviceName;
       responsableEmail = device.user.email;
     }
@@ -1102,15 +1150,35 @@ export class DeviceService {
 
     // Generar código de 6 dígitos
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutos
 
-    // Invalidar cualquier código previo almacenando el nuevo
-    this.activeAntiUninstallCodes.set(input.deviceUuid, {
-      code,
-      expiresAt,
-      createdAt: new Date(),
-      email: responsableEmail,
-    });
+    // Invalidar cualquier código previo persistiendo el nuevo
+    if (env.USE_MOCK_DATA) {
+      this.activeAntiUninstallCodes.set(canonicalKey, {
+        code,
+        expiresAt,
+        createdAt: now,
+        email: responsableEmail,
+      });
+    } else {
+      await prisma.antiUninstallCode.upsert({
+        where: { deviceUuid: canonicalKey },
+        update: {
+          code,
+          email: responsableEmail,
+          expiresAt,
+          createdAt: now,
+        },
+        create: {
+          deviceUuid: canonicalKey,
+          code,
+          email: responsableEmail,
+          expiresAt,
+          createdAt: now,
+        },
+      });
+    }
 
     // Disparar correo al responsable que vinculó el dispositivo
     const emailSubject = 'Código de seguridad para desactivar antidesinstalación - BA Protege+';
@@ -1118,7 +1186,9 @@ export class DeviceService {
 
     const mailResult = await emailService.sendEmail(responsableEmail, emailSubject, emailBody);
     if (!mailResult.success && !env.USE_MOCK_DATA) {
-      this.activeAntiUninstallCodes.delete(input.deviceUuid);
+      await prisma.antiUninstallCode
+        .deleteMany({ where: { deviceUuid: canonicalKey } })
+        .catch(() => {});
       throw new AppError(
         'No se pudo enviar el código al correo del responsable. Intentá nuevamente en unos minutos.',
         502,
@@ -1145,16 +1215,36 @@ export class DeviceService {
    * Invalida el código de desactivación activo para un dispositivo (por ejemplo, si el usuario cierra el modal).
    */
   public async invalidateAntiUninstallCode(input: { deviceUuid: string }) {
-    this.activeAntiUninstallCodes.delete(input.deviceUuid);
+    const canonicalKey = await this.resolveAntiUninstallKey(input.deviceUuid);
+
+    if (env.USE_MOCK_DATA) {
+      this.activeAntiUninstallCodes.delete(canonicalKey);
+      this.activeAntiUninstallCodes.delete(input.deviceUuid);
+    } else {
+      await prisma.antiUninstallCode.deleteMany({
+        where: {
+          deviceUuid: { in: Array.from(new Set([canonicalKey, input.deviceUuid])) },
+        },
+      });
+    }
     return { success: true, message: 'Código invalidado con éxito' };
   }
 
   /**
    * Verifica el código de 6 dígitos ingresado por el usuario.
-   * Si es correcto, el código se consume e invalida inmediatamente.
+   * Si es correcto, el código se consume e invalida inmediatamente en PostgreSQL.
    */
   public async verifyAntiUninstallCode(input: { deviceUuid: string; code: string }) {
-    const record = this.activeAntiUninstallCodes.get(input.deviceUuid);
+    const canonicalKey = await this.resolveAntiUninstallKey(input.deviceUuid);
+
+    const record = env.USE_MOCK_DATA
+      ? this.activeAntiUninstallCodes.get(canonicalKey) ||
+        this.activeAntiUninstallCodes.get(input.deviceUuid)
+      : await prisma.antiUninstallCode.findFirst({
+          where: {
+            deviceUuid: { in: Array.from(new Set([canonicalKey, input.deviceUuid])) },
+          },
+        });
 
     if (!record) {
       throw new AppError(
@@ -1164,7 +1254,13 @@ export class DeviceService {
     }
 
     if (new Date() > record.expiresAt) {
-      this.activeAntiUninstallCodes.delete(input.deviceUuid);
+      if (env.USE_MOCK_DATA) {
+        this.activeAntiUninstallCodes.delete(canonicalKey);
+      } else {
+        await prisma.antiUninstallCode
+          .deleteMany({ where: { deviceUuid: canonicalKey } })
+          .catch(() => {});
+      }
       throw new AppError('El código de verificación ha expirado. Solicitá uno nuevo.', 400);
     }
 
@@ -1176,7 +1272,16 @@ export class DeviceService {
     }
 
     // Código válido: consumirlo para que no pueda reutilizarse
-    this.activeAntiUninstallCodes.delete(input.deviceUuid);
+    if (env.USE_MOCK_DATA) {
+      this.activeAntiUninstallCodes.delete(canonicalKey);
+      this.activeAntiUninstallCodes.delete(input.deviceUuid);
+    } else {
+      await prisma.antiUninstallCode.deleteMany({
+        where: {
+          deviceUuid: { in: Array.from(new Set([canonicalKey, input.deviceUuid])) },
+        },
+      });
+    }
 
     return {
       success: true,
