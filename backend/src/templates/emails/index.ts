@@ -74,6 +74,18 @@ export function getWelcomeEmail(variables: {
   });
 }
 
+export function getDeviceLinkedEmail(variables: {
+  displayName: string;
+  protectedName: string;
+  link: string;
+}) {
+  return loadEmailTemplate('email-device-linked', {
+    DISPLAY_NAME: variables.displayName,
+    PROTECTED_NAME: variables.protectedName,
+    LINK: variables.link,
+  });
+}
+
 export function getBlockedSiteAlertEmail(variables: {
   displayName: string;
   protectedName: string;
