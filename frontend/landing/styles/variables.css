@@ -1,0 +1,55 @@
+/* ==============================================================================
+   Proyecto: BA Protege+
+   Módulo: Variables & Design Tokens
+   Archivo: landing/styles/variables.css
+   Descripción: Tokens oficiales de color, tipografía, sombras y bordes
+   ============================================================================== */
+
+:root {
+  /* Paleta oficial de BA Protege+ (uikit.txt / theme/colors.ts) */
+  --color-primary: #007AFF;
+  --color-primary-dark: #0056B3;
+  --color-primary-light: #E7F1FF;
+  --color-secondary: #28A745;
+  --color-secondary-dark: #1E7E34;
+  --color-secondary-light: #D1E7DD;
+
+  --color-text-primary: #1C1C1E;
+  --color-text-secondary: #6C757D;
+  --color-text-muted: #8E8E93;
+  --color-text-light: #FFFFFF;
+
+  --color-background: #F8F9FA;
+  --color-surface: #FFFFFF;
+  --color-surface-card: #FFFFFF;
+
+  --color-border: #DEE2E6;
+  --color-border-light: #E9ECEF;
+
+  --color-error: #DC3545;
+  --color-error-bg: #F8D7DA;
+  --color-warning: #FFC107;
+  --color-warning-bg: #FFF3CD;
+  --color-warning-text: #856404;
+
+  /* Identidad Institucional Ciudad de Buenos Aires */
+  --color-gcba-yellow: #FED43F;
+  --color-gcba-dark: #1B2936;
+  --color-lotba-blue: #0A3D62;
+
+  /* Sombras y elevaciones */
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 6px 18px rgba(0, 122, 255, 0.08);
+  --shadow-lg: 0 16px 36px rgba(28, 28, 30, 0.08);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
+
+  /* Radios de borde */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  /* Transiciones */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

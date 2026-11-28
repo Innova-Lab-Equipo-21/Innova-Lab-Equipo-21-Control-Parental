@@ -1,0 +1,359 @@
+/* ==============================================================================
+   Proyecto: BA Protege+
+   Módulo: Sección Nuestro Equipo & Carrusel Interactivo
+   Archivo: landing/styles/team.css
+   Descripción: Carrusel responsive con botones de navegación lateral y dots
+   ============================================================================== */
+
+.team-section {
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+  position: relative;
+  overflow: hidden;
+  padding: 60px 0 72px;
+}
+
+.team-header {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 36px;
+}
+
+/* Contenedor del Carrusel */
+.team-carousel-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 58px;
+}
+
+.team-carousel-track {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 14px 4px 22px;
+  width: 100%;
+}
+
+.team-carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tarjeta del Equipo en el Carrusel */
+.team-card {
+  flex: 0 0 calc((100% - 2 * 24px) / 3); /* 3 tarjetas por vista en pantallas de escritorio */
+  scroll-snap-align: start;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 30px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+  box-sizing: border-box;
+}
+
+.team-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 28px rgba(0, 122, 255, 0.12);
+  border-color: rgba(0, 122, 255, 0.4);
+}
+
+/* Botones de Navegación del Carrusel */
+.team-carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  transition: all var(--transition-fast);
+}
+
+.team-carousel-btn:hover:not(:disabled) {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-light);
+  transform: translateY(-50%) scale(1.06);
+}
+
+.team-carousel-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
+.team-carousel-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.team-carousel-prev {
+  left: 2px;
+}
+
+.team-carousel-next {
+  right: 2px;
+}
+
+/* Indicadores de Puntos (Dots) */
+.team-carousel-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.team-carousel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  border: none;
+  background-color: var(--color-border);
+  cursor: pointer;
+  padding: 0;
+  transition: width var(--transition-fast), background-color var(--transition-fast);
+}
+
+.team-carousel-dot.active {
+  width: 28px;
+  background-color: var(--color-primary);
+}
+
+/* Avatar con Iniciales Estilizado */
+.team-avatar-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.team-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  transition: transform var(--transition-fast);
+}
+
+.team-card:hover .team-avatar {
+  transform: scale(1.06);
+}
+
+/* Gradientes Temáticos por Disciplina */
+.avatar-role-frontend {
+  background: linear-gradient(135deg, #007AFF 0%, #00C6FF 100%);
+}
+
+.avatar-role-backend {
+  background: linear-gradient(135deg, #00897B 0%, #4DB6AC 100%);
+}
+
+.avatar-role-ux-ui {
+  background: linear-gradient(135deg, #8E24AA 0%, #BA68C8 100%);
+}
+
+.avatar-role-data-analytics {
+  background: linear-gradient(135deg, #E65100 0%, #FFB74D 100%);
+}
+
+.avatar-role-qa {
+  background: linear-gradient(135deg, #C2185B 0%, #F06292 100%);
+}
+
+.avatar-role-mentor {
+  background: linear-gradient(135deg, #1A237E 0%, #5C6BC0 100%);
+}
+
+/* Tipografía de la Tarjeta */
+.team-member-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.team-role-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  margin-bottom: 14px;
+}
+
+.pill-role-frontend {
+  background-color: #E5F1FF;
+  color: #0066CC;
+}
+
+.pill-role-backend {
+  background-color: #E0F2F1;
+  color: #00796B;
+}
+
+.pill-role-ux-ui {
+  background-color: #F3E5F5;
+  color: #7B1FA2;
+}
+
+.pill-role-data-analytics {
+  background-color: #FFF3E0;
+  color: #E65100;
+}
+
+.pill-role-qa {
+  background-color: #FCE4EC;
+  color: #C2185B;
+}
+
+.pill-role-mentor {
+  background-color: #E8EAF6;
+  color: #283593;
+}
+
+.team-member-desc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+  flex-grow: 1;
+}
+
+/* Enlaces Sociales */
+.team-social-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.team-social-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.team-social-btn:hover {
+  transform: translateY(-2px);
+}
+
+.team-social-btn.linkedin:hover {
+  background-color: #0A66C2;
+  border-color: #0A66C2;
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(10, 102, 194, 0.3);
+}
+
+.team-social-btn.github:hover {
+  background-color: #24292F;
+  border-color: #24292F;
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(36, 41, 47, 0.3);
+}
+
+/* Responsividad Específica del Carrusel de Equipo */
+@media (max-width: 1024px) {
+  .team-carousel-container {
+    padding: 0 50px;
+  }
+  .team-card {
+    flex: 0 0 calc((100% - 20px) / 2); /* 2 tarjetas por vista en tablet */
+  }
+  .team-carousel-btn {
+    width: 42px;
+    height: 42px;
+  }
+  .team-carousel-prev {
+    left: 2px;
+  }
+  .team-carousel-next {
+    right: 2px;
+  }
+}
+
+@media (max-width: 768px) {
+  .team-section {
+    padding: 36px 0 44px;
+  }
+  .team-carousel-container {
+    padding: 0 44px;
+  }
+  .team-carousel-track {
+    gap: 16px;
+    padding: 8px 4px 16px;
+  }
+  .team-card {
+    flex: 0 0 100%; /* 1 tarjeta por vista en móvil dentro del área visible sin sobreposición */
+    scroll-snap-align: center;
+    padding: 24px 20px;
+  }
+  .team-carousel-btn {
+    width: 38px;
+    height: 38px;
+  }
+  .team-carousel-prev {
+    left: 1px;
+  }
+  .team-carousel-next {
+    right: 1px;
+  }
+}
+
+@media (max-width: 480px) {
+  .team-carousel-container {
+    padding: 0 38px;
+  }
+  .team-card {
+    flex: 0 0 100%;
+    padding: 20px 16px;
+  }
+  .team-carousel-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .team-carousel-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+  .team-carousel-prev {
+    left: 1px;
+  }
+  .team-carousel-next {
+    right: 1px;
+  }
+}

@@ -44,6 +44,7 @@
         <li><a href="#servicios">Nuestros servicios</a></li>
         <li><a href="#guia-de-uso">Guía de uso</a></li>
         <li><a href="#faq">Preguntas frecuentes</a></li>
+        <li><a href="#equipo">Nuestro equipo</a></li>
         <li><a href="#contacto">Contacto</a></li>
       </ul>
 
@@ -82,33 +83,13 @@
         </div>
       </div>
 
-      <!-- Hero visual con mascota Boti -->
+      <!-- Hero visual con mascota Botito saludando -->
       <div class="hero-visual">
-        <div class="hero-card">
-          <div class="mascot-hero-wrap">
-            <img src="assets/img/botito_feliz.png" alt="Boti acompañando el cuidado digital" class="mascot-hero-img">
-          </div>
-
-          <div class="hero-card-status">
-            <span>Escudo familiar activo</span>
-          </div>
-
-          <h2 class="hero-card-title">Navegación segura y bienestar digital</h2>
-          <p class="hero-card-desc">
-            Bloqueo automático de sitios de apuestas ilegales, gestión de tiempos de uso y protección antidesinstalación en un solo lugar.
-          </p>
-
-          <div class="hero-card-metrics">
-            <div class="metric-box">
-              <span>Sitios bloqueados</span>
-              <strong>Automático</strong>
-            </div>
-            <div class="metric-box">
-              <span>Dispositivos</span>
-              <strong>Android 8.0+</strong>
-            </div>
-          </div>
-        </div>
+        <img
+          src="assets/img/botito_saludando.png"
+          alt="Botito, mascota oficial de BA Protege +, saludando y cuidando a tu familia"
+          class="hero-mascot-saludando"
+        >
       </div>
 
     </div>
@@ -126,7 +107,6 @@
   <section class="section profiles-section" id="usuarios">
     <div class="container">
       <div class="section-header">
-        <span class="section-eyebrow">Nuestros usuarios</span>
         <h2 class="section-title">¿Quiénes pueden usar BA Protege +?</h2>
       </div>
 
@@ -135,9 +115,9 @@
         <article class="profile-card">
           <div class="profile-image-wrap">
             <img
-              src="https://images.unsplash.com/photo-1758812925626-e30b5b345582?auto=format&fit=crop&w=800&q=80"
+              src="assets/img/usuarios_menores.png"
               data-fallback="assets/img/botito_feliz.png"
-              alt="Adolescente utilizando su teléfono celular"
+              alt="Adolescentes en un parque utilizando sus teléfonos celulares"
               class="profile-image"
               loading="lazy"
             >
@@ -153,9 +133,9 @@
         <article class="profile-card">
           <div class="profile-image-wrap">
             <img
-              src="https://images.unsplash.com/photo-1560248367-ce373716fe18?auto=format&fit=crop&w=800&q=80"
+              src="assets/img/usuarios_adultos.png"
               data-fallback="assets/img/botito_pensando.png"
-              alt="Persona adulta utilizando su teléfono celular"
+              alt="Persona adulta utilizando el teléfono celular con aplicaciones de apuestas"
               class="profile-image"
               loading="lazy"
             >
@@ -171,7 +151,7 @@
         <article class="profile-card">
           <div class="profile-image-wrap">
             <img
-              src="https://images.unsplash.com/photo-1752652016275-2bdf42a4ccf0?auto=format&fit=crop&w=800&q=80"
+              src="assets/img/usuarios_responsables.png"
               data-fallback="assets/img/botito_feliz.png"
               alt="Adulto responsable acompañando a su familia en el uso del celular"
               class="profile-image"
@@ -196,14 +176,13 @@
   <section class="section" id="servicios">
     <div class="container">
       <div class="section-header">
-        <span class="section-eyebrow">Nuestros servicios</span>
         <h2 class="section-title">Todo lo que ofrecemos para una navegación segura</h2>
       </div>
 
       <div class="features-grid" data-mobile-carousel="true" aria-label="Nuestros servicios">
 
         <div class="feature-card">
-          <div class="feature-icon-box">
+          <div class="feature-icon-box green">
             <img src="assets/img/escudo.png" alt="Bloqueo de sitios ilegales">
           </div>
           <p class="feature-desc">
@@ -221,7 +200,7 @@
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon-box">
+          <div class="feature-icon-box green">
             <img src="assets/img/campana.png" alt="Avisos ante intentos de evasión">
           </div>
           <p class="feature-desc">
@@ -239,7 +218,7 @@
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon-box">
+          <div class="feature-icon-box green">
             <img src="assets/img/lampara.png" alt="Material interactivo">
           </div>
           <p class="feature-desc">
@@ -257,7 +236,6 @@
   <section class="section section-alt" id="guia-de-uso">
     <div class="container">
       <div class="section-header">
-        <span class="section-eyebrow">Guía de uso</span>
         <h2 class="section-title">Personalizá la protección en pocos minutos</h2>
         <p class="section-desc">
           Diseñamos una guía de uso para que puedas utilizar la aplicación de forma rápida y fácil:
@@ -301,14 +279,18 @@
                 <span class="android-punch-hole"></span>
               </div>
               <div class="android-mockup-video">
-                <iframe
-                  src="https://www.youtube.com/embed/YOsJWQiY90g?rel=0"
+                <video
+                  src="assets/videos/app_baprotegemas.mp4"
+                  controls
+                  autoplay
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
                   title="Video explicativo paso a paso - BA Protege +"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                  allowfullscreen
-                  loading="lazy"
-                ></iframe>
+                >
+                  Tu navegador no soporta la reproducción de video HTML5.
+                </video>
               </div>
               <div class="android-gesture-bar" aria-hidden="true">
                 <span class="android-gesture-pill"></span>
@@ -328,7 +310,6 @@
   <section class="section" id="faq">
     <div class="container">
       <div class="section-header">
-        <span class="section-eyebrow">Preguntas frecuentes</span>
         <h2 class="section-title">Nuestros usuarios quieren saber…</h2>
       </div>
 
@@ -414,15 +395,340 @@
           <a href="assets/apk/ba-protege-release.apk" download="ba-protege-release.apk" class="btn btn-primary btn-lg">
             <span>Descargar BA Protege +</span>
           </a>
-
-          <span class="store-badge" aria-label="Disponible en Google Play">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M3.61 1.814L13.793 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .61-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 0 1 0 1.73l-2.808 1.626L15.206 12l2.493-2.491zM5.864 2.658L16.802 8.99l-2.303 2.303-8.635-8.635z"/>
-            </svg>
-            <span>Google Play</span>
-          </span>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       8.5. Sección Nuestro equipo
+       ========================================================================= -->
+  <section class="section team-section" id="equipo">
+    <div class="container">
+
+      <!-- Encabezado de la sección -->
+      <div class="team-header">
+        <h2 class="section-title">Nuestro equipo</h2>
+        <p class="section-desc">
+          Profesionales de tecnología, diseño, ciencia de datos y calidad comprometidos con el bienestar digital y la prevención de las apuestas ilegales.
+        </p>
+      </div>
+
+      <!-- Carrusel interactivo y responsive de Nuestro Equipo -->
+      <div class="team-carousel-container">
+        <button
+          type="button"
+          class="team-carousel-btn team-carousel-prev"
+          id="team-carousel-prev"
+          aria-label="Ver integrantes anteriores"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+
+        <div class="team-carousel-track" id="team-carousel-track" role="region" aria-label="Tarjetas de integrantes del equipo">
+
+          <!-- 1. Camila Rios Cicciarelli (Backend) -->
+          <article class="team-card" data-role="backend">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-backend" aria-hidden="true">CR</div>
+            </div>
+            <h3 class="team-member-name">Camila Rios Cicciarelli</h3>
+            <span class="team-role-pill pill-role-backend">Backend</span>
+            <p class="team-member-desc">
+              Telemetría de bloqueos, notificaciones push Firebase y plantillas transaccionales.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/camila-rios-316a37440/" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Camila Rios Cicciarelli" title="LinkedIn de Camila Rios Cicciarelli">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/CicciarelliRiosCamila" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Camila Rios Cicciarelli" title="GitHub de Camila Rios Cicciarelli">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 2. Juan Ignacio Bordignon (Backend) -->
+          <article class="team-card" data-role="backend">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-backend" aria-hidden="true">JB</div>
+            </div>
+            <h3 class="team-member-name">Juan Ignacio Bordignon</h3>
+            <span class="team-role-pill pill-role-backend">Backend</span>
+            <p class="team-member-desc">
+              Desarrollo de servicios REST, integración de base de datos PostgreSQL y seguridad.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/juan-ignacio-bordignon/" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Juan Ignacio Bordignon" title="LinkedIn de Juan Ignacio Bordignon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/Juan-Ignacio-Bordignon" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Juan Ignacio Bordignon" title="GitHub de Juan Ignacio Bordignon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 3. Matias De vivo (Data Analytics) -->
+          <article class="team-card" data-role="data-analytics">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-data-analytics" aria-hidden="true">MD</div>
+            </div>
+            <h3 class="team-member-name">Matias De vivo</h3>
+            <span class="team-role-pill pill-role-data-analytics">Data Analytics</span>
+            <p class="team-member-desc">
+              Modelado de actividad, reportes cuantitativos y visualización analítica de métricas.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/matiasdevivo/" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Matias De vivo" title="LinkedIn de Matias De vivo">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/matiasdevivo" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Matias De vivo" title="GitHub de Matias De vivo">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 4. Victoria Carolina Hartmann (Data Analytics) -->
+          <article class="team-card" data-role="data-analytics">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-data-analytics" aria-hidden="true">VH</div>
+            </div>
+            <h3 class="team-member-name">Victoria Carolina Hartmann</h3>
+            <span class="team-role-pill pill-role-data-analytics">Data Analytics</span>
+            <p class="team-member-desc">
+              Análisis de patrones de navegación, métricas de prevención y bienestar digital.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/victoria-carolina-hartmann-192440373" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Victoria Carolina Hartmann" title="LinkedIn de Victoria Carolina Hartmann">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/vchartmannc" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Victoria Carolina Hartmann" title="GitHub de Victoria Carolina Hartmann">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 5. Juan Manuel Ortiz Douna (Frontend) -->
+          <article class="team-card" data-role="frontend">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-frontend" aria-hidden="true">JO</div>
+            </div>
+            <h3 class="team-member-name">Juan Manuel Ortiz Douna</h3>
+            <span class="team-role-pill pill-role-frontend">Frontend</span>
+            <p class="team-member-desc">
+              Desarrollo de componentes móviles, flujos de usuario e integración con API REST.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/juan-manue-ortiz-douna" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Juan Manuel Ortiz Douna" title="LinkedIn de Juan Manuel Ortiz Douna">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/jmortizdouna" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Juan Manuel Ortiz Douna" title="GitHub de Juan Manuel Ortiz Douna">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 6. Roberto Bezerra (Frontend) -->
+          <article class="team-card" data-role="frontend">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-frontend" aria-hidden="true">RB</div>
+            </div>
+            <h3 class="team-member-name">Roberto Bezerra</h3>
+            <span class="team-role-pill pill-role-frontend">Frontend</span>
+            <p class="team-member-desc">
+              Arquitectura mobile React Native, módulos nativos Android, VPN y accesibilidad.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/rbezerra18" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Roberto Bezerra" title="LinkedIn de Roberto Bezerra">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/rbezerra18" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Roberto Bezerra" title="GitHub de Roberto Bezerra">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 7. Jesús Capdevielle (QA) -->
+          <article class="team-card" data-role="qa">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-qa" aria-hidden="true">JC</div>
+            </div>
+            <h3 class="team-member-name">Jesús Capdevielle</h3>
+            <span class="team-role-pill pill-role-qa">QA</span>
+            <p class="team-member-desc">
+              Aseguramiento de calidad, testing funcional, pruebas de regresión y cobertura.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/jesus-capdevielle?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Jesús Capdevielle" title="LinkedIn de Jesús Capdevielle">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/Ryojix3" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Jesús Capdevielle" title="GitHub de Jesús Capdevielle">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 8. Julieta Escat (UX/UI) -->
+          <article class="team-card" data-role="ux-ui">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-ux-ui" aria-hidden="true">JE</div>
+            </div>
+            <h3 class="team-member-name">Julieta Escat</h3>
+            <span class="team-role-pill pill-role-ux-ui">UX/UI</span>
+            <p class="team-member-desc">
+              Design System, consistencia visual e interfaces accesibles para toda la familia.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/julietaescat/" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Julieta Escat" title="LinkedIn de Julieta Escat">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/JulietaEscat" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Julieta Escat" title="GitHub de Julieta Escat">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 9. Magali Barone (UX/UI) -->
+          <article class="team-card" data-role="ux-ui">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-ux-ui" aria-hidden="true">MB</div>
+            </div>
+            <h3 class="team-member-name">Magali Barone</h3>
+            <span class="team-role-pill pill-role-ux-ui">UX/UI</span>
+            <p class="team-member-desc">
+              Investigación con familias, diseño de interacción y prototipado centrado en el usuario.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/magali-barone" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Magali Barone" title="LinkedIn de Magali Barone">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/magalibarone" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Magali Barone" title="GitHub de Magali Barone">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 10. Soraya Melina Yujra (UX/UI) -->
+          <article class="team-card" data-role="ux-ui">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-ux-ui" aria-hidden="true">SY</div>
+            </div>
+            <h3 class="team-member-name">Soraya Melina Yujra</h3>
+            <span class="team-role-pill pill-role-ux-ui">UX/UI</span>
+            <p class="team-member-desc">
+              Diseño visual, gamificación con dinámicas lúdicas y bienestar digital interactivo.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/soraya-yujra" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Soraya Melina Yujra" title="LinkedIn de Soraya Melina Yujra">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/Sakusol" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Soraya Melina Yujra" title="GitHub de Soraya Melina Yujra">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 11. Victoria Natalini (UX/UI) -->
+          <article class="team-card" data-role="ux-ui">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-ux-ui" aria-hidden="true">VN</div>
+            </div>
+            <h3 class="team-member-name">Victoria Natalini</h3>
+            <span class="team-role-pill pill-role-ux-ui">UX/UI</span>
+            <p class="team-member-desc">
+              Arquitectura de información, diseño visual y experiencia guiada de onboarding.
+            </p>
+            <div class="team-social-links">
+              <a href="https://www.linkedin.com/in/victoria-natalini/" target="_blank" rel="noopener noreferrer" class="team-social-btn linkedin" aria-label="LinkedIn de Victoria Natalini" title="LinkedIn de Victoria Natalini">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"/>
+                </svg>
+              </a>
+              <a href="https://github.com/VickyNata" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Victoria Natalini" title="GitHub de Victoria Natalini">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+          <!-- 12. Dalmiro Luna Dapozo (Mentor) -->
+          <article class="team-card" data-role="mentor">
+            <div class="team-avatar-wrap">
+              <div class="team-avatar avatar-role-mentor" aria-hidden="true">DL</div>
+            </div>
+            <h3 class="team-member-name">Dalmiro Luna Dapozo</h3>
+            <span class="team-role-pill pill-role-mentor">Mentor</span>
+            <p class="team-member-desc">
+              Orientación estratégica, acompañamiento integral y mentoría técnica del proyecto.
+            </p>
+            <div class="team-social-links">
+              <a href="https://github.com/DalmiroLunaDapozo" target="_blank" rel="noopener noreferrer" class="team-social-btn github" aria-label="GitHub de Dalmiro Luna Dapozo" title="GitHub de Dalmiro Luna Dapozo">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+            </div>
+          </article>
+
+        </div>
+
+        <button
+          type="button"
+          class="team-carousel-btn team-carousel-next"
+          id="team-carousel-next"
+          aria-label="Ver integrantes siguientes"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Indicadores de puntos / dots -->
+      <div class="team-carousel-dots" id="team-carousel-dots" aria-label="Indicadores del carrusel"></div>
+
     </div>
   </section>
 
@@ -560,17 +866,18 @@
             <li><a href="#servicios">Nuestros servicios</a></li>
             <li><a href="#guia-de-uso">Guía de uso</a></li>
             <li><a href="#descarga">Descargar BA Protege +</a></li>
+            <li><a href="#faq">Preguntas frecuentes</a></li>
+            <li><a href="#equipo">Nuestro equipo</a></li>
+            <li><a href="#contacto">Contacto</a></li>
           </ul>
         </div>
 
         <div>
-          <div class="footer-col-title">Ayuda y legal</div>
+          <div class="footer-col-title">Información legal</div>
           <ul class="footer-links">
             <li><a href="terminos-y-condiciones.html">Términos y condiciones</a></li>
             <li><a href="politica-de-privacidad.html">Políticas de privacidad</a></li>
-            <li><a href="#faq">Preguntas frecuentes</a></li>
             <li><a href="https://www.argentina.gob.ar/justicia/derechofacil/leysimple/datos-personales" target="_blank" rel="noopener">Información sobre la Ley 25.326</a></li>
-            <li><a href="#contacto">Contacto</a></li>
           </ul>
         </div>
 
