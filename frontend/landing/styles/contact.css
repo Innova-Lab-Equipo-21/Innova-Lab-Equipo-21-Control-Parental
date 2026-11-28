@@ -1,0 +1,111 @@
+/* ==============================================================================
+   Proyecto: BA Protege+
+   Módulo: Contacto & Canales de Ayuda Oficiales
+   Archivo: landing/styles/contact.css
+   Descripción: Formulario de contacto ciudadano y líneas de asistencia LOTBA
+   ============================================================================== */
+
+.contact-help-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 32px;
+  align-items: stretch;
+}
+
+.contact-card,
+.help-channels-card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 36px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.contact-card-title,
+.help-card-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: 12px;
+  letter-spacing: -0.4px;
+}
+
+.contact-card-desc,
+.help-card-desc {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+  margin-bottom: 24px;
+}
+
+.contact-card-desc a {
+  font-weight: 700;
+}
+
+.help-channels-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.help-channel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  flex: 1;
+  border-radius: var(--radius-md);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border-light);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.help-channel-item:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.help-channel-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  display: block;
+}
+
+.help-channel-number {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  display: block;
+}
+
+.help-channel-badge {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+/* Sección de reporte LOTBA */
+.report-section {
+  background-color: #F0F4F8;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.report-box {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  max-width: 780px;
+  margin: 0 auto;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}

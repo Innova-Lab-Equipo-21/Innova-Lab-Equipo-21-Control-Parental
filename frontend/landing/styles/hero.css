@@ -1,0 +1,125 @@
+/* ==============================================================================
+   Proyecto: BA Protege+
+   Módulo: Hero Section
+   Archivo: landing/styles/hero.css
+   Descripción: Sección principal, tarjeta de mascota y métricas destacadas
+   ============================================================================== */
+
+.hero {
+  min-height: calc(100vh - 74px);
+  min-height: calc(100svh - 74px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 56px 0 88px;
+  background: radial-gradient(circle at top right, rgba(0, 122, 255, 0.08) 0%, transparent 50%),
+              radial-gradient(circle at bottom left, rgba(40, 167, 69, 0.05) 0%, transparent 40%),
+              var(--color-background);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-scroll-down {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  z-index: 3;
+}
+
+.hero-scroll-down:hover {
+  background-color: var(--color-primary);
+  color: var(--color-text-light);
+  border-color: var(--color-primary);
+  box-shadow: 0 8px 20px rgba(0, 122, 255, 0.3);
+}
+
+.hero-scroll-down svg {
+  width: 22px;
+  height: 22px;
+  animation: bounce-down 2s ease-in-out infinite;
+}
+
+@keyframes bounce-down {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(3px); }
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: center;
+  gap: 48px;
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.hero-title {
+  font-size: 44px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  color: var(--color-text-primary);
+}
+
+.hero-title span {
+  color: var(--color-primary);
+}
+
+.hero-subtitle {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  max-width: 580px;
+}
+
+.hero-cta-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* Hero Visual / Mascota Botito Saludando */
+.hero-visual {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hero-mascot-saludando {
+  width: 100%;
+  max-width: 470px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.08));
+  animation: botito-hero-float 4.5s ease-in-out infinite;
+  user-select: none;
+}
+
+@keyframes botito-hero-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}

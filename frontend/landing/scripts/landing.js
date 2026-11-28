@@ -18,6 +18,7 @@
     setupImageFallbacks();
     setupBackToTop();
     setupMobileCarousels();
+    setupTeamCarousel();
   });
 
   /**
@@ -315,5 +316,110 @@
       window.addEventListener('resize', updateState, { passive: true });
       updateState();
     });
+  }
+
+  /**
+   * Carrusel interactivo y responsive para Nuestro equipo (Desktop, Tablet y Móvil)
+   */
+  function setupTeamCarousel() {
+    const track = document.getElementById('team-carousel-track');
+    const prevBtn = document.getElementById('team-carousel-prev');
+    const nextBtn = document.getElementById('team-carousel-next');
+    const dotsContainer = document.getElementById('team-carousel-dots');
+
+    if (!track) return;
+
+    const cards = Array.from(track.querySelectorAll('.team-card'));
+    if (!cards.length) return;
+
+    function getVisibleCount() {
+      const width = window.innerWidth;
+      if (width <= 768) return 1;
+      if (width <= 1024) return 2;
+      return 3;
+    }
+
+    let dots = [];
+
+    function buildDots() {
+      if (!dotsContainer) return;
+      dotsContainer.innerHTML = '';
+      const visibleCount = getVisibleCount();
+      const pageCount = Math.max(1, Math.ceil(cards.length / visibleCount));
+
+      dots = [];
+      for (let i = 0; i < pageCount; i++) {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = i === 0 ? 'team-carousel-dot active' : 'team-carousel-dot';
+        dot.setAttribute('aria-label', `Ir al grupo ${i + 1} de integrantes`);
+        dot.addEventListener('click', () => {
+          const targetIndex = Math.min(i * visibleCount, cards.length - 1);
+          const target = cards[targetIndex];
+          if (target) {
+            track.scrollTo({ left: target.offsetLeft - track.offsetLeft, behavior: 'smooth' });
+          }
+        });
+        dotsContainer.appendChild(dot);
+        dots.push(dot);
+      }
+    }
+
+    function updateState() {
+      const scrollLeft = track.scrollLeft;
+      const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+
+      if (prevBtn) prevBtn.disabled = scrollLeft <= 4;
+      if (nextBtn) nextBtn.disabled = scrollLeft >= maxScroll - 4;
+
+      if (dots.length > 0) {
+        const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
+        const activeIndex = Math.min(dots.length - 1, Math.round(progress * (dots.length - 1)));
+        dots.forEach((dot, idx) => {
+          dot.classList.toggle('active', idx === activeIndex);
+        });
+      }
+    }
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        const scrollAmount = track.clientWidth;
+        track.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        const scrollAmount = track.clientWidth;
+        track.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      });
+    }
+
+    let ticking = false;
+    track.addEventListener(
+      'scroll',
+      () => {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            updateState();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      },
+      { passive: true }
+    );
+
+    window.addEventListener(
+      'resize',
+      () => {
+        buildDots();
+        updateState();
+      },
+      { passive: true }
+    );
+
+    buildDots();
+    updateState();
   }
 })();
