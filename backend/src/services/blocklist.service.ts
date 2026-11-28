@@ -400,19 +400,17 @@ export class BlocklistService {
       return custom;
     }
 
-    let customList = await prisma.blocklist.findFirst({
+    let customList;
+    const lists = await prisma.blocklist.findMany({
       where: { userId, type: 'CUSTOM' },
+      orderBy: { createdAt: 'asc' },
       include: {
-        domains: {
-          orderBy: { createdAt: 'desc' },
-        },
-        apps: {
-          orderBy: { createdAt: 'desc' },
-        },
+        domains: { orderBy: { createdAt: 'desc' } },
+        apps: { orderBy: { createdAt: 'desc' } },
       },
     });
 
-    if (!customList) {
+    if (lists.length === 0) {
       customList = await prisma.blocklist.create({
         data: {
           userId,
@@ -426,9 +424,32 @@ export class BlocklistService {
           apps: true,
         },
       });
+      return customList;
     }
 
-    return customList;
+    const canonical = lists[0];
+    // Consolidar duplicados: mover dominios/apps de las listas extra a la canónica y borrarlas.
+    for (const dup of lists.slice(1)) {
+      await prisma.blocklistDomain.updateMany({
+        where: { blocklistId: dup.id },
+        data: { blocklistId: canonical.id },
+      });
+      await prisma.blocklistApp.updateMany({
+        where: { blocklistId: dup.id },
+        data: { blocklistId: canonical.id },
+      });
+      await prisma.blocklist.delete({ where: { id: dup.id } });
+    }
+
+    customList = await prisma.blocklist.findUnique({
+      where: { id: canonical.id },
+      include: {
+        domains: { orderBy: { createdAt: 'desc' } },
+        apps: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    return customList!;
   }
 
   /**

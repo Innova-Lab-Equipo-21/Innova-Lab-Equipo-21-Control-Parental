@@ -227,6 +227,7 @@ model Blocklist {
   domains BlocklistDomain[]
   apps    BlocklistApp[]
 
+  @@unique([userId, type])
   @@map("blocklists")
   @@schema("public")
 }
